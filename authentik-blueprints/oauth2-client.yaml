@@ -8,8 +8,9 @@
 # and docker-compose.authentik.yml's header comment) and, once the Helm
 # path exists, the identical fixed values api-deployment.yaml computes when
 # devAuthentik.enabled and api.sso.clientId/clientSecret are left empty
-# (charts/nr-status/templates/_helpers.tpl's nr-status.devAuthentikClientId/
-# nr-status.devAuthentikClientSecret).
+# (charts/distant-signal/templates/_helpers.tpl's
+# distant-signal.devAuthentikClientId/
+# distant-signal.devAuthentikClientSecret).
 #
 # `signing_key`/`authorization_flow` !Find lookups depend on Authentik's OWN
 # default blueprints (its self-signed cert, its shipped
@@ -21,15 +22,15 @@
 # hatch, not evidence the blueprint is wrong.
 version: 1
 metadata:
-  name: NR Status (dev) - OAuth2 client and application
+  name: Distant Signal (dev) - OAuth2 client and application
 entries:
   - model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: nr-status-dev
+      name: distant-signal-dev
     attrs:
       client_type: confidential
-      client_id: nr-status-dev
-      client_secret: nr-status-dev-local-only-not-a-real-secret
+      client_id: distant-signal-dev
+      client_secret: distant-signal-dev-local-only-not-a-real-secret
       redirect_uris:
         - url: "http://localhost:3000/api/auth/callback"
           matching_mode: strict
@@ -41,7 +42,7 @@ entries:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
   - model: authentik_core.application
     identifiers:
-      slug: nr-status
+      slug: distant-signal
     attrs:
-      name: NR Status (dev)
-      provider: !Find [authentik_providers_oauth2.oauth2provider, [name, nr-status-dev]]
+      name: Distant Signal (dev)
+      provider: !Find [authentik_providers_oauth2.oauth2provider, [name, distant-signal-dev]]

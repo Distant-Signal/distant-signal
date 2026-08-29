@@ -12,25 +12,25 @@
 # example, not auto-applied" marker); this copy drops that label so it
 # actually applies at startup, and renames every stage/prompt identifier
 # from its upstream default-enrollment-* prefix to
-# nr-status-dev-enrollment-* so this app's own blueprint objects are
+# distant-signal-dev-enrollment-* so this app's own blueprint objects are
 # clearly namespaced.
 version: 1
 metadata:
-  name: NR Status (dev) - Open signup enrollment flow
+  name: Distant Signal (dev) - Open signup enrollment flow
 entries:
   - identifiers:
-      slug: nr-status-dev-enrollment
+      slug: distant-signal-dev-enrollment
     model: authentik_flows.flow
     id: flow
     attrs:
-      name: NR Status (dev) enrollment
-      title: Create your NR Status dev account
+      name: Distant Signal (dev) enrollment
+      title: Create your Distant Signal dev account
       designation: enrollment
       authentication: require_unauthenticated
   - id: prompt-field-username
     model: authentik_stages_prompt.prompt
     identifiers:
-      name: nr-status-dev-enrollment-field-username
+      name: distant-signal-dev-enrollment-field-username
     attrs:
       field_key: username
       label: Username
@@ -40,7 +40,7 @@ entries:
       placeholder_expression: false
       order: 0
   - identifiers:
-      name: nr-status-dev-enrollment-field-password
+      name: distant-signal-dev-enrollment-field-password
     id: prompt-field-password
     model: authentik_stages_prompt.prompt
     attrs:
@@ -52,7 +52,7 @@ entries:
       placeholder_expression: false
       order: 0
   - identifiers:
-      name: nr-status-dev-enrollment-field-password-repeat
+      name: distant-signal-dev-enrollment-field-password-repeat
     id: prompt-field-password-repeat
     model: authentik_stages_prompt.prompt
     attrs:
@@ -64,7 +64,7 @@ entries:
       placeholder_expression: false
       order: 1
   - identifiers:
-      name: nr-status-dev-enrollment-field-name
+      name: distant-signal-dev-enrollment-field-name
     id: prompt-field-name
     model: authentik_stages_prompt.prompt
     attrs:
@@ -76,7 +76,7 @@ entries:
       placeholder_expression: false
       order: 0
   - identifiers:
-      name: nr-status-dev-enrollment-field-email
+      name: distant-signal-dev-enrollment-field-email
     id: prompt-field-email
     model: authentik_stages_prompt.prompt
     attrs:
@@ -88,16 +88,16 @@ entries:
       placeholder_expression: false
       order: 1
   - identifiers:
-      name: nr-status-dev-enrollment-prompt-second
-    id: nr-status-dev-enrollment-prompt-second
+      name: distant-signal-dev-enrollment-prompt-second
+    id: distant-signal-dev-enrollment-prompt-second
     model: authentik_stages_prompt.promptstage
     attrs:
       fields:
         - !KeyOf prompt-field-name
         - !KeyOf prompt-field-email
   - identifiers:
-      name: nr-status-dev-enrollment-prompt-first
-    id: nr-status-dev-enrollment-prompt-first
+      name: distant-signal-dev-enrollment-prompt-first
+    id: distant-signal-dev-enrollment-prompt-first
     model: authentik_stages_prompt.promptstage
     attrs:
       fields:
@@ -105,33 +105,33 @@ entries:
         - !KeyOf prompt-field-password
         - !KeyOf prompt-field-password-repeat
   - identifiers:
-      name: nr-status-dev-enrollment-user-login
-    id: nr-status-dev-enrollment-user-login
+      name: distant-signal-dev-enrollment-user-login
+    id: distant-signal-dev-enrollment-user-login
     model: authentik_stages_user_login.userloginstage
   - identifiers:
-      name: nr-status-dev-enrollment-user-write
-    id: nr-status-dev-enrollment-user-write
+      name: distant-signal-dev-enrollment-user-write
+    id: distant-signal-dev-enrollment-user-write
     model: authentik_stages_user_write.userwritestage
     attrs:
       user_creation_mode: always_create
   - identifiers:
       target: !KeyOf flow
-      stage: !KeyOf nr-status-dev-enrollment-prompt-first
+      stage: !KeyOf distant-signal-dev-enrollment-prompt-first
       order: 10
     model: authentik_flows.flowstagebinding
   - identifiers:
       target: !KeyOf flow
-      stage: !KeyOf nr-status-dev-enrollment-prompt-second
+      stage: !KeyOf distant-signal-dev-enrollment-prompt-second
       order: 11
     model: authentik_flows.flowstagebinding
   - identifiers:
       target: !KeyOf flow
-      stage: !KeyOf nr-status-dev-enrollment-user-write
+      stage: !KeyOf distant-signal-dev-enrollment-user-write
       order: 20
     model: authentik_flows.flowstagebinding
   - identifiers:
       target: !KeyOf flow
-      stage: !KeyOf nr-status-dev-enrollment-user-login
+      stage: !KeyOf distant-signal-dev-enrollment-user-login
       order: 100
     model: authentik_flows.flowstagebinding
   # Wire the enrollment flow above into the shipped default login form's
@@ -147,4 +147,4 @@ entries:
     identifiers:
       name: default-authentication-identification
     attrs:
-      enrollment_flow: !Find [authentik_flows.flow, [slug, nr-status-dev-enrollment]]
+      enrollment_flow: !Find [authentik_flows.flow, [slug, distant-signal-dev-enrollment]]
