@@ -51,7 +51,7 @@ const plan: TripPlanResponse = {
   ],
 };
 
-async function renderPage(searchParams: { origin?: string | string[] } = {}) {
+async function renderPage(searchParams: Record<string, string | string[]> = {}) {
   renderWithMantine(await PlanPage({ searchParams: Promise.resolve(searchParams) }));
 }
 
@@ -87,6 +87,22 @@ describe('PlanPage (/plan)', () => {
     expect(screen.getByRole('combobox', { name: 'From' })).toHaveValue('');
   });
 
+  it('restores a shared search, advanced options included, from the query string', async () => {
+    await renderPage({
+      origin: 'EUS',
+      destination: 'pre',
+      results: 'options',
+      via: 'STA,CRE',
+      avoidChange: 'WVH',
+      maxChanges: '1',
+    });
+    expect(screen.getByRole('combobox', { name: 'To' })).toHaveValue('PRE');
+    expect(screen.getByRole('radio', { name: 'Compare options' })).toBeChecked();
+    const advanced = screen.getByRole('button', { name: 'Advanced options (3 set)' });
+    expect(advanced).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText("Pass through STA, CRE · Don't change at WVH · Max 1 change")).toBeInTheDocument();
+  });
+
   it('takes the first of a repeated ?origin=', async () => {
     await renderPage({ origin: ['MKC', 'EUS'] });
     expect(screen.getByRole('combobox', { name: 'From' })).toHaveValue('MKC');
@@ -95,7 +111,7 @@ describe('PlanPage (/plan)', () => {
   it('lets a signed-out visitor plan and see results, asking them to log in only on "Track this journey"', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(plan) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(plan) })
       .mockResolvedValueOnce(new Response('no session', { status: 401 }));
     vi.stubGlobal('fetch', fetchMock);
 

@@ -2,10 +2,14 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import {
   buildTripPlanQuery,
   collectTripPlanStationCodes,
+  countAdvancedOptions,
   fetchTripPlan,
+  isTooLargeSearchError,
+  noResultHint,
   trainLegsForTracking,
   TripPlanError,
   TRIP_PLAN_UNAVAILABLE_MESSAGE,
+  viaSatisfiedLabel,
 } from './tripPlan';
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse } from './types';
 
@@ -217,7 +221,7 @@ describe('fetchTripPlan', () => {
 
   it('returns the parsed response on success', async () => {
     const body = { results: 'fastest', segments: [] };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) } as Response));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) }));
     const result = await fetchTripPlan({
       originCrs: 'EUS',
       destinationCrs: 'MKC',
@@ -235,7 +239,7 @@ describe('fetchTripPlan', () => {
         ok: false,
         status: 404,
         text: () => Promise.resolve('no schedule data published'),
-      } as Response),
+      }),
     );
     await expect(
       fetchTripPlan({
@@ -251,9 +255,7 @@ describe('fetchTripPlan', () => {
   it('still surfaces the backend message verbatim on a 400 (bad CRS/results value)', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({ ok: false, status: 400, text: () => Promise.resolve('unknown CRS code') } as Response),
+      vi.fn().mockResolvedValue({ ok: false, status: 400, text: () => Promise.resolve('unknown CRS code') }),
     );
     await expect(
       fetchTripPlan({
@@ -281,7 +283,7 @@ describe('fetchTripPlan', () => {
         ok: false,
         status: 503,
         text: () => Promise.resolve('{"error":"service_unavailable","retryable":true}'),
-      } as Response),
+      }),
     );
     const promise = fetchTripPlan({
       originCrs: 'EUS',
@@ -301,7 +303,7 @@ describe('fetchTripPlan', () => {
         ok: false,
         status: 500,
         text: () => Promise.resolve('<html>Internal Server Error</html>'),
-      } as Response),
+      }),
     );
     const promise = fetchTripPlan({
       originCrs: 'EUS',
@@ -317,5 +319,93 @@ describe('fetchTripPlan', () => {
     });
     await expect(promise).rejects.not.toMatchObject({ message: expect.stringContaining('<html>') });
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('500'), '<html>Internal Server Error</html>');
+  });
+});
+
+describe('advanced options', () => {
+  it('sends via, the avoid lists and maxChanges as GET /Trips/plan params', () => {
+    const params = new URLSearchParams(
+      buildTripPlanQuery({
+        originCrs: 'EUS',
+        destinationCrs: 'GLA',
+        waypointCrs: [],
+        date: '2026-10-08',
+        results: 'options',
+        viaCrs: ['sta', 'CRE'],
+        avoidCrs: ['BHM'],
+        avoidStopCrs: ['tiploc:keswbus'],
+        avoidChangeCrs: ['WVH'],
+        maxChanges: 0,
+      }),
+    );
+    expect(params.get('via')).toBe('STA,CRE');
+    expect(params.get('avoid')).toBe('BHM');
+    expect(params.get('avoidStop')).toBe('tiploc:KESWBUS');
+    expect(params.get('avoidChange')).toBe('WVH');
+    expect(params.get('maxChanges')).toBe('0');
+  });
+
+  it('omits every advanced param when none is set', () => {
+    const params = new URLSearchParams(
+      buildTripPlanQuery({
+        originCrs: 'EUS',
+        destinationCrs: 'GLA',
+        waypointCrs: [],
+        date: '2026-10-08',
+        results: 'fastest',
+      }),
+    );
+    for (const name of ['via', 'avoid', 'avoidStop', 'avoidChange', 'maxChanges']) {
+      expect(params.has(name)).toBe(false);
+    }
+  });
+
+  it('counts each set list once, and a non-default maxChanges', () => {
+    expect(countAdvancedOptions({})).toBe(0);
+    expect(countAdvancedOptions({ viaCrs: ['STA', 'CRE'], avoidCrs: [], maxChanges: 0 })).toBe(2);
+  });
+
+  it('labels how each via was passed', () => {
+    expect(viaSatisfiedLabel({ crs: 'STA', how: 'pass' }, 'Stafford')).toBe('Passes through Stafford without stopping');
+    expect(viaSatisfiedLabel({ crs: 'STA', how: 'call' }, 'Stafford')).toBe('Calls at Stafford');
+    expect(viaSatisfiedLabel({ crs: 'STA', how: 'walk' }, undefined)).toBe('Goes via STA on foot');
+  });
+
+  it('suggests a fix for the constraints the advanced options set', () => {
+    const name = (code: string) => (code === 'STA' ? 'Stafford' : code);
+    expect(noResultHint({ constraint: 'via', values: ['STA'], message: '' }, name)).toContain(
+      'Try removing Stafford from "Pass through"',
+    );
+    expect(noResultHint({ constraint: 'maxChanges', values: [], message: '' }, name)).toContain('Allow more changes');
+    expect(noResultHint({ constraint: 'avoidStop', values: ['STA'], message: '' }, name)).toBe(
+      `Try removing Stafford from "Don't stop at".`,
+    );
+    expect(noResultHint({ constraint: 'noRoute', values: [], message: '' }, name)).toBeNull();
+  });
+
+  it('recognises the options-mode search-size 400', () => {
+    expect(
+      isTooLargeSearchError(
+        new TripPlanError('results=options with 4 waypoints, 3 vias and maxChanges=6 is too large a search (...)', 400),
+      ),
+    ).toBe(true);
+    expect(isTooLargeSearchError(new TripPlanError('via: ZZZ is not a recognised station CRS code', 400))).toBe(false);
+  });
+
+  it('collects the vias and no-result values for name lookup', () => {
+    const codes = collectTripPlanStationCodes({
+      results: 'fastest',
+      via: ['STA'],
+      segments: [
+        {
+          originCrs: 'EUS',
+          destinationCrs: 'GLA',
+          cappedByMaxChanges: false,
+          itineraries: [],
+          noResultReason: { constraint: 'avoid', values: ['BHM'], message: '' },
+        },
+      ],
+    });
+    expect(codes).toEqual(expect.arrayContaining(['EUS', 'GLA', 'STA', 'BHM']));
   });
 });
