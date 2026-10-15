@@ -2,10 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import PreferencesPage, { metadata } from './page';
-import { getSessionOrLoggedOut } from '@/lib/api';
+import { getConnectedApps, getSessionOrLoggedOut } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
   getSessionOrLoggedOut: vi.fn(),
+  getConnectedApps: vi.fn(async () => ({ grants: [], available: [], recentDeletions: [] })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -61,6 +62,27 @@ describe('PreferencesPage', () => {
     vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     renderWithMantine(await PreferencesPage());
     expect(screen.getByRole('heading', { name: 'Ask about trains' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Claude API key')).toBeInTheDocument();
+  });
+
+  it('lists connected apps for a logged-in account, below the Claude key', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
+    renderWithMantine(await PreferencesPage());
+    const claude = screen.getByRole('heading', { name: 'Ask about trains' });
+    const apps = screen.getByRole('heading', { level: 2, name: 'Connected apps' });
+    expect(claude.compareDocumentPosition(apps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('No apps are connected.')).toBeInTheDocument();
+  });
+
+  it('leaves Connected apps out for a logged-out visitor, or when it cannot load', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedOut);
+    const { unmount } = renderWithMantine(await PreferencesPage());
+    expect(screen.queryByRole('heading', { name: 'Connected apps' })).toBeNull();
+    unmount();
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
+    vi.mocked(getConnectedApps).mockRejectedValueOnce(new Error('down'));
+    renderWithMantine(await PreferencesPage());
+    expect(screen.queryByRole('heading', { name: 'Connected apps' })).toBeNull();
     expect(screen.getByLabelText('Claude API key')).toBeInTheDocument();
   });
 });

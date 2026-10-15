@@ -1,6 +1,7 @@
 import { Stack, Title } from '@mantine/core';
 import type { Metadata } from 'next';
-import { getSessionOrLoggedOut } from '@/lib/api';
+import { ConnectedApps } from '@/components/ConnectedApps';
+import { getConnectedApps, getSessionOrLoggedOut } from '@/lib/api';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { AccountSettingsLoginPrompt } from './AccountSettingsLoginPrompt';
 import { AppearanceSection } from './AppearanceSection';
@@ -26,7 +27,9 @@ export const metadata: Metadata = {
  * - Device-local, saved in this browser, no account needed:
  *   `AppearanceSection` (colour theme, pride flag).
  * - Account-backed, logged in only: `NotificationsSection`,
- *   `ClaudeKeySection`. A logged-out
+ *   `ClaudeKeySection`, then Connected apps (`ConnectedApps`, the apps
+ *   that can work with the visitor's journeys; also at
+ *   `/account/connected-apps`, docs/connected-apps.md). A logged-out
  *   visitor sees `AccountSettingsLoginPrompt` in their place. A new
  *   account-backed section goes in the logged-in list below and is covered
  *   by that prompt; a new device-local one goes beside `AppearanceSection`.
@@ -39,6 +42,10 @@ export default async function PreferencesPage() {
   // Degrades rather than throws: a logged-out visitor is a session with
   // `authenticated: false`, never a 401.
   const session = await getSessionOrLoggedOut();
+  // Connected apps: fetched here rather than through the async
+  // `ConnectedAppsSection`, so this page renders in one pass. A failure
+  // drops only that section.
+  const connectedApps = session.authenticated ? await getConnectedApps().catch(() => null) : null;
 
   return (
     <Stack p="lg" gap="lg" maw={640}>
@@ -48,6 +55,7 @@ export default async function PreferencesPage() {
         <>
           <NotificationsSection />
           <ClaudeKeySection />
+          {connectedApps && <ConnectedApps data={connectedApps} headingOrder={2} />}
         </>
       ) : (
         <AccountSettingsLoginPrompt />

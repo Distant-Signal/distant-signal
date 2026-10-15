@@ -1,20 +1,10 @@
 # ds-mcp delegated access to a user's Distant Signal journeys (2026-10-14)
 
-**Status: design approved in direction (2026-10-14), not implemented. A dev
-Authentik spike passed on 2026-10-14 (§9.5).** The
-user answered the main open questions on 2026-10-14. Section 0a records
-those decisions, and the rest of the document has been updated to match.
-The questions still open are in section 8. Nothing here is implemented, and
-no code was changed to write it.
-
-**Access (later on 2026-10-14):** delegated access is open to every
-Authentik user. The `distant-signal-api` application has no policy
-binding: Ranma-Config set its binding to `distant-signal-chatbot-users`
-`state: absent`, as it did for `distant-signal-mcp` on 2026-09-30, and DS
-itself dropped that group on the same day (`/chat` is open to every
-logged-in user). The user's grant in DS is what gates use. O3 and §9.6
-below are updated to match; the spike results in §9.5 (S8 included) are
-kept as run.
+**Status: design approved (2026-10-14). The Authentik spike passed on dev
+and production (§9.5). Phase 1b (the DS side) is built, off by default;
+see "Phase 1b progress" in §7.** The user answered every open question on
+2026-10-14, in four rounds. Section 0a records those decisions, and the
+rest of the document has been updated to match.
 
 Requested by the user. The aim: a user who plans a trip with the
 Distant-Signal-MCP server's (ds-mcp's) `plan_journey` tool can save the
@@ -122,6 +112,23 @@ spec:
 | D-11 | Limits and audit | The proposed limits are accepted: 50 saves and 20 deletes a day; per minute 10 writes, 60 reads and 5 deletes; a per-client ceiling at 20 times the per-user limit. Audit retention as proposed, with no extra audit table | §5.10, §5.11 |
 | D-12 | DS-only logout | The grant is **kept** | §5.9 |
 | D-8 (revised) | Creating a grant | A valid DS session is enough, and its lifetime follows the SSO configuration. The user's words: "10-min is too recent, we should consider that users may be logged in and keeping a long-running session dependent on sso config instead of constantly re-logging in." No `max_age` and no `authenticated_at`. Compensating controls are in §5.3, and the threat-model change is T6b | §5.3, §6 |
+
+**Third round (later on 2026-10-14):** the five questions left open in
+section 8.
+
+| # | Question | Decision | Where |
+|---|---|---|---|
+| D-13 | Group reads (Phase 3) | Only group **owners and admins** can turn on `allow_assistant_reads` for a group. Other members' journey names are **replaced with generic labels** ("Journey 1", ...) before they reach ds-mcp, even in a group that opted in | §5.13 |
+| D-14 | Public ingress | Delegated tokens are **refused** when the api is reached through the public tunnel or ingress, and accepted only from the in-cluster ds-mcp. DS tells the two apart by the listener a request arrived on, never by a header | §5.7 |
+| D-15 | The web planner | `PlanTripFlow` moves to the atomic, idempotent `POST /Journeys/itinerary` in Phase 1 | §5.8, §7 |
+| D-16 | Privacy page | Updated by a separate agent, not as part of Phase 1b | §7 |
+| D-17 | Spec index | `docs/superpowers/README.md` is indexed by a separate agent | — |
+
+**Fourth round (later on 2026-10-14):**
+
+| # | Question | Decision | Where |
+|---|---|---|---|
+| D-18 | Who may use delegated access | **Every Authentik user**, the same as ds-mcp itself. The `distant-signal-api` application has **no group policy binding**: Ranma-Config set its binding to `distant-signal-chatbot-users` to `state: absent`, as it did for `distant-signal-mcp` on 2026-09-30, and DS dropped that group the same day (`/chat` is open to every logged-in user). The DS grant remains the gate. The spike results in §9.5 (S8 included) are kept as run | §9.1, §9.6 |
 
 Decision D-7 replaces the first version's recommendation to keep the grant
 across an Authentik logout. The cost is accepted: after any Authentik
@@ -910,17 +917,41 @@ Delegated { client, grant_id, jti } }`:
 - **CORS is unchanged**: GET only, no credentials, `Authorization` not
   allowed in the preflight. A browser on another origin cannot send a
   bearer to the api even if it holds one.
-- **Reachability.** ds-mcp reaches the api in-cluster; the api's NetworkPolicy
-  already narrows extra-namespace ingress to the MCP pod (`4068cbff`). If
-  `ingress.api.enabled` exposes the api publicly, delegated bearers would
-  also be accepted there. Open question 2 asks whether to refuse delegated
-  bearers on public ingress.
+- **Reachability (D-14): delegated bearers only on an in-cluster
+  listener.** ds-mcp reaches the api in-cluster; the api's NetworkPolicy
+  already narrows extra-namespace ingress to the MCP pod (`4068cbff`).
+  Public traffic arrives three ways: the tunnel to the frontend (whose
+  proxy never forwards `Authorization`), `ingress.api.enabled` (the
+  ingress controller straight to the api) and `networkPolicy.tunnel.api`
+  (the tunnel straight to the api). The last two can carry any header a
+  client chooses, so no header (`X-Real-IP`, `X-Forwarded-For`, `Host`)
+  can tell them apart from ds-mcp. DS uses the socket instead:
+  1. The api binds a **second listener**, the delegated listener
+     (`DELEGATED_LISTEN_ADDR`, default `0.0.0.0:8082`), only when at least
+     one delegated client is enabled.
+  2. It is published only by its own `ClusterIP` Service,
+     `<api>-delegated`, whatever `api.service.type` is. The Ingress and the
+     tunnel route to the main Service's `http` port, so they never reach
+     it.
+  3. The api's NetworkPolicy admits that port only from the pods in
+     `networkPolicy.apiExtraIngressNamespaces` (narrowed by
+     `apiExtraIngressPodLabels`), that is, ds-mcp.
+  4. The listener itself marks each request it accepts with a request
+     extension (`Ingress::Delegated`), which no client can set. A delegated
+     bearer is verified only on a request carrying that mark.
+  5. On the public listener, a bearer whose unverified `iss` names a
+     delegated issuer gets 401 `invalid_token` before any handler runs, and
+     is logged as `event=delegated_rejected reason=public_listener`.
+
+  ds-mcp therefore calls the delegated routes at
+  `http://<release>-api-delegated.<namespace>.svc:8082`, and keeps its
+  existing base URL for everything else.
 
 ### 5.8 Which routes gain bearer auth
 
 | Route | Today | Delegated scope | Phase | Notes |
 |---|---|---|---|---|
-| `POST /Journeys/itinerary` (**new**) | — | `journeys:write` | 1 | Creates a journey and 1–8 `knownTrain` legs in **one transaction**. Optional `customName`. Requires an `Idempotency-Key` header from delegated callers; the key is remembered per user for 24 h and a repeat returns the original response. Checks the train-pin cap and the journey cap. Also available with a cookie, so `PlanTripFlow` can drop its non-atomic loop (open question 3) |
+| `POST /Journeys/itinerary` (**new**) | — | `journeys:write` | 1 | Creates a journey and 1–8 `knownTrain` legs in **one transaction**. Optional `customName`. Requires an `Idempotency-Key` header from delegated callers; the key is remembered per user for 24 h and a repeat returns the original response. Checks the train-pin cap and the journey cap. Also available with a cookie: `PlanTripFlow` moves to it in Phase 1 and drops its non-atomic loop (D-15) |
 | `GET /Journeys/mine` | cookie | `journeys:read` | 1 | Unchanged response |
 | `GET /Journeys/{id}` | cookie (`journey_readable_by`) | `journeys:read` (own only) / `journeys:read_shared` | 1 / 3 | For a delegated caller without `read_shared`, ownership only. `shareLink` is always `null` for a delegated caller |
 | `DELETE /Journeys/{id}` | cookie, owner | `journeys:delete` | 1 | Delegated callers: only journeys this client created that are not shared (§5.5a). The cookie path is unchanged |
@@ -1104,15 +1135,19 @@ itineraries would be sent to an LLM vendor when someone asks their
 assistant.
 
 **Per-group opt-in.** `groups` gains `allow_assistant_reads BOOLEAN NOT
-NULL DEFAULT false`, which group owners and admins toggle on the group page.
-The group's member list shows a short notice when it is on.
+NULL DEFAULT false`, which **only** group owners and admins toggle on the
+group page (D-13). The group's member list shows a short notice when it is
+on.
 
 - `GET /groups/shared-journeys` and `GET /Journeys/{id}` filter on it for
   delegated callers. Cookie callers are not affected.
 - A new helper, `journey_readable_by_delegate`, is kept separate from
   `journey_readable_by` so the cookie path's query is not touched.
-- Responses for shared journeys omit `customName` unless the owner opted
-  in. See open question 1.
+- Responses for shared journeys never carry another member's
+  `customName` (D-13). DS replaces it with a generic label ("Journey 1",
+  "Journey 2", numbered within the response) before it reaches ds-mcp,
+  even in a group that opted in. The caller's own journeys keep their
+  names.
 - ds-mcp passes shared data to the model inside a clearly marked "untrusted
   content from other users" block.
 - A read through a group logs `group_id` in its audit line.
@@ -1286,6 +1321,8 @@ production steps.**
 
 1. **Configuration.** `DELEGATED_CLIENTS` (with `serviceGroup`), the
    verifiers, and the startup guard extended to every client ID and issuer.
+   The delegated listener, its `ClusterIP` Service and its NetworkPolicy
+   rule (D-14, §5.7).
 2. **Rate limiter.** Issuer routing, and the delegated buckets for read,
    write and delete.
 3. **Migrations.**
@@ -1307,7 +1344,7 @@ production steps.**
    lines and metrics.
 7. **Routes.**
    - `POST /Journeys/itinerary`: atomic and idempotent, with
-     `created_via` and the 50/day cap.
+     `created_via` and the 50/day cap. `PlanTripFlow` moves to it (D-15).
    - `GET /Journeys/mine` and `GET /Journeys/{id}` (own journeys only),
      moved to the extractor.
    - **`DELETE /Journeys/{id}` for delegated callers**, under the §5.5a
@@ -1333,6 +1370,36 @@ production steps.**
 10. **Documentation.** Chart values, `docs/session-revocation.md`, and a new
     `docs/connected-apps.md`.
 
+**Phase 1b progress (2026-10-15).** Built on the DS side, off by default
+(`api.delegated.clients` empty); operator guide `docs/connected-apps.md`,
+contract in `docs/api-changelog.md` (2026-10-15).
+
+- Done: items 1 to 10, with these choices made while building:
+  - The listener (D-14) serves the same router; a request extension set
+    only by that listener is what lets the gate accept a delegated
+    bearer. Its Service is always ClusterIP, and the chart fails a render
+    whose delegated port equals the public one.
+  - The gate rejects a delegated token on any route outside the four
+    before the rate limiter (`403 insufficient_scope`), and checks the
+    cookie-plus-bearer case there (`400 ambiguous_credentials`).
+  - The confirmation token is issued by a JSON route the consent page
+    calls from the browser (`GET /public/account/connected-apps/{client}/consent`);
+    every page already sends `frame-ancestors 'none'`.
+  - `POST /Journeys/itinerary` takes up to 8 legs from a delegated caller
+    and up to 20 (the journey's leg cap) with a cookie, so `PlanTripFlow`
+    keeps its range. Its response is a superset of `POST /Journeys`'.
+  - `createdVia` is added to the journey list and detail responses, so the
+    assistant can tell which journeys it may delete.
+  - Revoked grant rows are deleted 90 days after revocation (the spec set
+    no retention for them).
+  - The grant notice is a notifier cycle (`grant_notice`) on the
+    skip-check interval, recorded in `delegated_grants.push_notified_at`,
+    for grants made in the last 24 hours.
+- Not done in Phase 1b: the Preferences page's copy of Connected apps
+  (the page is on another branch; `ConnectedAppsSection` is ready to
+  mount), dashboard panels and alerts (Phase 2), and "Saved by assistant"
+  in the UI (Phase 2).
+
 **Phase 1c: ds-mcp.**
 
 1. The exchange client, and the subject token stored encrypted with
@@ -1355,7 +1422,6 @@ session, because the live Authentik configuration lives there.
 - "Saved by assistant" in the DS UI, and a filter.
 - Caps tuned from real usage.
 - Dashboard panels and alerts.
-- Optionally move `PlanTripFlow` to the atomic route.
 
 **Phase 3: group reads (D-4).**
 
@@ -1364,7 +1430,7 @@ session, because the live Authentik configuration lives there.
   mappings.
 - `journey_readable_by_delegate`.
 - ds-mcp `list_shared_journeys`, with untrusted-content marking.
-- A privacy-page update.
+- A privacy-page update (D-16: a separate agent).
 
 **Phase 4, only if needed.**
 
@@ -1392,19 +1458,15 @@ session, because the live Authentik configuration lives there.
   - the grant is kept on a DS-only logout (D-12);
   - D-8 revised: a valid DS session is enough to create a grant.
 
-**Still open:**
+- Third round (D-13 to D-17):
+  - group reads: only owners and admins opt a group in, and other
+    members' journey names become generic labels;
+  - delegated bearers are refused on the public tunnel and ingress, and
+    accepted only on an in-cluster listener;
+  - `PlanTripFlow` moves to `POST /Journeys/itinerary` in Phase 1;
+  - the privacy page and the spec index are updated by separate agents.
 
-1. **Group-read details** (Phase 3). Can only owners and admins toggle
-   `allow_assistant_reads`? And should other members' journey names be
-   redacted even in groups that opted in?
-2. **Public ingress.** Should DS refuse delegated bearers when the api is
-   reached through a public ingress (`ingress.api.enabled`)?
-3. **The web planner.** Should `PlanTripFlow` move to
-   `POST /Journeys/itinerary`?
-4. **Privacy page.** Who updates the privacy page to cover connected apps
-   and processing by a third-party LLM?
-5. **Spec index.** `docs/superpowers/README.md` has no rows for specs after
-   2026-10-06. Should it be brought up to date in a separate pass?
+**Still open:** none.
 
 ## 9. Authentik spike runbook (before Phase 1)
 
@@ -1430,7 +1492,7 @@ confirms each one against the 2026.8 model source before relying on it
 |---|---|---|---|---|
 | O1 | 4 scope mappings (`authentik_providers_oauth2.scopemapping`) | Names `ds-journeys-read`, `ds-journeys-write`, `ds-journeys-delete`, `ds-journeys-read-shared`, with `scope_name` `journeys:read`, `journeys:write`, `journeys:delete`, `journeys:read_shared`. Each has a consent-screen `description` written as a sentence ("Save journeys to your Distant Signal account"). The expression is `return {}` if S4 shows that the access token's `scope` claim lists the granted scopes. Otherwise it is a distinct claim per scope, for example `return {"ds_scope_journeys_write": True}`. Distinct keys are needed because mappings that return the same key overwrite one another | yes | yes (`read_shared` can wait until Phase 3) |
 | O2 | Provider `distant-signal-api` (`authentik_providers_oauth2.oauth2provider`) | `client_type: confidential`; `client_id: distant-signal-api`; `client_secret` from the sealed Secret; `grant_types: [token_exchange]` (the spike also enables `authorization_code` and `refresh_token` to test fallback A, and production enables them only if A is chosen); `access_token_validity: minutes=5`; `refresh_token_validity: days=30` (A only); `sub_mode: hashed_user_id`, with a comment saying it must match `distant-signal` and `distant-signal-mcp`; `issuer_mode: per_provider`; `signing_key`: the RSA certificate the other providers use; `property_mappings`: O1 (plus `openid` for A); the token-exchange trust list (`jwt_federation_providers`, confirmed against the 2026.8.0 source and on dev) set to `[distant-signal-mcp]` only; `authorization_flow: default-provider-authorization-explicit-consent` (consent matters for A); `invalidation_flow: default-provider-invalidation-flow`; `redirect_uris` (A only), strict: `https://ds-mcp.cursed.solutions/oauth/distant-signal-api/callback`; **no** `logout_uri` | yes | yes |
-| O3 | Application `distant-signal-api` (`authentik_core.application`) | Provider O2. No policy binding: open to every Authentik user, like the `distant-signal-mcp` application (the spike bound it to `distant-signal-chatbot-users`; that group is gone) | yes | yes |
+| O3 | Application `distant-signal-api` (`authentik_core.application`) | Provider O2. **No policy binding** (D-18): open to every Authentik user, like the `distant-signal-mcp` application. The dev spike bound it to `distant-signal-chatbot-users` to answer S8; that group is gone | yes | yes |
 | O4 | Secret | Ranma-Config seals `ds-mcp-secret` / `distant-signal-api-client-secret` (namespace `ds-mcp`), plus the Authentik copy, in the same way as `authentik-client-secret` | fixed dev value | yes |
 | O5 | Spike only: provider and application `ds-spike-rogue` | A confidential client using authorization code, used to prove that foreign tokens cannot be exchanged. Delete it after the spike | yes | yes, then delete |
 | O6 | Spike only: test users | `spike-local` (local, in `distant-signal-chatbot-users`); `spike-nogroup` (not in the group). In production only, `spike-discord` (from the Discord source), if a test Discord account is available | yes (local users) | yes, then delete |
@@ -1585,10 +1647,23 @@ also leaves the production `distant-signal-mcp` provider unchanged.
 
 **Remaining production steps for Ranma** are in §9.6.
 
+**Production smoke test (2026-10-14, Authentik 2026.8.3).** The Ranma
+session ran §9.6 step 3 on `https://sso.cursed.solutions`:
+
+| Check | Result |
+|---|---|
+| Exchange of a `distant-signal-mcp` access token | **200.** RS256 JWT with `iss=https://sso.cursed.solutions/application/o/distant-signal-api/`, `aud=azp=distant-signal-api`, `exp − iat = 300`, `scope="journeys:write journeys:read journeys:delete"`. No `act` and no `sid`, as on dev |
+| A `distant-signal` (DS SSO) access token as the subject | Refused, 400 `invalid_grant` |
+| The same exchange for a deactivated user | Refused, 400 `invalid_grant` |
+
+The smoke test ran while the application still had the
+`distant-signal-chatbot-users` binding. D-18 removed it, which changes
+only who may be exchanged for.
+
 ### 9.6 Production steps for Ranma (exact)
 
-Order matters: each step depends on the previous one. None of these has
-been done.
+Order matters: each step depends on the previous one. Steps 1 to 3 were
+done on 2026-10-14 (§9.5); the O3 binding was removed under D-18.
 
 1. **Seal the client secret.**
    - Generate a 64-character random secret.
@@ -1626,12 +1701,19 @@ been done.
      - `redirect_uris: []`;
      - no `logout_uri`.
    - **O3:** `authentik_core.application` `distant-signal-api`, with
-     provider O2 and no policy binding.
+     provider O2 and **no** policy binding (D-18).
      - The application is **required**: Authentik refuses an exchange whose
        target provider has no application (`target_without_application`).
      - Open to every Authentik user, like `distant-signal-mcp` (unbound
-       since 2026-09-30). S8 showed a binding would be enforced at every
-       exchange, so adding one back is the way to narrow it again.
+       since 2026-09-30), and the DS grant gates use. S8 showed a binding
+       would be enforced at every exchange, so adding one back is the way
+       to narrow it again.
+   - **Applying gated entries.** Entries gated on an env var apply only
+     once the Authentik worker has that env var **and** the blueprint has
+     been applied again afterwards. The first apply after the env var is
+     added skips them, so queue `apply_blueprint` for this blueprint by
+     hand (or wait for the next scheduled apply) and check that O1 to O3
+     exist before step 3.
    - **No change** to `distant-signal-mcp` or `distant-signal`.
 3. **Smoke test on production** (S14, shortened), with a temporary test
    user (any Authentik account):
