@@ -41,6 +41,8 @@ const PAGES: [name: string, path: string][] = [
   ['stations', '/stations'],
   ['station', `/stations/${REAL_STATION_CRS}`],
   ['trains', '/trains'],
+  // After a search: the compact bar, with Station in its search slot.
+  ['trains-searched', `/trains?station=${REAL_STATION_CRS}`],
   ['train', `/train/${TRAIN_UID}/${TRAIN_DATE}`],
   ['incidents', '/incidents'],
   ['account', '/account'],
@@ -162,7 +164,7 @@ for (const scheme of SCHEMES) {
         });
       });
 
-      // The /lines search and filters bar (app/lines/LinesFilterBar.tsx) in
+      // The /lines search and filters bar (components/ListFilterBar.tsx) in
       // the two states the full-page shot above can't show: stuck to the
       // top after scrolling, and with the filters open (a popover from
       // `sm` up, a bottom sheet below). Viewport shots, not full page: both
@@ -181,7 +183,7 @@ for (const scheme of SCHEMES) {
             await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
           } else {
             await page.evaluate(() => window.scrollTo(0, 1200));
-            await expect(page.locator('.linesFilterBar')).toHaveAttribute('data-stuck', 'true');
+            await expect(page.locator('.listFilterBar')).toHaveAttribute('data-stuck', 'true');
           }
 
           await expect(page).toHaveScreenshot(`${state}-${scheme}-${width}.png`, {
