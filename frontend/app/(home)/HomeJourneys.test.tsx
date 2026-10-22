@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { expectNoUnguardedNowrapBadges } from '@/test/shrinkGuard';
@@ -15,6 +15,14 @@ import { loneTrainLeg, MAX_UPCOMING_JOURNEYS, type HomeJourney, type HomeLoneTra
 import { trackedTrainRowStatus } from '@/lib/trackedRowStatus';
 import type { JourneyDetail, TrackedTrainListItem } from '@/lib/types';
 import { CurrentJourneyCard, CurrentJourneySection, UpcomingJourneysSection } from './HomeJourneys';
+import { openBreakSummary } from '@/test/replanFixtures';
+
+// The open-break banner's "See options" sheet is a client component.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(''),
+}));
 
 const KGX: [string, string] = ['KGX', 'London Kings Cross'];
 const YRK: [string, string] = ['YRK', 'York'];
@@ -91,8 +99,10 @@ describe('CurrentJourneyCard', () => {
     const link = screen.getByRole('link');
     expect(link).toHaveAttribute('href', '/journeys/7');
     expect(within(link).getByText('London Kings Cross (KGX) to Edinburgh (EDB), 17 Sep 2026')).toBeInTheDocument();
-    // The journey's worst status, then the leg's own delay in minutes.
-    expect(within(link).getByText('Delayed')).toBeInTheDocument();
+    // The whole journey's status (judged at the final destination, as on
+    // the journey page: the change at York still works), then the leg's
+    // own delay in minutes.
+    expect(within(link).getByText('On time')).toBeInTheDocument();
     expect(within(link).getByText('12 min late')).toBeInTheDocument();
     expect(within(link).getByText('Now, leg 1 of 2')).toBeInTheDocument();
     expect(within(link).getByText('London Kings Cross (KGX) to York (YRK) · 10:00')).toBeInTheDocument();
@@ -111,9 +121,27 @@ describe('CurrentJourneyCard', () => {
         now={new Date('2026-09-17T10:00:00Z')}
       />,
     );
-    const [headline, leg] = screen.getAllByText(/^(Cancelled|On time)$/);
-    expect(headline).toHaveTextContent('Cancelled');
+    const [headline, leg] = screen.getAllByText(/^(Part cancelled|On time)$/);
+    expect(headline).toHaveTextContent('Part cancelled');
     expect(leg).toHaveTextContent('On time');
+  });
+
+  it('headlines a connection the api says is missed or tight', () => {
+    const withConnection = (state: 'missed' | 'atRisk') => {
+      const base = journey();
+      const legs = base.detail.legs.map((l, i) =>
+        i === 1 ? { ...l, connection: { gapMinutes: 8, minimumChangeMinutes: state === 'missed' ? 10 : 7, state } } : l,
+      );
+      return { ...base, detail: { ...base.detail, legs } };
+    };
+    const { unmount } = renderWithMantine(
+      <CurrentJourneyCard journey={withConnection('missed')} now={new Date('2026-09-17T10:00:00Z')} />,
+    );
+    expect(screen.getByText('Connection missed')).toBeInTheDocument();
+    expect(screen.getByText('12 min late')).toBeInTheDocument();
+    unmount();
+    renderWithMantine(<CurrentJourneyCard journey={withConnection('atRisk')} now={new Date('2026-09-17T10:00:00Z')} />);
+    expect(screen.getByText('Tight connection')).toBeInTheDocument();
   });
 
   it('on the last leg, gives the destination and arrival instead of a change', () => {
@@ -179,6 +207,26 @@ describe('CurrentJourneySection', () => {
     expect(within(section).getByRole('heading', { name: 'Current journey', level: 2 })).toBeInTheDocument();
     expect(within(section).getByRole('heading', { name: 'Also in progress', level: 3 })).toBeInTheDocument();
     expect(within(section).getByRole('link', { name: /Second trip/ })).toHaveAttribute('href', '/journeys/8');
+  });
+
+  it('shows an open break under the current journey, with its options for the owner', () => {
+    const current = journey();
+    current.detail.openBreak = openBreakSummary({ triggerLegId: 2 });
+    renderWithMantine(
+      <CurrentJourneySection current={current} alsoInProgress={[]} now={new Date('2026-09-17T10:00:00Z')} />,
+    );
+    const banner = screen.getByRole('region', { name: 'Connection at York missed' });
+    expect(banner).toHaveTextContent('3 other ways to Edinburgh. First arrives 11:12.');
+    expect(within(banner).getByRole('button', { name: 'See options' })).toBeInTheDocument();
+    // Not inside the card's link.
+    expect(banner.closest('a')).toBeNull();
+  });
+
+  it('shows no break banner without an open break', () => {
+    renderWithMantine(
+      <CurrentJourneySection current={journey()} alsoInProgress={[]} now={new Date('2026-09-17T10:00:00Z')} />,
+    );
+    expect(screen.queryByRole('button', { name: 'See options' })).not.toBeInTheDocument();
   });
 
   it('has no "Also in progress" list with one journey under way', () => {
