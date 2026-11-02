@@ -65,6 +65,7 @@ FROM builder-base AS builder-prod
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache npm run build
 
 FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS runtime-prod
+LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 # See builder-base's identical ENV above for why this is repeated per stage
 # rather than set once: the standalone `server.js` below still boots

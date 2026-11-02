@@ -6,6 +6,7 @@ import { PREFERENCES_DESTINATION } from '@/lib/navLinks';
 import { LEGAL_LINKS, legalPagesVisible } from '@/lib/legal';
 import { NATIONAL_RAIL_URL } from './NationalRailCredit';
 import { TFL_STOPS_ATTRIBUTION } from '@/lib/tflAttribution';
+import { SOURCE_CODE_URL } from '@/lib/sourceCode';
 
 // Re-exported so existing imports keep working; it lives in its own module
 // because client components render it too.
@@ -173,6 +174,11 @@ export function OpenDataAttribution({ transitOn = false }: { transitOn?: boolean
       <Group component="nav" aria-label="Site information" gap="md" mt={4}>
         <TextLink href="/attribution" size="sm" underline="always">
           Data sources and licences
+        </TextLink>
+        {/* AGPL-3.0 §13: the source of what this site runs, on every
+            page (lib/sourceCode.ts). */}
+        <TextLink href={SOURCE_CODE_URL} external size="sm" underline="always">
+          Source code
         </TextLink>
         {/* Preferences for everyone, wherever they scroll to: the bar's
             gear, account menu and drawer each cover only some visitors. */}
