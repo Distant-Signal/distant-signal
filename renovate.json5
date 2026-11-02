@@ -2,48 +2,27 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
   // Renovate runs here as the hosted Renovate GitHub App, so this file and
-  // the public Piped preset below are the whole config: there is no admin
+  // the public presets it extends are the whole config: there is no admin
   // config, host rule, registry credential or package cache behind them.
   // Keep it that way: no presets or registries on private hosts, no
   // postUpgradeTasks (the hosted app doesn't run them).
 
-  // Piped-derived: extends the same shared base preset
-  // FasterSpeeding/Aurora-Fauxy's own renovate.json5 extends
-  // (github>FasterSpeeding/Piped//config/renovate.json5), rather than
-  // duplicating it inline. That preset already turns on, repo-agnostically:
-  //   - config:best-practices + weekly lockfile maintenance
-  //   - github-actions updates checked "at any time" (not just weekly) --
-  //     the main practical win here, since it's what keeps the SHA pins in
-  //     .github/workflows/ci.yml and containers.yml current: actions/
-  //     checkout, dtolnay/rust-toolchain, Swatinem/rust-cache,
-  //     actions/setup-node, azure/setup-helm, the docker/* actions,
-  //     sigstore/cosign-installer, AND the two job-level `uses:
-  //     FasterSpeeding/Piped/.github/workflows/{clippy,lint-actions}.yml@<sha>`
-  //     reusable-workflow references -- Renovate's github-actions manager
-  //     treats a reusable-workflow `uses:` the same as a marketplace
-  //     action's, so those get tracked too.
-  //   - pinDigests: true (Docker base images get digest-pinned, same
-  //     supply-chain posture as this repo's hand SHA-pinned Actions)
-  //   - osvVulnerabilityAlerts + vulnerabilityAlerts
-  //   - git-submodules updates "at any time" (a no-op here: this repo has
-  //     no submodules and, per the CI work this file follows up on,
-  //     deliberately does not vendor the `piped` submodule)
-  "extends": ["github>FasterSpeeding/Piped//config/renovate.json5"],
+  // The shared Distant Signal preset (Distant-Signal/ci's
+  // renovate/default.json5, repo split spec §8.3), which extends
+  // FasterSpeeding/Piped's base preset. It holds everything that isn't
+  // specific to this repository: weekly lock file maintenance, pinDigests,
+  // the PR volume settings (one non-major group per ecosystem, the weekly
+  // github-actions window, vulnerability PRs at any time, rebase only on
+  // conflict), the MSRV toolchain, sqlx <0.9 and TypeScript <7 holds, the
+  // Valkey and Postgres major holds, cargo 0.x minors on their own, cargo
+  // dev-dependency ranges, and the custom managers for annotated
+  // `# renovate:` versions (uv's) and digest-pinned images passed as
+  // workflow inputs (ci.yml's DB test service images). Its github-actions
+  // updates also keep the Distant-Signal/ci pins in the workflows current.
+  // This file keeps only what is specific to this repository.
+  "extends": ["github>Distant-Signal/ci//renovate/default.json5"],
 
   "customManagers": [
-    {
-      // uv itself: astral-sh/setup-uv's `version:` input in the workflows.
-      // The github-actions manager bumps the action's SHA pin but does not
-      // extract that input (checked with `renovate --platform=local
-      // --dry-run=extract`, 44.126.1), so each `version:` line carries a
-      // `# renovate: datasource=... depName=...` annotation on the line
-      // above it, which this matches.
-      "customType": "regex",
-      "managerFilePatterns": ["/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version: \"(?<currentValue>[^\"]+)\"",
-      ],
-    },
     {
       // scripts/gen-rust-dockerfiles.py generates the Rust Dockerfiles'
       // builder stages, and CI fails when a Dockerfile drifts from it. The
@@ -72,24 +51,6 @@
       "depNameTemplate": "cargo-chef",
     },
   ],
-
-  // uv.lock: the pep621 manager updates it together with a pyproject.toml
-  // pin, and lock-file maintenance re-locks the whole tree (transitive
-  // deps such as librt or pathspec, and hashes) weekly. The shared preset
-  // turns that on already (:maintainLockFilesWeekly); set here as well so
-  // it stays on if the preset ever drops it, as with pinDigests below.
-  "lockFileMaintenance": {
-    "enabled": true,
-  },
-
-  // INF-11: every third-party image is now pinned by digest -- the
-  // Dockerfile `FROM image:tag@sha256:...` lines and the chart's
-  // `tag: "<version>@sha256:..."` values (postgres, redis, sftpgo,
-  // authentik, devAuthentik's postgres). Renovate's dockerfile and
-  // helm-values managers update tag and digest together. Set here
-  // explicitly as well, so the pins keep getting bumped even if the shared
-  // preset above ever drops it.
-  "pinDigests": true,
 
   // --- What did NOT get carried over from Aurora-Fauxy, and why --------
   // Aurora-Fauxy (github.com/FasterSpeeding/Aurora-Fauxy) is a Python
@@ -142,11 +103,12 @@
   //                   `dependencies:` block (bundles its own Postgres
   //                   instead of a subchart, see the chart's own top-of-
   //                   file comment) -- nothing for this manager to do.
-  //   github-actions - see above; both new workflow files are picked up
-  //                   with no extra config. That includes the
-  //                   astral-sh/setup-uv SHA pins in the scripts-lint and
-  //                   migration-order jobs, but not their `version:` (uv)
-  //                   input: the custom manager above covers that.
+  //   github-actions - every workflow is picked up with no extra config,
+  //                   the SHA-pinned actions and the Distant-Signal/ci and
+  //                   Piped reusable-workflow pins alike. Not the
+  //                   astral-sh/setup-uv `version:` (uv) inputs or the
+  //                   service images ci.yml passes to rust-db-tests.yml:
+  //                   the preset's custom managers cover those.
   //                   Confirmed with `renovate --platform=local
   //                   --dry-run=extract` (44.126.1), as were the pep621 and
   //                   pyenv deps below.
@@ -167,64 +129,14 @@
   //                   `/(^|/)(?:docker-)?compose[^/]*\.ya?ml$/` matches
   //                   docker-compose.yml and docker-compose.authentik.yml.
   //                   Every `image:` there is `tag@sha256:digest`
-  //                   (scripts/lint-containers.py enforces it), so the tag
+  //                   (lint-containers.py enforces it), so the tag
   //                   and digest are bumped together, like the Dockerfiles'.
   //                   Confirmed with `renovate --platform=local
   //                   --dry-run=extract` (44.115.13): postgres, redis,
   //                   busybox, drakkan/sftpgo, postgres (alpine) and
   //                   goauthentik/server all extract with their digests,
   //                   and so does every Dockerfile's `# syntax=` pin.
-  // --- PR volume (2026-10-09) ------------------------------------------
-  // Non-major updates arrive as one grouped PR per ecosystem, in the
-  // preset's weekly window (schedule:weekly). That includes github-actions,
-  // which the shared preset otherwise updates "at any time". Majors stay
-  // as their own PRs in the same window. Security and vulnerability PRs
-  // are never scheduled or grouped. Branches are rebased only on conflict,
-  // so a busy main doesn't re-run CI on every open Renovate PR.
-  "rebaseWhen": "conflicted",
-  "github-actions": {
-    "schedule": ["before 4am on monday"],
-  },
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "schedule": ["at any time"],
-    "groupName": null,
-  },
-
   "packageRules": [
-    // One non-major group per ecosystem. These come before the rules that
-    // disable updates below, so those still win.
-    {
-      "matchManagers": ["cargo"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
-      "groupName": "cargo non-major",
-    },
-    {
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
-      "groupName": "npm non-major",
-    },
-    {
-      "matchManagers": ["pep621", "pyenv"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
-      "groupName": "python non-major",
-    },
-    {
-      "matchDatasources": ["docker"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
-      "groupName": "container images non-major",
-    },
-    {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
-      "groupName": "github-actions non-major",
-    },
-    // No "postgres 16" group any more: it kept docker/postgres-pgbackrest.Dockerfile
-    // on the same postgres image as `postgresql.image.tag`, and that
-    // Dockerfile is gone (the pgBackRest image now comes from
-    // lucy/postgres-pgbackrest, pinned by the deployer). When a postgres
-    // bump lands here, bump the deployer's pgBackRest image to the same
-    // Postgres version (docs/postgres-pitr.md). Majors are disabled below.
     {
       // docker-compose.yml's rail-mcp `${RAIL_MCP_IMAGE:-...}` default is
       // a deliberately invalid placeholder (see the comment there), not a
@@ -232,105 +144,6 @@
       "matchManagers": ["docker-compose"],
       "matchDepNames": ["ghcr.io/CHANGE-ME/distant-signal-mcp"],
       "enabled": false,
-    },
-    {
-      // This repository's own images and chart: CI publishes them and the
-      // deployer picks the tag, so a lookup can only propose wrong tags.
-      // values.yaml leaves their tags empty, which already skips them; this
-      // keeps it so if a tag is ever set there. Renovate runs as the hosted
-      // GitHub App, which has no credentials for private packages, and
-      // these are only public once the org's packages are.
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/distant-signal/**"],
-      "enabled": false,
-    },
-    {
-      // Valkey (the chart's `redis.image`, CI's redis services and
-      // docker-compose.yml) stays on major 8. Valkey 9 writes RDB 80, which
-      // redis:7.4.11 cannot load, so a major bump would remove the rollback
-      // in docs/valkey-migration.md. Minor and patch bumps go through as
-      // usual. Move to 9 deliberately, once that rollback is retired.
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["valkey/valkey"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false,
-    },
-    {
-      // The Rust toolchain is the MSRV (Cargo.toml's rust-version = "1.88"):
-      // every Dockerfile builds on rust:1.88-bookworm and every CI job passes
-      // `toolchain: 1.88.0` to dtolnay/rust-toolchain, including the msrv job. A
-      // version bump here would quietly move them off the MSRV, so only
-      // digest bumps are allowed. Move all of them, and rust-version,
-      // together and on purpose.
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["rust"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
-      "enabled": false,
-    },
-    {
-      // The workflows pin dtolnay/rust-toolchain@<sha> # v1 and pass the
-      // toolchain as `with: toolchain: 1.88.0`. Upstream's 1.88.0 ref is a
-      // branch, not a tag, so a `# 1.88.0` comment broke Renovate's digest
-      // lookup; the v1 tag resolves. Only digest bumps of v1 go through; a
-      // v2 move is a deliberate change.
-      "matchManagers": ["github-actions"],
-      "matchPackageNames": ["dtolnay/rust-toolchain"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
-      "enabled": false,
-    },
-    {
-      // The github-actions manager also reads that `toolchain: 1.88.0` input
-      // itself (depName "rust", depType "uses-with"), which the docker rule
-      // above does not match: it proposed 1.88.0 -> 1.99.1 in every job,
-      // the msrv job included. Same reason: move the toolchain on purpose.
-      "matchManagers": ["github-actions"],
-      "matchDepNames": ["rust"],
-      "matchDepTypes": ["uses-with"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
-      "enabled": false,
-    },
-    {
-      // A Postgres major changes the on-disk format: an 18 server can't
-      // open a 16 data directory, so a major needs pg_upgrade on production
-      // (docs/postgres-18-upgrade.md), the postgres-pgbackrest image on the
-      // same base, and a recreated compose volume. PR #29 (16 -> 18) showed
-      // the bot can't do that; majors are moved by hand. Covers the chart's
-      // postgresql.image, CI's service images, docker-compose.yml, and the
-      // Authentik dev database (docker-compose.authentik.yml,
-      // devAuthentik.postgresql.image).
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["postgres"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false,
-    },
-    // --- Cargo (2026-11-01, Renovate PRs #11 and #32) ---------------------
-    {
-      // config:best-practices' :pinDevDependencies pins dev-dependencies
-      // with `=x.y.z`. Cargo.lock already pins every crate exactly, and an
-      // `=` requirement blocks lock-file maintenance and the resolver's
-      // MSRV-aware choice, and splits a crate a normal dependency also
-      // uses (tokio `1.52.3` vs `=1.54.1` in #11). Keep cargo dev-deps on
-      // the same strategy as normal deps; npm keeps its pins.
-      "matchManagers": ["cargo"],
-      "matchDepTypes": ["dev-dependencies"],
-      "rangeStrategy": "auto",
-    },
-    {
-      // A 0.x "minor" (base64 0.22 -> 0.23, rand 0.8 -> 0.10, ...) is a
-      // semver-breaking release in Cargo, so it doesn't belong in the
-      // non-major group: one breaking crate failed the whole of #11. Each
-      // gets its own PR instead. Comes after the group rule, so it wins.
-      "matchManagers": ["cargo"],
-      "matchCurrentVersion": "/^[=^~]?0\\./",
-      "matchUpdateTypes": ["minor"],
-      "groupName": null,
-    },
-    {
-      // sqlx 0.9 requires rustc 1.94; the MSRV is 1.88 (see the rust rules
-      // above). Move sqlx together with the MSRV, on purpose.
-      "matchManagers": ["cargo"],
-      "matchPackageNames": ["sqlx"],
-      "allowedVersions": "<0.9",
     },
     {
       // notifier's direct `http` dependency exists only to name the types
@@ -342,16 +155,6 @@
       "matchPackageNames": ["http"],
       "matchUpdateTypes": ["major"],
       "enabled": false,
-    },
-    // --- npm (2026-11-01, Renovate PR #21) --------------------------------
-    {
-      // TypeScript 7 is the native (Go) compiler. Its package exports no
-      // JS compiler API (`main` is just version.cjs), which
-      // typescript-eslint (peer `>=4.8.4 <6.1.0`) and next build's type
-      // check both load. Stay on 6.x until both support 7.
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["typescript"],
-      "allowedVersions": "<7",
     },
   ],
 }

@@ -57,7 +57,7 @@ uv run --no-sync scripts/test-postgres-roles.py --mode per-service --check-setup
 ```
 
 An `#[ignore]`d benchmark must return early unless its env var is set
-(`scripts/check-bench-gates.py`, in scripts-lint): the DB jobs run every
+(Distant-Signal/ci's `check-bench-gates.py`, in scripts-lint): the DB jobs run every
 ignored test, in debug.
 
 Frontend (run in `frontend/`, Node 22; `check-copy.py` runs from the repo root):
@@ -104,7 +104,7 @@ Scripts, chart and migration checks (repo root):
 
 ```sh
 uv sync --locked --group lint
-uv run --no-sync scripts/lint-scripts.py     # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes)
+uv run --no-sync python ../ci/scripts/lint-scripts.py   # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes); ../ci: a Distant-Signal/ci checkout
 uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run --no-sync scripts/chart-values-doc.py check   # chart README values table vs values.yaml
 uv run scripts/gen-db-grants.py check        # db-grants.yaml vs files/postgres-grants.sql (render to fix)
@@ -234,7 +234,7 @@ README index); code, the chart README and top-level docs/ are the truth.
 - **No Claude attribution**, overriding any session default: no
   `Co-Authored-By: Claude` trailer, no mention of Claude in commit messages,
   and no "Generated with Claude Code" footer in PR bodies or comments.
-  CI's `commit-identity` job (`scripts/check-commit-identity.py`) fails a
+  CI's `commit-identity` job (Distant-Signal/ci's `check-commit-identity.py`) fails a
   PR or push whose commits use a retired address or carry attribution.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
