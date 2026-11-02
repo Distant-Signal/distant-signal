@@ -1,5 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-import { openNavDrawer } from './navDrawer';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import { openNavDrawer, waitForSessionNav } from './navDrawer';
 
 // Task 1.2 (docs/superpowers/sdd/2026-09-17-ux-fixes-phase1-crosscutting):
 // the nav bar's two layout defects, and the regression net for both.
@@ -72,11 +72,31 @@ function sessionState(value: string) {
   };
 }
 
+/** The bar, by its landmark. Not `locator('nav[aria-label="Main"]')`: while
+ * the session check streams in (app/layout.tsx's `<Suspense>`), React
+ * holds the finished bar in a `<div hidden>` beside the logged-out
+ * fallback for up to a few hundred ms before swapping them, so a CSS
+ * locator briefly matches two navs and strict mode fails. The hidden copy
+ * is out of the accessibility tree, so a role locator only ever sees the
+ * one bar a visitor sees. */
+function mainNav(page: Page): Locator {
+  return page.getByRole('navigation', { name: 'Main', exact: true });
+}
+
+/** The same bar as a selector, for the measurements below. They read it in
+ * one `evaluate` rather than through a locator, because the swap above
+ * can detach the bar a locator resolved before it is measured. */
+const SHOWN_NAV = 'nav[aria-label="Main"]:not([hidden] *)';
+
 /** The nav's own rendered height, border included. */
 async function navHeight(page: Page): Promise<number> {
-  const box = await page.locator('nav[aria-label="Main"]').boundingBox();
-  if (!box) throw new Error('The nav did not render at all.');
-  return Math.round(box.height);
+  await expect(mainNav(page)).toBeVisible();
+  const height = await page.evaluate(
+    (selector) => document.querySelector(selector)?.getBoundingClientRect().height,
+    SHOWN_NAV,
+  );
+  if (height === undefined) throw new Error('The nav did not render at all.');
+  return Math.round(height);
 }
 
 /** Every direct child of the bar's outer `Group` starts on the same row.
@@ -84,8 +104,8 @@ async function navHeight(page: Page): Promise<number> {
  * could be satisfied by a taller single row, and a `flex-wrap` check
  * alone says nothing about whether wrapping actually happened. */
 async function barRowCount(page: Page): Promise<number> {
-  return page.evaluate(() => {
-    const group = document.querySelector('nav[aria-label="Main"] .mantine-Group-root');
+  return page.evaluate((selector) => {
+    const group = document.querySelector(`${selector} .mantine-Group-root`);
     if (!group) throw new Error('The nav Group did not render.');
     const tops = new Set<number>();
     for (const child of group.children) {
@@ -96,7 +116,7 @@ async function barRowCount(page: Page): Promise<number> {
       tops.add(Math.round(rect.top / 10));
     }
     return tops.size;
-  });
+  }, SHOWN_NAV);
 }
 
 /** Nothing in the page scrolls sideways. A "fixed height, no wrap" bar
@@ -111,7 +131,7 @@ test.describe('desktop nav bar (1440x900)', () => {
 
   test('renders on a single row, at the standard height, logged out', async ({ page }) => {
     await page.goto('/lines');
-    await expect(page.locator('nav[aria-label="Main"]')).toBeVisible();
+    await expect(mainNav(page)).toBeVisible();
     expect(await barRowCount(page)).toBe(1);
     expect(await navHeight(page)).toBe(61);
     expect(await hasHorizontalOverflow(page)).toBe(false);
@@ -119,7 +139,7 @@ test.describe('desktop nav bar (1440x900)', () => {
 
   test('links Preferences from a gear beside Log in, logged out', async ({ page }) => {
     await page.goto('/lines');
-    const gear = page.locator('nav[aria-label="Main"]').getByRole('link', { name: 'Preferences' });
+    const gear = mainNav(page).getByRole('link', { name: 'Preferences' });
     await expect(gear).toBeVisible();
     await expect(gear).toHaveAttribute('href', '/account/preferences');
     // Retried: a hover before hydration opens nothing.
@@ -132,7 +152,7 @@ test.describe('desktop nav bar (1440x900)', () => {
 
   test('shows the primary links inline, and no burger', async ({ page }) => {
     await page.goto('/lines');
-    const nav = page.locator('nav[aria-label="Main"]');
+    const nav = mainNav(page);
     // `exact: true`: Playwright's default accessible-name match is a
     // substring match, and 'Journeys' would otherwise also hit other links.
     for (const label of ['Journeys', 'Trains', 'Status', 'Lines', 'Operators', 'Stations', 'Incidents']) {
@@ -147,7 +167,7 @@ test.describe('desktop nav bar (1440x900)', () => {
   // chrome at desktop widths. The e2e api serves Metrolink, so it is on.
   test('links Trams and metros inline', async ({ page }) => {
     await page.goto('/lines');
-    const link = page.locator('nav[aria-label="Main"]').getByRole('link', { name: 'Trams and metros', exact: true });
+    const link = mainNav(page).getByRole('link', { name: 'Trams and metros', exact: true });
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute('href', '/transit');
   });
@@ -155,7 +175,7 @@ test.describe('desktop nav bar (1440x900)', () => {
   // The Trains section (DS-192) is its own entry: current on the timetable
   // and the train pages it opens, while Journeys keeps the tracking pages.
   test('marks Trains, not Journeys, current on the timetable and a train it opens', async ({ page }) => {
-    const nav = page.locator('nav[aria-label="Main"]');
+    const nav = mainNav(page);
     const trains = nav.getByRole('link', { name: 'Trains', exact: true });
     const journeys = nav.getByRole('link', { name: 'Journeys', exact: true });
     for (const path of ['/trains', '/trains?station=ZFA&date=2099-01-05', '/train/W62001/2099-01-05']) {
@@ -170,7 +190,9 @@ test.describe('desktop nav bar (1440x900)', () => {
 
   test('reaches Trains from the bar by keyboard', async ({ page }) => {
     await page.goto('/lines');
-    const trains = page.locator('nav[aria-label="Main"]').getByRole('link', { name: 'Trains', exact: true });
+    // Focus given to the streamed-in fallback bar is lost when it is swapped.
+    await waitForSessionNav(page);
+    const trains = mainNav(page).getByRole('link', { name: 'Trains', exact: true });
     await trains.focus();
     await expect(trains).toBeFocused();
     await page.keyboard.press('Enter');
@@ -187,9 +209,7 @@ test.describe('desktop nav bar (1440x900)', () => {
     // bar next to it was 61px and one row.
     test('renders on a single row, at the same height as the logged-out bar', async ({ page }) => {
       await page.goto('/lines');
-      await expect(
-        page.locator('nav[aria-label="Main"]').getByRole('button', { name: /, account menu for / }),
-      ).toBeVisible();
+      await expect(mainNav(page).getByRole('button', { name: /, account menu for / })).toBeVisible();
       expect(await barRowCount(page)).toBe(1);
       expect(await navHeight(page)).toBe(61);
       expect(await hasHorizontalOverflow(page)).toBe(false);
@@ -213,7 +233,7 @@ test.describe('desktop nav bar (1440x900)', () => {
 
     test('keeps those three OUT of the bar itself', async ({ page }) => {
       await page.goto('/lines');
-      const nav = page.locator('nav[aria-label="Main"]');
+      const nav = mainNav(page);
       await expect(nav.getByRole('link', { name: 'Preferences' })).toHaveCount(0);
       await expect(nav.getByRole('link', { name: 'Groups' })).toHaveCount(0);
       await expect(nav.getByRole('button', { name: 'Log out', exact: true })).toHaveCount(0);
@@ -232,7 +252,7 @@ test.describe('phone nav bar (390x844)', () => {
   });
 
   test('keeps the brand, the freshness readout and log in in the bar, and no settings controls', async ({ page }) => {
-    const nav = page.locator('nav[aria-label="Main"]');
+    const nav = mainNav(page);
     await page.goto('/lines');
     await expect(nav.getByRole('link', { name: 'Distant Signal' })).toBeVisible();
     await expect(nav.getByRole('button', { name: 'Data freshness' })).toBeVisible();
@@ -244,7 +264,7 @@ test.describe('phone nav bar (390x844)', () => {
 
   test('moves the destinations into a burger-opened drawer', async ({ page }) => {
     await page.goto('/lines');
-    const nav = page.locator('nav[aria-label="Main"]');
+    const nav = mainNav(page);
     await expect(nav.getByRole('link', { name: 'Lines' })).toBeHidden();
 
     const drawer = await openNavDrawer(page);
@@ -311,7 +331,7 @@ test.describe('the md breakpoint the bar pivots on', () => {
   test('shows the inline links and no burger at exactly 992px', async ({ page }) => {
     await page.setViewportSize({ width: 992, height: 900 });
     await page.goto('/lines');
-    const nav = page.locator('nav[aria-label="Main"]');
+    const nav = mainNav(page);
     await expect(nav.getByRole('link', { name: 'Lines' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Trams and metros' })).toBeVisible();
     // The logged-out bar's widest form: the Preferences gear sits beside
@@ -326,7 +346,7 @@ test.describe('the md breakpoint the bar pivots on', () => {
   test('keeps the logged-out bar, gear included, on one row at 1366px', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto('/lines');
-    await expect(page.locator('nav[aria-label="Main"]').getByRole('link', { name: 'Preferences' })).toBeVisible();
+    await expect(mainNav(page).getByRole('link', { name: 'Preferences' })).toBeVisible();
     expect(await barRowCount(page)).toBe(1);
     expect(await navHeight(page)).toBe(61);
     expect(await hasHorizontalOverflow(page)).toBe(false);
@@ -335,7 +355,7 @@ test.describe('the md breakpoint the bar pivots on', () => {
   test('shows the burger and no inline links at 991px', async ({ page }) => {
     await page.setViewportSize({ width: 991, height: 900 });
     await page.goto('/lines');
-    const nav = page.locator('nav[aria-label="Main"]');
+    const nav = mainNav(page);
     await expect(nav.getByRole('button', { name: 'Navigation menu' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Lines' })).toBeHidden();
     // Below md the drawer links Preferences instead of the gear.
