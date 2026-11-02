@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import type { TripPlanItinerary, TripPlanResponse, TripPlanTransitLeg } from '../lib/types';
-import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '../test/apiDefaults';
+// Types only (erased): scripts/visual-tests.py ships this spec into its
+// container with nothing but @playwright/test beside it.
+import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse, TripPlanTransitLeg } from '../lib/types';
 
 // Visual regression screenshots of the main pages, at phone (390px) and
 // desktop (1366px) widths, in the light and dark schemes.
@@ -204,17 +205,37 @@ function sessionCookie(value: string) {
  * /Trips/plan` is answered here, so the shots need no tram timetable in the
  * seed, and the replacement bus needs no closure. */
 function tramPlan(ride: 'tram' | 'replacementBus'): TripPlanResponse {
-  const train = (trainUid: string, originCrs: string, destinationCrs: string, dep: string, arr: string) =>
-    plannedTrainLeg({
-      trainUid,
-      serviceDate: '2026-09-17',
-      originCrs,
-      destinationCrs,
-      scheduledDeparture: dep,
-      scheduledArrival: arr,
-      publicDeparture: dep,
-      publicArrival: arr,
-    });
+  const train = (
+    trainUid: string,
+    originCrs: string,
+    destinationCrs: string,
+    dep: string,
+    arr: string,
+  ): TripPlanLeg => ({
+    kind: 'train',
+    trainUid,
+    serviceDate: '2026-09-17',
+    originCrs,
+    destinationCrs,
+    scheduledDeparture: dep,
+    scheduledArrival: arr,
+    departureDayOffset: 0,
+    arrivalDayOffset: 0,
+    workingDeparture: dep,
+    workingArrival: arr,
+    workingDepartureDayOffset: 0,
+    workingArrivalDayOffset: 0,
+    bookedDeparturePlatform: null,
+    bookedArrivalPlatform: null,
+    publicDeparture: dep,
+    publicArrival: arr,
+    publicDepartureDayOffset: 0,
+    publicArrivalDayOffset: 0,
+    operator: null,
+    headcode: null,
+    serviceMode: 'train',
+    liveTracking: true,
+  });
   const walk = (
     originCrs: string | null,
     destinationCrs: string | null,
@@ -263,7 +284,8 @@ function tramPlan(ride: 'tram' | 'replacementBus'): TripPlanResponse {
         : [],
   };
   const itinerary: TripPlanItinerary = {
-    ...ITINERARY_DEFAULTS,
+    accessChangeCount: 0,
+    continuesPreviousTrain: false,
     legs: [
       train('E2EVT1', 'SPT', 'MAN', '07:00:00', '07:30:00'),
       walk('MAN', null, piccadilly, true),
@@ -276,9 +298,36 @@ function tramPlan(ride: 'tram' | 'replacementBus'): TripPlanResponse {
     scheduledOnly: true,
   };
   return {
-    ...TRIP_PLAN_DEFAULTS,
-    segments: [{ ...SEGMENT_DEFAULTS, originCrs: 'SPT', destinationCrs: 'LDS', itineraries: [itinerary] }],
+    results: 'fastest',
+    maxChanges: 2,
+    arriveBy: null,
+    departAfter: null,
+    serviceDates: ['2026-09-17'],
+    avoid: [],
+    avoidStop: [],
+    avoidChange: [],
+    via: [],
+    stationGroups: {},
+    operator: [],
+    avoidOperator: [],
+    preferOperator: [],
+    operatorGroups: {},
+    operatorsNotRunning: [],
+    segments: [
+      {
+        originCrs: 'SPT',
+        destinationCrs: 'LDS',
+        itineraries: [itinerary],
+        cappedByMaxChanges: false,
+        departAfter: null,
+        arriveBy: null,
+        noResultReason: null,
+      },
+    ],
+    journeys: [],
     transitNotices: [],
+    provisional: false,
+    provisionalFrom: '2099-01-01',
   };
 }
 
