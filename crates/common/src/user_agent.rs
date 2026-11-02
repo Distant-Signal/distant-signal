@@ -26,26 +26,23 @@ pub const PROJECT_URL: &str = env!("DS_PROJECT_URL");
 
 // An empty or non-https `DS_PROJECT_URL` (say, a build arg passed blank)
 // fails the build rather than shipping a User-Agent with no contact URL.
-const _: () = assert!(
-    is_https_url(PROJECT_URL),
-    "DS_PROJECT_URL must be an https:// URL"
-);
-
-/// Whether `url` starts with `https://` and has something after it.
-const fn is_https_url(url: &str) -> bool {
-    let (url, prefix) = (url.as_bytes(), b"https://".as_slice());
-    if url.len() <= prefix.len() {
-        return false;
-    }
+// Inline rather than a helper fn: newer rustc calls a fn used only in a
+// const item dead code.
+const _: () = {
+    let (url, prefix) = (PROJECT_URL.as_bytes(), b"https://".as_slice());
+    assert!(
+        url.len() > prefix.len(),
+        "DS_PROJECT_URL must be an https:// URL"
+    );
     let mut i = 0;
     while i < prefix.len() {
-        if url[i] != prefix[i] {
-            return false;
-        }
+        assert!(
+            url[i] == prefix[i],
+            "DS_PROJECT_URL must be an https:// URL"
+        );
         i += 1;
     }
-    true
-}
+};
 
 /// Expands to a `&'static str` `User-Agent` of the form
 /// `distant-signal-<calling crate>/<calling crate version> (+<project URL>)`.
@@ -70,7 +67,7 @@ macro_rules! user_agent {
 
 #[cfg(test)]
 mod tests {
-    use super::{PROJECT_URL, is_https_url};
+    use super::PROJECT_URL;
 
     #[test]
     fn user_agent_names_the_calling_crate_version_and_project() {
@@ -83,15 +80,5 @@ mod tests {
             )
         );
         assert!(!ua.contains("Mozilla"));
-    }
-
-    #[test]
-    fn project_url_check_wants_an_https_url() {
-        assert!(is_https_url(
-            "https://github.com/Distant-Signal/distant-signal"
-        ));
-        assert!(!is_https_url(""));
-        assert!(!is_https_url("https://"));
-        assert!(!is_https_url("http://example.com"));
     }
 }
