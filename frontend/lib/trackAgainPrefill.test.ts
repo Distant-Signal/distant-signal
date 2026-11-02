@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { trackAgainPrefill, trackAgainHref } from './trackAgainPrefill';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from './types';
+import { JOURNEY_DETAIL_DEFAULTS, JOURNEY_LEG_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'KGX',
@@ -33,6 +35,8 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
 
 function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'KGX',
     originName: null,
@@ -52,7 +56,15 @@ function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
 }
 
 function journey(legs: JourneyLegDetail[]): JourneyDetail {
-  return { id: 1, customName: null, createdAt: '2026-09-22T00:00:00Z', legs, isOwner: true, shareLink: null };
+  return {
+    ...JOURNEY_DETAIL_DEFAULTS,
+    id: 1,
+    customName: null,
+    createdAt: '2026-09-22T00:00:00Z',
+    legs,
+    isOwner: true,
+    shareLink: null,
+  };
 }
 
 describe('trackAgainPrefill', () => {

@@ -146,8 +146,7 @@ export function trackedTrainRowStatus(train: TrackedTrainRowInput, today: string
  * "Cancelled") without one train's detail, which would read as the whole
  * journey's. */
 export function journeyListItemCancellation(journey: JourneyListItem): ListCancellation | null {
-  const trainLegs = journey.trainLegCount ?? journey.legCount ?? 1;
-  return trainLegs === 1 ? (journey.cancellation ?? null) : null;
+  return journey.trainLegCount === 1 ? journey.cancellation : null;
 }
 
 /** Whether the viewer is the one to pick a train for this journey's

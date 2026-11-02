@@ -53,9 +53,9 @@ export function collectTripPlanStationCodes(response: TripPlanResponse): string[
     }
     for (const value of segment.noResultReason?.values ?? []) codes.add(value);
   }
-  for (const via of response.via ?? []) codes.add(via);
+  for (const via of response.via) codes.add(via);
   // The members a journey used for a group via or waypoint (2026-10-07).
-  for (const journey of response.journeys ?? []) {
+  for (const journey of response.journeys) {
     for (const hit of [...(journey.viaSatisfiedBy ?? []), ...(journey.waypointSatisfiedBy ?? [])]) {
       if (hit.matchedCrs) codes.add(hit.matchedCrs);
     }

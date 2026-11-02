@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { splitJourneyTrains } from './journeyTrains';
 import type { JourneyListItem, TrackedTrainListItem } from './types';
+import { JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
-function train(id: number, journeyIds?: number[]): TrackedTrainListItem {
+function train(id: number, journeyIds: number[]): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'KGX',
@@ -18,12 +20,13 @@ function train(id: number, journeyIds?: number[]): TrackedTrainListItem {
     trackedAt: '2026-09-21T12:00:00Z',
     customName: null,
     sharedGroupCount: 0,
-    ...(journeyIds === undefined ? {} : { journeyIds }),
+    journeyIds,
   };
 }
 
 function journey(id: number, trainSubscriptionId: number | null = null): JourneyListItem {
   return {
+    ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
     customName: null,
     createdAt: '2026-09-21T12:00:00Z',
@@ -31,6 +34,7 @@ function journey(id: number, trainSubscriptionId: number | null = null): Journey
     originCrs: 'KGX',
     destinationCrs: 'EDB',
     serviceDate: '2026-09-22',
+    firstServiceDate: '2026-09-22',
     originName: null,
     destinationName: null,
     matchMode: 'manual',
@@ -67,11 +71,5 @@ describe('splitJourneyTrains', () => {
     const split = splitJourneyTrains([train(1, [100])], null);
     expect(split.standalone.map((t) => t.id)).toEqual([1]);
     expect(split.trainIdsByJourney.size).toBe(0);
-  });
-
-  it("falls back to each journey's current leg for an older backend without journeyIds", () => {
-    const split = splitJourneyTrains([train(1), train(2)], [journey(100, 1)]);
-    expect(split.standalone.map((t) => t.id)).toEqual([2]);
-    expect(split.trainIdsByJourney.get(100)).toEqual([1]);
   });
 });

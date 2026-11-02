@@ -3,6 +3,7 @@ import { itineraryKey, listPlan, mergePage, pageEntries, pageQuery, startList, t
 import { apiQuery } from './tripPlanTiming';
 import { buildTripPlanQuery, type TripPlanQuery } from './tripPlan';
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse } from './types';
+import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
 const base: TripPlanQuery = {
   originCrs: 'EUS',
@@ -36,8 +37,7 @@ function clock(total: number): At {
 }
 
 function trainLeg(ride: Ride, serviceDate: string): Extract<TripPlanLeg, { kind: 'train' }> {
-  return {
-    kind: 'train',
+  return plannedTrainLeg({
     trainUid: ride.uid,
     serviceDate: ride.serviceDate ?? serviceDate,
     originCrs: 'EUS',
@@ -61,25 +61,30 @@ function trainLeg(ride: Ride, serviceDate: string): Extract<TripPlanLeg, { kind:
           },
         }
       : {}),
-  };
+  });
 }
 
 /** A one-segment page of single-train journeys on `serviceDate`; each
  * journey's times are the train's, plus its live delay. */
 function page(serviceDate: string, ...rides: Ride[]): TripPlanResponse {
   const itineraries: TripPlanItinerary[] = rides.map((ride) => ({
+    ...ITINERARY_DEFAULTS,
     legs: [trainLeg(ride, serviceDate)],
     changeCount: 0,
     totalDurationMinutes: minutes(ride.arrival) - minutes(ride.departure),
   }));
   return {
+    ...TRIP_PLAN_DEFAULTS,
     results: 'fastest',
-    segments: [{ originCrs: 'EUS', destinationCrs: 'MKC', cappedByMaxChanges: false, itineraries }],
+    segments: [
+      { ...SEGMENT_DEFAULTS, originCrs: 'EUS', destinationCrs: 'MKC', cappedByMaxChanges: false, itineraries },
+    ],
     journeys: rides.map((ride) => {
       const departure = clock(minutes(ride.departure) + (ride.late ?? 0));
       const arrival = clock(minutes(ride.arrival) + (ride.late ?? 0));
       return {
         changeCount: 0,
+        accessChangeCount: 0,
         departure: { time: departure[0], dayOffset: departure[1] },
         arrival: { time: arrival[0], dayOffset: arrival[1] },
         totalDurationMinutes: minutes(ride.arrival) - minutes(ride.departure),
@@ -116,7 +121,8 @@ describe('itineraryKey', () => {
   });
 
   it('tells apart another train, service date, boarding point and transfer', () => {
-    const key = (legs: TripPlanLeg[]) => itineraryKey([{ legs, changeCount: 0, totalDurationMinutes: 0 }]);
+    const key = (legs: TripPlanLeg[]) =>
+      itineraryKey([{ ...ITINERARY_DEFAULTS, legs, changeCount: 0, totalDurationMinutes: 0 }]);
     const a = trainLeg(ride('A', '08:00', '08:50'), '2026-10-24');
     const keys = new Set([
       key([a]),
@@ -259,8 +265,7 @@ describe('startList / pageEntries', () => {
   it('is null for a search with no journey, or one whose segments and journeys disagree', () => {
     expect(startList(base, '2026-10-24', { ...page('2026-10-24'), journeys: [] })).toBeNull();
     const plan = page('2026-10-24', ride('A', '08:00', '08:50'));
-    const { journeys: _journeys, ...older } = plan;
-    expect(pageEntries(older, '2026-10-24', '2026-10-24')).toBeNull();
+    expect(pageEntries({ ...plan, journeys: [] }, '2026-10-24', '2026-10-24')).toBeNull();
   });
 
   it('keeps each journey of a waypoint plan whole, across its segments', () => {
@@ -270,8 +275,8 @@ describe('startList / pageEntries', () => {
       ...one,
       segments: [one.segments[0]!, { ...two.segments[0]!, originCrs: 'MKC', destinationCrs: 'BHM' }],
       journeys: [
-        { ...one.journeys![0]!, arrival: two.journeys![0]!.arrival },
-        { ...one.journeys![1]!, arrival: two.journeys![1]!.arrival },
+        { ...one.journeys[0]!, arrival: two.journeys[0]!.arrival },
+        { ...one.journeys[1]!, arrival: two.journeys[1]!.arrival },
       ],
     };
     const list = started(base, plan);

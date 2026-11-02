@@ -18,6 +18,7 @@ import {
 } from './tripPlan';
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse } from './types';
 import { RAIL_TRAM_RAIL, TUBE_LEG, WALK_TO_TUBE } from '@/test/transitPlanFixtures';
+import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
 describe('buildTripPlanQuery', () => {
   it('builds a minimal query with no waypoints or departAfter', () => {
@@ -103,17 +104,19 @@ describe('buildTripPlanQuery', () => {
 });
 
 describe('trainLegsForTracking', () => {
-  const train = (trainUid: string, originCrs: string, destinationCrs: string, arrival: string): TripPlanLeg => ({
-    kind: 'train',
-    trainUid,
-    serviceDate: '2026-09-29',
-    originCrs,
-    destinationCrs,
-    scheduledDeparture: '08:00:00',
-    scheduledArrival: arrival,
-    arrivalDayOffset: 0,
-  });
+  const train = (trainUid: string, originCrs: string, destinationCrs: string, arrival: string): TripPlanLeg =>
+    plannedTrainLeg({
+      kind: 'train',
+      trainUid,
+      serviceDate: '2026-09-29',
+      originCrs,
+      destinationCrs,
+      scheduledDeparture: '08:00:00',
+      scheduledArrival: arrival,
+      arrivalDayOffset: 0,
+    });
   const itinerary = (legs: TripPlanLeg[], continuesPreviousTrain = false): TripPlanItinerary => ({
+    ...ITINERARY_DEFAULTS,
     legs,
     changeCount: 0,
     totalDurationMinutes: 0,
@@ -143,19 +146,22 @@ describe('trainLegsForTracking', () => {
 describe('collectTripPlanStationCodes', () => {
   it('collects segment endpoints plus every leg endpoint, deduped, across segments and itineraries', () => {
     const response: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'BHM',
           destinationCrs: 'GLC',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               // Boards/alights mid-route -- CRE/PRE differ from the
               // segment's own BHM/GLC (see this function's own doc
               // comment).
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'X1',
                   serviceDate: '2026-09-23',
@@ -164,15 +170,16 @@ describe('collectTripPlanStationCodes', () => {
                   scheduledDeparture: '10:00:00',
                   scheduledArrival: '11:15:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 75,
             },
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
                 { kind: 'transfer', mode: 'WALK', originCrs: 'BHM', destinationCrs: 'BHM', minutes: 5 },
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'X2',
                   serviceDate: '2026-09-23',
@@ -181,14 +188,14 @@ describe('collectTripPlanStationCodes', () => {
                   scheduledDeparture: '10:30:00',
                   scheduledArrival: '11:45:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 1,
               totalDurationMinutes: 75,
             },
           ],
         },
-        { originCrs: 'GLC', destinationCrs: 'EDB', cappedByMaxChanges: false, itineraries: [] },
+        { ...SEGMENT_DEFAULTS, originCrs: 'GLC', destinationCrs: 'EDB', cappedByMaxChanges: false, itineraries: [] },
       ],
     };
     const codes = collectTripPlanStationCodes(response);
@@ -199,16 +206,19 @@ describe('collectTripPlanStationCodes', () => {
 
   it('omits a leg end that is null (no stanox_crs match for that TIPLOC)', () => {
     const response: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MKC',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'C1',
                   serviceDate: '2026-09-23',
@@ -217,7 +227,7 @@ describe('collectTripPlanStationCodes', () => {
                   scheduledDeparture: '08:00:00',
                   scheduledArrival: '08:50:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 50,
@@ -230,7 +240,7 @@ describe('collectTripPlanStationCodes', () => {
   });
 
   it('returns an empty array for a plan with no segments', () => {
-    expect(collectTripPlanStationCodes({ results: 'fastest', segments: [] })).toEqual([]);
+    expect(collectTripPlanStationCodes({ ...TRIP_PLAN_DEFAULTS, results: 'fastest', segments: [] })).toEqual([]);
   });
 });
 
@@ -247,16 +257,19 @@ describe('Compare options labels (DS-196)', () => {
 
   it("collects an alternative's station for the name lookup", () => {
     const response: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'options',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MAN',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'A1',
                   serviceDate: '2026-10-30',
@@ -265,7 +278,7 @@ describe('Compare options labels (DS-196)', () => {
                   scheduledDeparture: '09:00:00',
                   scheduledArrival: '11:10:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 130,
@@ -542,10 +555,12 @@ describe('advanced options', () => {
 
   it('collects the vias and no-result values for name lookup', () => {
     const codes = collectTripPlanStationCodes({
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       via: ['STA'],
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'GLA',
           cappedByMaxChanges: false,
@@ -576,14 +591,28 @@ describe('station groups (2026-10-07)', () => {
 
   it('collects the members a journey used, never a group or choice code', () => {
     const codes = collectTripPlanStationCodes({
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       via: ['group:LON'],
       segments: [
-        { originCrs: 'CBG', destinationCrs: 'group:LON', itineraries: [], cappedByMaxChanges: false },
-        { originCrs: 'group:LON', destinationCrs: 'BTN', itineraries: [], cappedByMaxChanges: false },
+        {
+          ...SEGMENT_DEFAULTS,
+          originCrs: 'CBG',
+          destinationCrs: 'group:LON',
+          itineraries: [],
+          cappedByMaxChanges: false,
+        },
+        {
+          ...SEGMENT_DEFAULTS,
+          originCrs: 'group:LON',
+          destinationCrs: 'BTN',
+          itineraries: [],
+          cappedByMaxChanges: false,
+        },
       ],
       journeys: [
         {
+          accessChangeCount: 0,
           changeCount: 0,
           departure: { time: '08:00', dayOffset: 0 },
           arrival: { time: '10:00', dayOffset: 0 },
@@ -646,9 +675,16 @@ describe('tram legs in the plan', () => {
 
   it("names a plan's tram stations and never asks the station lookup for them", () => {
     const plan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
-        { originCrs: '9400ZZMAPIC', destinationCrs: 'LDS', cappedByMaxChanges: false, itineraries: [RAIL_TRAM_RAIL] },
+        {
+          ...SEGMENT_DEFAULTS,
+          originCrs: '9400ZZMAPIC',
+          destinationCrs: 'LDS',
+          cappedByMaxChanges: false,
+          itineraries: [RAIL_TRAM_RAIL],
+        },
       ],
     };
     expect(collectTripPlanStationCodes(plan)).not.toContain('9400ZZMAPIC');
@@ -659,9 +695,11 @@ describe('tram legs in the plan', () => {
 
   it("names a TfL ride's stations by its mode, and a walk's TfL station as TfL's", () => {
     const plan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'KGX',
           destinationCrs: '940GZZLUBXN',
           cappedByMaxChanges: false,

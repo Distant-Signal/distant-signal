@@ -3,6 +3,7 @@ import { screen, fireEvent } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { TrackJourneyAgainButton } from './TrackJourneyAgainButton';
 import type { JourneyDetail, JourneyLegDetail } from '@/lib/types';
+import { JOURNEY_DETAIL_DEFAULTS, JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -13,6 +14,8 @@ vi.mock('next/navigation', () => ({
 
 function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'KGX',
     originName: null,
@@ -32,7 +35,15 @@ function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
 }
 
 function journey(legs: JourneyLegDetail[], isOwner = true): JourneyDetail {
-  return { id: 167, customName: null, createdAt: '2026-09-22T00:00:00Z', legs, isOwner, shareLink: null };
+  return {
+    ...JOURNEY_DETAIL_DEFAULTS,
+    id: 167,
+    customName: null,
+    createdAt: '2026-09-22T00:00:00Z',
+    legs,
+    isOwner,
+    shareLink: null,
+  };
 }
 
 describe('TrackJourneyAgainButton', () => {

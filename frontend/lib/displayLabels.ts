@@ -200,7 +200,7 @@ export function accessChangeClause(access: TripPlanAccessLeg): string | undefine
  * badge's tooltip and screen readers. */
 export function changesBadge(itinerary: TripPlanItinerary): { total: number; label: string; breakdown?: string } {
   const plural = (n: number, what: string) => `${n} ${what}${n === 1 ? '' : 's'}`;
-  const access = Math.max(0, itinerary.accessChangeCount ?? 0);
+  const access = Math.max(0, itinerary.accessChangeCount);
   const total = itinerary.changeCount + access;
   const label = plural(total, 'change');
   if (access === 0) return { total, label };

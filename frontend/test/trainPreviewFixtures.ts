@@ -1,4 +1,5 @@
 import type { JourneyStop, PublicTrainState } from '@/lib/types';
+import { JOURNEY_STOP_DEFAULTS, PUBLIC_TRAIN_DEFAULTS } from './apiDefaults';
 
 /** Made-up trains for the train preview card (`lib/trainPreview.ts`): the
  * stations are real, the UIDs, headcodes, times and reasons invented.
@@ -8,6 +9,7 @@ export const TRAIN_PREVIEW_NOW = Date.parse('2026-10-30T14:00:00Z');
 
 export function previewStop(name: string, crs: string, overrides: Partial<JourneyStop> = {}): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs,
     name,
     tiploc: null,
@@ -32,6 +34,7 @@ export function previewStop(name: string, crs: string, overrides: Partial<Journe
 
 export function previewTrain(overrides: Partial<PublicTrainState> = {}): PublicTrainState {
   return {
+    ...PUBLIC_TRAIN_DEFAULTS,
     trainsId: 1,
     trainUid: 'Z90001',
     serviceDate: '2026-10-30',

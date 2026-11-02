@@ -3,12 +3,14 @@ import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { JourneyStatusBadge } from './JourneyStatusBadge';
 import type { JourneyLegDetail, TrackedTrainState } from '@/lib/types';
+import { JOURNEY_LEG_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 // Same fixture shape as `lib/journeyStatus.test.ts` -- kept in sync
 // deliberately so both test files agree on what a "real" leg/tracked-train
 // state looks like.
 function baseTrackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-08-28',
     pinOriginCrs: 'WAT',
@@ -38,6 +40,8 @@ function baseTrackedTrainState(overrides: Partial<TrackedTrainState> = {}): Trac
 
 function baseLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'WAT',
     originName: null,

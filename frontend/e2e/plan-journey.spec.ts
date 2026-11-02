@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import type { TripPlanResponse } from '../lib/types';
+import { SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS } from '../test/apiDefaults';
 
 // Plan a journey (`/plan`, `JourneyCreationFlow`), which DS-194 merged
 // "New journey" (`/journeys/new`) into: which option it opens on, the old
@@ -135,12 +137,13 @@ test.describe('Plan a journey', () => {
       sent.push(new URL(route.request().url()).searchParams);
       await route.fulfill({
         json: {
+          ...TRIP_PLAN_DEFAULTS,
           results: 'options',
           segments: [
-            { originCrs: 'ZEA', destinationCrs: 'ZEB', cappedByMaxChanges: false, itineraries: [] },
-            { originCrs: 'ZEB', destinationCrs: 'ZEC', cappedByMaxChanges: false, itineraries: [] },
+            { ...SEGMENT_DEFAULTS, originCrs: 'ZEA', destinationCrs: 'ZEB', itineraries: [] },
+            { ...SEGMENT_DEFAULTS, originCrs: 'ZEB', destinationCrs: 'ZEC', itineraries: [] },
           ],
-        },
+        } satisfies TripPlanResponse,
       });
     });
     const query =

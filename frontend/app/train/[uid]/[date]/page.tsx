@@ -71,19 +71,25 @@ export function toJourneyState(train: PublicTrainState): TrainJourneyState {
     customName: null,
     journeyStops: train.journeyStops,
     mayHaveArrived: train.mayHaveArrived,
-    predictedStart: train.predictedStart ?? null,
+    predictedStart: train.predictedStart,
     serviceMode: train.serviceMode,
     liveTracking: train.liveTracking,
     // Planned / not in the timetable (spec 2026-10-20 §3, §4), computed by
     // the api for the shared train the same way as for a tracked one.
-    trackingPhase: train.trackingPhase ?? null,
-    firstReportExpectedAt: train.firstReportExpectedAt ?? null,
+    trackingPhase: train.trackingPhase,
+    firstReportExpectedAt: train.firstReportExpectedAt,
     // What is cancelled and why (DS-181), with the older reason fields for
     // a backend that predates it (`lib/cancellation.ts`).
-    cancelled: train.cancelled ?? false,
-    cancelReasonCode: train.cancelReasonCode ?? null,
-    cancelReason: train.cancelReason ?? null,
-    cancellation: train.cancellation ?? null,
+    cancelled: train.cancelled,
+    cancelReasonCode: train.cancelReasonCode,
+    cancelReason: train.cancelReason,
+    changeOfOriginReasonCode: train.changeOfOriginReasonCode,
+    changeOfOriginReason: train.changeOfOriginReason,
+    cancellation: train.cancellation,
+    delayBasis: train.delayBasis,
+    delayProvisional: train.delayProvisional,
+    operatorCode: train.operatorCode,
+    operatorName: train.operatorName,
   };
 }
 
@@ -300,13 +306,13 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
     <Stack p="lg" gap="md">
       <Group justify="space-between">
         <Group gap="xs" wrap="nowrap">
-          {train.serviceMode && train.serviceMode !== 'train' && <ServiceModeIcon mode={train.serviceMode} size={28} />}
+          {train.serviceMode !== 'train' && <ServiceModeIcon mode={train.serviceMode} size={28} />}
           <Stack gap={2}>
             <Title order={1}>{publicTrainName(train) ?? `${serviceHeading(train)} ${uid}`}</Title>
             <Text size="sm" c="dimmed">
               {[
-                train.serviceMode && train.serviceMode !== 'train' ? serviceHeading(train) : null,
-                trainIdentifiers({ headcode: train.identity ?? train.headcode, uid }),
+                train.serviceMode !== 'train' ? serviceHeading(train) : null,
+                trainIdentifiers({ headcode: train.headcode, uid }),
               ]
                 .filter((part): part is string => part !== null)
                 .join(' · ')}

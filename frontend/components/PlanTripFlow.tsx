@@ -148,7 +148,7 @@ export function PlanTripFlow({
   // group "Call at" stop (`group:LON`, 2026-10-07).
   const groups = useStationGroups(
     plan !== null &&
-      [...plan.segments.flatMap((segment) => [segment.originCrs, segment.destinationCrs]), ...(plan.via ?? [])].some(
+      [...plan.segments.flatMap((segment) => [segment.originCrs, segment.destinationCrs]), ...plan.via].some(
         isGroupCode,
       ),
   );
@@ -268,7 +268,7 @@ export function PlanTripFlow({
     // With waypoints, the segments' itineraries are parts of whole
     // journeys (`plan.journeys`): choosing one part chooses its journey.
     const index = plan?.segments[segmentIndex]?.itineraries.indexOf(itinerary) ?? -1;
-    if (plan && plan.segments.length > 1 && plan.journeys && index >= 0 && index < plan.journeys.length) {
+    if (plan && plan.segments.length > 1 && index >= 0 && index < plan.journeys.length) {
       setSelections(plan.segments.map((segment) => ({ itinerary: segment.itineraries[index] ?? null })));
       return;
     }
@@ -420,7 +420,7 @@ export function PlanTripFlow({
   const preferNote = plan
     ? preferOutcomeNote(
         plan.preferOperatorResult,
-        joinNames((preferEntries?.length ? preferEntries : (plan.preferOperator ?? [])).map(nameOfOperator), 'or'),
+        joinNames((preferEntries?.length ? preferEntries : plan.preferOperator).map(nameOfOperator), 'or'),
       )
     : null;
   const operatorOnly = (operators: string[]) => operatorOnlyLabel(operators, nameOfOperator, preferEntries);
@@ -466,7 +466,7 @@ export function PlanTripFlow({
       {banner && (
         <Text size="sm" data-operator-filter-banner>
           {banner}{' '}
-          {plan?.operatorsNotRunning?.length
+          {plan?.operatorsNotRunning.length
             ? `${plan.operatorsNotRunning.map(nameOfOperator).join(', ')} ${
                 plan.operatorsNotRunning.length === 1 ? 'runs' : 'run'
               } nothing on this day. `
@@ -550,10 +550,10 @@ export function PlanTripFlow({
                       selected={selections[segmentIndex]?.itinerary === itinerary}
                       onSelect={() => selectItinerary(segmentIndex, itinerary)}
                       stationNames={stationNames}
-                      viaPasses={plan.journeys?.[itineraryIndex]?.viaSatisfiedBy?.filter(
+                      viaPasses={plan.journeys[itineraryIndex]?.viaSatisfiedBy?.filter(
                         (via) => via.segment === segmentIndex,
                       )}
-                      waypointStops={plan.journeys?.[itineraryIndex]?.waypointSatisfiedBy?.filter(
+                      waypointStops={plan.journeys[itineraryIndex]?.waypointSatisfiedBy?.filter(
                         (stop) => stop.segment === segmentIndex,
                       )}
                       groups={groups}

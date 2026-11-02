@@ -419,7 +419,7 @@ function JourneyStopRow({
   // In a cancelled part of the run (DS-181): struck through, with a
   // "Cancelled" badge so the strike-through is never the only signal, and
   // no estimate (the train won't be there).
-  const cancelled = stop.cancelled === true;
+  const cancelled = stop.cancelled;
   const estimated = skipped || isSkippedOnLeg || cancelled ? null : (stop.estimatedDeparture ?? stop.estimatedArrival);
   const reached = actual !== null;
   const caption = skipped ? skipCaption(stop.skipSource) : null;

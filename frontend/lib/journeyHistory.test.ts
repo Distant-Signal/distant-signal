@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { journeyDepartsAt, journeysPageSections, mergeTravelOrdered, trainDepartsAt } from './journeyHistory';
 import type { MergedSharedTrain } from './sharedTrains';
 import type { JourneyListItem, SharedGroupTrain, TrackedTrainListItem } from './types';
+import { JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 const TODAY = '2026-08-31';
 
 function journey(id: number, departsAt: string, travelled: boolean, extra: Partial<JourneyListItem> = {}) {
   return {
+    ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
     customName: null,
     createdAt: '2026-08-01T00:00:00Z',
@@ -14,6 +16,7 @@ function journey(id: number, departsAt: string, travelled: boolean, extra: Parti
     originCrs: 'WAT',
     destinationCrs: 'RDG',
     serviceDate: departsAt.slice(0, 10),
+    firstServiceDate: departsAt.slice(0, 10),
     originName: null,
     destinationName: null,
     matchMode: 'manual',
@@ -29,6 +32,7 @@ function journey(id: number, departsAt: string, travelled: boolean, extra: Parti
 
 function train(id: number, departsAt: string, travelled: boolean): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id,
     serviceDate: departsAt.slice(0, 10),
     pinOriginCrs: 'GLD',
@@ -117,9 +121,8 @@ describe('mergeTravelOrdered', () => {
 describe('departure keys', () => {
   it("reads a journey's departsAt, else the London start of its first day", () => {
     expect(journeyDepartsAt(journey(1, '2026-08-31T09:00:00Z', false))).toBe(Date.parse('2026-08-31T09:00:00Z'));
-    const { departsAt: _dropped, ...older } = journey(1, '2026-08-31T09:00:00Z', false, {
-      firstServiceDate: '2026-07-01',
-    });
+    // The api sends `departsAt: null` when it has no departure to give.
+    const older = journey(1, '2026-08-31T09:00:00Z', false, { departsAt: null, firstServiceDate: '2026-07-01' });
     // British Summer Time: London midnight is 23:00 UTC the day before.
     expect(journeyDepartsAt(older)).toBe(Date.parse('2026-06-30T23:00:00Z'));
   });

@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { ReliabilityDigest } from './ReliabilityDigest';
 import type { TrackedTrainListItem, TicketListItem } from '@/lib/types';
+import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 // Substring-equal to DelayRepayEstimate.test.tsx's own TOP_LEVEL_DISCLAIMER
 // fixture -- this is the one mechanical guard against the two silently
@@ -13,6 +14,7 @@ const CARRIED_FORWARD_DISCLAIMER = 'not a guarantee of compensation and not proo
 
 function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-01',
     pinOriginCrs: 'KGX',

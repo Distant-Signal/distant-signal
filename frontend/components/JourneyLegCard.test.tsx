@@ -4,6 +4,7 @@ import { renderWithMantine } from '@/test/render';
 import { JourneyLegCard } from './JourneyLegCard';
 import type { JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
+import { JOURNEY_LEG_DEFAULTS, JOURNEY_STOP_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -15,6 +16,7 @@ vi.mock('next/navigation', () => ({
 
 function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'KGX',
@@ -36,6 +38,7 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
     scheduleCallingPoints: null,
     journeyStops: [
       {
+        ...JOURNEY_STOP_DEFAULTS,
         crs: 'KGX',
         name: 'London Kings Cross',
         tiploc: null,
@@ -56,6 +59,7 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
         platformChanged: false,
       },
       {
+        ...JOURNEY_STOP_DEFAULTS,
         crs: 'YRK',
         name: 'York',
         tiploc: null,
@@ -76,6 +80,7 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
         platformChanged: false,
       },
       {
+        ...JOURNEY_STOP_DEFAULTS,
         crs: 'EDB',
         name: 'Edinburgh',
         tiploc: null,
@@ -105,6 +110,8 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
 
 function baseLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'KGX',
     originName: null,

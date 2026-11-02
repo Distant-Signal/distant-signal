@@ -5,6 +5,7 @@ import TrackedTrainByIdPage from './page';
 import * as api from '@/lib/api';
 import { ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import type { TrackedTrainState } from '@/lib/types';
+import { TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -51,6 +52,7 @@ vi.mock('@/components/TicketPanel', () => ({
 
 function trackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 42,
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',

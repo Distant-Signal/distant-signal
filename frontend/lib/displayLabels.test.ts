@@ -11,6 +11,7 @@ import {
   withStationWalks,
 } from './displayLabels';
 import type { TripPlanItinerary, TripPlanLeg } from './types';
+import { ITINERARY_DEFAULTS } from '@/test/apiDefaults';
 
 describe('categoryLabel', () => {
   it('maps a known TOML-enum category to a human label', () => {
@@ -121,6 +122,7 @@ describe('changesBadge', () => {
     access: { end: 'both', basis: 'line', distanceMetres: 33_000, ...(changes && { changeAt: actonTown }) },
   });
   const itinerary = (legs: TripPlanLeg[], changeCount: number, accessChangeCount?: number): TripPlanItinerary => ({
+    ...ITINERARY_DEFAULTS,
     legs,
     changeCount,
     ...(accessChangeCount !== undefined && { accessChangeCount }),

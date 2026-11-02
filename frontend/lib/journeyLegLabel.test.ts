@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { legEndpointName, legRouteAndTime, legDestinationArrivalLabel } from './journeyLegLabel';
 import type { JourneyStop } from './types';
+import { JOURNEY_STOP_DEFAULTS } from '@/test/apiDefaults';
 
 function stop(overrides: Partial<JourneyStop>): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs: null,
     name: null,
     tiploc: null,

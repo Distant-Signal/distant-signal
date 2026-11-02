@@ -1,4 +1,5 @@
 import type { TripPlanItinerary, TripPlanLeg, TripPlanTransitLeg } from '@/lib/types';
+import { ITINERARY_DEFAULTS, plannedTrainLeg } from './apiDefaults';
 
 /** `GET /Trips/plan` legs for a rail, tram, rail route across Manchester
  * (transit trip planning §11.1), shared by the planner's tests. */
@@ -6,8 +7,7 @@ import type { TripPlanItinerary, TripPlanLeg, TripPlanTransitLeg } from '@/lib/t
 type TrainLeg = Extract<TripPlanLeg, { kind: 'train' }>;
 type TransferLeg = Extract<TripPlanLeg, { kind: 'transfer' }>;
 
-export const TRAIN_INTO_MAN: TrainLeg = {
-  kind: 'train',
+export const TRAIN_INTO_MAN: TrainLeg = plannedTrainLeg({
   trainUid: 'C10001',
   serviceDate: '2026-11-04',
   originCrs: 'SPT',
@@ -17,7 +17,7 @@ export const TRAIN_INTO_MAN: TrainLeg = {
   publicDeparture: '07:45:00',
   publicArrival: '08:00:00',
   arrivalDayOffset: 0,
-};
+});
 
 export const WALK_TO_TRAM: TransferLeg = {
   kind: 'transfer',
@@ -79,8 +79,7 @@ export const WALK_FROM_TRAM: TransferLeg = {
   },
 };
 
-export const TRAIN_FROM_MCV: TrainLeg = {
-  kind: 'train',
+export const TRAIN_FROM_MCV: TrainLeg = plannedTrainLeg({
   trainUid: 'C10002',
   serviceDate: '2026-11-04',
   originCrs: 'MCV',
@@ -90,9 +89,10 @@ export const TRAIN_FROM_MCV: TrainLeg = {
   publicDeparture: '08:40:00',
   publicArrival: '09:30:00',
   arrivalDayOffset: 0,
-};
+});
 
 export const RAIL_TRAM_RAIL: TripPlanItinerary = {
+  ...ITINERARY_DEFAULTS,
   legs: [TRAIN_INTO_MAN, WALK_TO_TRAM, TRAM_LEG, WALK_FROM_TRAM, TRAIN_FROM_MCV],
   changeCount: 2,
   totalDurationMinutes: 105,
@@ -100,6 +100,7 @@ export const RAIL_TRAM_RAIL: TripPlanItinerary = {
 };
 
 export const TRAM_ONLY: TripPlanItinerary = {
+  ...ITINERARY_DEFAULTS,
   legs: [TRAM_LEG],
   changeCount: 0,
   totalDurationMinutes: 8,
@@ -137,6 +138,7 @@ export const WALK_TO_TUBE: TransferLeg = {
  * a timetabled District ride, a walk out to West Brompton, then two trains.
  * Each walk names the TfL stop at its Tube end. */
 export const WIM_MKC_BY_DISTRICT: TripPlanItinerary = {
+  ...ITINERARY_DEFAULTS,
   legs: [
     {
       kind: 'transfer',
@@ -176,8 +178,7 @@ export const WIM_MKC_BY_DISTRICT: TripPlanItinerary = {
         estimated: true,
       },
     },
-    {
-      kind: 'train',
+    plannedTrainLeg({
       trainUid: 'W29235',
       serviceDate: '2026-11-02',
       originCrs: 'WBP',
@@ -187,9 +188,8 @@ export const WIM_MKC_BY_DISTRICT: TripPlanItinerary = {
       publicDeparture: '09:47:00',
       publicArrival: '10:24:00',
       arrivalDayOffset: 0,
-    },
-    {
-      kind: 'train',
+    }),
+    plannedTrainLeg({
       trainUid: 'W33964',
       serviceDate: '2026-11-02',
       originCrs: 'WFJ',
@@ -199,7 +199,7 @@ export const WIM_MKC_BY_DISTRICT: TripPlanItinerary = {
       publicDeparture: '10:30:00',
       publicArrival: '10:50:00',
       arrivalDayOffset: 0,
-    },
+    }),
   ],
   changeCount: 2,
   totalDurationMinutes: 110,

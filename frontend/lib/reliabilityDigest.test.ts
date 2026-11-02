@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { isEligibleForPunctuality, computePunctualitySummary, computeDelayRepayRollup } from './reliabilityDigest';
 import type { TrackedTrainListItem, TicketListItem } from './types';
+import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 const TODAY = '2026-09-12';
 
 function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-10',
     pinOriginCrs: 'KGX',
