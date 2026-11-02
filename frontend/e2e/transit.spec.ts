@@ -144,8 +144,19 @@ test.describe('transit pages', () => {
     await expect(
       page.getByRole('list', { name: 'Lines affected' }).getByRole('link', { name: 'Blue Line' }),
     ).toHaveAttribute('href', '/transit/metrolink/lines/blue');
-    const image = await page.locator('meta[property="og:image"]').getAttribute('content');
-    expect(image).toMatch(/\/transit\/metrolink\/incidents\/E2E-S1\/card\.png\?v=/);
+    // The preview card, read from a fresh load of the page rather than
+    // after the click above. Next.js renders metadata in a Suspense
+    // boundary that React hoists into <head>; a click that lands before
+    // that boundary has hydrated leaves the previous page's tags behind
+    // (Next 16.4, React 19.3), so the hub's site-wide og:image sat beside
+    // this one until the next full load. A link preview never navigates
+    // client-side: what it reads is the server's HTML, which has the one.
+    const html = await (await request.get('/transit/metrolink/incidents/E2E-S1')).text();
+    expect(html.match(/<meta property="og:image"/g)).toHaveLength(1);
+    await page.goto('/transit/metrolink/incidents/E2E-S1');
+    const image = page.locator('meta[property="og:image"]');
+    await expect(image).toHaveCount(1);
+    await expect(image).toHaveAttribute('content', /\/transit\/metrolink\/incidents\/E2E-S1\/card\.png\?v=/);
     const card = await request.get('/transit/metrolink/incidents/E2E-S1/card.png');
     expect(card.status()).toBe(200);
     expect(card.headers()['content-type']).toBe('image/png');
@@ -250,6 +261,10 @@ test.describe('transit pages', () => {
     // lines are never called trams.
     await expect(page.getByText(/Each stop's page has live arrivals/)).toBeVisible();
     await expect(page.locator('main')).not.toContainText(/tram/i);
+    // From a fresh load: after the click above, /transit's own description
+    // can be left behind beside this one (see 'a disruption has its own
+    // page, with a preview card').
+    await page.goto('/transit/tfl');
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       'content',
       'London (TfL): Tube and DLR lines, stops and scheduled times.',
