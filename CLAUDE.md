@@ -211,7 +211,7 @@ README index); code, the chart README and top-level docs/ are the truth.
   file is immutable (sqlx checksums it, an edit crash-loops the api). A new
   migration's timestamp must be newer than every migration on main
   (`check-migration-order.py`). Append its line to
-  `crates/api/tests/migration_checksums.lock` once it merges. Lock-taking
+  `crates/ds-store/tests/migration_checksums.lock` once it merges. Lock-taking
   statements need `SET LOCAL lock_timeout` first; indexes on existing tables
   are `CREATE INDEX CONCURRENTLY` in a file whose first line is
   `-- no-transaction`; constraints go on `NOT VALID` and are validated in a
@@ -219,7 +219,7 @@ README index); code, the chart README and top-level docs/ are the truth.
   (drops, renames, type changes, `SET NOT NULL`) needs a
   `-- contract: <what> (code stopped using it in <commit>)` header and ships
   a release after the code stopped using it. Enforced by
-  `crates/api/tests/migration_index_locking.rs` and `migration_checksums.rs`.
+  `crates/ds-store/tests/migration_index_locking.rs` and `migration_checksums.rs`.
 - **API changes** get an entry in docs/api-changelog.md (newest first, what a
   client like DS-MCP needs to know).
 - **Copy**: sentence case, "Couldn't <verb> <noun>." failures via
