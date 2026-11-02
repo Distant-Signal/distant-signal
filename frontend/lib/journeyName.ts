@@ -93,20 +93,14 @@ export function journeyNameInputFromLegs(
 /** Adapts a `GET /Journeys/mine` row. Its `originCrs`/`destinationCrs`
  * are the CURRENT leg's, which for a journey not yet under way is the first
  * leg: naming from them is the bug that showed a planned three-leg journey
- * ending at its first change. The whole-journey fields win; the current
- * leg is only the fallback for an older backend that lacks them. */
+ * ending at its first change, so the whole-journey fields are used. */
 export function journeyListItemNameInput(item: JourneyListItem): JourneyNameInput {
-  const whole = item.lastDestinationCrs !== undefined;
   return {
     customName: item.customName,
-    origin: whole
-      ? { crs: item.firstOriginCrs, name: item.firstOriginName }
-      : { crs: item.originCrs, name: item.originName },
-    destination: whole
-      ? { crs: item.lastDestinationCrs, name: item.lastDestinationName }
-      : { crs: item.destinationCrs, name: item.destinationName },
-    serviceDate: item.firstServiceDate ?? item.serviceDate,
-    legCount: item.legCount ?? 1,
+    origin: { crs: item.firstOriginCrs, name: item.firstOriginName },
+    destination: { crs: item.lastDestinationCrs, name: item.lastDestinationName },
+    serviceDate: item.firstServiceDate,
+    legCount: item.legCount,
   };
 }
 

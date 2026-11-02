@@ -6,6 +6,14 @@ import type {
   TrackedTrainListItem,
   TrackedTrainState,
 } from '@/lib/types';
+import {
+  JOURNEY_DETAIL_DEFAULTS,
+  JOURNEY_LEG_DEFAULTS,
+  JOURNEY_LIST_ITEM_DEFAULTS,
+  JOURNEY_STOP_DEFAULTS,
+  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+} from './apiDefaults';
 
 /* Journey builders for the home page's journey tests (`lib/homeJourneys`,
  * `app/(home)/HomeJourneys`, `app/(home)/page`). Defaults describe one
@@ -14,6 +22,7 @@ import type {
 
 export function stop(crs: string, overrides: Partial<JourneyStop> = {}): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs,
     name: null,
     tiploc: null,
@@ -46,6 +55,7 @@ export function trainState(
   overrides: Partial<TrackedTrainState> = {},
 ): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: departure.slice(0, 10),
     pinOriginCrs: origin,
@@ -85,6 +95,7 @@ export function trainLeg(
   state: Partial<TrackedTrainState> = {},
 ): JourneyLegDetail {
   return {
+    ...JOURNEY_LEG_DEFAULTS,
     id,
     originCrs: origin[0],
     originName: origin[1],
@@ -112,6 +123,7 @@ export function untrackedLeg(
   overrides: Partial<JourneyLegDetail> = {},
 ): JourneyLegDetail {
   return {
+    ...JOURNEY_LEG_DEFAULTS,
     id,
     originCrs: null,
     originName: from,
@@ -137,7 +149,7 @@ export function untrackedLeg(
 }
 
 export function journeyDetail(id: number, legs: JourneyLegDetail[], customName: string | null = null): JourneyDetail {
-  return { id, customName, createdAt: '2026-09-01T00:00:00Z', legs, isOwner: true, shareLink: null };
+  return { ...JOURNEY_DETAIL_DEFAULTS, id, customName, legs };
 }
 
 /** The `GET /Journeys/mine` row for a journey, its current leg being the
@@ -151,6 +163,7 @@ export function journeyListItem(
   const last = detail.legs.at(-1);
   const state = current?.trackedTrainState ?? null;
   return {
+    ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: detail.id,
     customName: detail.customName,
     createdAt: detail.createdAt,
@@ -166,6 +179,8 @@ export function journeyListItem(
     lastDestinationName: last?.destinationName ?? null,
     firstServiceDate: first?.serviceDate ?? '2026-09-17',
     legCount: detail.legs.length,
+    trainLegCount: detail.legs.filter((leg) => leg.kind === 'train').length,
+    unmatchedLegCount: detail.legs.filter((leg) => leg.kind === 'train' && leg.trackedTrainState === null).length,
     matchMode: current?.matchMode ?? 'manual',
     trainSubscriptionId: state === null ? null : state.id,
     resolutionStatus: state?.resolutionStatus ?? null,
@@ -183,6 +198,7 @@ export function journeyListItem(
  * timetabled and not yet travelled. */
 export function loneTrain(id: number, overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id,
     serviceDate: '2026-09-17',
     pinOriginCrs: 'KGX',

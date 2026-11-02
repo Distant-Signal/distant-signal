@@ -116,14 +116,14 @@ describe('operator names', () => {
     expect(operatorFilterBanner({ operator: ['VT'], avoidOperator: [] }, nameOf)).toBe(
       'Showing routes using only Avanti West Coast. Walks between stations are included; the Tube is not.',
     );
-    expect(operatorFilterBanner({ operator: ['VT', 'LT'] }, nameOf)).toBe(
+    expect(operatorFilterBanner({ operator: ['VT', 'LT'], avoidOperator: [] }, nameOf)).toBe(
       'Showing routes using only Avanti West Coast and London Underground.',
     );
-    expect(operatorFilterBanner({ avoidOperator: ['LT'] }, nameOf)).toMatch(
+    expect(operatorFilterBanner({ operator: [], avoidOperator: ['LT'] }, nameOf)).toMatch(
       /^Showing routes that avoid London Underground, including the Tube/,
     );
     // The request's own entries name a group as a group.
-    expect(operatorFilterBanner({ avoidOperator: ['TL', 'GN', 'SN', 'GX'] }, nameOf, ['group:GTR'])).toBe(
+    expect(operatorFilterBanner({ operator: [], avoidOperator: ['TL', 'GN', 'SN', 'GX'] }, nameOf, ['group:GTR'])).toBe(
       'Showing routes that avoid GTR.',
     );
     expect(operatorFilterBanner({ operator: [], avoidOperator: [] }, nameOf)).toBeNull();
@@ -153,12 +153,20 @@ describe('Prefer (2026-10-31)', () => {
 describe('savedOperatorFilter', () => {
   it('keeps what the plan applied, with the search entries when the mode matches', () => {
     expect(
-      savedOperatorFilter({ operator: ['TL', 'GN', 'SN', 'GX'] }, { operatorMode: 'only', operators: ['group:GTR'] }),
+      savedOperatorFilter(
+        { operator: ['TL', 'GN', 'SN', 'GX'], avoidOperator: [], preferOperator: [] },
+        { operatorMode: 'only', operators: ['group:GTR'] },
+      ),
     ).toEqual({
       mode: 'only',
       entries: ['group:GTR'],
     });
-    expect(savedOperatorFilter({ avoidOperator: ['LT'] }, { operatorMode: 'only', operators: ['VT'] })).toEqual({
+    expect(
+      savedOperatorFilter(
+        { operator: [], avoidOperator: ['LT'], preferOperator: [] },
+        { operatorMode: 'only', operators: ['VT'] },
+      ),
+    ).toEqual({
       mode: 'avoid',
       entries: ['LT'],
     });
@@ -167,7 +175,10 @@ describe('savedOperatorFilter', () => {
       entries: ['GR'],
     });
     expect(
-      savedOperatorFilter({ operator: [], avoidOperator: [] }, { operatorMode: 'only', operators: ['VT'] }),
+      savedOperatorFilter(
+        { operator: [], avoidOperator: [], preferOperator: [] },
+        { operatorMode: 'only', operators: ['VT'] },
+      ),
     ).toBeNull();
   });
 });

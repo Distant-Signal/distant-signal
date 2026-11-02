@@ -1,3 +1,95 @@
+import type * as Api from './api-types';
+
+// The api's request and response types, generated from its Rust types
+// (lib/api-types.ts; repo-split spec §5.3), under the names the app uses.
+export type TrackedTrainState = Api.TrackedTrainState;
+export type PublicTrainState = Api.PublicTrainResponse;
+export type TrackedTrainListItem = Api.TrackedTrainListItem;
+export type JourneyStop = Api.JourneyStop;
+export type StopBoard = Api.StopBoard;
+export type PredictedStart = Api.PredictedStart;
+export type PreviousWorking = Api.PreviousWorking;
+export type PredictionConfidence = Api.Confidence;
+export type Cancellation = Api.Cancellation;
+export type CancellationKind = Api.CancellationKind;
+export type CancellationReason = Api.CancellationReason;
+export type CancellationReasonSource = Api.ReasonSource;
+export type CancellationPlace = Api.CancellationPlace;
+export type CancellationStop = Api.CancellationStop;
+export type CancelledSection = Api.CancelledSection;
+export type ListCancellation = Api.CancellationSummary;
+export type DelayBasis = Api.DelayBasis;
+export type StopStatus = Api.StopStatus;
+export type LiveStopStatus = Api.LiveStopStatus;
+export type SkipSource = Api.SkipSource;
+export type PlatformStatus = Api.PlatformStatus;
+export type PlatformBasis = Api.PlatformBasis;
+export type LocationType = Api.LocationType;
+export type ServiceMode = Api.ServiceMode;
+export type TrackingPhase = Api.TrackingPhase;
+export type JourneyDetail = Api.JourneyDetailResponse;
+export type JourneyLegDetail = Api.JourneyLegDetailResponse;
+export type JourneyListItem = Api.JourneyListItem;
+export type LegSkipStatus = Api.LegSkipResponse;
+export type SharedVia = Api.SharedVia;
+export type FollowedFrom = Api.FollowedFrom;
+export type LegTimetable = Api.LegTimetable;
+export type LegTimetableCall = Api.TimetabledCall;
+export type LegTimetableState = Api.MatchState;
+export type LegLiveArrivalsFilter = Api.LiveArrivalsFilter;
+export type ConnectionState = Api.ConnectionState;
+export type LegConnection = Api.LegConnection;
+export type LateDepartureReliance = Api.LateDepartureReliance<string>;
+export type TripPlanLateDepartureReliance = Api.LateDepartureReliance<string>;
+export type OpenBreakSummary = Api.OpenBreakSummary;
+export type JourneyOperatorFilter = Api.JourneyOperatorFilter;
+export type LegSearchFilters = Api.LegSearchFilters;
+export type UntrackedStatus = Api.UntrackedStatus;
+export type TripPlanResponse = Api.TripPlanResponse;
+export type TripPlanSegment = Api.TripPlanSegment;
+export type TripPlanJourney = Api.TripPlanJourney;
+export type TripPlanItinerary = Api.PlannedItinerary;
+export type TripPlanLeg = Api.PlannedLeg;
+export type TripPlanTransitLeg = Api.TransitLeg;
+export type TripPlanTransitStop = Api.TransitLegStop;
+export type TripPlanTransitNotice = Api.TransitLegNotice;
+export type TripPlanTransitWalk = Api.TransitWalk;
+export type TripPlanNetworkNotice = Api.TransitPlanNotice;
+export type TripPlanAccessLeg = Api.AccessLeg;
+export type TripPlanAccessCandidate = Api.AccessCandidate;
+export type TripPlanStopAccess = Api.StopAccess;
+export type TripPlanOptionLabel = Api.OptionLabel;
+export type TripPlanWaypointSatisfied = Api.WaypointSatisfied;
+export type TripPlanViaSatisfied = Api.ViaSatisfied;
+export type TripPlanLegLive = Api.LegLive;
+export type TripPlanNoResultReason = Api.NoResultReason;
+export type TripPlanStationWalks = Api.StationWalks;
+export type TripPlanTransitServiceMode = Api.TransitServiceMode;
+export type TripPlanAccessBasis = Api.AccessBasis;
+export type ResolutionStatus = Api.ResolutionStatus;
+export type JourneyStatus = Api.JourneyStatus;
+export type EtaSource = Api.EtaSource;
+export type JourneyLegKind = Api.JourneyLegKind;
+export type TransitMode = Api.TransitMode;
+export type BreakCause = Api.BreakCause;
+export type BreakFault = Api.BreakFault;
+
+// Field groups the api flattens into many responses, as optional inputs:
+// the helpers that read them also take rows of routes not generated yet.
+type Loose<T> = { [K in keyof T]?: T[K] | null | undefined };
+export type ServiceModeFields = Loose<Pick<Api.TrackedTrainState, 'serviceMode' | 'liveTracking'>>;
+export type TrackingPhaseFields = Loose<Pick<Api.TrackedTrainState, 'trackingPhase' | 'firstReportExpectedAt'>>;
+export type TimetableCertaintyFields = Loose<Pick<Api.PublicTrainResponse, 'provisional' | 'provisionalFrom'>>;
+
+// Not an api type: the train page's view of a tracked or public train
+// (`app/train/[uid]/[date]/page.tsx` maps a public train into it, its
+// `scheduledDeparture` as `pinScheduledDeparture`; `GET /Train/{trackingId}`
+// sends no pin departure).
+export type TrainJourneyState = Omit<
+  Api.TrackedTrainState,
+  'id' | 'sharedGroupCount' | 'journeyIds' | 'singleLegJourneyIds' | 'notificationsEnabled'
+> & { pinScheduledDeparture?: string | null };
+
 export interface ValidityPeriod {
   fromDate: string;
   toDate: string | null;
@@ -654,39 +746,6 @@ export interface SessionInfo {
   analyticsOptIn?: boolean;
 }
 
-export type ResolutionStatus = 'pending' | 'schedule_matched' | 'resolved' | 'unresolved';
-
-/** Where a tracked train is from the traveller's point of view
- * (`crates/api/src/data/tracking_phase.rs`, spec
- * docs/superpowers/specs/2026-10-20-untracked-legs-and-tracked-train-states-design.md
- * §4.3): a bus or ferry (`timetableOnly`), reported by Network Rail
- * (`live`), not in the timetable and never reported (`noTimetable`),
- * timetabled with its first report not due yet (`planned`), or due
- * (`awaitingReport`, the waiting states as before). Derived by the api on
- * every read. */
-export type TrackingPhase = 'timetableOnly' | 'live' | 'noTimetable' | 'planned' | 'awaitingReport';
-
-/** `trackingPhase` and `firstReportExpectedAt` (RFC3339: the Activation
- * before the train is activated, its origin departure after; `null` once
- * live or when unknown). Optional and nullable: an older backend, or a
- * failed lookup, sends neither, which reads as today's display. */
-export interface TrackingPhaseFields {
-  trackingPhase?: TrackingPhase | null;
-  firstReportExpectedAt?: string | null;
-}
-
-/** An untracked leg's mode (`data::journeys::TRANSIT_MODES`). */
-export type TransitMode =
-  'tube' | 'dlr' | 'bus' | 'tram' | 'metro' | 'rail' | 'walk' | 'transfer' | 'ferry' | 'taxi' | 'cycle' | 'other';
-
-/** An untracked leg's state from the clock alone, computed by the api. */
-export type UntrackedStatus = 'planned' | 'inProgress' | 'done';
-
-/** `train` (a train we track, or a search for one) or `untracked` (a Tube
- * ride, bus or walk we have no data for). Absent from an older backend,
- * which means `train`. */
-export type JourneyLegKind = 'train' | 'untracked';
-
 /** The fields an untracked leg adds to a journey leg or list row, `null`
  * (or absent) on a train leg. Its place names are the leg's own
  * `originName`/`destinationName`. */
@@ -707,11 +766,6 @@ export interface UntrackedLegFields {
   transitLineId?: string | null;
   headsign?: string | null;
 }
-export type JourneyStatus = 'awaiting_activation' | 'en_route' | 'cancelled' | 'completed';
-// `previous-working`: a predicted late start from the incoming train
-// (`predictedStart`, DS-127). Render any other value as a generic estimate.
-export type EtaSource = 'trust-propagated' | 'darwin-estimated' | 'previous-working';
-
 export type ScheduleCallingPointKind = 'Origin' | 'Intermediate' | 'Terminate';
 
 /** One calling point of a `schedule_matched` pin's matched service, as
@@ -732,89 +786,6 @@ export interface ScheduleCallingPoint {
 
 export type JourneyStopKind = 'Origin' | 'Intermediate' | 'Terminate';
 
-/** What a delay was measured against
- * (docs/superpowers/specs/2026-10-01-working-vs-public-times-design.md §11):
- * `public` is TRUST's own public-timetable time, `publicSchedule` the public
- * time from the timetable when TRUST sent none, `working` the working
- * timetable when there is no public time in that direction. */
-export type DelayBasis = 'public' | 'publicSchedule' | 'working';
-
-/** `crates/api/src/data/journey.rs`'s `StopStatus`, plain PascalCase on the
- * wire (no `rename_all`) -- same convention as `JourneyStopKind` just
- * above, the field this one sits next to on every `JourneyStop`.
- * `'Unknown'` covers every stop the booked/two-sided-calling-point
- * distinction doesn't apply to at all (an `Origin`/`Terminate` stop, or an
- * `Intermediate` one missing a scheduled time) -- whether such a stop was
- * reached is still answered by `actualArrival`/`actualDeparture` alone,
- * same as before this field existed. */
-export type StopStatus = 'Unknown' | 'Scheduled' | 'Called' | 'Skipped';
-
-/** `JourneyStop.status`, mirroring LDBWS's per-calling-point vocabulary:
- * 'OnTime'/'Late' ~ `et: "On time"`/a later time, 'Cancelled' ~
- * `isCancelled`, 'NoReport' ~ `at: "No report"`, 'Arrived'/'Departed' ~ an
- * actual time. 'Scheduled' means no live estimate yet (LDBWS would say
- * "On time"). There is no 'Delayed': DS has no delay-without-estimate
- * state. */
-export type LiveStopStatus = 'OnTime' | 'Late' | 'Cancelled' | 'NoReport' | 'Arrived' | 'Departed' | 'Scheduled';
-
-/** `crates/api/src/data/journey.rs`'s `SkipSource` -- which signal(s)
- * support a `stopStatus: 'Skipped'` verdict, carried as a SIBLING field on
- * `JourneyStop` rather than nested inside `stopStatus` itself, mirroring
- * `EtaBadge.tsx`'s `etaSource` provenance-surfacing convention (see that
- * component's own doc comment). `'Darwin'` is the operator's own explicit
- * per-calling-point cancellation flag -- treat as authoritative.
- * `'Trust'` is inferred purely from a reported TRUST `PASS` event, real
- * running data but an INFERENCE about what a `PASS` message means for a
- * booked stop (see
- * docs/superpowers/specs/2026-09-04-option-b-live-consumer-design.md's
- * still-open PASS-mapping caveat) -- word this one more softly than the
- * Darwin case. `'Both'` is the two signals independently agreeing, as
- * confident as `'Darwin'` alone. */
-export type SkipSource = 'Darwin' | 'Trust' | 'Both';
-
-// `JourneyStop.platformStatus` -- see `crates/api/src/data/journey.rs`'s
-// `PlatformStatus`. `cancelled`: Darwin lists this train as cancelled at
-// the stop, so `platform` is where it was going to call, not where it
-// will. More values may be added later; render any other value as
-// `active`.
-export type PlatformStatus = 'active' | 'cancelled';
-
-// `JourneyStop.platformBasis` (DS-127): what `displayPlatform` rests on.
-// `booked`: only the timetable's platform is known, so it is provisional
-// ("booked, not confirmed"). `board`: a live departure board shows it (not
-// a confirmation: boards show the booked platform until it changes).
-// `confirmed`: the operator confirmed it (Darwin Push Port, DS-152). Render
-// any other value as `board`.
-export type PlatformBasis = 'booked' | 'board' | 'confirmed';
-
-/** `predictedStart.confidence`. `low` comes without a number. */
-export type PredictionConfidence = 'high' | 'medium' | 'low';
-
-/** The train a prediction rests on: its previous working, whose unit forms
- * this train (`predictedStart.previousWorking`). */
-export interface PreviousWorking {
-  trainUid: string;
-  serviceDate: string; // YYYY-MM-DD
-  // `inferred` from the timetable's platform sequence; `association` later.
-  link: string;
-  status: JourneyStatus | null;
-  delayMinutes: number | null;
-  observedAt: string | null; // RFC3339
-  bookedTurnaroundMinutes: number;
-}
-
-/** A predicted late start for a train TRUST has not reported yet (DS-127,
- * `ds_store::trains::predicted_start`): from its previous working's delay
- * and the booked turnaround. Only ever an estimate: `lateMinutes` is
- * `null` at `low` confidence, which says "may start late" and no number. */
-export interface PredictedStart {
-  lateMinutes: number | null;
-  confidence: PredictionConfidence;
-  basis: string; // 'previous-working'
-  computedAt: string; // RFC3339
-  previousWorking: PreviousWorking;
-}
-
 /** One subsequent calling point of a live departure-board row
  * (`GET /public/stations/{crs}/departures`'s `callingPoints`, from LDBWS
  * `subsequentCallingPoints`; `crates/api/src/render.rs`'s
@@ -828,454 +799,6 @@ export interface BoardCallingPoint {
   et: string | null;
   at: string | null;
   isCancelled: boolean;
-}
-
-/** One calling point of a train's journey, booked schedule merged with the
- * latest reported live data for that location --
- * `crates/api/src/data/journey.rs`'s `JourneyStop`, camelCase on the wire.
- * `null` fields mean "not yet known" (a stop not yet reached has no
- * `actual*`/`delayMinutes`), never a fabricated value -- see
- * docs/superpowers/specs/2026-09-08-journey-timetable-overlay-design.md §2. */
-export interface JourneyStop {
-  crs: string | null;
-  name: string | null;
-  tiploc: string | null;
-  kind: JourneyStopKind | null;
-  // The time a passenger timetable shows: the public time, else the working
-  // time (to the minute) on a side with no public time (the departure of a
-  // set-down-only stop, a schedule stored before public times). Working
-  // (WTT) until 2026-10-20 (docs/api-changelog.md).
-  scheduledArrival: string | null; // RFC3339
-  scheduledDeparture: string | null; // RFC3339
-  actualArrival: string | null; // RFC3339
-  actualDeparture: string | null; // RFC3339
-  // The WORKING time + the train's current overall delay, populated ONLY
-  // while the matching `actual*` field above is still `null` -- i.e. only
-  // for a stop live movement data hasn't actually reported yet. Never
-  // overwrites/coexists meaningfully with a confirmed actual time; see
-  // `crates/api/src/data/journey.rs`'s `apply_delay_estimates`.
-  estimatedArrival: string | null; // RFC3339
-  estimatedDeparture: string | null; // RFC3339
-  lastEventType: string | null; // "ARRIVAL" | "DEPARTURE" | "PASS"
-  variationStatus: string | null;
-  // Against the PUBLIC timetable at this stop (`delayBasis` says which public
-  // time, or `working` when there is none). `null` for a `stopStatus:
-  // 'Skipped'` stop -- see `crates/api/src/data/journey.rs`'s
-  // `apply_stop_status` for why a skipped stop's own delay figure is
-  // suppressed rather than shown.
-  delayMinutes: number | null;
-  delayBasis?: DelayBasis | null;
-  stopStatus: StopStatus;
-  skipSource: SkipSource | null;
-  // The CURRENT (live/expected) Darwin platform for this stop. Darwin/
-  // LDBWS's live departure board only ever reports a station's OWN
-  // platform for a service departing FROM it, so this is known only for a
-  // departing stop whose station is sampled by `poller-ldbws` and whose
-  // fresh board has exactly one row that is this service, the same match
-  // as `board` (or the origin's pin-time snapshot) -- see
-  // `crates/api/src/data/journey.rs`'s `apply_origin_platform` and
-  // `crates/api/src/data/stop_board.rs`. A terminating stop is always `null`.
-  // `null` here means exactly "not known", never a fabricated value.
-  platform: string | null;
-  // The EARLIEST Darwin platform observed for this stop -- Darwin has no
-  // separate "planned platform" field of its own, so this is reconstructed
-  // by `poller-ldbws::platform_history::PlatformHistory` from repeated
-  // polls of the stop's own station board. `null` under the same
-  // conditions as `platform` above, or when no platform has been observed
-  // more than once yet.
-  plannedPlatform: string | null;
-  // Whether the live `platform` differs from the one the stop was meant to
-  // use: the timetable's `bookedPlatform` whenever both are known (DS-127),
-  // else `plannedPlatform` (the first platform seen). The non-colour signal
-  // to pair with any colour change (WCAG 1.4.1). Always `false` without a
-  // live `platform`.
-  platformChanged: boolean;
-  // Whether the train still calls at `platform`: `null` exactly when
-  // `platform` is. Optional so a response from an API that predates the
-  // field still type-checks at runtime boundaries (treated as `active`).
-  platformStatus?: PlatformStatus | null;
-  // The TIMETABLED platform from the CIF schedule itself (independent of
-  // Darwin) -- see `crates/api/src/data/journey.rs`'s
-  // `JourneyStop::booked_platform`. Separate from `plannedPlatform`
-  // (Darwin's earliest-observed reconstruction); since DS-127 it is what
-  // `platformChanged` compares against when both are known. `null` when the
-  // CIF field is blank or the schedule row predates it. Optional only so
-  // older fixtures stay valid; the API always sends it.
-  bookedPlatform?: string | null;
-  // What `displayPlatform` rests on (DS-127): `booked` marks a provisional
-  // platform. Optional: older responses lack it.
-  platformBasis?: PlatformBasis | null;
-  // DS-152: Darwin's Push Port has a platform for this stop but suppresses
-  // it from public display (not served; `displayPlatform` stays booked).
-  // Absent from older servers.
-  platformSuppressed?: boolean;
-  // The platform to show: the live `platform` when known, else
-  // `bookedPlatform` (DS-127). Optional: older responses lack it.
-  displayPlatform?: string | null;
-  // `previous-working` when `estimated*` come from a predicted late start
-  // (DS-127), else `null`. Optional: older responses lack it.
-  estimateSource?: EtaSource | null;
-  // LDBWS-style live status of this stop
-  // (`crates/api/src/data/stop_live_status.rs` has the mapping table).
-  // `null` only from an older backend. Optional so older fixtures stay valid.
-  status?: LiveStopStatus | null;
-  // Minutes late the stop is expected to be; set only when `status` is 'Late'.
-  lateMinutes?: number | null;
-  // This call is in a cancelled part of the train's run (DS-181): the whole
-  // train is cancelled, or it terminates short of, starts after, or is
-  // cancelled between stations around this call. See `Cancellation`. Not set
-  // for a skipped call (`stopStatus: 'Skipped'`). Optional: absent from an
-  // older backend.
-  cancelled?: boolean;
-  // This train's row on the stop's live LDBWS departure board, or `null`
-  // when there is no unique fresh match (`crates/api/src/data/stop_board.rs`).
-  // `null` means "not known", never "on time". Optional so older fixtures
-  // and older backends stay valid.
-  board?: StopBoard | null;
-  // Public (GBTT) times -- what the passenger timetable and station screens
-  // show, and what the UI displays first (`lib/stopTimes.ts`). `null` in a
-  // direction with no public call (the departure of a set-down-only stop),
-  // and until the next schedule publish for a schedule stored before these
-  // existed. `scheduledArrival`/`scheduledDeparture` above fill those gaps
-  // with the working time; an older backend sent WTT there, which is why
-  // `lib/stopTimes.ts` still reads these first. Optional so older fixtures
-  // and backends stay valid.
-  publicArrival?: string | null; // RFC3339
-  publicDeparture?: string | null; // RFC3339
-  // Exact working-timetable (WTT) times, `:30` seconds for a half-minute.
-  // `workingPass` is set only on a passing point (the train runs through
-  // without stopping), which has no other time. Shown only in the train
-  // page's detailed working-timetable view.
-  workingArrival?: string | null; // RFC3339
-  workingDeparture?: string | null; // RFC3339
-  workingPass?: string | null; // RFC3339
-  // Direction, from the CIF Activity field: `canBoard: false` is a
-  // set-down-only stop, `canAlight: false` a pick-up-only one.
-  canBoard?: boolean;
-  canAlight?: boolean;
-  requestStop?: boolean;
-  // The schedule books no stop here: the train runs through (a pass time
-  // only, or no time at all). Fixed by the schedule; a live movement at a
-  // passing point sets its `actual*` times and `delayMinutes` (the train's
-  // progress) but never makes it a stop. Use `isPassingPoint`, which also
-  // reads an older response without this field.
-  passingPoint?: boolean;
-  // What kind of place this stop is (`crates/api/src/data/journey.rs`'s
-  // `apply_locations`): `station` whenever `crs` is set; for a TIPLOC with no
-  // CRS, from `tiploc_locations` -- a bus stop, ferry terminal, junction...
-  // `name` then carries its display name ("Heathrow Terminal 3 (bus stop)").
-  // Optional: absent from an older backend, `null` when nothing is known.
-  locationType?: LocationType | null;
-  // A bus stop's or ferry terminal's station, to link to in its place.
-  parentCrs?: string | null;
-}
-
-/** `JourneyStop.locationType`. */
-export type LocationType =
-  'station' | 'bus_stop' | 'ferry_terminal' | 'junction' | 'siding' | 'passing_point' | 'other';
-
-/** `JourneyStop.board`: Darwin's view of this train at this stop, from the
- * station's live departure board. Darwin-sourced, unlike the TRUST-derived
- * fields around it. */
-export interface StopBoard {
-  delayReason: string | null;
-  cancelReason: string | null;
-  isCancelled: boolean;
-  // `etd - std` in minutes (0 when on time or early); `null` when `estimated`
-  // is "Delayed" or "Cancelled". Not the stop's TRUST `delayMinutes`.
-  delayMinutes: number | null;
-  // LDBWS `etd` verbatim: "HH:MM" (London), "On time", "Delayed", "Cancelled".
-  estimated: string;
-  observedAt: string; // RFC3339, when the board was polled
-}
-
-/** `GET /Train/{trackingId}`'s response shape
- * (`crates/api/src/data/train_tracking.rs`'s `TrackedTrainState`,
- * camelCase on the wire). NOT `GET /Train/by-uid/{uid}/{date}`'s any
- * more -- that route is public and returns `PublicTrainState`. `status`
- * and every
- * movement field are `null` until `resolutionStatus` is `'resolved'` and
- * `trust-consumer` has written a `train_current_state` row. Note there is
- * no `scheduledDeparture` field -- the backend's read query does not
- * select `pin_scheduled_departure`, only `serviceDate` (a date). See
- * `components/TrainJourney.tsx` for the full per-state rendering rules. */
-/** What a schedule's vehicle is (`crates/api/src/data/schedule_services.rs`).
- * Network Rail's live feed never reports a bus or a ferry, so anything but
- * `train` is timetable-only. */
-export type ServiceMode = 'train' | 'replacementBus' | 'bus' | 'ferry';
-
-/** `serviceMode`/`liveTracking`, added 2026-10-06 to every response that
- * describes a scheduled service. Optional: absent from an older backend,
- * which means a train. `liveTracking` is `false` exactly when
- * `serviceMode` is not `train`. See `lib/serviceMode.ts`. */
-export interface ServiceModeFields {
-  serviceMode?: ServiceMode | null | undefined;
-  liveTracking?: boolean | null | undefined;
-}
-
-export interface TrackedTrainState extends TrainJourneyState {
-  // The `train_subscriptions.id` every `/Train/{trackingId}` route keys
-  // off. Lives here and NOT on `TrainJourneyState`, precisely so a public,
-  // subscription-less train can be rendered without one -- see
-  // `PublicTrainState` below.
-  id: number;
-  // How many groups (`GET /groups`) this tracked train is currently shared
-  // into -- `0` if it isn't shared anywhere. Lives here, not on
-  // `TrainJourneyState`, for the same reason `id` does: a public,
-  // subscription-less train has no `group_trains` row to count at all.
-  // Read by `DeleteTrainButton`'s confirm modal to warn that deleting this
-  // subscription also removes it from every one of those groups (the DB's
-  // `group_trains.train_subscription_id ... ON DELETE CASCADE` already does
-  // this automatically; this is purely so the UI can warn about it first).
-  // Since DS-124 it also counts groups the train's own journey is shared
-  // into, each group once.
-  sharedGroupCount: number;
-  /** The owner's journeys this train belongs to, and of those the train's
-   * own (one-leg journeys bound to it), as on `TrackedTrainListItem`. Only
-   * on the owner's `GET /Train/{trackingId}`; absent from an older backend. */
-  journeyIds?: number[];
-  singleLegJourneyIds?: number[];
-  /** Whether this train's delay, cancellation and skipped-stop pushes are
-   * on (`PATCH /Train/{trackingId}`). Only on the owner's view (the train
-   * page, and the owner's journey); absent otherwise. */
-  notificationsEnabled?: boolean;
-}
-
-/** Exactly the fields `components/TrainJourney.tsx` reads -- notably NOT
- * `id`. Extracted so that page can render BOTH an owned subscription
- * (`TrackedTrainState`, which extends this) and the public, shared-train
- * view (`PublicTrainState`, adapted into this shape by
- * `app/train/[uid]/[date]/page.tsx`) without either one having to
- * fabricate a `trackingId` it doesn't have. See `PublicTrainState` below
- * for the surrogate-key collision that made that distinction load-bearing
- * rather than cosmetic. */
-export interface TrainJourneyState extends ServiceModeFields, TrackingPhaseFields {
-  serviceDate: string; // "YYYY-MM-DD"
-  // `null` for a subscription created the NR-primary way
-  // (`POST /Train/by-uid/{uid}/{date}/track`) against a shared `trains` row
-  // that has no schedule data yet -- the DEFAULT outcome of that endpoint,
-  // not an edge case. `20260906130000_nullable_pin_columns.sql` dropped
-  // this column's `NOT NULL` and the backend read model is `Option<String>`
-  // to match.
-  pinOriginCrs: string | null;
-  pinDestinationCrs: string | null;
-  // `null` whenever the backend's `LEFT JOIN stations` found no reference
-  // row for the code -- see `lib/stationLabel.ts`'s fallback.
-  pinOriginName: string | null;
-  pinDestinationName: string | null;
-  resolutionStatus: ResolutionStatus;
-  trainUid: string | null;
-  trainId: string | null;
-  // Populated once `resolutionStatus` is `'schedule_matched'` or later
-  // (a schedule match's own destination -- may differ from
-  // `pinDestinationCrs`, which is only what the user typed on the
-  // tracking form and is optional). `null` until matched, or if the
-  // matched schedule's terminus TIPLOC never resolved to a CRS.
-  scheduleDestinationCrs: string | null;
-  scheduleDestinationName: string | null;
-  scheduleCallingPoints: ScheduleCallingPoint[] | null;
-  status: JourneyStatus | null;
-  lastReportedLocation: string | null;
-  lastEventType: string | null; // "ARRIVAL" | "DEPARTURE" | "PASS"
-  /** Against the PUBLIC timetable at the passenger's own stop (a tracked
-   * train's pin destination; on the public train page, the latest call the
-   * train reported at). */
-  delayMinutes: number | null;
-  /** What `delayMinutes` was measured against: `public` (TRUST's own public
-   * time), `publicSchedule` (the timetable's public time) or `working` (no
-   * public time known). Optional: absent from an older backend. */
-  delayBasis?: DelayBasis | null;
-  /** `true` while `delayMinutes` is a forecast (the train has not reached
-   * the stop it is measured at yet). */
-  delayProvisional?: boolean;
-  nextCallingPoint: string | null;
-  etaNext: string | null; // RFC3339
-  etaSource: EtaSource | null;
-  // User-authored display label, or `null` for the computed default -- see
-  // `lib/trackingName.ts`'s `trackedTrainDisplayName`. Never inferred from
-  // any parsed document (`crates/api/src/data/ticket_extraction.rs`), only
-  // ever set via `RenameTrainButton`.
-  customName: string | null;
-  // Optional here because `TrackedTrainState` genuinely has no such field
-  // (the backend's single-train read never selects
-  // `pin_scheduled_departure`) -- see `lib/trackingName.ts`.
-  pinScheduledDeparture?: string | null;
-  // The merged scheduled-timetable + live-overlay stop list -- `null`
-  // until `trainUid` is known, or if neither backing source has anything
-  // for this train. See `components/JourneyTimeline.tsx` and
-  // docs/superpowers/specs/2026-09-08-journey-timetable-overlay-design.md §1.
-  journeyStops: JourneyStop[] | null;
-  // Server-computed replacement for the old client-only "may have
-  // finished" heuristic (`status === 'en_route' && nextCallingPoint ===
-  // null`, which fired almost always since `nextCallingPoint` is
-  // essentially never populated in practice) -- `true` once now is more
-  // than 15 minutes past the ESTIMATED arrival at `journeyStops`'s final
-  // calling point. See `crates/api/src/data/journey.rs`'s
-  // `may_have_arrived`. Always `false` when there are no `journeyStops` to
-  // compute it from.
-  mayHaveArrived: boolean;
-  // A predicted late start from the incoming train, before TRUST reports
-  // this one (DS-127). Optional: older responses and fixtures lack it.
-  predictedStart?: PredictedStart | null;
-  // The operating company's ATOC code (e.g. "SW") from the CIF schedule,
-  // and its display name from the TOC reference table
-  // (`crates/api/src/data/train_operator.rs`). `null` when no single code is
-  // known; `operatorName` is also `null` for a code the TOC table lacks.
-  // Optional so older fixtures and backends still type-check.
-  operatorCode?: string | null;
-  operatorName?: string | null;
-  // `status === 'cancelled'` (`crates/api/src/data/train_reasons.rs`).
-  cancelled?: boolean;
-  // TRUST cancellation reason code (e.g. "TG") and its Network Rail delay
-  // attribution glossary text (e.g. "Driver"), only while `cancelled`. The
-  // text is `null` for a code the 2021 glossary lacks and for the system
-  // codes PD/ZW. There is NO `delayReason`: TRUST's open feed carries no
-  // reason for a delay, only for a cancellation or change of origin.
-  cancelReasonCode?: string | null;
-  cancelReason?: string | null;
-  // TRUST change-of-origin reason code and text, same rules.
-  changeOfOriginReasonCode?: string | null;
-  changeOfOriginReason?: string | null;
-  // What part of the run is cancelled and why (DS-181,
-  // `crates/api/src/data/cancellation.rs`): `null` when nothing is,
-  // including after a reinstatement. Prefer it to `cancelled` and the
-  // reason fields above, which stay for older clients. Optional: absent
-  // from an older backend.
-  cancellation?: Cancellation | null;
-}
-
-/** `Cancellation.kind`: every public call cancelled, or only some. */
-export type CancellationKind = 'full' | 'partial';
-
-/** Where a cancellation reason came from, best first: Darwin Push Port
- * (not served yet), Darwin's text on a live departure board, then
- * Network Rail's TRUST delay attribution code. */
-export type CancellationReasonSource = 'darwin' | 'ldbws' | 'trust';
-
-export interface CancellationReason {
-  // TRUST delay attribution code ("JP"); `null` for board text.
-  code: string | null;
-  // Darwin's own sentence ("This train has been cancelled because of ..."),
-  // or the Network Rail glossary text for a TRUST code; `null` for a code
-  // with no text (system codes such as PD).
-  text: string | null;
-  source: CancellationReasonSource;
-}
-
-/** A station a cancellation names: its code and its name (`null` when
- * unknown; fall back to the code). */
-export interface CancellationPlace {
-  crs: string | null;
-  name: string | null;
-}
-
-/** A call named by a cancellation. `stopIndex` indexes the response's own
- * `journeyStops`. */
-export interface CancellationStop extends CancellationPlace {
-  stopIndex: number;
-}
-
-/** A part of the route not run: the calls between `from` and `to` are
- * cancelled, and `from` itself at the origin end, `to` at the destination
- * end. */
-export interface CancelledSection {
-  from: CancellationStop;
-  to: CancellationStop;
-}
-
-/** `TrainJourneyState.cancellation`. */
-export interface Cancellation {
-  kind: CancellationKind;
-  // The first call still served, when the train starts short.
-  startsFrom: CancellationStop | null;
-  // The last call still served, when the train terminates short.
-  terminatesAt: CancellationStop | null;
-  // The only section's ends; `null` when there are several.
-  from: CancellationStop | null;
-  to: CancellationStop | null;
-  sections: CancelledSection[];
-  reason: CancellationReason | null;
-  at: string | null; // RFC3339, when the cancellation was made
-}
-
-/** The compact `cancellation` on a list row (`GET /Journeys/mine`'s current
- * leg, `GET /Train/mine`): the same meaning as `Cancellation`, without the
- * sections. `startsFrom`/`terminatesAt` are set when the train starts or
- * ends short; a partial with neither is a cancelled middle section. */
-export interface ListCancellation {
-  kind: CancellationKind;
-  startsFrom: CancellationPlace | null;
-  terminatesAt: CancellationPlace | null;
-  reason: CancellationReason | null;
-}
-
-/** `GET /Train/by-uid/{uid}/{date}`'s response shape
- * (`crates/api/src/data/trains.rs`'s `PublicTrainState`, camelCase). This
- * route is PUBLIC and UNSCOPED as of the shared-train-identity change: it
- * describes the shared, real-world train, and carries NO per-subscriber
- * data at all -- no `customName`, no tickets, no notification state.
- *
- * `trainsId` is the shared `trains` row's own surrogate key. It is NOT a
- * tracking id and must never be passed to `RenameTrainButton`,
- * `DeleteTrainButton`, `TicketPanel` or any `/Train/{trackingId}` route:
- * those all read their id as a `train_subscriptions.id`, a different
- * `BIGSERIAL` space that also starts at 1, so the two collide freely. That
- * is exactly the bug this field's old name (`id`) caused on
- * `app/train/[uid]/[date]/page.tsx`. */
-export interface PublicTrainState extends ServiceModeFields, TimetableCertaintyFields, TrackingPhaseFields {
-  trainsId: number;
-  trainUid: string;
-  serviceDate: string; // "YYYY-MM-DD"
-  originCrs: string | null;
-  originName: string | null;
-  destinationCrs: string | null;
-  destinationName: string | null;
-  scheduledDeparture: string | null; // RFC3339
-  callingPoints: ScheduleCallingPoint[] | null;
-  // TRUST's 10-character movement-feed train id (e.g. "721S00MF25"),
-  // `null` until TRUST activates the train. NOT the headcode.
-  trainId: string | null;
-  // The CIF `BS` Train Identity -- the 4-character signalling headcode
-  // (e.g. "1S00") -- from the published schedule. `null` when unknown or
-  // ambiguous; optional so an older backend without it still type-checks.
-  headcode?: string | null;
-  // The same headcode under the name the search and detail payloads give it
-  // from batch 54 on. Either may be present; the page reads both.
-  identity?: string | null;
-  status: JourneyStatus | null;
-  lastReportedLocation: string | null;
-  lastEventType: string | null; // "ARRIVAL" | "DEPARTURE" | "PASS"
-  /** Against the PUBLIC timetable at the passenger's own stop (a tracked
-   * train's pin destination; on the public train page, the latest call the
-   * train reported at). */
-  delayMinutes: number | null;
-  /** What `delayMinutes` was measured against: `public` (TRUST's own public
-   * time), `publicSchedule` (the timetable's public time) or `working` (no
-   * public time known). Optional: absent from an older backend. */
-  delayBasis?: DelayBasis | null;
-  /** `true` while `delayMinutes` is a forecast (the train has not reached
-   * the stop it is measured at yet). */
-  delayProvisional?: boolean;
-  nextCallingPoint: string | null;
-  etaNext: string | null; // RFC3339
-  etaSource: EtaSource | null;
-  journeyStops: JourneyStop[] | null;
-  // See `TrainJourneyState.mayHaveArrived`'s own doc comment -- same
-  // contract.
-  mayHaveArrived: boolean;
-  // See `TrainJourneyState.predictedStart`.
-  predictedStart?: PredictedStart | null;
-  // See `TrainJourneyState.operatorCode`.
-  operatorCode?: string | null;
-  operatorName?: string | null;
-  // See `TrainJourneyState.cancelled` and the reason fields after it.
-  cancelled?: boolean;
-  cancelReasonCode?: string | null;
-  cancelReason?: string | null;
-  changeOfOriginReasonCode?: string | null;
-  changeOfOriginReason?: string | null;
-  // See `TrainJourneyState.cancellation`.
-  cancellation?: Cancellation | null;
 }
 
 /** `GET /public/trains/resolve`'s 200 body
@@ -1293,69 +816,6 @@ export interface TrainResolveResult {
   href: string;
 }
 
-/** `GET /Train/mine`'s per-item response shape
- * (`crates/api/src/data/train_tracking.rs`'s `TrackedTrainListItem`,
- * camelCase). A deliberately lighter shape than `TrackedTrainState` --
- * excludes live movement detail (train id, last reported location, next
- * calling point, ETA), appropriate for one train's detail page, not a
- * multi-row list. `pinScheduledDeparture` is new: neither
- * `TrackedTrainState` nor any other existing route exposes it. */
-export interface TrackedTrainListItem extends ServiceModeFields, TrackingPhaseFields {
-  id: number;
-  serviceDate: string; // "YYYY-MM-DD"
-  // See `TrackedTrainState.pinOriginCrs`'s comment -- same contract, same
-  // reason. Both pin fields on this shape are nullable together.
-  pinOriginCrs: string | null;
-  pinDestinationCrs: string | null;
-  // See `TrackedTrainState.pinOriginName`'s comment -- same contract.
-  pinOriginName: string | null;
-  pinDestinationName: string | null;
-  pinScheduledDeparture: string | null; // RFC3339
-  resolutionStatus: ResolutionStatus;
-  trainUid: string | null;
-  status: JourneyStatus | null;
-  delayMinutes: number | null;
-  /** What `delayMinutes` was measured against: `public` (TRUST's own public
-   * time), `publicSchedule` (the timetable's public time) or `working` (no
-   * public time known). Optional: absent from an older backend. */
-  delayBasis?: DelayBasis | null;
-  /** `true` while `delayMinutes` is a forecast (the train has not reached
-   * the stop it is measured at yet). */
-  delayProvisional?: boolean;
-  trackedAt: string; // RFC3339; no longer the list order (`GET /Train/mine` is in travel order)
-  // See `TrackedTrainState.customName`'s comment -- same contract.
-  customName: string | null;
-  // See `TrackedTrainState.sharedGroupCount`'s comment -- same contract.
-  // Needed here too: `/train/[uid]/[date]`'s tracking overlay renders
-  // `DeleteTrainButton` off a `TrackedTrainListItem` match (`GET
-  // /Train/mine`), not a `TrackedTrainState`.
-  sharedGroupCount: number;
-  /** The caller's journeys this train belongs to (any leg, ascending).
-   * Since DS-124 every tracked train has one, a train tracked on its own
-   * included; empty only for a row an older api wrote. Optional: absent
-   * from an older backend. See `lib/journeyTrains.ts`. */
-  journeyIds?: number[];
-  /** Of `journeyIds`, the train's own journeys: one-leg journeys bound to
-   * this train. "Stop tracking" deletes these; a train in any other journey
-   * stays tracked there. Optional: absent from an older backend. */
-  singleLegJourneyIds?: number[];
-  /** Whether the train is over by the api's travel-order rule
-   * (`travel_order::train_arrived_sql`): its actual arrival, else the
-   * timetable plus its delay, else the timetable plus
-   * `TRAVEL_ARRIVAL_GRACE_MINUTES`. Rows come still-to-come first, so the
-   * first `true` is where travelled rows begin. Optional: absent from an
-   * older backend (`lib/upcomingPast.ts` then reads the order instead). */
-  travelled?: boolean;
-  /** What part of the train's run is cancelled and why (DS-181), `null`
-   * when no part is. Optional: absent from an older backend. */
-  cancellation?: ListCancellation | null;
-  /** The list's sort key (DS-178): the departure `pinScheduledDeparture`
-   * serves, else the London start of `serviceDate`. What
-   * `lib/upcomingPast.ts`'s `mergeTravelOrder` places a train by among
-   * journeys. Optional: absent from an older backend. */
-  departsAt?: string;
-}
-
 /** `common::TimeWindow` on the wire -- `crates/common/src/lib.rs`. Both
  * fields `"HH:MM:SS" | null`. */
 export interface TimeWindow {
@@ -1363,337 +823,8 @@ export interface TimeWindow {
   before: string | null;
 }
 
-/** One row of `GET /Journeys/mine`
- * (`crates/api/src/data/journeys.rs::JourneyListItem`, camelCase).
- * Deliberately lighter than `JourneyDetail` below -- see that Rust
- * struct's own doc comment for why. */
-export interface JourneyListItem extends UntrackedLegFields, TrackingPhaseFields {
-  id: number;
-  customName: string | null;
-  createdAt: string;
-  legId: number;
-  originCrs: string | null;
-  destinationCrs: string | null;
-  /** The CURRENT leg's own service date ("YYYY-MM-DD") -- when the
-   * traveller travels, not `createdAt` (when they set the journey up). */
-  serviceDate: string;
-  /** Resolved station names for the two CRS codes above, `null` when the
-   * code is itself `null` or has no `stations` reference row. Feed both
-   * pairs to `lib/stationLabel.ts`'s `routeLabel`, which degrades both
-   * ends to bare codes together rather than mixing one name with one
-   * code. */
-  originName: string | null;
-  destinationName: string | null;
-  /** The whole journey's ends, which is what names it
-   * (`lib/journeyName.ts`): the FIRST leg's origin and the LAST leg's
-   * destination, whatever the current leg is. Optional: absent from an
-   * older backend, when `journeyListItemNameInput` falls back to the
-   * current leg's own ends. */
-  firstOriginCrs?: string | null;
-  firstOriginName?: string | null;
-  lastDestinationCrs?: string | null;
-  lastDestinationName?: string | null;
-  /** The first leg's service date: the day the journey starts. */
-  firstServiceDate?: string;
-  legCount?: number;
-  matchMode: 'unmatched' | 'manual' | 'auto';
-  trainSubscriptionId: number | null;
-  resolutionStatus: string | null;
-  status: string | null;
-  delayMinutes: number | null;
-  /** What `delayMinutes` was measured against: `public` (TRUST's own public
-   * time), `publicSchedule` (the timetable's public time) or `working` (no
-   * public time known). Optional: absent from an older backend. */
-  delayBasis?: DelayBasis | null;
-  /** `true` while `delayMinutes` is a forecast (the train has not reached
-   * the stop it is measured at yet). */
-  delayProvisional?: boolean;
-  /** The whole journey, not just the current leg: how many legs are train
-   * legs, have a cancelled train, are train legs with no train picked,
-   * have arrived (a completed train, or an untracked leg past its planned
-   * arrival) and have started. Optional: absent from a backend that
-   * predates them, when `journeyListItemSummary` falls back to the current
-   * leg alone. */
-  trainLegCount?: number;
-  cancelledLegCount?: number;
-  unmatchedLegCount?: number;
-  finishedLegCount?: number;
-  startedLegCount?: number;
-  /** The delay at the journey's final arrival: the last train leg's public
-   * delay at its own destination. `null` when not known. Optional, as
-   * above. */
-  finalArrivalDelayMinutes?: number | null;
-  finalArrivalDelayProvisional?: boolean;
-  /** What part of the current leg's train's run is cancelled and why
-   * (DS-181), `null` when no part is (or the leg has no train). Optional:
-   * absent from an older backend. */
-  cancellation?: ListCancellation | null;
-  /** Whether the whole journey is over, by the rule that splits the
-   * api's travel order: its last leg has arrived (actual arrival, else
-   * timetable plus delay, else timetable plus
-   * `TRAVEL_ARRIVAL_GRACE_MINUTES`), a cancelled last train's departure
-   * has passed, or every leg is finished. Rows come still-to-come first.
-   * Optional: absent from an older backend (`lib/upcomingPast.ts` then
-   * reads the order instead). */
-  travelled?: boolean;
-  /** The journey's open break (mid-journey changes spec 2026-10-22 §7),
-   * `null` with none. Optional: absent from an older backend. */
-  openBreakId?: number | null;
-  /** Set on a journey the caller follows rather than owns (DS-146, only
-   * with `include=followed`): who shared it and how. Such a row is
-   * read-only. */
-  followedFrom?: FollowedFrom;
-  /** Set on a journey another member shared into the caller's groups
-   * (DS-178, only with `include=shared`): one entry per group, newest share
-   * first. Such a row is read-only. A followed journey shared into one of
-   * the caller's groups has both. */
-  sharedVia?: SharedVia[];
-  /** The list's sort key (DS-178): when the journey sets off, its first
-   * leg's departure (the timetabled one for a train leg, else the pinned
-   * departure, else the London start of its date). Rows still to come are
-   * soonest first, travelled ones newest first, newest id on a tie.
-   * Optional: absent from an older backend. */
-  departsAt?: string | null;
-}
-
-/** One group a shared journey reached the caller through
- * (`crates/api/src/data/groups.rs::SharedVia`, DS-178). */
-export interface SharedVia {
-  groupId: string;
-  groupName: string;
-  /** The sharer, by the member label rules (`lib/memberLabel.ts`). */
-  addedByName: string | null;
-  addedByTag: string | null;
-  addedAt: string;
-}
-
-/** Who shared a followed journey, and how (`crates/api/src/data/
- * journey_follows.rs::FollowedFrom`, DS-146). A link shows nothing about
- * its owner, so a link follow has no owner or group. */
-export interface FollowedFrom {
-  via: 'group' | 'link';
-  /** The owner's display name, by the member label rules
-   * (`lib/memberLabel.ts`); `null` for a link or with no name on file. */
-  ownerName: string | null;
-  ownerTag: string | null;
-  groupId: string | null;
-  groupName: string | null;
-  followedAt: string;
-}
-
-/** `GET /Journeys/{id}`'s per-leg `legSkip` field
- * (`crates/api/src/routes/journeys.rs::LegSkipResponse`, sourced from
- * `crates/api/src/data/station_skip.rs`'s `LegSkipStatus`, camelCase on
- * the wire) -- `null` when the leg has no matched train yet, or no known
- * origin/destination to check (nothing to report, not "checked and
- * clean"). See docs/superpowers/specs/2026-09-22-journey-tracking-design.md §5.2. */
-export interface LegSkipStatus {
-  originSkipped: boolean;
-  destinationSkipped: boolean;
-}
-
-/** One leg of `GET /Journeys/{id}`'s response
- * (`crates/api/src/routes/journeys.rs::JourneyLegDetailResponse`).
- * `trackedTrainState` is `null` for an unmatched leg, and otherwise the
- * EXACT SAME shape `GET /Train/{trackingId}` returns -- `TrackedTrainState`
- * is reused verbatim, not a narrower/different type. */
-export interface JourneyLegDetail extends UntrackedLegFields {
-  id: number;
-  originCrs: string | null;
-  /** `null` whenever `originCrs` is `null`, or there is no `stations`
-   * reference row for the code -- same `LEFT JOIN stations` mechanism as
-   * `TrackedTrainState.pinOriginName`, see that field's own doc comment. */
-  originName: string | null;
-  destinationCrs: string | null;
-  /** See `originName`'s doc comment -- same mechanism, resolved from
-   * `destinationCrs`. */
-  destinationName: string | null;
-  serviceDate: string;
-  departAfter: string | null;
-  departBefore: string | null;
-  arriveAfter: string | null;
-  arriveBefore: string | null;
-  matchMode: 'unmatched' | 'manual' | 'auto';
-  /** Whether this leg was ever created via a window search -- `true` for a
-   * `window`-mode leg (even one with all four bounds below left `null`, a
-   * deliberate "any train, any time" search) or a template-materialized
-   * leg; `false` for a `pin`/`knownTrain`-mode leg, which never had a
-   * window to search at all. Drives `JourneyLegCard.tsx`'s `hasWindow`/
-   * "Change train" gate -- see that component's own doc comment for why
-   * the four bounds above are no longer enough to derive this on their
-   * own. */
-  windowSearched: boolean;
-  /** A window leg's search filters (DS-215): the Trains section's Between
-   * stations filters its candidates apply, saved by "Add a leg" and "Edit
-   * search". `null` for none; absent from an older backend. */
-  searchFilters?: LegSearchFilters | null;
-  trackedTrainState: TrackedTrainState | null;
-  legSkip: LegSkipStatus | null;
-  /** The change onto this leg from the one before, judged by the api on
-   * live times with the station's minimum change time
-   * (`crates/api/src/data/journey_feasibility.rs`). `null` on the first
-   * leg; absent when the api couldn't work it out (or predates it), when
-   * `lib/journeyStatus.ts` falls back to its own gap check. */
-  connection?: LegConnection | null;
-  /** The legs of the previous plan this leg replaced (mid-journey changes
-   * spec 2026-10-22 §7). Usually empty; absent from an older backend. */
-  replacesLegIds?: number[];
-  /** A timetabled leg's ride as its network's timetable has it now
-   * (DS-237). Scheduled times only, never live. Absent on other legs. */
-  timetable?: LegTimetable;
-}
-
-/** How a timetabled leg's ride stands in the network's timetable now:
- * `matched` (at the planned times), `retimed` (the nearest ride runs at
- * other times), `notInTimetable` (none near the planned time, though the
- * line runs between the stops that day), `noService` (nothing between the
- * stops that day) or `noTimetable` (no timetable for the date). */
-export type LegTimetableState = 'matched' | 'retimed' | 'notInTimetable' | 'noService' | 'noTimetable';
-
-/** One stop of a timetabled ride, boarding to alighting. */
-export interface LegTimetableCall {
-  stopId: string;
-  name: string;
-  platform: string | null;
-  /** `null` at the boarding stop. RFC3339. */
-  scheduledArrival: string | null;
-  /** `null` at the alighting stop. RFC3339. */
-  scheduledDeparture: string | null;
-}
-
-/** `JourneyLegDetail.timetable`. */
-export interface LegTimetable {
-  network: string;
-  line: { id: string; name: string; colour: string | null; mode: string | null } | null;
-  state: LegTimetableState;
-  scheduledDeparture: string | null;
-  scheduledArrival: string | null;
-  headsign: string | null;
-  calls: LegTimetableCall[];
-  headwayMinutes?: number;
-  notices: TripPlanTransitNotice[];
-  /** On TfL (phase C): which of the boarding stop's live predictions are
-   * for this line and reach the alighting stop. Absent elsewhere. */
-  liveArrivals?: LegLiveArrivalsFilter;
-}
-
-/** `LegTimetable.liveArrivals`: the groups of `lineId` at `stopId`
- * (`GET /public/tfl/stops/{stopId}/arrivals`), and in them the trains
- * whose destination is one of `destinations`. */
-export interface LegLiveArrivalsFilter {
-  stopId: string;
-  lineId: string;
-  destinations: string[];
-}
-
-/** How a change between two legs stands: `ok`, `atRisk` (little time left
- * once delays are counted), `missed` (the next leg leaves before the
- * traveller can reach it) or `unknown` (not judged: a time is unknown, a
- * train is cancelled, or the change can't be measured). */
-export type ConnectionState = 'ok' | 'atRisk' | 'missed' | 'unknown';
-
-/** `JourneyLegDetail.connection`. */
-export interface LegConnection {
-  /** Minutes from the previous leg's expected arrival to this leg's
-   * expected departure; negative when this one leaves first. */
-  gapMinutes: number | null;
-  /** The time the change needs (the station's minimum change time, a
-   * walk between stations plus that, or 0 on the same train). `null` when
-   * not known, or when this leg is a walk or a Tube ride. */
-  minimumChangeMinutes: number | null;
-  state: ConnectionState;
-  /** Set when the change works only because this leg's train is running
-   * late (DS-141): it could leave earlier. Absent otherwise. */
-  reliesOnLateDeparture?: LateDepartureReliance;
-  /** Onto a timetabled leg (DS-237): the ride its timetable has first
-   * once the traveller gets there, when that isn't the planned one.
-   * Scheduled times (RFC3339), never live. Absent otherwise. */
-  nextTimetabled?: { departure: string; arrival: string };
-}
-
-/** A change that works only because the train changed onto is running
- * late (DS-141, docs/api-changelog.md): it would not on the train's
- * timetabled departure. Instants (RFC3339) on journeys and alternatives. */
-export interface LateDepartureReliance {
-  /** The train's timetabled (public) departure. */
-  scheduledDeparture: string;
-  /** Its live departure, which the change was judged on. */
-  expectedDeparture: string;
-  delayMinutes: number;
-  /** Spare minutes after the change time were it on time: negative. */
-  slackIfOnTimeMinutes: number;
-}
-
-/** `TripPlanLegLive.reliesOnLateDeparture`: the same, with "HH:MM:SS"
- * clock times like the leg's `scheduledDeparture`. */
-export type TripPlanLateDepartureReliance = LateDepartureReliance;
-
-/** `GET /Journeys/{id}`'s full response. */
-export interface JourneyDetail {
-  id: number;
-  customName: string | null;
-  createdAt: string;
-  legs: JourneyLegDetail[];
-  /** Whether the CALLER owns this journey, as opposed to reading it via a
-   * group it's been shared into (`journey_readable_by`,
-   * `crates/api/src/data/journeys.rs`). Gate every owner-only action on
-   * this flag -- the share-journey button
-   * (`app/journeys/[id]/page.tsx`) and both owner-only branches of
-   * `JourneyLegCard` (the unmatched-leg candidate picker and the
-   * matched-leg "Change train" toggle). The backend still refuses all
-   * three regardless for a non-owner, but showing them at all to a fellow
-   * group member who can only ever get a 404 is its own bug. */
-  isOwner: boolean;
-  /** The journey's currently active unlisted share link, owner-view only
-   * -- always `null` for a non-owner (a group member, or a viewer who
-   * reached this journey via the share link itself). See `JourneyShareLink`
-   * and `ShareJourneyLinkButton.tsx`. */
-  shareLink: JourneyShareLink | null;
-  /** The journey's open break, shown to everyone who can read the journey
-   * (only the owner may act on it). `null` with none; absent from an older
-   * backend. */
-  openBreak?: OpenBreakSummary | null;
-  /** How many plans the journey has had: 1 is only the booked plan. */
-  revisionCount?: number;
-  /** Whether the owner muted suggestions for this journey (owner only). */
-  suggestionsMuted?: boolean;
-  /** The `/plan` operator filter the journey keeps for its replans (owner
-   * only, 2026-10-31). Absent when it has none. */
-  operatorFilter?: JourneyOperatorFilter;
-  /** Set when the caller follows this journey (DS-146). */
-  followedFrom?: FollowedFrom;
-  /** Whether the caller can follow it through a group it is shared into
-   * (DS-146): a non-owner who doesn't follow it yet. */
-  canFollow?: boolean;
-}
-
 /* Mid-journey changes (docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md
  * §7, §8, §17.6): breaks, suggestions and the plan's revisions. */
-
-/** Why a plan broke. */
-export type BreakCause = 'cancelled' | 'part_cancelled' | 'connection_missed' | 'user_missed' | 'skipped_stop';
-
-/** Whose doing the break was. */
-export type BreakFault = 'operator' | 'user' | 'unknown';
-
-/** `JourneyDetail.openBreak`. */
-export interface OpenBreakSummary {
-  id: number;
-  cause: BreakCause;
-  fault: BreakFault;
-  severity: 1 | 2 | 3 | 4;
-  triggerLegId: number | null;
-  detectedAt: string;
-  suggestionsReady: boolean;
-  stale: boolean;
-  /** The station where it broke (the change, or the skipped stop). */
-  stationName: string | null;
-  /** Where the journey is going. */
-  destinationName: string | null;
-  suggestionCount: number;
-  /** The earliest arrival among the suggestions. */
-  firstArrival: string | null;
-}
 
 /** What the planner was asked: `cause` of `GET .../alternatives`. */
 export type AlternativesCause = 'missed' | 'cancelled' | 'connection' | 'choice';
@@ -1737,15 +868,6 @@ export type ReplanSuggestionLeg =
       plannedDeparture: string;
       plannedArrival: string;
     };
-
-/** A journey's operator filter (`GET /Journeys/{id}`'s `operatorFilter`). */
-export interface JourneyOperatorFilter {
-  mode: 'only' | 'avoid' | 'prefer';
-  /** The operators as applied, groups expanded. */
-  codes: string[];
-  /** As chosen (`group:GTR`): what the page shows. */
-  entries: string[];
-}
 
 /** One way to carry on. */
 export interface ReplanSuggestion {
@@ -1917,452 +1039,6 @@ export interface PushDevice {
   lastUsedAt: string;
   /** Hex SHA-256 of the push endpoint: hash this browser's to find it. */
   endpointSha256: string;
-}
-
-/** One leg of a `GET /Trips/plan` itinerary
- * (`crates/api/src/data/trip_planning_itinerary.rs::PlannedLeg`,
- * camelCase, discriminated by `kind`). A `transfer` leg has no train
- * identity at all -- it is a walk/tube/bus/ferry hop with no
- * corresponding `journey_legs` row ever created for it (see this plan's
- * own Judgment Call 3). */
-export type TripPlanLeg =
-  | {
-      kind: 'train';
-      trainUid: string;
-      serviceDate: string; // "YYYY-MM-DD"
-      originCrs: string | null;
-      destinationCrs: string | null;
-      // The times the planner searched on: public, else working where the
-      // call has no public time. Working (WTT) from an older backend, so
-      // `publicDeparture`/`publicArrival` are still displayed first.
-      scheduledDeparture: string; // "HH:MM:SS"
-      scheduledArrival: string;
-      // The working-timetable (WTT) times, to the minute, with their own day
-      // offsets. Absent from older responses.
-      workingDeparture?: string; // "HH:MM:SS"
-      workingArrival?: string;
-      workingDepartureDayOffset?: number;
-      workingArrivalDayOffset?: number;
-      // Public (GBTT) departure at the boarding call and arrival at the
-      // alighting call, with their own day offsets (rounding can cross
-      // midnight). `null` when the CIF has none there or the schedule
-      // predates them; absent from older responses.
-      publicDeparture?: string | null; // "HH:MM:SS"
-      publicArrival?: string | null;
-      publicDepartureDayOffset?: number | null;
-      publicArrivalDayOffset?: number | null;
-      // Days past `serviceDate` the departure falls on (an onward train
-      // boarded after midnight). Absent from older responses.
-      departureDayOffset?: number;
-      arrivalDayOffset: number;
-      // CIF booked (timetabled) platform at the boarding / alighting calling
-      // point -- never live/Darwin. `null` when the CIF field is blank.
-      bookedDeparturePlatform?: string | null;
-      bookedArrivalPlatform?: string | null | undefined;
-      // The schedule's CIF `BX` ATOC operator code (e.g. "SW"); `null` when
-      // unknown.
-      operator?: string | null;
-      // The schedule's CIF `BS` Train Identity -- the 4-character signalling
-      // headcode (e.g. "1S00"). `null` when unknown or ambiguous. Not the
-      // TRUST 10-character train id.
-      headcode?: string | null;
-      // The live overlay's view of this leg: absent unless live data was
-      // applied, `null` when nothing is known (or outside the live window).
-      live?: TripPlanLegLive | null;
-      // A bus or ferry leg keeps `kind: 'train'`; these say what it is.
-      serviceMode?: ServiceMode | null;
-      liveTracking?: boolean | null;
-    }
-  | {
-      kind: 'transfer';
-      mode: string;
-      originCrs: string | null;
-      destinationCrs: string | null;
-      minutes: number;
-      /** The line ridden ("Victoria"), when known (2026-10-21): the
-       * curated link's line, else the one line both ends' TfL stops
-       * share. */
-      line?: string;
-      /** For a `TUBE` or `METRO` transfer, the TfL stop at each end, when
-       * known: what saving it as an untracked leg sends as the place and
-       * its stop id. */
-      originStop?: TflStop;
-      destinationStop?: TflStop;
-      /** Only on the leg between a TfL stop From or To and a National
-       * Rail station (DS-135): which end, how the station was found, and
-       * how far it goes. Its `minutes` are an estimate. */
-      access?: TripPlanAccessLeg;
-      /** Only on a walk between a National Rail station and a tram stop
-       * (transit trip planning, M2): the tram end, which has no code.
-       * `walkMinutes` is the walk alone, an estimate; `minutes` adds the
-       * change allowance on the tram side. */
-      transitWalk?: TripPlanTransitWalk;
-      /** Who runs the link (2026-10-31): `LT` for a Tube link or ride,
-       * `ds:DLR` and so on. Absent for a walk or when unknown. */
-      operator?: string | null;
-      /** `true` for an estimated walk standing in for the Tube, which
-       * only a plan whose operator filter leaves out the Tube uses
-       * (2026-10-31). */
-      estimatedWalk?: boolean;
-      /** Only on a Tube hop between two National Rail stations naming
-       * both its Tube stations (2026-11-02): the walks between each
-       * station and its Tube station that `minutes` include, so the ride
-       * is the rest. */
-      stationWalks?: TripPlanStationWalks;
-    }
-  | TripPlanTransitLeg;
-
-/** The walks a Tube transfer's `minutes` include, at each end. */
-export interface TripPlanStationWalks {
-  /** From the National Rail station to the Tube station. */
-  originMinutes: number;
-  /** From the Tube station to the National Rail station. */
-  destinationMinutes: number;
-}
-
-/** A ride on a timetabled transit network (`kind: "transit"`, sent only
- * when the request says `transit=true` or names a tram stop): Metrolink's
- * trams and their replacement buses. Scheduled times only: never live,
- * never a train to track. */
-export interface TripPlanTransitLeg {
-  kind: 'transit';
-  /** The network id, `metrolink`. */
-  network: string;
-  serviceMode: TripPlanTransitServiceMode;
-  liveTracking: false;
-  realtime: false;
-  serviceDate: string; // "YYYY-MM-DD"
-  scheduledDeparture: string; // "HH:MM:SS"
-  scheduledArrival: string;
-  departureDayOffset: number;
-  arrivalDayOffset: number;
-  /** `null` for a replacement bus. */
-  line: { id: string; name: string; colour: string | null } | null;
-  headsign: string | null;
-  originCrs: null;
-  destinationCrs: null;
-  originStop: TripPlanTransitStop;
-  destinationStop: TripPlanTransitStop;
-  /** The usual gap between trams of this line and direction around the
-   * leg's departure; absent when too few run to say. */
-  headwayMinutes?: number;
-  notices: TripPlanTransitNotice[];
-}
-
-/** `tram` or `replacementBus`. */
-/** `tube` and `dlr` on the TfL network (the TfL transit design §11). */
-export type TripPlanTransitServiceMode = 'tram' | 'replacementBus' | 'tube' | 'dlr';
-
-/** A transit leg's end: the station in its network's public spelling
- * (`9400ZZMAPIC`). */
-export interface TripPlanTransitStop {
-  id: string;
-  name: string;
-  platform: string | null;
-}
-
-/** A current disruption on a transit leg's line. */
-export interface TripPlanTransitNotice {
-  kind: 'disruption';
-  lineId: string | null;
-  /** A severity number, as `statusSeverity`. */
-  severity: number;
-  description: string;
-  message: string;
-  reason: string | null;
-  /** The situation behind it, for its page; absent for TfL's status. */
-  situationId?: string;
-}
-
-/** The tram end of a rail-to-tram walk. `towardsStop`: walking from the
- * station to the stop. */
-export interface TripPlanTransitWalk {
-  network: string;
-  /** `modes`: a TfL station's `tfl_stops` modes (`tube`, `dlr`, `tram`;
-   * 2026-11-01), absent for another network's or from an older api. */
-  stop: { id: string; name: string; modes?: string[] };
-  towardsStop: boolean;
-  walkMinutes: number;
-  estimated: boolean;
-}
-
-/** A response-level note about a transit network, such as no timetable
- * for the date: `message` is the sentence to show. */
-export interface TripPlanNetworkNotice {
-  network: string;
-  reason: string;
-  message: string;
-}
-
-/** How a `GET /Trips/plan` access candidate was found: the stop's own
- * station (`hub`), a ride on one of its lines (`line`), a short walk
- * (`walk`), or, with neither, one of the nearest stations (`nearest`). */
-export type TripPlanAccessBasis = 'hub' | 'line' | 'walk' | 'nearest';
-
-export interface TripPlanAccessLeg {
-  /** `both`: a ride straight from a From stop to a To stop. */
-  end: 'origin' | 'destination' | 'both';
-  basis: TripPlanAccessBasis;
-  /** Along the line for a ride, in a straight line for a walk. */
-  distanceMetres: number;
-  /** Where the ride changes trains between two branches of its line
-   * (Acton Town, for Uxbridge to Heathrow); its minutes include the
-   * change. Absent for a ride on one train. */
-  changeAt?: TflStop;
-  /** Where the ride is boarded, when that is another stop area of the
-   * plan's own stop's station (Paddington (H&C Line) for Paddington); its
-   * minutes include the walk to it (DS-191). */
-  boardStop?: TflStop;
-  /** Where the ride is left, when that is another stop area of the
-   * station; its minutes include the walk from it. */
-  alightStop?: TflStop;
-}
-
-/** One station a TfL stop end can be left for or reached from. */
-export interface TripPlanAccessCandidate {
-  crs: string;
-  mode: string;
-  minutes: number;
-  basis: TripPlanAccessBasis;
-  line?: string;
-  stationStop?: TflStop;
-  distanceMetres: number;
-  /** Stops ridden to the far end, for a ride measured along the line's
-   * routes; absent for an estimate or a walk. */
-  stopCount?: number;
-  /** As on `TripPlanAccessLeg`. */
-  changeAt?: TflStop;
-  boardStop?: TflStop;
-  alightStop?: TflStop;
-}
-
-/** A TfL stop From or To and its candidates, quickest first. */
-export interface TripPlanStopAccess {
-  stop: TflStop;
-  candidates: TripPlanAccessCandidate[];
-}
-
-/** One candidate itinerary for one segment
- * (`crates/api/src/data/trip_planning_itinerary.rs::PlannedItinerary`).
- * `exceedsRecommendedChanges` is only ever present for `results=fastest`
- * (CSA has no interchange-count cap of its own, see that Rust module's
- * own doc comment) -- absent (not `false`) for a `results=options` entry. */
-export interface TripPlanItinerary {
-  legs: TripPlanLeg[];
-  /** Changes between National Rail trains only. */
-  changeCount: number;
-  /** Changes within TfL access legs (2026-10-30, DS-205): one per leg
-   * whose `access` has `changeAt`. Not in `changeCount`; absent from an
-   * older API. */
-  accessChangeCount?: number;
-  totalDurationMinutes: number;
-  exceedsRecommendedChanges?: boolean;
-  /** Live overlay only: no cancelled leg and every change still works. */
-  liveFeasible?: boolean;
-  /** The first leg is the same train the previous segment's itinerary
-   * rode into the waypoint: no change is made there. */
-  continuesPreviousTrain?: boolean;
-  /** Any leg is a transit leg, whose times are scheduled, not live. */
-  scheduledOnly?: boolean;
-  /** `results=options` only (2026-10-30, DS-196): what this option is.
-   * The same on every segment's part of one journey. */
-  labels?: TripPlanOptionLabel[];
-}
-
-/** One label of a `results=options` journey (DS-196): the fastest
- * (`leavesLatest` for an arrive-by plan), the fewest changes, or an
- * alternative route, with the station that tells it apart (`viaCrs`,
- * `null` when none does). */
-export type TripPlanOptionLabel =
-  | { kind: 'fastest' }
-  | { kind: 'leavesLatest' }
-  | { kind: 'fewestChanges' }
-  | { kind: 'alternative'; viaCrs: string | null }
-  /** The best route on only the preferred operators (`preferOperator`,
-   * 2026-10-31). */
-  | { kind: 'operatorOnly'; operators: string[] };
-
-/** One whole journey: `segments[s].itineraries[j]` for every segment `s`,
- * with its end-to-end change count. */
-export interface TripPlanJourney {
-  changeCount: number;
-  /** See `TripPlanItinerary.accessChangeCount`. */
-  accessChangeCount?: number;
-  departure: { time: string; dayOffset: number };
-  arrival: { time: string; dayOffset: number };
-  totalDurationMinutes: number;
-  exceedsRecommendedChanges?: boolean;
-  liveFeasible?: boolean;
-  /** With `via` only: one entry per via, in order -- the leg that first
-   * passed it (`segments[segment].itineraries[j].legs[leg]`). */
-  viaSatisfiedBy?: TripPlanViaSatisfied[];
-  /** Only when a waypoint is a choice of stations (`group:LON`,
-   * 2026-10-07): one entry per waypoint, in order -- where the journey
-   * stopped for it. */
-  waypointSatisfiedBy?: TripPlanWaypointSatisfied[];
-  /** `results=options` only (DS-196): see `TripPlanItinerary.labels`. */
-  labels?: TripPlanOptionLabel[];
-}
-
-/** Where a journey stopped for one of the request's waypoints
- * (docs/api-changelog.md, 2026-10-07). `segment` is the segment that ends
- * there; `how` is `call` (a train took the traveller there), `walk`, or
- * `origin`/`destination` (an end of the trip is one of its stations). */
-export interface TripPlanWaypointSatisfied {
-  /** The waypoint as requested: `KGX`, `group:LON`. */
-  crs: string;
-  /** The station the journey stopped at. */
-  matchedCrs: string | null;
-  segment: number;
-  how: 'call' | 'walk' | 'origin' | 'destination';
-}
-
-/** How a journey passed one of the request's vias
- * (docs/api-changelog.md, 2026-10-06): `call` -- the train called there;
- * `pass` -- it ran through without calling; `walk` -- a transfer leg into
- * it. */
-export interface TripPlanViaSatisfied {
-  /** The via as requested: `KGX`, or a choice such as `group:LON`. */
-  crs: string;
-  /** The station that satisfied it (2026-10-07): for a choice, the member
-   * the journey passed. Absent from older responses. */
-  matchedCrs?: string | null;
-  segment: number;
-  leg: number;
-  how: 'call' | 'pass' | 'walk';
-}
-
-/** A train leg's live status
- * (`crates/api/src/data/trip_plan_live.rs::LegLive`). Delays are minutes
- * after the leg's `scheduledDeparture`/`scheduledArrival`. */
-export interface TripPlanLegLive {
-  status: 'Cancelled' | 'Departed' | 'Late' | 'Delayed' | 'OnTime' | 'Scheduled';
-  cancelled: boolean;
-  delayMinutes: number | null;
-  arrivalDelayMinutes: number | null;
-  reason: string | null;
-  reasonSource: 'darwin' | 'trust' | null;
-  platform: string | null;
-  observedAt: string | null; // RFC3339
-  interchangeFeasible: boolean | null;
-  /** The change onto this leg works only because this train is running
-   * late (DS-141): it could leave earlier. Absent otherwise. */
-  reliesOnLateDeparture?: TripPlanLateDepartureReliance;
-}
-
-/** One origin->destination hop of a (possibly multi-waypoint) plan
- * (`routes::trips::get_trip_plan`'s own `"segments"` array entry). */
-export interface TripPlanSegment {
-  originCrs: string;
-  destinationCrs: string;
-  itineraries: TripPlanItinerary[];
-  cappedByMaxChanges: boolean;
-  /** When this segment was searched from: `departAfter` for the first,
-   * the previous segment's arrival plus the change time for later ones;
-   * `null` when the previous segment found nothing. */
-  departAfter?: { time: string; dayOffset: number } | null;
-  /** Arrive-by requests only: the latest arrival this segment was searched
-   * for (the request's `arriveBy` for the last segment, the next segment's
-   * latest departure less the change time for earlier ones); `null`
-   * otherwise. */
-  arriveBy?: { time: string; dayOffset: number } | null;
-  /** Why `itineraries` is empty (`null` when it is not): which constraint
-   * made the segment infeasible, and a sentence saying so. */
-  noResultReason?: TripPlanNoResultReason | null;
-}
-
-/** See `trip_planning_itinerary::NoResultReason` in the API. */
-export interface TripPlanNoResultReason {
-  constraint:
-    | 'maxChanges'
-    | 'avoid'
-    | 'avoidStop'
-    | 'avoidChange'
-    | 'avoidCombined'
-    | 'via'
-    | 'departAfter'
-    | 'arriveBy'
-    | 'noRoute'
-    | 'previousSegment'
-    | 'nextSegment'
-    | 'operator'
-    | 'avoidOperator';
-  values: string[];
-  message: string;
-  /** `operator` / `avoidOperator` only (2026-10-31): the operators whose
-   * links or connecting rides, not trains, the route needs (`['LT']`:
-   * crossing London needs the Tube). */
-  linkOperators?: string[];
-}
-
-/** Response-level timetable certainty (2026-10-08), on
- * `/public/trains/search`, `GET /Train/by-uid/{uid}/{date}` and
- * `GET /Trips/plan`: `provisional` is `true` when the response's one
- * service date is `provisionalFrom` or later, i.e. far enough ahead that
- * late STP changes (engineering works and the like) may still alter it.
- * Both optional: absent from an older backend, which reads as firm. */
-export interface TimetableCertaintyFields {
-  provisional?: boolean;
-  /** The first provisional service date, `"YYYY-MM-DD"`. */
-  provisionalFrom?: string;
-}
-
-/** `GET /Trips/plan`'s full response. */
-export interface TripPlanResponse extends TimetableCertaintyFields {
-  results: 'fastest' | 'options';
-  segments: TripPlanSegment[];
-  /** The arrive-by deadline, `null` for a depart-after request. */
-  arriveBy?: { time: string; dayOffset: number } | null;
-  /** The effective depart-after start (2026-10-19), `null` for arrive-by. */
-  departAfter?: { time: string; dayOffset: number } | null;
-  /** Whole journeys, aligned with every segment's `itineraries`. */
-  journeys?: TripPlanJourney[];
-  /** The avoid lists as applied (CRS codes). */
-  avoid?: string[];
-  avoidStop?: string[];
-  avoidChange?: string[];
-  /** The pass-through vias as applied, in order (always `[]` without). */
-  via?: string[];
-  /** Each station group the request named -> its member CRS codes. */
-  stationGroups?: Record<string, string[]>;
-  /** The operator filter as applied (2026-10-31): "only these" and
-   * "avoid these", groups expanded (`[]` when unused). */
-  operator?: string[];
-  avoidOperator?: string[];
-  /** Each operator group the request named -> its members. */
-  operatorGroups?: Record<string, string[]>;
-  /** The listed operators that run nothing on the date. */
-  operatorsNotRunning?: string[];
-  /** `preferOperator` as applied (2026-10-31), groups expanded. */
-  preferOperator?: string[];
-  /** With `preferOperator`: what its extra search did. `added`: a new
-   * option, labelled; `labelled`: an option already shown was the one;
-   * `tooSlow`: its best route was too far behind these to show; `none`: no
-   * route uses only those operators. */
-  preferOperatorResult?: 'added' | 'labelled' | 'tooSlow' | 'none';
-  /** The effective `maxChanges` (the API's default when none was sent). */
-  maxChanges?: number;
-  /** Present when live data was requested (the default). */
-  live?: {
-    applied: boolean;
-    reason: string | null;
-    replans?: number;
-    trainsRead?: number;
-    adjustedTrains?: number;
-    /** The search itself ran on today's live delays and cancellations. */
-    inSearch?: boolean;
-    /** How many trains those changed. */
-    snapshotTrains?: number;
-  };
-  /** Only when From or To is a TfL stop (DS-135): each such end and its
-   * candidate stations; `null` for a station end. */
-  access?: {
-    origin: TripPlanStopAccess | null;
-    destination: TripPlanStopAccess | null;
-  };
-  /** With transit legs in play: what the plan could not use, such as a
-   * network with no timetable for the date. */
-  transitNotices?: TripPlanNetworkNotice[];
 }
 
 /** Body for `POST /Journeys/{journeyId}/legs` (multi-leg chaining, spec
@@ -3487,25 +2163,6 @@ export interface TrainArrivalsPage extends TimetableCertaintyFields {
 export interface TrainHeadcodePage extends TimetableCertaintyFields {
   results: TrainSearchResult[];
   serviceDate?: string;
-}
-
-/** A journey window leg's search filters (DS-215,
- * `crates/api/src/data/journeys.rs`'s `LegSearchFilters`): the Between
- * stations search's `operator`, `origin` (here `startsAt`, a leg's
- * `origin` being where the traveller boards), `terminates_at` and stop
- * filters, each the text `/public/trains/search` takes (a comma-separated
- * list). The keys other than `operator` are `TrainStopFilters`' own.
- * Unset ones are absent. */
-export interface LegSearchFilters {
-  operator?: string;
-  startsAt?: string;
-  terminatesAt?: string;
-  previouslyCallsAt?: string;
-  previouslyStopsAt?: string;
-  callsAt?: string;
-  via?: string;
-  avoid?: string;
-  avoidStop?: string;
 }
 
 /** One `GET /public/trains/search/operators` entry: an ATOC code the

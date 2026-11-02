@@ -9,6 +9,7 @@ import {
   NO_LEGS_JOURNEY_NAME,
   type JourneyNameLeg,
 } from './journeyName';
+import { JOURNEY_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 function leg(
   originCrs: string | null,
@@ -133,6 +134,7 @@ describe('journey names', () => {
       'Oxford Circus to Edinburgh (EDB), 17 Sep 2026',
     );
     const row = journeyListItemNameInput({
+      ...JOURNEY_LIST_ITEM_DEFAULTS,
       id: 1,
       customName: null,
       createdAt: '2026-09-16T00:00:00Z',

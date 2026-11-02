@@ -15,6 +15,9 @@ e2e-report/
 
 # Generated files.
 next-env.d.ts
+# The api's types (scripts/sync-api-types.py): a byte-for-byte copy of
+# api-types/api.ts, which ts-rs writes.
+lib/api-types.ts
 package-lock.json
 
 # Minified accessibility fixtures (captured axe/page output): formatting

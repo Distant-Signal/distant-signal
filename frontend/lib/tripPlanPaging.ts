@@ -53,7 +53,7 @@ function legKey(leg: TripPlanLeg): string {
   }
   // The timetabled departure, never the live one: a delay that changes
   // between two pages must not make the same train look new.
-  const departure = `${leg.scheduledDeparture}+${leg.departureDayOffset ?? 0}`;
+  const departure = `${leg.scheduledDeparture}+${leg.departureDayOffset}`;
   return `${leg.trainUid}@${leg.serviceDate}:${leg.originCrs ?? ''}>${leg.destinationCrs ?? ''}@${departure}`;
 }
 
@@ -74,7 +74,7 @@ function daysBetween(from: string, to: string): number {
  * segments and `journeys` don't line up (an older backend): such a plan
  * can't be paged. */
 export function pageEntries(plan: TripPlanResponse, serviceDate: string, listDate: string): PlanEntry[] | null {
-  const journeys = plan.journeys ?? [];
+  const journeys = plan.journeys;
   if (plan.segments.length === 0 || plan.segments.some((segment) => segment.itineraries.length !== journeys.length)) {
     return null;
   }
@@ -106,7 +106,7 @@ export function startList(query: TripPlanQuery, serviceDate: string, plan: TripP
     earlierBefore: Math.min(...unique.map((entry) => entry.arrival)),
     earlierDone: false,
     laterDone: false,
-    provisional: plan.provisional === true,
+    provisional: plan.provisional,
   };
 }
 
@@ -170,7 +170,7 @@ export function mergePage(
       direction === 'earlier'
         ? Math.min(list.earlierBefore, ...page.map((entry) => entry.arrival))
         : list.earlierBefore,
-    provisional: list.provisional || plan.provisional === true,
+    provisional: list.provisional || plan.provisional,
   };
   return { list: next, added: fresh.length };
 }

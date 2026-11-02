@@ -14,12 +14,14 @@ import {
   WALK_TO_TRAM,
   WALK_TO_TUBE,
 } from '@/test/transitPlanFixtures';
+import { ITINERARY_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
 type TrainLeg = Extract<TripPlanLeg, { kind: 'train' }>;
 
 const trainItinerary: TripPlanItinerary = {
+  ...ITINERARY_DEFAULTS,
   legs: [
-    {
+    plannedTrainLeg({
       kind: 'train',
       trainUid: 'C11052',
       serviceDate: '2026-09-23',
@@ -28,13 +30,14 @@ const trainItinerary: TripPlanItinerary = {
       scheduledDeparture: '08:00:00',
       scheduledArrival: '08:50:00',
       arrivalDayOffset: 0,
-    },
+    }),
   ],
   changeCount: 0,
   totalDurationMinutes: 50,
 };
 
 const fixedLinkOnlyItinerary: TripPlanItinerary = {
+  ...ITINERARY_DEFAULTS,
   legs: [{ kind: 'transfer', mode: 'TUBE', originCrs: 'EUS', destinationCrs: 'KGX', minutes: 5 }],
   changeCount: 0,
   totalDurationMinutes: 5,
@@ -240,6 +243,7 @@ describe('ItineraryOption', () => {
 
   it("names a transfer's line when the planner knows it", () => {
     const itinerary: TripPlanItinerary = {
+      ...ITINERARY_DEFAULTS,
       legs: [
         { kind: 'transfer', mode: 'TUBE', originCrs: 'VXH', destinationCrs: 'EUS', minutes: 22, line: 'Victoria' },
       ],
@@ -252,6 +256,7 @@ describe('ItineraryOption', () => {
 
   it("shows a Tube hop's walks to and from its Tube stations as rows of their own", () => {
     const itinerary: TripPlanItinerary = {
+      ...ITINERARY_DEFAULTS,
       legs: [
         {
           kind: 'transfer',
@@ -295,7 +300,12 @@ describe('ItineraryOption', () => {
     const card = (leg: TripPlanItinerary['legs'][number]) => {
       const view = renderWithMantine(
         <ItineraryOption
-          itinerary={{ legs: [leg], changeCount: 0, totalDurationMinutes: leg.kind === 'transfer' ? leg.minutes : 0 }}
+          itinerary={{
+            ...ITINERARY_DEFAULTS,
+            legs: [leg],
+            changeCount: 0,
+            totalDurationMinutes: leg.kind === 'transfer' ? leg.minutes : 0,
+          }}
           selected={false}
           onSelect={vi.fn()}
         />,
@@ -342,6 +352,7 @@ describe('ItineraryOption: bus and ferry legs', () => {
     const [trainLeg] = trainItinerary.legs;
     if (trainLeg?.kind !== 'train') throw new Error('fixture');
     const itinerary: TripPlanItinerary = {
+      ...ITINERARY_DEFAULTS,
       legs: [
         { ...trainLeg, serviceMode: 'train', liveTracking: true },
         { ...trainLeg, trainUid: 'C30818', serviceMode: 'replacementBus', liveTracking: false },
@@ -406,6 +417,7 @@ describe('ItineraryOption: station groups (2026-10-07)', () => {
     renderWithMantine(
       <ItineraryOption
         itinerary={{
+          ...ITINERARY_DEFAULTS,
           legs: [
             {
               kind: 'transfer',
@@ -465,6 +477,7 @@ describe('ItineraryOption: station groups (2026-10-07)', () => {
       renderWithMantine(
         <ItineraryOption
           itinerary={{
+            ...ITINERARY_DEFAULTS,
             legs: [
               { ...(trainItinerary.legs[0] as TrainLeg), destinationCrs: 'HXX' },
               {
@@ -565,6 +578,7 @@ describe('ItineraryOption: station groups (2026-10-07)', () => {
     renderWithMantine(
       <ItineraryOption
         itinerary={{
+          ...ITINERARY_DEFAULTS,
           legs: [
             { ...(trainItinerary.legs[0] as TrainLeg), destinationCrs: 'WRU' },
             {

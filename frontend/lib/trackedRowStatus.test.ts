@@ -9,6 +9,7 @@ import {
   viewerCanPickTrain,
 } from './trackedRowStatus';
 import type { GroupJourney, JourneyListItem, ListCancellation } from './types';
+import { JOURNEY_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 const TODAY = '2026-10-21';
 const PAST = '2026-10-20';
@@ -24,9 +25,13 @@ function train(overrides: Partial<TrackedTrainRowInput> = {}): TrackedTrainRowIn
   };
 }
 
-/** A journey whose current leg is the same train as `train()`. */
+/** A journey whose current leg is the same train as `train()`. Unless a
+ * test sets them, its journey-wide counts are what the api sends when every
+ * other leg is a train behind the current one: all arrived once it has, else
+ * none started. The final arrival delay is the current train's. */
 function journey(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
-  return {
+  const row: JourneyListItem = {
+    ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: 1,
     customName: null,
     createdAt: '2026-10-01T09:00:00Z',
@@ -34,6 +39,7 @@ function journey(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
     originCrs: 'KGX',
     destinationCrs: 'EDB',
     serviceDate: TODAY,
+    firstServiceDate: TODAY,
     originName: null,
     destinationName: null,
     legCount: 1,
@@ -43,6 +49,23 @@ function journey(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
     status: 'en_route',
     delayMinutes: 0,
     trackingPhase: 'live',
+    ...overrides,
+  };
+  const train = row.kind === 'train';
+  const completed = row.status === 'completed';
+  return {
+    ...row,
+    trainLegCount: train ? row.legCount : row.legCount - 1,
+    cancelledLegCount: row.status === 'cancelled' ? 1 : 0,
+    unmatchedLegCount: train && row.resolutionStatus === null ? 1 : 0,
+    finishedLegCount: completed || row.untrackedStatus === 'done' ? row.legCount : 0,
+    startedLegCount: completed
+      ? row.legCount
+      : row.status === 'en_route' || row.untrackedStatus === 'inProgress'
+        ? 1
+        : 0,
+    finalArrivalDelayMinutes: row.delayMinutes,
+    finalArrivalDelayProvisional: row.delayProvisional,
     ...overrides,
   };
 }
@@ -146,7 +169,7 @@ describe('tracked row status: a lone train and a journey read the same', () => {
   });
 
   it('a past day whose reports stopped short of arriving reads "no report", without its stale forecast', () => {
-    const stuck = { status: 'en_route', delayMinutes: 4, delayProvisional: true, serviceDate: PAST };
+    const stuck = { status: 'en_route' as const, delayMinutes: 4, delayProvisional: true, serviceDate: PAST };
     const expected = { kind: 'noReport', finished: true, delayMinutes: null, delayProvisional: false };
     expect(trackedTrainRowStatus(train(stuck), TODAY)).toMatchObject(expected);
     expect(journeyRowStatus(journey(stuck), TODAY)).toMatchObject(expected);

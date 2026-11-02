@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { legProgressIndex, legStopRange } from './legStopRange';
 import type { JourneyStop } from './types';
+import { JOURNEY_STOP_DEFAULTS } from '@/test/apiDefaults';
 
 function stop(crs: string | null, overrides: Partial<JourneyStop> = {}): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs,
     name: crs,
     tiploc: null,

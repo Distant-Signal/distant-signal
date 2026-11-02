@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { UntrackedLegCard } from './UntrackedLegCard';
 import type { JourneyLegDetail } from '@/lib/types';
+import { JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
@@ -12,6 +13,7 @@ vi.mock('next/navigation', () => ({
 
 function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    ...JOURNEY_LEG_DEFAULTS,
     id: 5,
     kind: 'untracked',
     originCrs: null,

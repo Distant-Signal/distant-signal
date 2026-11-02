@@ -3,6 +3,24 @@ import { isUntrackedLeg } from './untrackedLeg';
 import { trainCancellation } from './cancellation';
 import type { JourneyLegDetail, JourneyListItem, TrackingPhaseFields } from './types';
 
+/** The fields of a journey leg (`GET /Journeys/{id}`) that only an untracked
+ * or timetabled leg, or a replanned one, fills: blank on a leg built from a
+ * train's own row (`loneTrainLeg`, the list adapters below). */
+export const TRAIN_LEG_BLANKS = {
+  transitMode: null,
+  lineName: null,
+  plannedDeparture: null,
+  plannedArrival: null,
+  untrackedStatus: null,
+  originStopId: null,
+  destinationStopId: null,
+  searchFilters: null,
+  replacesLegIds: [],
+  transitNetwork: null,
+  transitLineId: null,
+  headsign: null,
+} as const satisfies Partial<JourneyLegDetail>;
+
 /** A journey leg's own status classification, independent of
  * `severity.ts`'s `SeverityGroup` -- a leg's status space (has this leg
  * even been matched to a real train yet? is it cancelled? delayed? just
@@ -115,6 +133,7 @@ export function legStatusGroup(leg: JourneyLegDetail): LegStatusGroup {
  * not overlooked. */
 export function journeyListItemStatusGroup(item: JourneyListItem): LegStatusGroup {
   return legStatusGroup({
+    ...TRAIN_LEG_BLANKS,
     id: item.legId,
     originCrs: item.originCrs,
     // `JourneyListItem` resolves the same two station names the detail
@@ -135,8 +154,8 @@ export function journeyListItemStatusGroup(item: JourneyListItem): LegStatusGrou
     // gap as `legSkip` below) -- legStatusGroup never reads it, so the
     // adapter just needs a valid placeholder, not the real value.
     windowSearched: false,
-    kind: item.kind ?? 'train',
-    untrackedStatus: item.untrackedStatus ?? null,
+    kind: item.kind,
+    untrackedStatus: item.untrackedStatus,
     // Whether a train is picked is the leg's own fact, read from the
     // train's resolution: the api blanks `trainSubscriptionId` (the
     // owner's subscription) on a followed or group-shared row, which
@@ -170,6 +189,7 @@ export function trackedTrainListStatusGroup(
   } & TrackingPhaseFields,
 ): LegStatusGroup {
   return legStatusGroup({
+    ...TRAIN_LEG_BLANKS,
     id: 0,
     originCrs: null,
     originName: null,
@@ -412,7 +432,7 @@ export function journeyDetailSummary(legs: readonly JourneyLegDetail[]): Journey
     finishedLegCount: legs.filter(legFinished).length,
     startedLegCount: legs.filter(legStarted).length,
     finalArrivalDelayMinutes: finalArrives ? finalState.delayMinutes : null,
-    finalArrivalDelayProvisional: finalArrives ? (finalState.delayProvisional ?? false) : false,
+    finalArrivalDelayProvisional: finalArrives ? finalState.delayProvisional : false,
     connection: worstConnection(legs),
   });
 }
@@ -420,38 +440,27 @@ export function journeyDetailSummary(legs: readonly JourneyLegDetail[]): Journey
 /** The summary from one `GET /Journeys/mine` row. With the journey-wide
  * counts the row carries, this is the journey page's rule, less the
  * connection (no stop times on the list) and problems on legs other than
- * the current one. A backend that predates the counts gets the current
- * leg alone, as the list showed before. */
+ * the current one. */
 export function journeyListItemSummary(item: JourneyListItem): JourneySummary {
   const current = journeyListItemStatusGroup(item);
-  const legCount = item.legCount ?? 1;
-  const currentFinished = item.status === 'completed' || current === 'untrackedDone';
-  const currentStarted = currentFinished || item.status === 'en_route' || current === 'untrackedInProgress';
-  const hasFinalDelay = item.finalArrivalDelayMinutes !== undefined;
   // The current leg's train cancelled only in part (DS-181): a train
   // TRUST marked cancelled en route is counted in `cancelledLegCount`, but
   // isn't wholly cancelled; one that starts short may not be marked at all.
   const currentPartial = item.cancellation?.kind === 'partial';
-  const cancelledLegCount = item.cancelledLegCount ?? (current === 'severe' ? 1 : 0);
   const partialCountedCancelled = currentPartial && item.status === 'cancelled' ? 1 : 0;
   return summariseJourney({
     currentLegGroup: current,
     otherLegGroups: [],
-    legCount: item.finishedLegCount === undefined ? 1 : legCount,
-    // Without the counts, a cancelled current leg of a multi-leg journey
-    // can't be told from a wholly cancelled journey; it reads "Part
-    // cancelled", which is true either way that some of it is.
-    trainLegCount: item.trainLegCount ?? (current === 'severe' && legCount > 1 ? legCount : 1),
-    cancelledLegCount,
+    legCount: item.legCount,
+    trainLegCount: item.trainLegCount,
+    cancelledLegCount: item.cancelledLegCount,
     partCancelledLegCount: currentPartial ? 1 : 0,
-    fullyCancelledLegCount: Math.max(0, cancelledLegCount - partialCountedCancelled),
-    unmatchedLegCount: item.unmatchedLegCount ?? (current === 'unmatched' ? 1 : 0),
-    finishedLegCount: item.finishedLegCount ?? (currentFinished ? 1 : 0),
-    startedLegCount: item.startedLegCount ?? (currentStarted ? 1 : 0),
-    finalArrivalDelayMinutes: hasFinalDelay ? (item.finalArrivalDelayMinutes ?? null) : item.delayMinutes,
-    finalArrivalDelayProvisional: hasFinalDelay
-      ? (item.finalArrivalDelayProvisional ?? false)
-      : (item.delayProvisional ?? false),
+    fullyCancelledLegCount: Math.max(0, item.cancelledLegCount - partialCountedCancelled),
+    unmatchedLegCount: item.unmatchedLegCount,
+    finishedLegCount: item.finishedLegCount,
+    startedLegCount: item.startedLegCount,
+    finalArrivalDelayMinutes: item.finalArrivalDelayMinutes,
+    finalArrivalDelayProvisional: item.finalArrivalDelayProvisional,
     connection: null,
   });
 }

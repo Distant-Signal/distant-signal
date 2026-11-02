@@ -23,7 +23,7 @@ import {
   trainState,
   untrackedLeg,
 } from '@/test/journeyFixtures';
-import type { JourneyDetail } from './types';
+import type { JourneyDetail, TrackedTrainListItem } from './types';
 
 const KGX: [string, string] = ['KGX', 'London Kings Cross'];
 const YRK: [string, string] = ['YRK', 'York'];
@@ -434,9 +434,16 @@ describe('splitHomeJourneys', () => {
     });
 
     it('with an older api (no `travelled`), drops a train from an earlier day as the Journeys page does', () => {
-      const old = { ...loneTrain(5, { serviceDate: '2026-09-16', pinScheduledDeparture: '2026-09-16T09:00:00Z' }) };
-      delete old.travelled;
-      expect(splitHomeJourneys([], new Map(), [old], now)).toEqual({ current: null, alsoInProgress: [], upcoming: [] });
+      // The api always sends `travelled` now; this is a response from before it.
+      const { travelled: _travelled, ...old } = loneTrain(5, {
+        serviceDate: '2026-09-16',
+        pinScheduledDeparture: '2026-09-16T09:00:00Z',
+      });
+      expect(splitHomeJourneys([], new Map(), [old as TrackedTrainListItem], now)).toEqual({
+        current: null,
+        alsoInProgress: [],
+        upcoming: [],
+      });
     });
 
     it('is ordered in with the upcoming journeys by day, then departure', () => {
@@ -514,7 +521,9 @@ describe('homeJourneyStatusGroup', () => {
 
   it("falls back to the list row's status when not read in full", () => {
     const detail = twoLegs(1, { status: 'en_route', delayMinutes: 5 });
-    expect(homeJourneyStatusGroup({ item: journeyListItem(detail), detail: null, departure: null })).toBe('delayed');
+    // The row's own delay figure: the api's final-arrival delay.
+    const item = journeyListItem(detail, undefined, { startedLegCount: 1, finalArrivalDelayMinutes: 5 });
+    expect(homeJourneyStatusGroup({ item, detail: null, departure: null })).toBe('delayed');
   });
 });
 

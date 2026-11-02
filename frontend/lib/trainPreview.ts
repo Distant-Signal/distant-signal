@@ -49,7 +49,6 @@ export type TrainPreviewInput = Pick<
   | 'destinationName'
   | 'scheduledDeparture'
   | 'headcode'
-  | 'identity'
   | 'status'
   | 'lastReportedLocation'
   | 'lastEventType'
@@ -173,7 +172,7 @@ function originPlatformLine(train: TrainPreviewInput): string | null {
 
 /** "South Western Railway · Headcode 1A23", plus the date when given. */
 function identityLine(train: TrainPreviewInput, date: string | null): string | null {
-  const headcode = train.identity ?? train.headcode ?? null;
+  const headcode = train.headcode;
   const parts = [
     train.operatorName ?? train.operatorCode ?? null,
     headcode ? `Headcode ${headcode}` : null,
@@ -293,7 +292,7 @@ export function trainPreviewCard(train: TrainPreviewInput, now: number): StatusP
   const band =
     train.delayMinutes === null
       ? { tone: 'informational' as const, label: 'Running' }
-      : delayBand(train.delayMinutes, train.delayProvisional ?? false);
+      : delayBand(train.delayMinutes, train.delayProvisional);
   return card(band, lastReportedLine(train) ?? schedule, rows(nextStopLine(train), identity, snapshot));
 }
 

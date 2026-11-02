@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { journeyListItemStatusGroup, legStatusGroup, legStatusRank, worstLegStatus } from './journeyStatus';
 import type { JourneyLegDetail, JourneyListItem, TrackedTrainState } from './types';
+import { JOURNEY_LEG_DEFAULTS, JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 function baseTrackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-08-28',
     pinOriginCrs: 'WAT',
@@ -33,6 +35,8 @@ function baseTrackedTrainState(overrides: Partial<TrackedTrainState> = {}): Trac
 
 function baseLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'WAT',
     originName: null,
@@ -296,6 +300,7 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
 
   it('a /Journeys/mine row adapts its kind and phase', () => {
     const row = (overrides: Partial<JourneyListItem>): JourneyListItem => ({
+      ...JOURNEY_LIST_ITEM_DEFAULTS,
       id: 1,
       customName: null,
       createdAt: '2026-10-20T00:00:00Z',
@@ -303,6 +308,7 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
       originCrs: null,
       destinationCrs: null,
       serviceDate: '2026-10-21',
+      firstServiceDate: '2026-10-21',
       originName: null,
       destinationName: null,
       matchMode: 'manual',
@@ -332,6 +338,7 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
   // blanked, but still carries the train the owner picked.
   it('a shared row with no subscription id but a picked train reads by that train', () => {
     const row: JourneyListItem = {
+      ...JOURNEY_LIST_ITEM_DEFAULTS,
       id: 1,
       customName: null,
       createdAt: '2026-10-20T00:00:00Z',
@@ -339,6 +346,7 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
       originCrs: 'KGX',
       destinationCrs: 'EDB',
       serviceDate: '2026-10-21',
+      firstServiceDate: '2026-10-21',
       originName: null,
       destinationName: null,
       matchMode: 'manual',

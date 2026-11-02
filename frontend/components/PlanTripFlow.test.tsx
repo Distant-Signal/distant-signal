@@ -7,6 +7,7 @@ import type { PlannerOperatorCatalogue, TripPlanResponse } from '@/lib/types';
 import type { PlanFormInitial } from '@/lib/tripPlanUrl';
 import { byVisibleText } from '@/test/routeText';
 import { RAIL_TRAM_RAIL } from '@/test/transitPlanFixtures';
+import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
 // `LoginPromptModal` (rendered unconditionally, per its own doc comment)
 // pulls in `useLoginHref`, which calls `usePathname`/`useSearchParams` --
@@ -19,16 +20,19 @@ vi.mock('next/navigation', () => ({
 }));
 
 const singleSegmentPlan: TripPlanResponse = {
+  ...TRIP_PLAN_DEFAULTS,
   results: 'fastest',
   segments: [
     {
+      ...SEGMENT_DEFAULTS,
       originCrs: 'EUS',
       destinationCrs: 'MKC',
       cappedByMaxChanges: false,
       itineraries: [
         {
+          ...ITINERARY_DEFAULTS,
           legs: [
-            {
+            plannedTrainLeg({
               kind: 'train',
               trainUid: 'C11052',
               serviceDate: '2026-09-23',
@@ -37,7 +41,7 @@ const singleSegmentPlan: TripPlanResponse = {
               scheduledDeparture: '08:00:00',
               scheduledArrival: '08:50:00',
               arrivalDayOffset: 0,
-            },
+            }),
           ],
           changeCount: 0,
           totalDurationMinutes: 50,
@@ -218,16 +222,19 @@ describe('PlanTripFlow', () => {
     // this file only ever exercises the non-null branch, since their
     // fixtures always carry real CRS strings.
     const nullOverridesPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MKC',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'C11052',
                   serviceDate: '2026-09-23',
@@ -236,7 +243,7 @@ describe('PlanTripFlow', () => {
                   scheduledDeparture: '08:00:00',
                   scheduledArrival: '08:50:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 50,
@@ -302,8 +309,11 @@ describe('PlanTripFlow', () => {
 
   it('names the failing segment when a segment has no itineraries', async () => {
     const noRoutePlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
-      segments: [{ originCrs: 'EUS', destinationCrs: 'ZZZ', itineraries: [], cappedByMaxChanges: false }],
+      segments: [
+        { ...SEGMENT_DEFAULTS, originCrs: 'EUS', destinationCrs: 'ZZZ', itineraries: [], cappedByMaxChanges: false },
+      ],
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(noRoutePlan) }));
     renderWithMantine(<PlanTripFlow onCreated={vi.fn()} />);
@@ -316,9 +326,11 @@ describe('PlanTripFlow', () => {
 
   it('says which constraint left a segment with no itineraries', async () => {
     const noRoutePlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MKC',
           itineraries: [],
@@ -342,16 +354,19 @@ describe('PlanTripFlow', () => {
 
   it('saves every train leg across multiple segments, in order, in one POST /Journeys/itinerary', async () => {
     const twoSegmentPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MKC',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'C11052',
                   serviceDate: '2026-09-23',
@@ -360,7 +375,7 @@ describe('PlanTripFlow', () => {
                   scheduledDeparture: '08:00:00',
                   scheduledArrival: '08:50:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 50,
@@ -368,13 +383,15 @@ describe('PlanTripFlow', () => {
           ],
         },
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'MKC',
           destinationCrs: 'EDB',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'C22000',
                   serviceDate: '2026-09-23',
@@ -383,7 +400,7 @@ describe('PlanTripFlow', () => {
                   scheduledDeparture: '09:10:00',
                   scheduledArrival: '13:00:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 230,
@@ -442,16 +459,19 @@ describe('PlanTripFlow', () => {
   // instead of being dropped.
   it('saves a Tube transfer between two trains as an untracked leg', async () => {
     const plan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'MKC',
           destinationCrs: 'YRK',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'A11111',
                   serviceDate: '2026-10-21',
@@ -460,9 +480,9 @@ describe('PlanTripFlow', () => {
                   scheduledDeparture: '09:00:00',
                   scheduledArrival: '09:50:00',
                   arrivalDayOffset: 0,
-                },
+                }),
                 { kind: 'transfer', mode: 'TUBE', originCrs: 'EUS', destinationCrs: 'KGX', minutes: 20 },
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'B22222',
                   serviceDate: '2026-10-21',
@@ -471,7 +491,7 @@ describe('PlanTripFlow', () => {
                   scheduledDeparture: '10:30:00',
                   scheduledArrival: '12:30:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 1,
               totalDurationMinutes: 210,
@@ -533,16 +553,19 @@ describe('PlanTripFlow', () => {
     // from the segment's). The committed `knownTrain` request must carry
     // the LEG's own CRE/PRE, never the segment's BHM/GLC.
     const midRoutePlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'BHM',
           destinationCrs: 'GLC',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
+                plannedTrainLeg({
                   kind: 'train',
                   trainUid: 'X12345',
                   serviceDate: '2026-09-23',
@@ -551,7 +574,7 @@ describe('PlanTripFlow', () => {
                   scheduledDeparture: '10:00:00',
                   scheduledArrival: '11:15:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 75,
@@ -649,7 +672,7 @@ describe('PlanTripFlow', () => {
     // exercises the exact same `trainLegs.length === 0` guard in
     // `handleTrackJourney` that a fixed-link-only itinerary would if it
     // could ever be selected.
-    const noSegmentsPlan: TripPlanResponse = { results: 'fastest', segments: [] };
+    const noSegmentsPlan: TripPlanResponse = { ...TRIP_PLAN_DEFAULTS, results: 'fastest', segments: [] };
     const fetchMock = vi.fn().mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(noSegmentsPlan) });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -670,6 +693,7 @@ describe('PlanTripFlow', () => {
 
   it('renders the cappedByMaxChanges hint for a segment capped at the max-changes limit', async () => {
     const cappedPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [{ ...singleSegmentPlan.segments[0]!, cappedByMaxChanges: true }],
     };
@@ -769,12 +793,18 @@ describe('PlanTripFlow', () => {
     // since the latter is now a genuine no-op by design (`PlanTripForm`'s
     // `disabled` prop) and can no longer produce two in-flight requests.
     const firstPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
-      segments: [{ originCrs: 'AAA', destinationCrs: 'BBB', cappedByMaxChanges: false, itineraries: [] }],
+      segments: [
+        { ...SEGMENT_DEFAULTS, originCrs: 'AAA', destinationCrs: 'BBB', cappedByMaxChanges: false, itineraries: [] },
+      ],
     };
     const secondPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
-      segments: [{ originCrs: 'CCC', destinationCrs: 'DDD', cappedByMaxChanges: false, itineraries: [] }],
+      segments: [
+        { ...SEGMENT_DEFAULTS, originCrs: 'CCC', destinationCrs: 'DDD', cappedByMaxChanges: false, itineraries: [] },
+      ],
     };
 
     let resolveFirst: (value: Response) => void = () => {};
@@ -865,17 +895,20 @@ describe('PlanTripFlow advanced options', () => {
   });
 
   const viaPlan: TripPlanResponse = {
+    ...TRIP_PLAN_DEFAULTS,
     results: 'fastest',
     via: ['STA', 'CRE'],
     segments: [
       {
+        ...SEGMENT_DEFAULTS,
         originCrs: 'EUS',
         destinationCrs: 'PRE',
         cappedByMaxChanges: false,
         itineraries: [
           {
+            ...ITINERARY_DEFAULTS,
             legs: [
-              {
+              plannedTrainLeg({
                 kind: 'train',
                 trainUid: 'C11052',
                 serviceDate: '2026-10-08',
@@ -884,8 +917,8 @@ describe('PlanTripFlow advanced options', () => {
                 scheduledDeparture: '08:00:00',
                 scheduledArrival: '09:30:00',
                 arrivalDayOffset: 0,
-              },
-              {
+              }),
+              plannedTrainLeg({
                 kind: 'train',
                 trainUid: 'C22000',
                 serviceDate: '2026-10-08',
@@ -894,7 +927,7 @@ describe('PlanTripFlow advanced options', () => {
                 scheduledDeparture: '09:40:00',
                 scheduledArrival: '10:20:00',
                 arrivalDayOffset: 0,
-              },
+              }),
             ],
             changeCount: 1,
             totalDurationMinutes: 140,
@@ -904,13 +937,14 @@ describe('PlanTripFlow advanced options', () => {
     ],
     journeys: [
       {
+        accessChangeCount: 0,
         changeCount: 1,
         departure: { time: '08:00', dayOffset: 0 },
         arrival: { time: '10:20', dayOffset: 0 },
         totalDurationMinutes: 140,
         viaSatisfiedBy: [
-          { crs: 'STA', segment: 0, leg: 0, how: 'pass' },
-          { crs: 'CRE', segment: 0, leg: 0, how: 'call' },
+          { matchedCrs: null, crs: 'STA', segment: 0, leg: 0, how: 'pass' },
+          { matchedCrs: null, crs: 'CRE', segment: 0, leg: 0, how: 'call' },
         ],
       },
     ],
@@ -929,35 +963,43 @@ describe('PlanTripFlow advanced options', () => {
     mockStationNames.set('KGX', 'London Kings Cross');
     mockStationNames.set('EUS', 'London Euston');
     mockStationNames.set('PRE', 'Preston');
-    const train = (originCrs: string, destinationCrs: string) => ({
-      kind: 'train' as const,
-      trainUid: 'G1',
-      serviceDate: '2026-10-08',
-      originCrs,
-      destinationCrs,
-      scheduledDeparture: '08:00:00',
-      scheduledArrival: '09:00:00',
-      arrivalDayOffset: 0,
-    });
+    const train = (originCrs: string, destinationCrs: string) =>
+      plannedTrainLeg({
+        trainUid: 'G1',
+        serviceDate: '2026-10-08',
+        originCrs,
+        destinationCrs,
+        scheduledDeparture: '08:00:00',
+        scheduledArrival: '09:00:00',
+        arrivalDayOffset: 0,
+      });
     const groupPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       via: [],
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'group:LON',
           cappedByMaxChanges: false,
-          itineraries: [{ legs: [train('EUS', 'KGX')], changeCount: 0, totalDurationMinutes: 60 }],
+          itineraries: [
+            { ...ITINERARY_DEFAULTS, legs: [train('EUS', 'KGX')], changeCount: 0, totalDurationMinutes: 60 },
+          ],
         },
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'group:LON',
           destinationCrs: 'PRE',
           cappedByMaxChanges: false,
-          itineraries: [{ legs: [train('KGX', 'PRE')], changeCount: 0, totalDurationMinutes: 60 }],
+          itineraries: [
+            { ...ITINERARY_DEFAULTS, legs: [train('KGX', 'PRE')], changeCount: 0, totalDurationMinutes: 60 },
+          ],
         },
       ],
       journeys: [
         {
+          accessChangeCount: 0,
           changeCount: 1,
           departure: { time: '08:00', dayOffset: 0 },
           arrival: { time: '09:00', dayOffset: 0 },
@@ -1047,10 +1089,12 @@ describe('PlanTripFlow advanced options', () => {
   it('explains a via no route passes, with what to try', async () => {
     mockStationNames.set('STA', 'Stafford');
     const noVia: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       via: ['STA'],
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'PRE',
           cappedByMaxChanges: false,
@@ -1072,9 +1116,11 @@ describe('PlanTripFlow advanced options', () => {
 
   it('suggests allowing more changes for a maxChanges no-result', async () => {
     const capped: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'options',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'PRE',
           cappedByMaxChanges: true,
@@ -1108,6 +1154,7 @@ describe('PlanTripFlow arrive-by and paging (2026-10-19)', () => {
       ...singleSegmentPlan,
       journeys: [
         {
+          accessChangeCount: 0,
           changeCount: 0,
           departure: { time: departure[0], dayOffset: departure[1] },
           arrival: { time: arrival[0], dayOffset: arrival[1] },
@@ -1179,16 +1226,18 @@ describe('PlanTripFlow arrive-by and paging (2026-10-19)', () => {
       };
     };
     return {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MKC',
           cappedByMaxChanges: false,
           itineraries: rides.map(([uid, departure, arrival]) => ({
+            ...ITINERARY_DEFAULTS,
             legs: [
-              {
-                kind: 'train' as const,
+              plannedTrainLeg({
                 trainUid: uid,
                 serviceDate: DATE,
                 originCrs: 'EUS',
@@ -1196,7 +1245,7 @@ describe('PlanTripFlow arrive-by and paging (2026-10-19)', () => {
                 scheduledDeparture: `${departure}:00`,
                 scheduledArrival: `${arrival}:00`,
                 arrivalDayOffset: 0,
-              },
+              }),
             ],
             changeCount: 0,
             totalDurationMinutes: 50,
@@ -1205,6 +1254,7 @@ describe('PlanTripFlow arrive-by and paging (2026-10-19)', () => {
       ],
       journeys: rides.map(([, departure, arrival, late]) => ({
         changeCount: 0,
+        accessChangeCount: 0,
         departure: at(departure, late),
         arrival: at(arrival, late),
         totalDurationMinutes: 50,
@@ -1272,6 +1322,7 @@ describe('PlanTripFlow arrive-by and paging (2026-10-19)', () => {
 
   it('says when there is nothing earlier on this day, and keeps what is shown', async () => {
     const empty: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
@@ -1370,8 +1421,17 @@ describe('PlanTripFlow with tram legs', () => {
   });
 
   const tramPlan: TripPlanResponse = {
+    ...TRIP_PLAN_DEFAULTS,
     results: 'fastest',
-    segments: [{ originCrs: 'SPT', destinationCrs: 'LDS', cappedByMaxChanges: false, itineraries: [RAIL_TRAM_RAIL] }],
+    segments: [
+      {
+        ...SEGMENT_DEFAULTS,
+        originCrs: 'SPT',
+        destinationCrs: 'LDS',
+        cappedByMaxChanges: false,
+        itineraries: [RAIL_TRAM_RAIL],
+      },
+    ],
     transitNotices: [],
   };
 
@@ -1475,11 +1535,13 @@ describe('PlanTripFlow operator filter (2026-10-31)', () => {
   };
 
   const noTubePlan: TripPlanResponse = {
+    ...TRIP_PLAN_DEFAULTS,
     results: 'fastest',
     operator: ['SN', 'VT'],
     avoidOperator: [],
     segments: [
       {
+        ...SEGMENT_DEFAULTS,
         originCrs: 'MAN',
         destinationCrs: 'BTN',
         itineraries: [],

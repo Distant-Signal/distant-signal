@@ -6,6 +6,7 @@ import { KINGS_CROSS } from '@/test/tflStopFixtures';
 import { ApiNotFoundError, getTflStop, getTrainSearchDates } from '@/lib/api';
 import type { TripPlanResponse } from '@/lib/types';
 import PlanPage, { metadata } from './page';
+import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
 // `LoginPromptModal` -> `useLoginHref` reads the path and query, so the
 // stub carries what a real visitor on `/plan` would have. `TrackTrainForm`
@@ -49,16 +50,19 @@ vi.mock('@/lib/suggestions', () => ({
 vi.mock('@/lib/plannerEnds', () => ({ searchPlannerEnds: async () => [] }));
 
 const plan: TripPlanResponse = {
+  ...TRIP_PLAN_DEFAULTS,
   results: 'fastest',
   segments: [
     {
+      ...SEGMENT_DEFAULTS,
       originCrs: 'EUS',
       destinationCrs: 'MKC',
       cappedByMaxChanges: false,
       itineraries: [
         {
+          ...ITINERARY_DEFAULTS,
           legs: [
-            {
+            plannedTrainLeg({
               kind: 'train',
               trainUid: 'C11052',
               serviceDate: '2026-10-06',
@@ -67,7 +71,7 @@ const plan: TripPlanResponse = {
               scheduledDeparture: '08:00:00',
               scheduledArrival: '08:50:00',
               arrivalDayOffset: 0,
-            },
+            }),
           ],
           changeCount: 0,
           totalDurationMinutes: 50,

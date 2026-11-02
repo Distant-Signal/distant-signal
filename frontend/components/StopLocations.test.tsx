@@ -11,9 +11,11 @@ import { suggestionOptionLabel } from '@/lib/suggestionAutocomplete';
 import { getStationNames, searchPlannerLocations } from '@/lib/suggestions';
 import { buildTripPlanQuery } from '@/lib/tripPlan';
 import type { JourneyStop } from '@/lib/types';
+import { JOURNEY_STOP_DEFAULTS } from '@/test/apiDefaults';
 
 function stop(overrides: Partial<JourneyStop>): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs: null,
     name: null,
     tiploc: null,
@@ -121,7 +123,7 @@ describe('stop labels', () => {
     expect(isRoadOrWaterStop(busStop)).toBe(true);
     expect(isRoadOrWaterStop({ locationType: 'ferry_terminal' })).toBe(true);
     expect(isRoadOrWaterStop(station)).toBe(false);
-    expect(isRoadOrWaterStop({})).toBe(false);
+    expect(isRoadOrWaterStop({ locationType: null })).toBe(false);
   });
 });
 

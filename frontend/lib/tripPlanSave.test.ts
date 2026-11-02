@@ -14,6 +14,7 @@ import {
   WALK_TO_TUBE,
   WIM_MKC_BY_DISTRICT,
 } from '@/test/transitPlanFixtures';
+import { ITINERARY_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
 const NAMES = new Map([
   ['EUS', 'London Euston'],
@@ -29,16 +30,17 @@ const train = (
   departure: string,
   arrival: string,
   arrivalDayOffset = 0,
-): TripPlanLeg => ({
-  kind: 'train',
-  trainUid,
-  serviceDate: '2026-10-21',
-  originCrs,
-  destinationCrs,
-  scheduledDeparture: departure,
-  scheduledArrival: arrival,
-  arrivalDayOffset,
-});
+): TripPlanLeg =>
+  plannedTrainLeg({
+    kind: 'train',
+    trainUid,
+    serviceDate: '2026-10-21',
+    originCrs,
+    destinationCrs,
+    scheduledDeparture: departure,
+    scheduledArrival: arrival,
+    arrivalDayOffset,
+  });
 const transfer = (
   mode: string,
   originCrs: string | null,
@@ -52,6 +54,7 @@ const transfer = (
   minutes,
 });
 const itinerary = (legs: TripPlanLeg[], continuesPreviousTrain = false): TripPlanItinerary => ({
+  ...ITINERARY_DEFAULTS,
   legs,
   changeCount: 0,
   totalDurationMinutes: 0,
@@ -452,7 +455,7 @@ describe('transferAsUntracked', () => {
       destinationStopId: '940GZZLUVIC',
     });
     // Not known to be one: a transfer, as before.
-    expect(transferAsUntracked({ ...hop, operator: null }, nameFor)?.transitMode).toBe('transfer');
+    expect(transferAsUntracked(hop, nameFor)?.transitMode).toBe('transfer');
     // Within one station: still not a leg of its own.
     expect(transferAsUntracked({ ...hop, destinationCrs: 'EUS', operator: 'LT' }, nameFor)).toBeNull();
   });
@@ -583,7 +586,7 @@ describe('itineraryLegsForSaving with a tram leg', () => {
 
   it('saves a replacement bus as a bus, with no line', () => {
     const [leg] = itineraryLegsForSaving(
-      [{ legs: [REPLACEMENT_BUS_LEG], changeCount: 0, totalDurationMinutes: 16 }],
+      [{ ...ITINERARY_DEFAULTS, legs: [REPLACEMENT_BUS_LEG], changeCount: 0, totalDurationMinutes: 16 }],
       mcrName,
     );
     expect(leg).toEqual({
@@ -599,7 +602,10 @@ describe('itineraryLegsForSaving with a tram leg', () => {
   });
 
   it('saves a Tube ride with its network and line, and no headsign when it has none', () => {
-    const [leg] = itineraryLegsForSaving([{ legs: [TUBE_LEG], changeCount: 0, totalDurationMinutes: 8 }], mcrName);
+    const [leg] = itineraryLegsForSaving(
+      [{ ...ITINERARY_DEFAULTS, legs: [TUBE_LEG], changeCount: 0, totalDurationMinutes: 8 }],
+      mcrName,
+    );
     expect(leg).toMatchObject({
       kind: 'untracked',
       transitMode: 'tube',

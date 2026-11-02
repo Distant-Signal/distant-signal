@@ -5,9 +5,11 @@ import { renderWithMantine } from '@/test/render';
 import { theme } from '@/lib/theme';
 import { JourneyProgress, legContinuationDescription } from './JourneyProgress';
 import type { JourneyStop } from '@/lib/types';
+import { JOURNEY_STOP_DEFAULTS } from '@/test/apiDefaults';
 
 function stop(overrides: Partial<JourneyStop>): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs: 'RDG',
     name: 'Reading',
     tiploc: null,
@@ -325,8 +327,9 @@ describe('JourneyProgress', () => {
       <JourneyProgress
         stops={[
           stop({ crs: 'A', kind: 'Origin', actualDeparture: '2026-09-12T08:00:00Z' }),
-          stop({ crs: 'B', kind: 'Intermediate' }),
-          stop({ crs: 'C', kind: 'Terminate' }),
+          // The api marks each call the cancellation covers.
+          stop({ crs: 'B', kind: 'Intermediate', cancelled: true }),
+          stop({ crs: 'C', kind: 'Terminate', cancelled: true }),
         ]}
         resolutionStatus="resolved"
         status="cancelled"
@@ -368,7 +371,10 @@ describe('JourneyProgress', () => {
   it('cancelled before any confirmed movement: every node is cancelled-remaining, none is a marker', () => {
     const { container } = renderWithMantine(
       <JourneyProgress
-        stops={[stop({ crs: 'A', kind: 'Origin' }), stop({ crs: 'B', kind: 'Terminate' })]}
+        stops={[
+          stop({ crs: 'A', kind: 'Origin', cancelled: true }),
+          stop({ crs: 'B', kind: 'Terminate', cancelled: true }),
+        ]}
         resolutionStatus="resolved"
         status="cancelled"
         trainUid="C1"
@@ -1392,7 +1398,10 @@ describe('JourneyProgress decision-table captions and aria-labels', () => {
   it('resolved + cancelled, before any confirmed movement: a distinct caption/aria-label', () => {
     renderWithMantine(
       <JourneyProgress
-        stops={[stop({ crs: 'A', kind: 'Origin' }), stop({ crs: 'B', kind: 'Terminate' })]}
+        stops={[
+          stop({ crs: 'A', kind: 'Origin', cancelled: true }),
+          stop({ crs: 'B', kind: 'Terminate', cancelled: true }),
+        ]}
         resolutionStatus="resolved"
         status="cancelled"
         trainUid="C1"

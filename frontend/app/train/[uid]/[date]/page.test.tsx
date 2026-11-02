@@ -6,6 +6,7 @@ import * as api from '@/lib/api';
 import { ApiNotFoundError } from '@/lib/api';
 import type { PublicTrainState, TrackedTrainListItem } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
+import { JOURNEY_STOP_DEFAULTS, PUBLIC_TRAIN_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -57,6 +58,7 @@ beforeEach(() => {
  * named `id` and deliberately NOT a tracking id. */
 function publicTrainState(overrides: Partial<PublicTrainState> = {}): PublicTrainState {
   return {
+    ...PUBLIC_TRAIN_DEFAULTS,
     trainsId: 42,
     trainUid: 'W12345',
     serviceDate: '2026-08-31',
@@ -91,6 +93,7 @@ async function renderPage(uid = 'W12345', date = '2026-08-31') {
  * below are all about whether those two fields line up with the URL. */
 function trackedTrainListItem(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id: 7,
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',
@@ -429,6 +432,7 @@ describe('TrackedTrainByUidPage tracking overlay', () => {
 describe('toJourneyState', () => {
   it('carries journeyStops through unchanged from PublicTrainState', () => {
     const stop = {
+      ...JOURNEY_STOP_DEFAULTS,
       crs: 'RDG',
       name: 'Reading',
       tiploc: null,
@@ -449,6 +453,7 @@ describe('toJourneyState', () => {
       platformChanged: true,
     };
     const result = toJourneyState({
+      ...PUBLIC_TRAIN_DEFAULTS,
       trainsId: 1,
       trainUid: 'X12345',
       serviceDate: '2026-09-08',
@@ -674,6 +679,7 @@ describe('header and timetable departure times', () => {
 
   function originStop(scheduledDeparture: string) {
     return {
+      ...JOURNEY_STOP_DEFAULTS,
       crs: 'WAT',
       name: 'London Waterloo',
       tiploc: null,

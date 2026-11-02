@@ -87,7 +87,9 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
           <Title order={1}>
             {state.customName ??
               trainName({
-                departure: state.pinScheduledDeparture,
+                // `GET /Train/{trackingId}` doesn't send the pin's own
+                // departure: read it off the stop list.
+                departure: state.journeyStops?.find((stop) => stop.crs === state.pinOriginCrs)?.scheduledDeparture,
                 origin: state.pinOriginName ?? state.pinOriginCrs,
                 destination:
                   state.pinDestinationName ??
