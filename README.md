@@ -1,161 +1,194 @@
 # Distant Signal
 
-A personal UK rail companion: line-status aggregation in the TfL-Unified-API
-style, individual train tracking, accounts, and ticket/Delay-Repay support.
-It has first-class support for operators with multiple parallel
-routes that share trunk track (SWR, Southeastern, Northern, etc.) — knowing
-the difference between an incident on a *shared trunk* (which should
-propagate to every line using that trunk) and an incident on an *exclusive
-segment* (which should not) is this project's original core and still its
-real differentiator.
+Distant Signal is a personal UK rail companion. It shows the status of every
+line, tracks your trains and journeys as they run, plans trips and helps
+with Delay Repay claims.
 
-## Layout
+**Use it at [ds.cursed.solutions](https://ds.cursed.solutions/).**
 
-- `crates/` — a 25-crate Rust workspace (see the root `Cargo.toml`):
-  - services: `api`, `aggregator`, `enricher`, `notifier`;
-  - eight `poller-*` crates: `poller-incidents`, `poller-stations`,
-    `poller-tocs`, `poller-ldbws`, `poller-tfl`, `poller-irish-rail-gtfs`,
-    `poller-irish-rail-live`, `poller-nir-stations`;
-  - the TRUST train-movements pipeline: `movement-relay`, `trust-consumer`,
-    `full-coverage-consumer`, `trust-backlog-consumer`;
-  - the CIF schedule feed: `schedule-ingest`, `schedule-reference`;
-  - libraries: `common`, `trust-schema`, `movement-feed`, `health-http`,
-    `schedule-query`, `trip-planner`;
-  - the `line-catalogue-validator` CLI.
-- `frontend/` — the Next.js web frontend.
-- `charts/distant-signal/` — the Helm chart for deploying the whole stack.
-- `lines/` — the curated TOML line-definition catalogue, one file per line
-  (format in `lines/SCHEMA.md`).
-- `scripts/` — CI and maintenance tooling (Python, managed with uv; see
-  below).
+<table>
+  <tr>
+    <th>Home</th>
+    <th>A train</th>
+  </tr>
+  <tr>
+    <td>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/home-dark-1366.webp">
+        <img src="docs/screenshots/home-light-1366.webp" alt="The home page at 1366 px: upcoming journeys, pinned lines and their status" width="480">
+      </picture>
+    </td>
+    <td>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/train-dark-1366.webp">
+        <img src="docs/screenshots/train-light-1366.webp" alt="A train's page at 1366 px: its calling points with expected and actual times" width="480">
+      </picture>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/home-dark-390.webp">
+        <img src="docs/screenshots/home-light-390.webp" alt="The home page on a phone, 390 px wide" width="195">
+      </picture>
+    </td>
+    <td align="center">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/train-dark-390.webp">
+        <img src="docs/screenshots/train-light-390.webp" alt="A train's page on a phone, 390 px wide" width="195">
+      </picture>
+    </td>
+  </tr>
+</table>
 
-See `DESIGN.md` for the full architecture.
+The screenshots come from the e2e test fixtures, not real users' data (see
+[Screenshots](#screenshots)).
 
-## Running it
+## Features
 
-For local development, see `docker-compose.yml` (its header explains the
-`local.env` / `dev.env` modes). For a real deployment, see
-`charts/distant-signal/README.md` for the Helm chart.
+- **Line status** for National Rail, TfL and the island of Ireland, in the
+  style of TfL's Unified API. Disruption on a shared stretch of track shows
+  on every line that uses it, and nowhere else.
+- **Train tracking** from live movement data: each calling point's
+  scheduled, expected and actual times, platforms, cancellations and the
+  reason for a delay.
+- **Journeys** of one or more legs, by train, tram, Tube, bus or on foot,
+  with progress as you travel and Web Push notifications when something
+  changes.
+- **Trip planning** over the timetable, including Metrolink trams.
+- **Stations and departure boards**, with nearby stations.
+- **Groups**, to share trains and journeys with the people you travel with.
+- **Tickets and Delay Repay estimates**, from the recorded times of the
+  trains you took, and a record of how reliable your journeys have been.
+- **A public API**, with delegated access for connected apps.
 
-Local dev runs the ingest paths production runs: an `ingest-writer`, and
-every producer writing Postgres or a Redis stream directly (ingest phase 5,
-release B, removed the api's `/private/*` routes; see the "Ingest" note in
-`docker-compose.yml`'s header and `docs/ingest-phase5-runbook.md`).
+## Architecture
 
-## Scripts and their lint
+Distant Signal is a set of small Rust services around one Postgres
+database, with a Next.js frontend. Producers write to Postgres directly or
+to Redis streams, which `ingest-writer` applies. The `api` serves the
+frontend and the public API. The workers derive line status, enrich
+incident text and send notifications.
 
-The Python tooling is managed with [uv](https://docs.astral.sh/uv/):
-`pyproject.toml` pins the lint tools in its `lint` dependency group,
-`uv.lock` pins the full tree, and `.python-version` the interpreter. With uv
-installed (e.g. `mise use -g uv`):
+```mermaid
+graph LR
+  subgraph producers[Producers]
+    pollers["pollers<br/>incidents, departures, stations,<br/>operators, TfL, Ireland, transit"]
+    trust["movement-relay and the<br/>TRUST consumers"]
+    sched["schedule-ingest,<br/>schedule-reference"]
+  end
+  streams[("Redis streams<br/>ds:ingest:*, movement-events")]
+  writer[ingest-writer]
+  pg[("Postgres")]
+  agg["aggregator,<br/>enricher"]
+  notifier[notifier]
+  api["api<br/>(axum)"]
+  fe["frontend<br/>(Next.js)"]
+  browser([browser])
 
-```sh
-uv run scripts/lint-scripts.py         # what CI's scripts-lint job runs
-uv run scripts/lint-scripts.py --fix   # apply shfmt/ruff fixes first
-uv run python -m unittest discover -s scripts/tests   # the scripts' tests
-# Before merging a branch that adds migrations (CI's migration-order job):
-uv run scripts/check-migration-order.py "$(git merge-base main HEAD)"
+  pollers --> pg
+  pollers --> streams
+  trust --> streams
+  trust --> pg
+  sched --> pg
+  streams --> writer --> pg
+  pg <--> agg
+  pg --> notifier
+  pg --> api
+  api --> fe --> browser
+  notifier -. "Web Push" .-> browser
 ```
 
-A migration with destructive DDL (a `DROP` of a table, column, view or
-function, a `RENAME`, a column type change, `SET NOT NULL` on an existing
-column) needs a `-- contract: <what> (code stopped using it in <commit>)`
-line in its leading comments, and ships a release after the code stopped
-using the object; `check-migration-order.py` enforces the header (see its
-docstring).
+[`DESIGN.md`](DESIGN.md) has the full design: the data sources, the domain
+model and the reasoning behind each choice.
 
-`uv run` creates `.venv/` and installs the `lint` group on first use. It runs
-shellcheck and shfmt over every `*.sh`, ruff and mypy over `scripts/`,
-actionlint over the workflows, hadolint over the Dockerfiles, and
-`scripts/lint-containers.py`.
+### How line status works
 
-## Dependency and security scans
+Every line comes from the curated catalogue in [`lines/`](lines/), one TOML
+file per passenger route ([`lines/SCHEMA.md`](lines/SCHEMA.md) has the
+format). Each station on a line belongs to a named segment. A segment name
+that appears on several lines is a shared trunk: an incident there shows on
+every line that uses it. An incident on a segment unique to one line shows
+only there. That distinction, for operators with parallel routes over
+shared track such as SWR, Southeastern and Northern, is the project's
+original core.
 
-What fails CI and what only warns:
+The matcher grades each incident-to-line match, from an exclusive segment
+(most confident) down to an operator-only match, which is capped at Minor
+Delays and dropped when a more precise match exists. Severities follow
+TfL's scale, with two National Rail additions; `DESIGN.md` §5 has the
+details.
 
-- `dependency-scan.yml` (OSV-Scanner over `Cargo.lock`,
-  `frontend/package-lock.json` and `uv.lock`) **blocks** on a finding with
-  CVSS >= 9.0 that has a fixed version, and on a scan that produced no valid
-  JSON. Every other HIGH/CRITICAL (CVSS >= 7.0) finding **warns**: a
-  per-finding annotation and a neutral "security findings (non-blocking)"
-  check. The daily scheduled run never blocks on findings; it opens or
-  updates a `dependency-vulnerability` issue instead. Time-boxed exceptions
-  live in `frontend/osv-scanner.toml`.
-- `ci.yml`'s `cargo-deny` job **blocks** on `cargo deny check bans licenses
-  sources` and on a failed advisory-DB fetch. `cargo deny check advisories`
-  (RustSec and yanked crates) only **warns**.
+## Repositories
 
-## How segments work
+The project is moving from this single repository into several, one at a
+time. Repositories marked *planned* don't exist yet; until then their code
+lives here.
 
-Each station on a line belongs to a named `segment`. When the same segment
-name appears across multiple line definitions, the system treats it as a
-shared trunk — incidents there propagate to every line using that segment.
+| Repository | Role |
+|---|---|
+| [`distant-signal`](https://github.com/Distant-Signal/distant-signal) (this one) | The frontend and the project's front page. Today it also holds every service, the charts and the line catalogue. It owns all issues. |
+| `ds-core` (planned) | The shared crates, the database schema and migrations, grants, the stream envelope and the line catalogue. |
+| `ds-api` (planned) | The api, the trip planner and the timetable services. |
+| `ds-ingest` (planned) | The train movement and timetable feeds and `ingest-writer`. |
+| `ds-pollers` (planned) | The pollers. |
+| `ds-workers` (planned) | `aggregator`, `enricher` and `notifier`. |
+| `ds-deploy` (planned) | The Helm charts and the deploy tooling. |
+| `ci` (planned) | Shared workflows, actions and the Renovate preset. |
+| [`.github`](https://github.com/Distant-Signal/.github) | The organisation profile, the security policy, the contributing guide and the issue forms. |
+| DS-MCP (hosted elsewhere) | An MCP server for Distant Signal. It consumes the public API. |
 
-The matcher classifies every incident-to-line match by scope:
+## Getting started
 
-- `EXCLUSIVE_SEGMENT` — incident's stations all sit on segments unique to
-  this line. Highest confidence.
-- `SHARED_SEGMENT` — at least one of the touched segments is shared.
-  Status propagates to all lines using that segment, with a "shared trunk"
-  annotation in the reason text.
-- `STATION_HIT` — line/station overlap but no segment metadata to classify.
-- `KEYWORD_ONLY` — line is named in the incident text but no station hits.
-  Capped at Severe Delays.
-- `OPERATOR_ONLY` — only operator overlap. Capped at Minor Delays, and
-  suppressed entirely if another line sharing one of its operator codes got
-  a more precise match for the same incident.
+The repository holds a Rust workspace (`crates/`), the Next.js frontend
+(`frontend/`), the Helm charts (`charts/`), the line catalogue (`lines/`)
+and Python tooling (`scripts/`, managed with
+[uv](https://docs.astral.sh/uv/)).
 
-Knowledgebase incidents carry no station codes, so the station tiers are fed
-by the stations an incident's text names, resolved against the station
-reference data. An incident naming a place is shown only on the lines through
-it; it is shown operator-wide only when its text is network-wide (industrial
-action, a reduced timetable) or names no place at all.
+- **The whole stack, locally.** `docker-compose.yml` runs Postgres, Redis
+  and every service. Copy `local.env.example` (optimised builds) or
+  `dev.env.example` (debug builds and frontend hot reload) and run
+  `docker compose --env-file local.env up --build`. The header of
+  `docker-compose.yml` explains both modes. The feed URLs in the examples
+  are placeholders, so a local stack has no live data until you add your
+  own Rail Data Marketplace credentials or load `scripts/dev-seed.sql`.
+- **Only the frontend.** In `frontend/`, `npm ci` then `npm run dev`, with
+  `API_BASE_URL` pointing at a running api.
+- **Deploying.** [`charts/distant-signal/README.md`](charts/distant-signal/README.md)
+  documents the Helm chart.
 
-The last point matters: it's what stops an incident on the Alton branch
-from also flagging South West Main and Portsmouth Direct just because all
-three share the `SW` operator code.
+The dev stack: Rust (axum, sqlx, tokio), Postgres 18, Valkey (Redis)
+streams, Kafka for the TRUST feed, Next.js with Mantine, Playwright for the
+e2e and visual tests, Helm, and Python tooling run with uv.
+[`CLAUDE.md`](CLAUDE.md) lists the exact build, lint and test commands, and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) the tooling and checks.
 
-## Adding a complex operator
+### Screenshots
 
-For a TOC like SWR with multiple routes:
+The screenshots above are taken from a local stack seeded with
+`frontend/e2e/fixtures/seed.sql`, the e2e fixtures, logged in as the
+fixture user. Chromium runs in the pinned Playwright container, as for the
+visual tests (`scripts/visual-tests.py`), with the browser's clock fixed to
+the fixtures' service date. They never show real users' data. They are
+WebP files in `docs/screenshots/`, separate from the visual regression
+baselines in `frontend/e2e/visual-baselines/`, which must stay byte-exact.
 
-1. Create one line file per passenger route (`swr-south-west-main.toml`,
-   `swr-portsmouth-direct.toml`, etc.).
-2. Use the same segment name (e.g. `swr-trunk-waterloo`) on all the lines
-   that share trunk track. Junction stations belong to the shared trunk;
-   exclusive segments start at the next station.
-3. Set `destination_crs_filter` (and/or `headcode_prefixes`) so LDBWS
-   inference at shared stations counts only the line's own services.
-4. Add `match_keywords` for any colloquial line names ("Portsmouth Direct",
-   "Alton line").
-5. Run the test suite. Add a scenario that exercises the new line's shared
-   trunks and exclusive segments — both shapes of incident must produce
-   the right behaviour.
+## Contributing
 
-## Severity scale
+Bug reports, ideas and pull requests are welcome. Read the organisation's
+[contributing guide](https://github.com/Distant-Signal/.github/blob/main/CONTRIBUTING.md)
+and this repository's [`CONTRIBUTING.md`](CONTRIBUTING.md) first. All
+issues live here, whatever area they concern, labelled `area:frontend`,
+`area:api`, `area:core`, `area:ingest`, `area:pollers`, `area:workers` or
+`area:deploy`.
 
-We use TfL's 0-14 scale verbatim where it applies, then add two NR-specific
-values (Recovering = 20, Diverted = 21) outside that range. TfL's own
-codes 16-20 (Not Running, Issues Reported, No Issues, Information, Service
-Closed) arrived later and are stored as 22-26, because 20 and 21 were
-already taken (see `common::Severity`). The numbers are not ordered by how
-bad a status is; compare through `common::severity_rank`.
+## Security
 
-## Design notes
-
-- **Per-line thresholds matter.** A 5-minute delay on a 15-min-frequency
-  commuter route is more disruptive than the same delay on an hourly
-  long-distance route.
-- **Knowledgebase prose is the gold.** When an active KB incident exists,
-  prefer its description text as the `reason` over anything we infer.
-- **Inference is a fallback, not a primary signal.** Only emit non-Good
-  inferred statuses with reasonable sample sizes (`min_sample_size`).
-- **Make data quality visible.** Clients should be able to tell whether a
-  status came from a curated source or was inferred. We expose this via
-  `dataQuality` on every status.
-- **Junction stations belong to the shared trunk.** This is the single
-  most important rule when authoring line definitions. The exclusive
-  segment starts *after* the junction.
+Please report vulnerabilities privately, through
+[GitHub's private vulnerability reporting](https://github.com/Distant-Signal/distant-signal/security/advisories/new),
+never in a public issue. The
+[security policy](https://github.com/Distant-Signal/.github/blob/main/SECURITY.md)
+says what it covers and what to expect.
 
 ## Licence
 
