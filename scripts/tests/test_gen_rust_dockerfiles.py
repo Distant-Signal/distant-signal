@@ -80,6 +80,13 @@ class RenderTests(unittest.TestCase):
         ):
             self.assertNotIn(gone, gen.SERVICES["api"])
 
+    def test_ds_migrate_image_ships_only_the_migrator(self) -> None:
+        """The ds-migrate image builds one binary (repo split spec §5.1)."""
+        self.assertEqual(tuple(gen.SERVICES["ds-migrate"]), ("ds-migrate",))
+        block = gen.render("ds-migrate")
+        self.assertIn("--bin ds-migrate;", block)
+        self.assertNotIn("--bin api", block)
+
     def test_no_target_cache_mount(self) -> None:
         """A target/ cache mount would leave the cook layer empty."""
         for service in gen.SERVICES:
