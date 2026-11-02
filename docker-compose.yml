@@ -153,7 +153,7 @@ services:
       # the user-data sweeps, as in production (ingest plan 1B.7).
       API_BACKGROUND_LOOPS: "false"
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
       # All five are required by the binary with no defaults, so they use
       # `:?` (fail at `docker compose` config-resolution time with the
@@ -287,7 +287,7 @@ services:
       RDM_API_KEY: ${RDM_INCIDENTS_API_KEY}
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_INCIDENTS:-300}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-stations:
@@ -313,7 +313,7 @@ services:
       # shortened via dev.env for local verification of the poll loop.
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_STATIONS:-86400}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-tocs:
@@ -339,7 +339,7 @@ services:
       # shortened via dev.env for local verification of the poll loop.
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_TOCS:-86400}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-ldbws:
@@ -368,7 +368,7 @@ services:
       # given this feed's rate limit is unconfirmed.
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_LDBWS:-60}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-tfl:
@@ -394,7 +394,7 @@ services:
       # conditional requests; 300s mirrors poller-incidents.
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_TFL:-300}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   aggregator:
@@ -413,7 +413,7 @@ services:
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_AGGREGATOR:-60}
       HISTORY_RETENTION_DAYS: ${HISTORY_RETENTION_DAYS:-7}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   notifier:
@@ -447,7 +447,7 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   enricher:
@@ -471,7 +471,7 @@ services:
       LLM_MODEL: ${LLM_MODEL}
       SWEEP_INTERVAL_SECS: ${SWEEP_INTERVAL_SECS:-3600}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   trust-consumer:
@@ -505,7 +505,7 @@ services:
       # startup.
       REDIS_URL: redis://redis:6379
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/healthz"]
@@ -539,7 +539,7 @@ services:
       HEALTH_BIND_URL: 0.0.0.0:8082
       REDIS_URL: redis://redis:6379
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/healthz"]
@@ -583,7 +583,7 @@ services:
       # STANOX_CRS_FILE: /app/reference-data/stanox-crs.csv (binary default)
       HEALTH_BIND_URL: 0.0.0.0:8083
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/healthz"]
@@ -623,7 +623,7 @@ services:
       REDIS_URL: redis://redis:6379
       HEALTH_BIND_URL: 0.0.0.0:8083
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/healthz"]
@@ -799,7 +799,7 @@ services:
       RETENTION_KEEP_DELIVERIES: ${RETENTION_KEEP_DELIVERIES:-2}
       STABILITY_CYCLES: ${SCHEDULE_FEED_STABILITY_CYCLES:-2}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
       # Network Rail CORPUS loads (crates/schedule-ingest/src/corpus.rs),
       # off unless CORPUS_INGEST_ENABLED=true.
@@ -853,7 +853,7 @@ services:
       STORAGE_DIR: /data/schedule-feed
       POLL_INTERVAL_SECS: ${SCHEDULE_FEED_REFERENCE_POLL_INTERVAL_SECS:-1800}
       RUST_LOG: ${RUST_LOG:-info}
-      # common::logging: json (default) or pretty (dev.env sets pretty).
+      # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
     # READ-ONLY, unlike schedule-ingest's read-write mount above: this
     # container never writes to the shared volume (see

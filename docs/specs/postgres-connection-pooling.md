@@ -30,7 +30,7 @@ queries took 5 to 9 ms in both runs.
 
 | Run (UTC) | Start → first connection | Outcome |
 |---|---|---|
-| 01:30:03 | 5.0 s, then `PoolTimedOut` | `common::startup` retried after 625 ms, and the pool connected at once (1 attempt more, 0.6 s) |
+| 01:30:03 | 5.0 s, then `PoolTimedOut` | `ds_runtime::startup` retried after 625 ms, and the pool connected at once (1 attempt more, 0.6 s) |
 | 02:00:03 | 3.376 s | sqlx `acquired connection, but time to acquire exceeded slow threshold` |
 
 The same warning appears **once, at start-up, in every pod that connects to
@@ -101,9 +101,9 @@ Postgres was "accepting connections".
 The lag has existed for every new pod. A long-running Deployment pays it
 once per rollout, which is a single WARN nobody looked at. As a CronJob,
 schedule-reference makes a new pod every 30 minutes: 48 times a day. The
-5 s `acquire_timeout` (`common::pg`) leaves only about 0.7 s of margin
+5 s `acquire_timeout` (`ds_runtime::pg`) leaves only about 0.7 s of margin
 over a typical 4.3 s lag, so some runs will hit `PoolTimedOut`.
-`common::startup::retry_until_ready` already recovers, so no run has
+`ds_runtime::startup::retry_until_ready` already recovers, so no run has
 failed. The hourly api-maintenance CronJob has the same exposure and shows
 the same 3.36 s warning.
 
@@ -165,12 +165,12 @@ client connection pins one server connection for its whole life. In
 | Feature | Where | Session mode | Transaction mode |
 |---|---|---|---|
 | Named prepared statements (sqlx caches `sqlx_s_N` per connection, 100 by default) | every sqlx pool | fine | Needs PgBouncer ≥ 1.21 with `max_prepared_statements` > 0 (for example 200). Older versions fail with "prepared statement does not exist". The alternative, `statement_cache_capacity(0)`, costs a parse on every query. |
-| Startup-packet `options` (`-c statement_timeout=… idle_in_transaction_session_timeout=… client_connection_check_interval=… tcp_keepalives_*`) | `common::pg::PoolSettings::connect_options`, every service | PgBouncer only forwards startup parameters it knows. Older releases reject `options` ("unsupported startup parameter"). Listing it in `ignore_startup_parameters` drops it **silently**, which removes the 60 s / 30 s timeouts. Recent releases accept `-c` settings in `options` and track them like `track_extra_parameters`; check the exact release when implementing. | same, and worse: a tracked parameter is re-sent with `SET` whenever the server connection changes hands |
+| Startup-packet `options` (`-c statement_timeout=… idle_in_transaction_session_timeout=… client_connection_check_interval=… tcp_keepalives_*`) | `ds_runtime::pg::PoolSettings::connect_options`, every service | PgBouncer only forwards startup parameters it knows. Older releases reject `options` ("unsupported startup parameter"). Listing it in `ignore_startup_parameters` drops it **silently**, which removes the 60 s / 30 s timeouts. Recent releases accept `-c` settings in `options` and track them like `track_extra_parameters`; check the exact release when implementing. | same, and worse: a tracked parameter is re-sent with `SET` whenever the server connection changes hands |
 | **Recommended for the timeouts:** `ALTER ROLE <service role> SET statement_timeout / idle_in_transaction_session_timeout` in `postgres-roles.sql` | | Server-side, so it applies on any path. The startup `options` then become a belt-and-braces duplicate for direct connections. | same |
-| `SET LOCAL statement_timeout` / `idle_in_transaction_session_timeout` | `common::pg::set_local_*` (schedule publish, retention prunes, archive) | fine | fine: scoped to the transaction |
+| `SET LOCAL statement_timeout` / `idle_in_transaction_session_timeout` | `ds_runtime::pg::set_local_*` (schedule publish, retention prunes, archive) | fine | fine: scoped to the transaction |
 | Session advisory lock, **dedicated connection** | schedule-reference run lock (`ds_store::schedule::reference_signals`, `pg_try_advisory_lock`); ingest-writer loop locks (`ds_store::loops::runner`, `LockSource::Dedicated`) | fine | **Broken.** The lock lands on whichever server connection ran it, stays there after the client lets go, and the unlock may run on another one. Must bypass the pooler or use a session-mode pool. |
 | Session advisory lock on a **pooled** sqlx connection | api `data/planner_snapshot.rs` (`BUILD_LOCK_KEY`), ingest-writer `LockSource::Pooled` | fine | **Broken** for the same reason. The fix is `pg_try_advisory_xact_lock` inside one transaction around the build, if a transaction that long is acceptable, or a session-mode pool for the api. |
-| Transaction advisory locks (`pg_advisory_xact_lock` / `pg_try_advisory_xact_lock`) | `common::pg::lock_user_train_subscription`, `ds_store::corpus`, `schedule::publish`, `transit::write`, api `delegated.rs` | fine | fine |
+| Transaction advisory locks (`pg_advisory_xact_lock` / `pg_try_advisory_xact_lock`) | `ds_runtime::pg::lock_user_train_subscription`, `ds_store::corpus`, `schedule::publish`, `transit::write`, api `delegated.rs` | fine | fine |
 | LISTEN / NOTIFY | none (no `PgListener`, `LISTEN` or `pg_notify` in `crates/`) | fine | n/a |
 | Session `SET` | only `ds_store::migrate` (`SET lock_timeout`, `SET statement_timeout`) and test-only `after_connect` hooks (`SET lock_timeout`, `SET ROLE`, `SET search_path`) | fine | migrations must bypass the pooler, as they should anyway (DDL, session lock, `CREATE INDEX CONCURRENTLY`) |
 | COPY | none in services. `pg_dump` only. | fine | n/a: pg_dump bypasses |
@@ -319,7 +319,7 @@ Order:
 |---|---|
 | `templates/pgbouncer-{deployment,service,configmap,networkpolicy,podmonitor}.yaml`, values, budget helpers, `DATABASE_URL` switching, per-role `pool_size` generated from `db-grants.yaml` | image pin and enabling the values for prod (`clusters/*/apps/distant-signal.yaml`) |
 | `postgres-roles.sql`: lookup role, `get_auth` function, `ALTER ROLE … SET` timeouts | a Secret for the lookup role's password (sealed byte-exact) |
-| `common::pg`, `planner_snapshot.rs`, `loops::runner` / `reference_signals` lock URL | Prometheus scrape allowance and dashboard panels |
+| `ds_runtime::pg`, `planner_snapshot.rs`, `loops::runner` / `reference_signals` lock URL | Prometheus scrape allowance and dashboard panels |
 | CI job: DB tests through PgBouncer | nothing for postgres-exporter or pg_dump (they stay direct) |
 
 ### 4.9 Interaction with the Postgres 18 upgrade

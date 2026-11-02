@@ -419,6 +419,7 @@ distant-signal/
 ├── crates/                    Rust workspace (25 crates; see root Cargo.toml)
 │   ├── common/                 shared types, matcher, segments, config helpers
 │   ├── ds-lines/               the line catalogue, embedded at build time
+│   ├── ds-runtime/             domain-free runtime: logging, metrics, startup, args
 │   ├── api/                    axum HTTP service (read API, auth, ingest)
 │   ├── aggregator/             the core status decision logic
 │   ├── enricher/               LLM extraction from incident text

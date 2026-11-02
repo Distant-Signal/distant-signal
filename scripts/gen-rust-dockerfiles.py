@@ -200,7 +200,7 @@ COPY --from=planner /app/recipe.json recipe.json
     fi
 
 COPY . .
-# The project URL in every outbound User-Agent (crates/common's
+# The project URL in every outbound User-Agent (crates/ds-runtime's
 # user_agent!): containers.yml passes the building repository's URL, so the
 # images follow the repository's owner. Declared after the cook so it never
 # invalidates the dependency layer. Unset or empty (a local or compose
@@ -233,7 +233,7 @@ ARG DS_PROJECT_URL
 # ignored, so a change to it can't invalidate a Rust build layer.
 RUST_INPUTS = (
     "Cargo.toml",
-    # Cargo's `[env]`: the default DS_PROJECT_URL (crates/common's
+    # Cargo's `[env]`: the default DS_PROJECT_URL (crates/ds-runtime's
     # user_agent!), when the build passes none.
     ".cargo/config.toml",
     "Cargo.lock",
