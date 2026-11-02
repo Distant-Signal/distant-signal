@@ -108,6 +108,7 @@ uv run --no-sync scripts/lint-scripts.py     # shellcheck, shfmt, ruff, mypy, ac
 uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run --no-sync scripts/chart-values-doc.py check   # chart README values table vs values.yaml
 uv run scripts/gen-db-grants.py check        # db-grants.yaml vs files/postgres-grants.sql (render to fix)
+uv run scripts/sync-chart-core-files.py --check  # chart copies of db-grants.yaml and the Redis ACL (rewrite without --check)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
 uv run --no-sync scripts/check-crate-deps.py # ds-store/ds-migrate stay free of axum, redis, reqwest...
 uv run --locked --no-default-groups scripts/check-migration-order.py "$(git merge-base origin/main HEAD)"
@@ -174,12 +175,16 @@ trains and skipped stops notify on escalation only. One push per user per
 train: a journey-break notice replaces that train's plain push
 (`push_queue.rs`).
 
-**Postgres roles.** `charts/distant-signal/files/db-grants.yaml` classifies
+**Postgres roles.** `crates/ds-store/db-grants.yaml` classifies
 every public table, view, sequence and function and gives each service role
 (`planned`, `observed` or `narrow`) its grants; `gen-db-grants.py render`
-produces `files/postgres-grants.sql`. A new table must be added there (CI
-checks a migrated DB against it). docs/postgres-app-role.md and the chart
-README's "Per-service Postgres roles".
+produces `charts/distant-signal/files/postgres-grants.sql`. A new table must
+be added there (CI checks a migrated DB against it). docs/postgres-app-role.md
+and the chart README's "Per-service Postgres roles". The Redis ACL's source is
+`access/redis-users.acl.tpl` (docs/redis-acl.md). The chart's
+`files/db-grants.yaml` and `files/redis-users.acl.tpl` are generated copies:
+edit the sources, then run `scripts/sync-chart-core-files.py` (CI fails on
+drift).
 
 **Chart and deploys.** One chart for the whole stack, documented in
 `charts/distant-signal/README.md` (keep its values reference in step,

@@ -236,6 +236,8 @@ RUST_INPUTS = (
     # user_agent!), when the build passes none.
     ".cargo/config.toml",
     "Cargo.lock",
+    # Also crates/ds-store/db-grants.yaml, which ds-store's build.rs bakes
+    # into the schema gate.
     "crates",
     # include_str!: crates/common's TIPLOC parents, api's TOC codes,
     # ds-store's delay-attribution reasons; and trust-consumer's and
@@ -245,8 +247,6 @@ RUST_INPUTS = (
     # pollers, full-coverage-consumer, ingest-writer and
     # trust-backlog-consumer COPY it.
     "lines",
-    # crates/ds-store/build.rs bakes the grants into the schema gate.
-    "charts/distant-signal/files/db-grants.yaml",
     # ingest-writer's freshness_rls test checks each producer's freshness
     # sources against the rendered RLS policies.
     "charts/distant-signal/files/postgres-grants.sql",
