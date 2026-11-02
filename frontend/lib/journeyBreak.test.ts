@@ -20,6 +20,7 @@ import {
 import { trainLeg, untrackedLeg } from '@/test/journeyFixtures';
 import { replanSuggestion, suggestionSet, trainSuggestionLeg, openBreakSummary } from '@/test/replanFixtures';
 import type { RevisionLeg } from './types';
+import { REVISION_LEG_DEFAULTS } from '@/test/apiDefaults';
 
 const facts: BreakTitleFacts = {
   cause: 'cancelled',
@@ -162,7 +163,7 @@ describe('suggestion rows', () => {
       legs: [
         {
           kind: 'untracked',
-          transitMode: 'WALK',
+          transitMode: 'walk',
           originName: 'Euston',
           destinationName: "King's Cross",
           lineName: null,
@@ -270,7 +271,7 @@ describe('suggestionLegBody', () => {
     expect(
       suggestionLegBody({
         kind: 'untracked',
-        transitMode: 'TUBE',
+        transitMode: 'tube',
         originName: 'Euston',
         destinationName: 'Victoria',
         lineName: 'Victoria line',
@@ -310,6 +311,7 @@ describe('history', () => {
 
   it('words a plan leg', () => {
     const leg: RevisionLeg = {
+      ...REVISION_LEG_DEFAULTS,
       position: 0,
       sourceLegId: 1,
       kind: 'train',

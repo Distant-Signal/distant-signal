@@ -3,7 +3,11 @@ import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { ReliabilityDigest } from './ReliabilityDigest';
 import type { TrackedTrainListItem, TicketListItem } from '@/lib/types';
-import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import {
+  DELAY_REPAY_ESTIMATE_DEFAULTS,
+  TICKET_LIST_ITEM_DEFAULTS,
+  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+} from '@/test/apiDefaults';
 
 // Substring-equal to DelayRepayEstimate.test.tsx's own TOP_LEVEL_DISCLAIMER
 // fixture -- this is the one mechanical guard against the two silently
@@ -35,6 +39,7 @@ function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListI
 
 function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
   return {
+    ...TICKET_LIST_ITEM_DEFAULTS,
     id: 1,
     trackedTrainId: 1,
     operator: 'LNER',
@@ -53,7 +58,13 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
     trainUid: 'W12345',
     status: 'completed',
     delayMinutes: 35,
-    estimate: { scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'estimate disclaimer' },
+    estimate: {
+      ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+      scheme: 'DR30',
+      bandMinutes: 30,
+      percentage: 50,
+      disclaimer: 'estimate disclaimer',
+    },
     claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
     disclaimer: 'route disclaimer',
     customName: null,

@@ -207,7 +207,7 @@ export function viewerCanPickGroupJourneyTrain(
   journey: Pick<GroupJourney, 'addedBy' | 'following'>,
   currentUserId: string | null,
 ): boolean {
-  return currentUserId !== null && (journey.addedBy === currentUserId || journey.following === true);
+  return currentUserId !== null && (journey.addedBy === currentUserId || journey.following);
 }
 
 /** A journey shared into a group (`GroupJourney`), which carries one leg:
@@ -235,10 +235,10 @@ export function groupJourneyRowStatus(
       resolutionStatus: journey.resolutionStatus,
       status: journey.status,
       delayMinutes: journey.delayMinutes,
-      delayProvisional: journey.delayProvisional ?? false,
+      delayProvisional: journey.delayProvisional,
       serviceMode: journey.serviceMode,
       liveTracking: journey.liveTracking,
-      trackingPhase: journey.trackingPhase ?? null,
+      trackingPhase: journey.trackingPhase,
     },
     today,
   );

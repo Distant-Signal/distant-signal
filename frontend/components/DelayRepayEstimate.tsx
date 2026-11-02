@@ -1,7 +1,7 @@
 import { Alert, Stack, Text } from '@mantine/core';
 import { TextLink } from './TextLink';
 import { isTimetableOnly, serviceModeLabel } from '@/lib/serviceMode';
-import type { DelayRepayEstimate as Estimate, DelayRepayEstimateResponse } from '@/lib/types';
+import type { DelayRepayEstimate as Estimate, DelayRepayEstimateResponse, DelayRepayFields } from '@/lib/types';
 import { formatDate } from '@/lib/dateFormat';
 
 /** Renders one ticket's Delay Repay estimate, per
@@ -39,24 +39,27 @@ import { formatDate } from '@/lib/dateFormat';
  * The summary sits in a polite live region, so a screen reader hears a
  * change of state (provisional to final, say) when the response refreshes. */
 
-/** LEG-14: when the Delay Repay rules the api applies were last checked
- * against their sources -- `RULES_CHECKED_ON` in
- * `crates/api/src/data/delay_repay_rules.rs`, served as `rulesCheckedOn`.
- * The fallback for an older backend that doesn't send it. */
-export const DELAY_REPAY_RULES_CHECKED_ON = '7 Oct 2026';
+/** What the component renders: the Delay Repay fields `GET .../delay-repay`
+ * and `GET /Train/tickets/mine` both serve, and the delay-repay route's
+ * service fields, which a ticket list row doesn't have. */
+export type DelayRepayView = DelayRepayFields &
+  Partial<Pick<DelayRepayEstimateResponse, 'serviceMode' | 'liveTracking' | 'unmeasurableReason'>>;
 
 /** Shown for a bus or ferry when the backend sends no `unmeasurableReason`
  * of its own. */
 const TIMETABLE_ONLY_DELAY_REPAY_FALLBACK =
   "buses and ferries aren't tracked live, so we can't measure a delay on this leg. If it ran late, claim with the operator using the times you recorded.";
 
-/** `2026-10-07` as `7 Oct 2026` (lib/dateFormat.ts); anything else verbatim. */
-function formatCheckedOn(value: string | undefined): string {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value ?? DELAY_REPAY_RULES_CHECKED_ON;
+/** LEG-14: when the Delay Repay rules the api applies were last checked
+ * against their sources (`rulesCheckedOn`, `RULES_CHECKED_ON` in
+ * `crates/api/src/data/delay_repay_rules.rs`): `2026-10-07` as `7 Oct 2026`
+ * (lib/dateFormat.ts); anything else verbatim. */
+function formatCheckedOn(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   return formatDate(`${value}T12:00:00Z`);
 }
 
-export function DelayRepayEstimate({ response }: { response: DelayRepayEstimateResponse }) {
+export function DelayRepayEstimate({ response }: { response: DelayRepayView }) {
   return (
     <Stack gap={4}>
       <div aria-live="polite">
@@ -81,7 +84,7 @@ export function DelayRepayEstimate({ response }: { response: DelayRepayEstimateR
 }
 
 /** The destination, by name when known. */
-function destinationLabel(response: DelayRepayEstimateResponse): string {
+function destinationLabel(response: DelayRepayView): string {
   return response.measuredAtName ?? response.measuredAtCrs ?? 'your destination';
 }
 
@@ -90,7 +93,7 @@ function destinationLabel(response: DelayRepayEstimateResponse): string {
  * arrival there, and says so; it becomes final once the train arrives
  * (design doc §9 decision 3). A departure-only station is final on the
  * train's departure from it, and says that instead. */
-function ProvisionalNote({ response }: { response: DelayRepayEstimateResponse }) {
+function ProvisionalNote({ response }: { response: DelayRepayView }) {
   if (response.delayMinutes === null) return null;
   if (response.outcome === 'departedOnly') {
     return (
@@ -115,7 +118,7 @@ export function compensationText(estimate: Estimate): string {
   if (estimate.scheme === 'HX') {
     text = `${pct}% of your ticket price`;
   } else if (estimate.bandMinutes >= 120) {
-    if (estimate.ticketKind === 'single' || (estimate.ticketKind === undefined && estimate.fareBasis === 'single')) {
+    if (estimate.ticketKind === 'single') {
       text = `${pct}% of your single fare: singles are already refunded in full from 60 minutes`;
     } else if (estimate.ticketKind === 'return') {
       text = `${pct}% of your return fare`;
@@ -137,7 +140,7 @@ function bandLabel(estimate: Estimate): string {
   return `${estimate.scheme}, ${estimate.bandMinutes}+ minute delay`;
 }
 
-function EstimateSummary({ response }: { response: DelayRepayEstimateResponse }) {
+function EstimateSummary({ response }: { response: DelayRepayView }) {
   const { estimate, delayMinutes } = response;
   const operator = response.schemeOperator ?? 'the operator';
 

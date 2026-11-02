@@ -9,7 +9,7 @@ import {
   viewerCanPickTrain,
 } from './trackedRowStatus';
 import type { GroupJourney, JourneyListItem, ListCancellation } from './types';
-import { JOURNEY_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import { GROUP_JOURNEY_DEFAULTS, JOURNEY_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 const TODAY = '2026-10-21';
 const PAST = '2026-10-20';
@@ -179,6 +179,7 @@ describe('tracked row status: a lone train and a journey read the same', () => {
 describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
   function shared(overrides: Partial<GroupJourney> = {}): GroupJourney {
     return {
+      ...GROUP_JOURNEY_DEFAULTS,
       journeyId: 1,
       customName: null,
       legCount: 2,
@@ -222,10 +223,10 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
   });
 
   it('viewerCanPickGroupJourneyTrain: the sharer or a follower', () => {
-    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2' }, 'user-2')).toBe(true);
+    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: false }, 'user-2')).toBe(true);
     expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: true }, 'user-3')).toBe(true);
     expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: false }, 'user-3')).toBe(false);
-    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2' }, null)).toBe(false);
+    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: false }, null)).toBe(false);
   });
 
   it('an untracked-only journey shows its clock state, and completed once done', () => {

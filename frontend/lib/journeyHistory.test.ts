@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { journeyDepartsAt, journeysPageSections, mergeTravelOrdered, trainDepartsAt } from './journeyHistory';
 import type { MergedSharedTrain } from './sharedTrains';
 import type { JourneyListItem, SharedGroupTrain, TrackedTrainListItem } from './types';
-import { JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import { GROUP_TRAIN_DEFAULTS, JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 const TODAY = '2026-08-31';
 
@@ -54,6 +54,7 @@ function train(id: number, departsAt: string, travelled: boolean): TrackedTrainL
 
 function sharedTrain(id: number, pinScheduledDeparture: string, serviceDate: string): MergedSharedTrain {
   const row: SharedGroupTrain = {
+    ...GROUP_TRAIN_DEFAULTS,
     groupId: 'g',
     groupName: 'Family',
     trainSubscriptionId: id,
