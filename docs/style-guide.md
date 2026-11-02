@@ -14,6 +14,9 @@ system font stack, and the WCAG AA overrides in `frontend/app/globals.css`.
 Rules marked *(convention)* are patterns in the code, not decisions written
 down anywhere else.
 
+Why the rules are what they are, the tells to avoid and how to run a
+design change are in [the frontend design guide](frontend-design-guide.md).
+
 ## Principles
 
 - **Mantine first.** Everything is a Mantine 9 component styled through

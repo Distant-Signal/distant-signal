@@ -198,7 +198,8 @@ risky changes behind off-by-default values. Agents only read production.
 primary, theme in `lib/theme.ts`. Browsers only talk to the frontend; its
 `app/api/[...path]` route proxies to the api. Rules for look, copy and
 components are in docs/style-guide.md (no inline `style` props, enforced by
-ESLint; hand-inlined SVG icons). PR template: screenshots at 390 and 1366 px,
+ESLint; hand-inlined SVG icons); the reasoning behind them and how to run a
+design change are in docs/frontend-design-guide.md. PR template: screenshots at 390 and 1366 px,
 light and dark; page title and meta description; `aria-label` on icon buttons.
 
 docs/superpowers/specs and plans are dated historical records (status in their
