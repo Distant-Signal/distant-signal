@@ -3,7 +3,7 @@
 How the Distant Signal frontend looks, reads and behaves. This is the
 versioned, plain-text copy of the illustrated guide published at
 <https://claude.ai/code/artifact/5fa075dc-fa7e-43b9-a94b-2a43393ac77d>,
-which was derived from the code at `e79c8ed2` on 29 Sep 2026. The
+which was derived from the code at `a04c9696` on 29 Sep 2026. The
 illustrated guide has rendered specimens of every component; this file has
 the rules. Where they disagree, this file is newer: it includes the
 consistency fixes made after the guide was written (see

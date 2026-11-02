@@ -427,7 +427,7 @@ a currently-live pipeline stage.
 **The validation findings' Task 8 verdict, re-run three times (2026-08-29,
 2026-08-30, 2026-08-31/09-01), lands on "not yet" every time** — first
 blocked by a live-instance SSO defect, then by `trust-consumer`'s
-STANOX↔CRS gap (since fixed, commit `6adf64f`), and in the final,
+STANOX↔CRS gap (since fixed, commit `cd50e15`), and in the final,
 most-complete run the *mechanism* is confirmed working end-to-end (a real
 pin resolved against a real live train, a real cancellation was
 TRUST-caught in real time that sampling's own output did not reflect

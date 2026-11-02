@@ -120,7 +120,7 @@ commit:
 ```
 $ git log --oneline -- crates/api/src/routes/lines.rs | tail -5
 ...
-cd7e37f Scope custom-line authoring to the authenticated user
+bf2203f Scope custom-line authoring to the authenticated user
 ```
 
 That commit also scoped ownership at the query level —
@@ -153,7 +153,7 @@ None of this reached the frontend:
   `docs/superpowers/specs/2026-07-09-custom-lines-and-blended-stats-design.md`'s
   Non-goals for why."* That referenced doc's Non-goals section says *"No
   auth/ownership on custom lines **yet**... SSO/multi-user... is a known
-  future direction, not built here."* The "yet" happened (`cd7e37f`); the
+  future direction, not built here."* The "yet" happened (`bf2203f`); the
   module doc above it was never updated to match. `GET /public/lines` and
   `GET /public/lines/{id}` (reads) are still genuinely unauthenticated —
   only the doc's blanket "Unauthenticated" claim is wrong now.

@@ -36,9 +36,9 @@ below independently re-read against this worktree's current file (442
 lines total), not trusted blind from the spec:**
 
 - **No drift found.** `git log --oneline -- crates/api/src/data/ticket_extraction.rs`
-  shows the spec's own commit (`3bea033`, "Add design spec: ticket file
+  shows the spec's own commit (`b738601`, "Add design spec: ticket file
   processing improvements...") sits *after* the latest commit that touched
-  this file (`8e268d7`, a repo-wide `cargo fmt` pass with no logic
+  this file (`f047cc2`, a repo-wide `cargo fmt` pass with no logic
   changes) — nothing has edited `ticket_extraction.rs` since the spec's
   citations were written. Every line number the spec cites was
   independently re-confirmed exactly against the current file during this

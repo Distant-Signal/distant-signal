@@ -217,7 +217,7 @@ Every site the review names, verified:
   bug** (`it('hides the Pin column below the sm breakpoint too', …)`). Task
   2 must invert it.
 - **Provenance: this is a one-day-old deliberate regression.** Commit
-  `bd4d739` "Hide the Pin column on mobile in the all-lines table"
+  `678b15a` "Hide the Pin column on mobile in the all-lines table"
   (2026-09-01) added exactly those two props plus that test, reasoning from
   *consistency* with the neighbouring numeric columns — and missing that
   those columns were hidden only *because they were re-surfaced* in the
@@ -391,7 +391,7 @@ picture:
    home dashboard renders pinned lines as read-only `LineStatusCard`s.
    **Below 768px there is no way to pin or unpin a *line* anywhere in the
    application.** It also arrived one day before the review, in commit
-   `bd4d739`, with a test locking it in.
+   `678b15a`, with a test locking it in.
 
 2. **F1 is a navigation-correctness bug, not only a display-ranking one.**
    `frontend/app/stations/StationSearchForm.tsx:27` resolves the "Look up"
@@ -614,7 +614,7 @@ The review offers two options: *"keep the star at all widths (it needs
 ~44px; the folded layout has the room), or failing that, add pin to a
 row-tap action sheet."* Take the first. At 390px the table then carries
 three columns — Name (with its folded numeric sub-line), Status, Pin —
-which is what it carried before `bd4d739`, plus the sub-line that commit's
+which is what it carried before `678b15a`, plus the sub-line that commit's
 siblings added. There is no width problem to solve; the commit that created
 this was reasoning from column-count consistency, not from a measured
 overflow.
@@ -1051,7 +1051,7 @@ not treated like its neighbours:
     Those are hidden on mobile only because they are re-surfaced in the
     `hiddenFrom="sm"` sub-line under the line name (:225) -- Pin got the
     hiding half of that pattern without the re-surfacing half in
-    bd4d739, and unlike a number it is an interactive control with no
+    678b15a, and unlike a number it is an interactive control with no
     other home: `PinToggle` exists in exactly two places in this app,
     here and on the station detail page (`kind="station"`), so below the
     sm breakpoint there was no way to pin or unpin a LINE anywhere in
@@ -1116,7 +1116,7 @@ Expected: both PASS.
 
 ```bash
 git add frontend/app/lines/AllLinesTable.tsx frontend/app/lines/AllLinesTable.test.tsx
-git commit -m "Keep the Pin column at mobile width on All Lines (reverts bd4d739's consistency argument)"
+git commit -m "Keep the Pin column at mobile width on All Lines (reverts 678b15a's consistency argument)"
 ```
 
 ---

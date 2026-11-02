@@ -32,7 +32,7 @@ through `publish_schedule_destination_departures`); `crates/schedule-query/src/r
 (`resolve_for_date`, `schedules_touching`, `schedule_for_uid`,
 `departures_by_destination_crs` — all already date-parametric);
 `frontend/components/TrainSearchForm.tsx`, `frontend/app/trains/page.tsx`;
-git history `baa4e75`, `8250a9a` (the two UTC/London-skew fixes on this exact
+git history `a628841`, `6f48e62` (the two UTC/London-skew fixes on this exact
 route).
 
 ## 0. The one decision that resolves most of the rest
@@ -349,7 +349,7 @@ validation — `date` is purely additive.
 **`from`/`to`'s `now`-forward default only applies when `date` resolves to
 today.** This is the one genuinely new behavioral rule this feature
 introduces, and it is stated explicitly here because getting it wrong would
-be a second instance of exactly the bug class `baa4e75`/`8250a9a` already
+be a second instance of exactly the bug class `a628841`/`6f48e62` already
 fixed once (§6):
 
 ```rust
@@ -400,10 +400,10 @@ let now = london_now.time();
 Both `today` (used for the default-`date` fallback, the window-bounds
 check, and the `service_date == today` branch in §5) and `now` (used only
 inside that same branch) are derived from this **one** read, exactly as
-`baa4e75` established. The requested `date` — parsed independently — is
+`a628841` established. The requested `date` — parsed independently — is
 compared only against this same `today`, never against a second,
 independently-computed value. This is the specific, concrete guard against
-reintroducing the bug class `baa4e75`/`8250a9a` fixed: that bug was two
+reintroducing the bug class `a628841`/`6f48e62` fixed: that bug was two
 *separate* `Utc::now()` reads disagreeing about the calendar day around the
 UTC/London midnight boundary during BST; the fix, and this document's
 extension of it, is "compute the wall-clock moment once, derive everything
@@ -510,6 +510,6 @@ back, not their shape).
    `to`/`destination_from`/`destination_to` stay bare `"HH:MM"` (§5) —
    composes cleanly with the existing two independent time-range pairs; the
    cursor needs no change because results never span multiple days.
-6. **Timezone: one `Utc::now()` read, unchanged from `baa4e75`'s fix**,
+6. **Timezone: one `Utc::now()` read, unchanged from `a628841`'s fix**,
    plus one new rule (`now`-forward only applies when `date == today`) and
    two new tests targeting exactly that boundary (§6).

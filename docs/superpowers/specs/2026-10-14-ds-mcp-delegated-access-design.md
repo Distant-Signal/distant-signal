@@ -1,7 +1,7 @@
 # ds-mcp delegated access to a user's Distant Signal journeys (2026-10-14)
 
 > **Status (2026-10-19):** phase 1 is live and switched on in production
-> since 2026-10-15 (DS `d3b6c369`, ds-mcp `91353fc`), not only built as
+> since 2026-10-15 (DS `2e144258`, ds-mcp `91353fc`), not only built as
 > the status line below says. The chart default is still off (empty
 > `api.delegated.clients`). Phases 2 and 3 are not built.
 
@@ -170,7 +170,7 @@ Non-goals:
 
 ## 2. What exists today (verified)
 
-Verified against DS `origin/main` at `c7943a05` and the ds-mcp repository at
+Verified against DS `origin/main` at `a3badf92` and the ds-mcp repository at
 `fa14d88`. The ds-mcp facts come from reading that repository and from the
 ds-mcp session.
 
@@ -313,7 +313,7 @@ ds-mcp's OAuth grants:
    call.
 
 ds-mcp commit `1c1e101` replaced this with ds-mcp's own Authentik client.
-DS commits `5422e3b6`, `85fbb128`, `d1c1789a` and `fb918c99` removed the
+DS commits `fd6d696b`, `cb77dc59`, `870d2c3d` and `d65550de` removed the
 DS side. The reasons recorded in that commit and in the Ranma-Config spec:
 
 | # | Reason | Constraint for this design |
@@ -924,7 +924,7 @@ Delegated { client, grant_id, jti } }`:
   bearer to the api even if it holds one.
 - **Reachability (D-14): delegated bearers only on an in-cluster
   listener.** ds-mcp reaches the api in-cluster; the api's NetworkPolicy
-  already narrows extra-namespace ingress to the MCP pod (`4068cbff`).
+  already narrows extra-namespace ingress to the MCP pod (`b3545dec`).
   Public traffic arrives three ways: the tunnel to the frontend (whose
   proxy never forwards `Authorization`), `ingress.api.enabled` (the
   ingress controller straight to the api) and `networkPolicy.tunnel.api`

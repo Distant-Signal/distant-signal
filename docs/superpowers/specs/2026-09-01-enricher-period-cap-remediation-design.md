@@ -348,7 +348,7 @@ after (1)... sized against real eval data"). The process:
    real incidents of similar shape from step 2) and set `MAX_PERIODS` at a
    measured high percentile with explicit headroom, not the observed
    maximum: the same "generous headroom over every motivating example"
-   principle the original `295e478` commit already used when it set 8
+   principle the original `128681e` commit already used when it set 8
    against a 2-period and a "3+"-period fixture (`llm.rs:172-178`), just
    re-run against harder fixtures than were available at that time. A
    concrete target: headroom of at least +50% over the highest observed

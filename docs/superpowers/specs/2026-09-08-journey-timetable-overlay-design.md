@@ -241,7 +241,7 @@ One computed, merged record per calling point — booked schedule + best
 current live data, already resolved to CRS and to real UTC instants
 server-side (never a bare `"HH:MM"` local string on the wire for this new
 field, closing the exact class of UTC/London skew bug fixed in
-`baa4e75 Fix trains-search review findings: UTC/London date-time skew`
+`a628841 Fix trains-search review findings: UTC/London date-time skew`
 by construction, not by frontend care — every scheduled time is converted
 via the existing `eta_blend::london_to_utc` at the point it's read, the
 same helper the pin-created-time / Darwin-ETA paths already use).

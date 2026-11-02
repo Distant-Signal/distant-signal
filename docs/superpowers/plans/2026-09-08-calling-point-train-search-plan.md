@@ -1592,7 +1592,7 @@ async fn get_trains_search(
     // by design. `today` and `now` are deliberately read from ONE
     // `Utc::now().with_timezone(...)` call rather than two independent
     // `Utc::now()` calls -- see this same reasoning's original writeup in
-    // this route's git history (baa4e75) for why two independent reads can
+    // this route's git history (a628841) for why two independent reads can
     // disagree about which calendar day it is around the UTC/London
     // midnight boundary during British Summer Time.
     let london_now = chrono::Utc::now().with_timezone(&chrono_tz::Europe::London);

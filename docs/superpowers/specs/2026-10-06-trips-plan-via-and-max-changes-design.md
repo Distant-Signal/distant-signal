@@ -400,7 +400,7 @@ Putting the vias in the state changed the staged sweep, as reported:
 - labels are now kept per stop with their states;
 - fresh boardings come from the labels at the stop and its siblings.
 
-An interleaved A/B of `bench_waypoints` (no vias) against `c32285b3`, run
+An interleaved A/B of `bench_waypoints` (no vias) against `448bb3ff`, run
 concurrently on the same loaded host:
 
 - **First version:** about 1.5x slower forward. It computed every fresh

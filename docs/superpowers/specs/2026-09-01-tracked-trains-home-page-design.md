@@ -65,7 +65,7 @@ Two things have changed since:
    been implemented (`frontend/app/page.tsx` still has no `getSession()`
    call anywhere; confirmed by reading it in full and by `git log
    --oneline -- frontend/app/page.tsx`, which shows no commit past
-   `d268d75` implementing it), but this spec does not depend on it
+   `2a32922` implementing it), but this spec does not depend on it
    landing first or conflict with it if it does — see Decision 5.
 
 So: this spec does not contradict the tracked-trains-list spec's actual

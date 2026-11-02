@@ -63,7 +63,7 @@ directly relevant and neither is contradicted here:
   transparent margin, not a full-bleed edge-to-edge fill.
 - **`frontend/app/apple-icon.png`**: confirmed exactly **180×180** by
   direct PNG-header read this session (`struct.unpack('>II', ...)` on the
-  IHDR chunk). Its real provenance, from `git log`/`git show 35cc693`
+  IHDR chunk). Its real provenance, from `git log`/`git show b62b236`
   (`"Add a favicon: a fishtail-notched distant-signal arm in grape"`):
   *"Also add app/apple-icon.png (180x180, opaque, generated from an
   equivalent full-bleed SVG via sharp, which is already present as a
@@ -274,7 +274,7 @@ directly relevant and neither is contradicted here:
 
 **Chosen: hand-generate `icon-192.png` and `icon-512.png` once, from
 `icon.svg`'s existing artwork, using the same `sharp`-based one-off script
-`apple-icon.png` was already produced with** (commit `35cc693`, Current
+`apple-icon.png` was already produced with** (commit `b62b236`, Current
 relevant state above) — not committed as a build-time step, not a new
 project dependency (`sharp` is already present, transitively, as Next's
 own optional dependency).

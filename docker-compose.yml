@@ -892,7 +892,7 @@ services:
     # `COMPOSE_PROFILES=rail-mcp`); every other service here carries no
     # `profiles:` key at all, so it stays in the implicit "default" group
     # and is unaffected. This is NOT a revival of the dual prod/dev profile
-    # split cb2993b removed (see docker-compose.dev.yml's own comment) --
+    # split 2d1c7ba removed (see docker-compose.dev.yml's own comment) --
     # that scheme gave every core service two full copies behind
     # `--profile prod`/`--profile dev`, so a bare `docker compose up`
     # started nothing at all; this is one profile on one add-on service, so

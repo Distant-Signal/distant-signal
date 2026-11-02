@@ -92,7 +92,7 @@ data-quality/provenance badge in `components/IssueList.tsx` (~line 292,
 `{DATA_QUALITY_LABELS[status.dataQuality]}`) had no `color` prop, so it
 fell back to `theme.primaryColor` — meaning it went from blue to grape
 along with everything else, reading as branded/interactive rather than as
-neutral metadata. Commit `79d2176` ("Give the data-quality badge an
+neutral metadata. Commit `2d1c7ba` ("Give the data-quality badge an
 explicit gray colour") fixed this with `color="gray"`, matching how
 `informational` severity is already treated in `GROUP_COLOR`. That is
 done, not open.

@@ -21,7 +21,7 @@
 -- crates/api/src/data/journey.rs) before committing to a fixed date rather
 -- than a computed one: a service_date/ETA that far in the past relative to
 -- real wall-clock `NOW()` makes `may_have_arrived` return `true`, which only
--- changes the train's rendered copy to past tense (commit 7f7beaf4, "stale
+-- changes the train's rendered copy to past tense (commit 630c00a4, "stale
 -- ETA under 'may have arrived' now reads past-tense") -- it does not 404,
 -- error, or drop any content the accessibility/layout specs assert on.
 -- `get_by_uid_and_date` (crates/api/src/routes/train.rs) also has no

@@ -52,7 +52,7 @@ API, §8 UX, §9 Delay Repay, §10 migrations and backfill, §11 edge cases,
 
 ## 1. What exists today
 
-All paths are from the repository root, at `origin/main` 097fd582.
+All paths are from the repository root, at `origin/main` cfdbccb8.
 
 ### 1.1 Journeys, legs and trains
 
@@ -1113,7 +1113,7 @@ change the price. They are not a ranking input.
 
 ### 17.2 What DS knows today
 
-At `origin/main` e98f1c8a.
+At `origin/main` 572748fc.
 
 | Input | Today | Gap |
 |---|---|---|

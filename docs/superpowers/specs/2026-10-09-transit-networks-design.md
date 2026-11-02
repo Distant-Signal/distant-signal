@@ -38,7 +38,7 @@ document.
 
 ## 0. Reconciliation with DS (2026-10-14)
 
-The design was written on 2026-10-09 against main at 87340fa5 and parked.
+The design was written on 2026-10-09 against main at 9ab7751e and parked.
 DS changed a lot before it restarted. This section lists what changed and
 where the spec now differs from its first draft. Where a later section
 still disagrees with this one, this one wins.

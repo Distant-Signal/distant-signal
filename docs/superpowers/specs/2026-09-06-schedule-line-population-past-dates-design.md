@@ -7,7 +7,7 @@ Companion to
 `docs/superpowers/specs/2026-09-05-schedule-first-train-tracking-design.md`
 ("the schedule-first design doc" throughout) and its implementation,
 `crates/api/src/data/schedule_matching.rs`. That doc and its shipped code
-(commits `ee4e18c`, `ce77dc0`, `5c2c898`, `c94b67e`, `08e15f7`, `1f7a19c`)
+(commits `852a796`, `852a796`, `852a796`, `852a796`, `852a796`, `852a796`)
 answer "can a pin resolve against CIF schedule data instead of only live
 TRUST movements" for pins pinned close to real time. This document asks
 the deliberately narrower, differently-shaped question the schedule-first

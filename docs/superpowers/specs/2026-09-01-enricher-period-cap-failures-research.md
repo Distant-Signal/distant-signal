@@ -44,7 +44,7 @@ rather than restating the question.
   `docs/superpowers/specs/2026-08-21-multi-period-extraction-design.md`
   (§2 prompt redesign, §4 period-phase/combination logic, §7 risks, the
   testing plan), and the commit that introduced the cap
-  (`git show 295e478`, "Cap the primary extraction pass at 8 periods per
+  (`git show 128681e`, "Cap the primary extraction pass at 8 periods per
   incident").
 - Checked whether the local dev environment has any incident data that
   could stand in as a sanity check. It does not: a local Postgres instance
@@ -84,7 +84,7 @@ motivating example in the design doc (the Wandsworth Town fixture has 2;
 the design's own soft-cap sanity-check fixture is described as '3+')."
 **A real production incident needing 13 periods is direct empirical
 evidence that this headroom assumption did not hold for at least this one
-incident.** The commit that introduced the cap (`295e478`, 2026-08-28,
+incident.** The commit that introduced the cap (`128681e`, 2026-08-28,
 three days before this failure was logged) reused the same "3+" framing
 verbatim in its own commit message — the cap was never validated against
 anything close to the complexity this failure represents.
@@ -416,7 +416,7 @@ that exists independent of which of the first two is "more true."
   §2 prompt redesign (lines ~323-335), §"Risks and open questions" item 1
   and the live-eval battery description (lines ~697-716), item 6 (the
   soft-cap decision, lines ~781-790).
-- `git show 295e478` — "Cap the primary extraction pass at 8 periods per
+- `git show 128681e` — "Cap the primary extraction pass at 8 periods per
   incident" (2026-08-28), the commit that introduced `MAX_PERIODS`.
 - Local dev database check: `psql -h localhost -U lucy -d railstatus -c
   "select count(*) from incidents;"` → `0` rows (confirms no local

@@ -130,7 +130,7 @@ COPY --from=builder-prod --chown=node:node /app/.next/standalone ./
 # requests against.
 COPY --from=builder-prod --chown=node:node /app/.next/static ./.next/static
 # public/ now holds real, load-bearing static assets: the PWA manifest
-# icons (icon-192.png/icon-512.png, commit 86b26b6) and, as of
+# icons (icon-192.png/icon-512.png, commit 734007b) and, as of
 # docs/superpowers/plans/2026-09-02-pwa-service-worker.md, sw.js/
 # sw-cache-rules.js/offline.html. The comment this replaced ("no public/
 # directory... add COPY back if one appears later") went stale when the

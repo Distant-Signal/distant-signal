@@ -14,7 +14,7 @@
 > Decisions 1–4 in full, as scaffolding for a producer
 > (Option B's TRUST-vs-schedule consumer) that does not exist yet and is
 > explicitly out of scope here. See this repo's own commit history
-> (`01d9657`, `ba7312e`) for the original deferral reasoning, and the task
+> (`21e6b36`, `21e6b36`) for the original deferral reasoning, and the task
 > brief that authorized reversing it.
 
 **Spec:** `docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md`

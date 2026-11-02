@@ -73,8 +73,8 @@ shipped, on both sides**:
 |---|---|---|
 | 0 (four free tools + a resource over already-public routes) | N/A — no `api` change was ever needed | Shipped: commits `1d38405`..`a1591d6`, "Phase 0+1 of the deeper Distant-Signal api integration" |
 | 1 (TRUST-corroboration tier, `GET /Train/by-uid`) | N/A | Shipped: `e20e007`, `ec40f27`, `4bcd0ce` |
-| 2a (`GET /public/lines/{id}/schedule`) | Shipped: `c58d8f5` "api: add GET /public/lines/{id}/schedule" | Not yet consumed — no `getLineSchedule` method on `DsApiClient` today |
-| 2b (public `stanox_crs` mirror) | Shipped: `37b4f8f` "api: add GET /public/stanox-crs" | Not yet consumed |
+| 2a (`GET /public/lines/{id}/schedule`) | Shipped: `293bc1f` "api: add GET /public/lines/{id}/schedule" | Not yet consumed — no `getLineSchedule` method on `DsApiClient` today |
+| 2b (public `stanox_crs` mirror) | Shipped: `293bc1f` "api: add GET /public/stanox-crs" | Not yet consumed |
 
 (`distant-signal-mcp` also independently renamed `get_tracked_train_status`
 to `get_train_status` and reworked it to call the now-public, unscoped

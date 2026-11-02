@@ -1057,7 +1057,7 @@ production (user decision).
 
 Corrections from that inventory:
 
-- **The route count.** At `dc2b4405` there were 29 paths and 44
+- **The route count.** At `8e42554e` there were 29 paths and 44
   path-and-method pairs (`/tiploc-locations` and `/schedule-services`
   came after the spec's count of 27). After the Q9 cleanup there are 26
   paths and 34 pairs.

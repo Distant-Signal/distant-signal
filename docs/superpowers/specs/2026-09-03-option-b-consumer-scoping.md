@@ -66,7 +66,7 @@ signal that gets fed into `merge_full_coverage` and can change what a real
 line's status says.** This is genuinely what validation exists to justify.
 Its risk is not implementation risk (STANOX↔CRS translation is fixed and
 empirically confirmed working, `crates/trust-consumer/src/stanox_crs.rs`,
-commit `6adf64f`) — it is **product-value risk and operational-cost risk**:
+commit `cd50e15`) — it is **product-value risk and operational-cost risk**:
 a second full-national-feed Kafka consumer group (the design spec's Option
 B, "doubling the ingest-side read cost"), a new file-push ingestion shape
 this app has never operated in production before schedule-ingest's recent

@@ -90,7 +90,7 @@ per the brief's own instruction.
   `crates/api/src/routes/departures.rs::get_station_departures` (a raw
   `station_samples` pass-through, shipped and merged to `main` with zero
   aggregator involvement, per this repo's own recent commit
-  `a17513c Add GET /public/stations/{crs}/departures, a raw pass-through of
+  `34be2ba Add GET /public/stations/{crs}/departures, a raw pass-through of
   the live station_samples board`). See "Judgment calls," #3.
 - **No dedup/correlation between Iarnród Éireann's and NIR's border-area
   data.** Design spec §4 already resolved this: Iarnród Éireann is the sole

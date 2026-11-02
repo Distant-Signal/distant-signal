@@ -105,7 +105,7 @@ See also I22 (the same object currently has two detail pages).
 `/operators/[code]/history` and `/network/history` exist and render well, but a
 repo-wide grep finds **no `href` pointing at either** outside their own
 `basePath` constants. `OperatorStatusCard.tsx` documents being deliberately not
-a link, and commit `e19af671` removed a dead operator-detail link — but the
+a link, and commit `abcaacf8` removed a dead operator-detail link — but the
 history route shipped in the same phase and nothing replaced the link. The only
 interactive element on an operator card is the pin star.
 
@@ -248,7 +248,7 @@ Unknown station", … "16:00 · Unknown station · 22m late". The row calls
 fallback string — failing at its one job ("which train is this?") while looking
 like data, and leaking a fallback constant into user copy (09-17 §2.9, 09-02 F5).
 It is also worse than the sibling `/train` page, whose "Unknown location" rows
-were just removed (`bcf7ea9d`).
+were just removed (`0166b173`).
 
 The panel's own source comment notes `callingPoints` "is present on every entry
 regardless of live-status coverage" — the displayed time already comes from
@@ -655,11 +655,11 @@ widths.
 
 > **Status (2026-09-29): implemented, without the glyph.** `PlatformBadge`
 > renders an unchanged platform gray and a changed one blue ("Platform 6
-> (changed from 4)"), both light variant and sentence case (5abc3ab9); blue
+> (changed from 4)"), both light variant and sentence case (fb44306e); blue
 > is the app's colour for a planned or changed arrangement
 > (`2026-08-18-grape-theme-design.md`, decision of 2026-09-29).
 >
-> A third state, not covered by any spec until now (dc1132af): when Darwin
+> A third state, not covered by any spec until now (16624ea8): when Darwin
 > lists a journey stop's board row as **cancelled** (`platformStatus:
 > 'cancelled'`), the badge is red, the platform text is struck through
 > (`<s>`), a `VisuallyHidden` " (cancelled)" completes the text for screen
