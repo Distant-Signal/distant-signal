@@ -322,8 +322,9 @@ public, or the CI bill changes the whole calculation.**
 - 142 PRs and 6 issues (4 open), 1 star, no forks.
 - No branch protection or rulesets, no repository secrets or variables, and
   no environments. The workflows use only `GITHUB_TOKEN` and OIDC.
-  `validate-line-catalogue.yml` names `RDM_API_KEY` and `RDM_TOCS_BASE_URL`,
-  but neither is set at repository level, so check before the move.
+  `validate-line-catalogue.yml` is `workflow_dispatch` only. Its
+  `schedule:` and its `RDM_API_KEY`/`RDM_TOCS_BASE_URL` env lines are
+  commented out, and it has never run, so there is nothing to migrate.
 - No `LICENSE` and no `SECURITY.md`. Homepage `https://ds.cursed.solutions/`.
   No description, no topics.
 - Authors since 2026-10-01: FasterSpeeding (1,857 commits, under the
@@ -908,9 +909,11 @@ use one organisation regex:
   list; if a second rewrite is ever needed, disable the ruleset for that
   window and re-enable it.
 
-**Secrets:** none today. The RDM secrets named in
-`validate-line-catalogue.yml` aren't set at repository level, so confirm
-them. That workflow moves to `ds-core`.
+**Secrets:** none today, and no environments. `validate-line-catalogue.yml`
+has only `workflow_dispatch`, with its `schedule:` and its RDM env lines
+commented out, and it has never run. Nothing needs migrating. The workflow
+moves to `ds-core` with its crate. Enabling it stays the TODO already
+documented in the file.
 
 ### 5.10 Commit identity
 
@@ -1783,12 +1786,17 @@ Efforts are focused working days.
 
 **Ranma-Config:** add the second `matchOIDCIdentity` (`Distant-Signal/distant-signal`).
 
+**Already done by the user:**
+
+- the user owns the `Distant-Signal` organisation;
+- `lucy@cursed.solutions` is added and verified on the FasterSpeeding
+  account;
+- the Renovate GitHub App is installed on the organisation.
+
 **GitHub organisation:**
 
 - create `.github`: profile, `SECURITY.md`, `CONTRIBUTING.md`, issue forms;
-- set the Actions allow-list and the read-only token default;
-- install the Renovate App;
-- confirm the RDM secrets.
+- set the Actions allow-list and the read-only token default.
 
 The ruleset waits until the end of phase 1 (§5.9).
 
@@ -1796,8 +1804,9 @@ The ruleset waits until the end of phase 1 (§5.9).
 1.5 to 2 days are the squash: hardening `squash.py`, reading the rehearsal
 log and the 37 repaired reverse merges, and writing any title overrides.
 
-- the user adds and verifies `lucy@cursed.solutions` on the FasterSpeeding
-  account, and checks the email-privacy push setting (§5.10);
+- check the account's email-privacy push setting, so a push of commits
+  with `lucy@cursed.solutions` isn't refused (§5.10). The address itself
+  is already verified;
 - switch `git config user.email` to `lucy@cursed.solutions` everywhere;
   each agent session waits for it rather than overriding it;
 - update `CLAUDE.md`: no `Co-Authored-By: Claude` trailers and no
@@ -1824,8 +1833,10 @@ archive and the tooling change nothing until phase 1.
 
 ### Phase 1: freeze, transfer, rewrite and cutover (about 2 days plus a watched deploy)
 
-The freeze lasts from step 1 until step 6's PR has merged, which is about
-half a day.
+**When:** as soon as phase 0 is done. A go/no-go comes first, once the
+rehearsal passes the whole verification checklist and the open PRs are
+drained. Then phase 1 starts. The freeze lasts from step 1 until step 6's
+PR has merged, which is about half a day.
 
 1. **Freeze** (§5.11.5): no open PRs, Renovate paused, every branch but
    `main` deleted, agent worktrees removed, no DS chart PR in flight.
