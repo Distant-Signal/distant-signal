@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { notFound } from 'next/navigation';
 import { renderWithMantine } from '@/test/render';
 import * as legal from '@/lib/legal';
@@ -11,6 +11,7 @@ import AccessibilityPage, { dynamic as accessibilityDynamic } from './accessibil
 import AttributionPage, { dynamic as attributionDynamic } from './attribution/page';
 import * as api from '@/lib/api';
 import type { TransitNetwork } from '@/lib/types';
+import { SOURCE_CODE_URL } from '@/lib/sourceCode';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -136,6 +137,25 @@ describe('/attribution', () => {
     expect(notFound).not.toHaveBeenCalled();
     // No tram network shown: no Metrolink credit.
     expect(screen.queryByRole('heading', { name: /Manchester Metrolink/ })).toBeNull();
+  });
+
+  it('names the software licence and links the source and the running versions', async () => {
+    vi.mocked(api.getTransitNetworks).mockResolvedValue([]);
+    renderWithMantine(await AttributionPage());
+    const section = screen.getByRole('region', { name: 'Source code' });
+    expect(
+      within(section).getByRole('link', {
+        name: 'GNU Affero General Public License v3.0 or later (opens in a new tab)',
+      }),
+    ).toHaveAttribute('href', 'https://www.gnu.org/licenses/agpl-3.0.html');
+    expect(within(section).getByRole('link', { name: 'its source code (opens in a new tab)' })).toHaveAttribute(
+      'href',
+      SOURCE_CODE_URL,
+    );
+    expect(within(section).getByRole('link', { name: 'list of running versions' })).toHaveAttribute(
+      'href',
+      '/api/version',
+    );
   });
 
   it('credits a tram network while it is shown, with the non-affiliation line', async () => {

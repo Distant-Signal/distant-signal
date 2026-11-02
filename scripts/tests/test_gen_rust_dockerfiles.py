@@ -242,6 +242,27 @@ class RuntimeUpgradeTests(unittest.TestCase):
             gen.with_runtime_upgrade(text, "runtime", Path("x"))
 
 
+class LicenceLabelTests(unittest.TestCase):
+    """The OCI licence label in the runtime stage."""
+
+    TEXT = "FROM a AS chef\nRUN x\nFROM debian@sha256:0 AS runtime\nRUN y\n"
+
+    def test_inserted_once_after_the_runtime_from(self) -> None:
+        """Added as the runtime stage's first line, and idempotent."""
+        out = gen.with_licence_label(self.TEXT, "runtime", Path("x"))
+        lines = out.splitlines()
+        self.assertEqual(lines.count(gen.LICENCE_LABEL), 1)
+        self.assertEqual(
+            lines[lines.index(gen.LICENCE_LABEL) - 1], "FROM debian@sha256:0 AS runtime"
+        )
+        self.assertEqual(gen.with_licence_label(out, "runtime", Path("x")), out)
+
+    def test_missing_stage_is_an_error(self) -> None:
+        """A Dockerfile without the stage is rejected."""
+        with self.assertRaises(ValueError):
+            gen.with_licence_label("FROM a AS chef\n", "runtime", Path("x"))
+
+
 class CommittedFilesTests(unittest.TestCase):
     """The repo's own Dockerfiles."""
 

@@ -13,6 +13,7 @@ import {
   OpenDataAttributionDetails,
 } from './OpenDataAttribution';
 import { visibleText } from '@/test/routeText';
+import { SOURCE_CODE_URL } from '@/lib/sourceCode';
 
 vi.mock('@/lib/legal', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/legal')>();
@@ -131,6 +132,14 @@ describe('OpenDataAttribution', () => {
       '/attribution',
     );
     expect(within(nav).getByRole('link', { name: 'Preferences' })).toHaveAttribute('href', '/account/preferences');
+  });
+
+  it('links to the source code from every page (AGPL-3.0 section 13)', () => {
+    renderWithMantine(<OpenDataAttribution />);
+    const nav = screen.getByRole('navigation', { name: 'Site information' });
+    const link = within(nav).getByRole('link', { name: 'Source code (opens in a new tab)' });
+    expect(link).toHaveAttribute('href', SOURCE_CODE_URL);
+    expect(link).toHaveAttribute('target', '_blank');
   });
 
   it('hides the legal page links while the legal pages are unpublished (the default)', () => {
