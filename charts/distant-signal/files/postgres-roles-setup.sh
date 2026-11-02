@@ -7,7 +7,7 @@
 #
 # `wait` polls pg_isready until Postgres accepts connections, then
 # `SELECT pg_is_in_recovery()` until it can take writes: a Postgres
-# replaying WAL (after a pgBackRest restore) passes pg_isready but is
+# replaying WAL (after a backup restore) passes pg_isready but is
 # read-only, and every setup statement would fail (2 Nov 2026,
 # docs/postgres-18-upgrade.md "Known traps"). `run` runs
 # one idempotent setup script with psql (ON_ERROR_STOP, verbose errors with
