@@ -874,14 +874,18 @@ images. The cluster pulls anonymously, so check that each new package is
 
 **Signing.** The cosign subject is
 `https://github.com/Distant-Signal/<repo>/.github/workflows/<file>@refs/heads/main`.
-Flux verifies only the chart, and `matchOIDCIdentity` is a list. Add the
-next identity **before** each cutover:
+Flux verifies only the chart. Its cosign keyless verifier accepts only
+**one** `matchOIDCIdentity` entry: a second entry fails verification with
+"multiple identities are not supported at this time" (deploy m4ag, 2 Nov
+2026, blocked chart fetches until it was collapsed). So keep a single entry
+and widen its `subject` regex with an alternation **before** each cutover:
 
-1. the landing repository in phase 0;
-2. `ds-deploy` before phase 5.
+1. phase 0: `^https://github\.com/(FasterSpeeding/Distant-Signal|Distant-Signal/distant-signal)/\.github/workflows/containers\.yml@refs/heads/main$`;
+2. before phase 5: add a `Distant-Signal/ds-deploy/...` branch to the
+   alternation, matching that repository's chart workflow.
 
-Drop each old identity 90 days later. If the cluster ever verifies images,
-use one organisation regex:
+Drop each old branch of the alternation 90 days later. If the cluster ever
+verifies images, use one organisation regex:
 `^https://github\.com/Distant-Signal/[^/]+/\.github/workflows/[^/]+@refs/heads/main$`.
 `ds-core`'s access assets are verified in `sync-core.py` against
 `Distant-Signal/ds-core`'s `release.yml`.
@@ -1785,7 +1789,7 @@ Efforts are focused working days.
 `PROJECT_URL`, and the alert runbook URLs through
 `alerts.runbookBaseUrl`.
 
-**Ranma-Config:** add the second `matchOIDCIdentity` (`Distant-Signal/distant-signal`).
+**Ranma-Config:** widen the single `matchOIDCIdentity` subject regex to also match `Distant-Signal/distant-signal` (§5.9). Flux rejects a second entry.
 
 **Already done by the user:**
 
@@ -1829,7 +1833,7 @@ log and the 37 repaired reverse merges, and writing any title overrides.
 - run `strip-pr-footers.py` on the PR bodies and comments. It is
   independent of the git rewrite, so it can run any time.
 
-**Rollback:** revert the PRs. The extra Flux identity is harmless. The
+**Rollback:** revert the PRs. The widened Flux subject regex is harmless. The
 archive and the tooling change nothing until phase 1.
 
 ### Phase 1: freeze, transfer, rewrite and cutover (about 2 days plus a watched deploy)
@@ -2001,7 +2005,7 @@ the delete commit.
 
 ### Phase 10: cleanup (about 1 day, 90 days after phase 9)
 
-- Drop the old Flux identities, keeping `ds-deploy`'s.
+- Narrow the Flux subject regex to `ds-deploy`'s workflow only.
 - Prune the `fasterspeeding` packages.
 - Remove the `cache-from` fallbacks.
 - Archive the Ranma-Config notes.
