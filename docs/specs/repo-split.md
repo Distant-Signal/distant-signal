@@ -397,7 +397,7 @@ project front page.
 
 | Candidate | For | Against |
 |---|---|---|
-| **The transferred repository, keeping the frontend (chosen)** | The history (squashed per mainline step, §5.11), the star, the 142 PRs and the issues stay. Every old link redirects: Ranma-Config, the deploy records, Renovate PR bodies, DS-MCP comments, old alert annotations. | Its history is the whole monorepo's, which is useful: `contract:` migration headers cite its commits, resolved through the many-to-one commit map (§5.11.8). |
+| **The transferred repository, keeping the frontend (chosen)** | The history (squashed per mainline step, §5.11), the star, the 142 PRs and the issues stay. Every old link redirects: Ranma-Config, the deploy records, Renovate PR bodies, DS-MCP comments, old alert annotations. | Its history is the whole monorepo's, which is useful: `contract:` migration headers cite its commits, resolved through the migration ledger (§5.11.8, §5.11.9). |
 | A new frontend repository | A clean start. | Loses the stars, issues and PR history, and the old links would point at an archived repository. |
 | A thin meta or docs repository | A front page independent of code churn. | Nothing to build, so the README drifts. It adds a hop. The `.github` profile already plays this role at the organisation level. |
 | `ds-core` | The technical centre. | Not what visitors come for. Its README is for crate consumers. |
@@ -798,15 +798,14 @@ No extraction rewrites identity or messages again:
    so commits stay `FasterSpeeding <lucy@cursed.solutions>` from the phase 1
    rewrite. Don't pass `--mailmap`, `--email-callback`, `--name-callback`
    or `--message-callback` here: the identity was settled once, and a
-   second rewrite would only add a second map to chain. Run the identity
+   second rewrite would only complicate the ledger. Run the identity
    and attribution checks of §5.11.6 (items 6 to 8) on every extract
    anyway, before its first push.
-4. **Commit the commit map.** filter-repo's `commit-map` (landing SHA to
-   extract SHA) goes in as `docs/history/commit-map.tsv`. Old SHAs resolve
-   in two hops: the landing repository's `docs/history/commit-map.tsv`
-   (original to landing, §5.11.8) and then the extract's map. The helper
-   `scripts/resolve-sha.py <sha>` in the landing repository, later in
-   `ci`, walks both and prints the commit in every repository it reaches.
+4. **Append to the ledger, not the repository.** filter-repo's
+   `commit-map` (landing SHA to extract SHA) goes through
+   `append-extract.py` into the migration ledger (§5.11.9). That adds an
+   `ext:<repo>` column and `post-rewrite` rows for landing commits made
+   since phase 1. No map is committed to the extract.
 5. **Add a top commit** that adds `LICENSE`, the repository's README and CI,
    and switches path dependencies to `ds-core` tags.
 6. **Remove the extracted paths from the landing repository** in one commit
@@ -956,7 +955,10 @@ extraction (§10.1, decisions 14 to 22). It does three things:
 - **Strips Claude attribution** from commit messages.
 
 The original history is frozen in a private, archived repository
-(§5.11.7). All figures are from `main` at `cc44d13c`.
+(§5.11.7). The old-to-new tracking is kept **outside every repository**,
+in the migration ledger on page-bringer (§5.11.9). No commit carries an
+archive pointer, and no repository carries a commit map. All figures are
+from `main` at `cc44d13c`.
 
 #### 5.11.1 Identities
 
@@ -1176,40 +1178,69 @@ tree:
 
 That adds 2 commits, so the total is 1,650.
 
-**4. The message of each new commit:**
+**Folding the local-merge steps further: re-examined, not done.** The
+squash already removes every merge commit: a local-merge step is one
+ordinary commit. The only question left was whether some of those steps
+could merge into a neighbour. The rule was that every resulting tree must
+still have existed on `main`, and that nothing needed for blame, bisect or
+cited SHAs may be lost.
 
-- **A direct commit** keeps its message.
-- **A step with one work commit** keeps that commit's message.
-- **A squashed step:**
+- **Steps that changed nothing:** a step whose tree equals the previous
+  step's could be dropped at no cost. The rehearsal found none.
+- **Integration-branch runs:** 102 steps merge one agent branch each into
+  an integration branch (`integ-*`, `integration-preview`), in 38 runs.
+  Folding each run into its last step would save 64 commits (1,650 to
+  1,586), and every tree would still be a `main` state. But it would
+  combine separate agent branches' work into batch commits. Bisect would
+  then land on a batch rather than on the branch that broke something, so
+  the rule fails.
+- **Any other run of local merges:** each step is one branch's work
+  landing, so folding it loses bisect precision in the same way.
 
-  ```text
-  <title>
+So all 1,648 steps stay, and the count stays at 1,650. What the user
+wanted, a history that reads like direct commits, comes from the messages
+in step 4 instead.
 
-  Squashes <n> commits:
+**4. The message of each new commit.** No subject may contain merge
+wording: no "Merge branch …", no "Merge pull request", and no subject
+starting with "Merge". The rehearsal produced subjects as follows:
 
-  - <subject of each folded non-merge commit, oldest first>
+| Step | Message | Commits |
+|---|---|---:|
+| A direct commit | its own message | 721 |
+| A step with one work commit | that commit's message | 348 |
+| A PR merge | the PR title plus ` (#<n>)`, then a squashed body | 134 |
+| A local merge whose message has a written summary (`Merge: …`, `Merge <branch>: …`) | the summary with the `Merge` prefix dropped, then a squashed body | 261 |
+| A local merge with only git's default subject | the subject of the folded commit that changed the most lines, then a squashed body | 184 |
 
-  PR: #<n>                        (PR merges only)
-  Task: DS-<…>                    (every distinct Task: of the folded commits)
-  Archive: <original step SHA>
-  ```
+A squashed body:
 
-The title is picked like this:
+```text
+<title>
 
-1. For a PR merge, the PR title from GitHub's merge message, then
-   ` (#<n>)`.
-2. For a local merge with a written summary (`Merge: …`, or
-   `Merge <branch>: …`), that summary, with the `Merge` prefix dropped.
-3. For a merge with only git's default subject (`Merge branch 'x'`, about
-   280 steps), the subject of the folded commit that changed the most
-   lines.
-4. `title-overrides.tsv`, keyed by original step SHA, can replace any
-   title after a read of the rehearsal's `git log --oneline`.
+Squashes <n> commits:
+
+- <subject of each folded non-merge commit, oldest first>
+
+Task: DS-<…>                    (every distinct Task: of the folded commits)
+```
+
+There is no `PR:` trailer, because the title carries `(#n)`, and there is
+no archive line. `title-overrides.tsv`, keyed by original step SHA, replaces
+a title. It is needed only after one read of the 184 heuristic titles, plus
+any subject that still starts with "Merge". The rehearsal found 2 of
+those, both legitimate titles that happen to use the verb:
+
+- the PR title "Merge New journey into Plan a journey (#71)";
+- a commit "Merge NI and Ireland-friction research into one combined
+  rail-support design spec".
+
+Both get reworded, for example to "Fold …" and "Combine …".
 
 Folded commits' bodies, including their attribution trailers, aren't
-copied. The `Archive:` line points at the original step, so
-`git log ^<prev> <step>` in the archive lists exactly what was folded. All
-170 distinct `Task:` IDs survive; the rehearsal checked the set.
+copied. The ledger lists exactly which original commits each new commit
+folds. All 170 distinct `Task:` IDs survive; the rehearsal checked the
+set.
 
 **5. Author and dates.**
 
@@ -1226,26 +1257,20 @@ filter-repo with the rules of §5.11.3. filter-repo's own hash rewriting
 updates commit IDs cited in the kept messages. Stage 1 first resolves each
 original SHA in a message to the squashed commit that folded it.
 
-- 35 references in the rehearsal pointed at an earlier step and were
+- 66 references in the rehearsal pointed at an earlier step and were
   rewritten.
 - 2 point at a commit that lands in a later step. They are left as
-  original SHAs and resolve through the map.
+  original SHAs and resolve through the ledger.
 
-**7. The commit map goes many to one.** `docs/history/commit-map.tsv` has
-one row per original commit, with three columns:
-
-- `original`;
-- `rewritten`;
-- `kind`: `step` for the original mainline commit, `folded` for a commit
-  inside a step, or `pinned`.
-
-There are 5,365 rows pointing at 1,649 rewritten commits. The extra pinned
-pre-step has no original of its own.
+**7. Old to new goes many to one, in the ledger.** 5,365 original commits
+point at 1,649 rewritten ones: 1,648 steps, 3,716 folded and 1 pinned. The
+extra pre-step has no original of its own. That mapping is the migration
+ledger (§5.11.9), which is not committed to any repository.
 
 **Costs we accept:**
 
-- `git bisect` lands on a step, up to 59 commits; bisect further inside
-  it in the archive.
+- `git bisect` lands on a step, up to 59 commits. To go further inside it,
+  bisect in the archive, finding the range through the ledger.
 - Per-commit authorship and dates inside a step are lost. It was one
   person anyway, apart from the bot, and the archive keeps them.
 - Extracts (§5.6) get steps whose folded subjects also describe work that
@@ -1257,7 +1282,8 @@ The rewrite changes every SHA. Doing it at the transfer means the one URL
 break and the one SHA break happen together. Ranma-Config is edited in that
 window anyway, and the first organisation-built chart (0.5.0) is already
 built from rewritten history. Rewriting per extraction instead would leave
-the landing repository unrewritten, and would need a map per extract.
+the landing repository unrewritten, and would need a separate rewrite per
+extract.
 
 Order inside phase 1 (§9 has the full phase):
 
@@ -1277,13 +1303,13 @@ Order inside phase 1 (§9 has the full phase):
    `git push --force-with-lease=main:<original sha>`.
 6. **Re-enable Actions.** The first commit after the rewrite is a normal
    PR. It adds:
-   - `docs/history/commit-map.tsv`;
    - the SHA references in files (§5.11.8), including
      `.git-blame-ignore-revs`;
    - the identity check step (§5.10);
    - the chart base bump to 0.5.0.
 
-   Its build is the first organisation build.
+   Its build is the first organisation build. The ledger is pushed to
+   its Forgejo repository in the same window (§5.11.9).
 7. **Create the organisation ruleset** (§5.9).
 8. **Re-clone everywhere.** Don't fetch into an old clone. `git pull`
    refuses unrelated histories, and the ruleset blocks a force-push, so an
@@ -1298,7 +1324,8 @@ stdlib Python, checked with ruff and `mypy --strict`.
 
 1. **`squash.py`** builds the new linear history in a throwaway bare
    clone, with `git commit-tree`. It covers §5.11.4 steps 1 to 5 and
-   writes the stage-1 map.
+   writes `stage1.jsonl`: one row per original commit with its stage-1
+   commit, kind, step, PR and `Task:` IDs.
 2. **`git-filter-repo`** then applies the mailmap, the message callback
    and `--replace-text` (§5.11.3). It isn't installed; run it through uv
    at a pinned version:
@@ -1310,10 +1337,12 @@ stdlib Python, checked with ruff and `mypy --strict`.
      --message-callback "$(cat ../tooling/message_callback.py)"
    ```
 
-3. **`compose-map.py`** joins the stage-1 map with filter-repo's
-   `filter-repo/commit-map` into `docs/history/commit-map.tsv`.
+3. **`gen-ledger.py`** joins `stage1.jsonl` with filter-repo's
+   `filter-repo/commit-map` and writes the ledger files (§5.11.9).
 
-The other scripts are `scan-messages.py`, `verify-rewrite.py` and
+These three run from the archive's `tooling` branch. `gen-ledger.py` and
+`append-extract.py` live in the ledger's own repository (§5.11.9). The
+other scripts are `scan-messages.py`, `verify-rewrite.py` and
 `strip-pr-footers.py`. Work in a bare clone of `main` only, with the
 remote removed, so nothing pushes by accident.
 
@@ -1325,16 +1354,28 @@ afterwards:**
   the 2 commits containing this spec, with zero old addresses and zero
   attribution lines.
 - **The squash prototype,** with the identity and attribution rules applied
-  inline, on `main` at `cc44d13c`. It ran in 27 s:
+  inline, on `main` at `cc44d13c`. It ran three times; the last run was
+  with the final message rules, no archive line and the ledger output, in
+  about 30 s:
   - 5,365 commits became 1,650, with zero merges: 1,648 steps plus the
-    Prettier pin and its pre-step;
+    Prettier pin and its pre-step. No step was empty, so none was
+    dropped;
+  - subjects: 721 from direct commits, 348 from single folded commits,
+    134 PR titles, 261 written summaries, and 184 largest-change subjects;
+  - 2 subjects still start with "Merge", which is the override list;
+  - zero subjects say "Merge branch" or "Merge pull request", and zero
+    messages have an archive or `PR:` line;
   - every new commit's tree equalled its original's, and the tip trees
     were equal;
   - authors: 1,630 FasterSpeeding and 20 the Renovate bot;
   - committers: 1,516 FasterSpeeding and 134 GitHub;
   - zero old addresses and zero attribution lines;
-  - 25 messages mention Claude, all of them product content;
-  - 170 of 170 `Task:` IDs kept.
+  - 29 messages mention Claude, all of them product content: the
+    connector, the LLM provider, MCP clients, `CLAUDE.md` and `.claude/`;
+  - 170 of 170 `Task:` IDs kept;
+  - the ledger had 5,365 rows, all landing SHAs present, and every step's
+    and pin's tree equal to its original's. It was about 1.4 MB as JSON
+    Lines.
 
 **Verification checklist** (`verify-rewrite.py`, run before the push; every
 item must pass). Fetch the archive's original `main` into the rewrite clone
@@ -1351,11 +1392,14 @@ as `refs/verify/original/main`.
    - Allowed difference: `docs/specs/repo-split.md` with only the two
      addresses changed.
    - The tip trees are equal under that same rule.
-3. **Map.** Every original commit appears exactly once. Every target
-   exists in the new history. `step` rows are one to one with the mainline
-   steps, in order.
+3. **Ledger.** Every original commit appears exactly once. Every landing
+   SHA exists in the new history. `step` rows are one to one with the
+   mainline steps, in order.
 4. **Mainline.**
-   - Every one of the 134 PR merges is a step with `PR: #n`.
+   - Every one of the 134 PR merges is a step whose subject ends
+     `(#n)`, and the ledger row carries the same PR.
+   - No subject starts with "Merge", and no message has an `Archive:` or
+     `PR:` line.
    - The repaired reverse merges match the subject rule, and each is listed
      in the log.
    - Each step's parent is the previous step.
@@ -1373,8 +1417,7 @@ as `refs/verify/original/main`.
    `@anthropic.com` co-author from `git interpret-trailers --parse`.
 9. **Provenance.**
    - The set of `Task:` IDs equals the original's.
-   - Every squashed commit has an `Archive:` line that resolves in the
-     archive.
+   - Every ledger row's `step` resolves in the archive.
    - The remaining Claude mentions match `scan-messages.py`'s list. It
      should all be product content; anything else stops the run.
 10. **Build.** The tip tree equals the original tip's, so CI on the first
@@ -1394,8 +1437,8 @@ repository.
 - the `tooling` branch;
 - a `git bundle create --all` of the original mirror, attached as a
   release asset;
-- a README naming the rewrite date, the final original `main` SHA, and the
-  map.
+- a README naming the rewrite date, the final original `main` SHA, and
+  the ledger's location. The ledger itself is not committed here.
 
 Archive it (read-only) once the rewrite is verified.
 
@@ -1404,10 +1447,10 @@ commit page for any SHA reachable from any ref. The landing repository
 would go on publishing the old identities and trailers that the rewrite
 exists to remove, and `git log --all` would show two histories.
 
-**Why private:** the public commit map resolves every original SHA to a
-public rewritten commit, and old PR pages already show the original PR
-commits (§10.1, decision 20). The archive runs no CI, so being private
-costs nothing.
+**Why private:** only you resolve original SHAs, through the owner-only
+ledger. Old PR pages already show the original PR commits to everyone
+(§10.1, decision 20). The archive runs no CI, so being private costs
+nothing.
 
 The old addresses stay verified on the FasterSpeeding account, so the
 original commits on old PR pages stay linked to it (§10.1, decision 16).
@@ -1424,18 +1467,138 @@ files, most of them in `docs/superpowers`.
 | Where | What happens |
 |---|---|
 | Commit messages | Rewritten to the squashed commit that holds the cited one (§5.11.4, step 6) |
-| Tracked files: 118 of the 124 references, excluding migrations | The first post-rewrite commit replaces each with its rewritten SHA. A folded one points at its squashed commit, and the original stays findable through the map and the archive |
+| Tracked files: 118 of the 124 references, excluding migrations | The first post-rewrite commit replaces each with its rewritten SHA. A folded one points at its squashed commit |
 | `.git-blame-ignore-revs` | The same commit points it at the pinned Prettier commit, which still holds only the reformat |
-| Migrations: 6 references, including the 3 `contract:` headers (`9cb89d89`, `b944ddb0`, `e44f98f3`) | Checksum-locked, so they can't change and keep the original SHAs. They resolve through the map. `b944ddb0` maps to exactly one commit; `9cb89d89` maps to a step of 12 commits and `e44f98f3` to a step of 3 |
+| Migrations: 6 references, including the 3 `contract:` headers (`9cb89d89`, `b944ddb0`, `e44f98f3`) | Checksum-locked, so they can't change and keep the original SHAs. They resolve through the ledger. `b944ddb0` maps to exactly one commit; `9cb89d89` maps to a step of 12 commits and `e44f98f3` to a step of 3 |
 | Old PR pages | Show the original commits through `refs/pull/*` (§10.1, decision 20). Direct-to-`main` commits become unreachable in the landing repository; use the archive |
-| Published chart tags, image tags and `revision` labels | Keep their original short SHAs, resolved through the map. Semver ignores build metadata, and the base moves to 0.5.0, so Renovate ordering is safe |
+| Published chart tags, image tags and `revision` labels | Keep their original short SHAs, resolved through the ledger. Semver ignores build metadata, and the base moves to 0.5.0, so Renovate ordering is safe |
 | The image-label ordering checks (§5.1, §5.3) | Compare versions and run numbers, never SHAs. They arrive in phase 3, after the rewrite |
-| Ranma-Config deploy records, Renovate compare links, worklog card commit links | Old compare URLs may 404 after GitHub's GC; use the map or the archive. No action needed |
+| Ranma-Config deploy records, Renovate compare links, worklog card commit links | Old compare URLs may 404 after GitHub's GC; use the ledger, then the archive. No action needed |
 
-`scripts/resolve-sha.py <sha>`, in the landing repository and later in
-`ci`, prints the rewritten commit, whether it is a step, folded or pinned,
-and the original step's `Archive:` SHA. Extracts chain their own maps on
-top (§5.6).
+**A reader with an old SHA** looks it up in the ledger's page: by
+original SHA, rewritten SHA, PR number or `Task:` ID. The page shows the
+rewritten commit in the landing repository, the commit in each extract,
+whether the original was a step, folded or pinned, the PR, the Task IDs,
+and the original commit's URL in the archive. A short paragraph in
+`CONTRIBUTING.md` says this. It names the ledger as owner-only, so outside
+readers know old SHAs aren't publicly resolvable apart from old PR pages.
+
+#### 5.11.9 The migration ledger on page-bringer
+
+The old-to-new record lives in **one private Forgejo repository,
+`lucy/ds-migration-ledger`**. page-bringer serves it on the tailnet only.
+It is on Forgejo, not GitHub, so it is in no DS repository: not the landing
+repository, not an extract, not the archive. The archive stays on GitHub,
+private.
+
+**page-bringer, as it constrains this.**
+
+- It is a tailnet-only static host: nginx in namespace `pages`, behind a
+  Tailscale Ingress, with no public-internet path.
+- Each site is a Forgejo repo, branch and path, listed in Ranma-Config's
+  `clusters/mine-bringer/apps/page-bringer/sites.yaml`.
+- A syncer pulls every 60 s, and private repositories are fine. Updating
+  content is a push.
+- Every site is served with a CSP sandbox, so the page has an opaque origin
+  and `fetch()` of its own data may be blocked. The data is loaded as a
+  relative `<script src="ledger.js">`, and the page uses no CDN.
+
+**Repository layout:**
+
+```text
+lucy/ds-migration-ledger (private, Forgejo)
+├── site/                  # what page-bringer serves
+│   ├── index.html         # self-contained lookup page, inline CSS and JS
+│   ├── ledger.js          # window.DS_LEDGER = {...}; the data as a JS global
+│   ├── ledger.json        # the same data
+│   └── ledger.tsv         # the same rows, flat, for grep and spreadsheets
+├── tools/
+│   ├── gen-ledger.py      # writes site/ledger.{tsv,json,js} from the rewrite
+│   └── append-extract.py  # adds one extraction's column and pushes
+└── README.md
+```
+
+**Data.** `ledger.json` is `{"meta": {...}, "columns": [...], "rows": [[...], ...]}`.
+It is a column list plus row arrays rather than objects, which keeps
+5,365 rows to about 1 MB. `ledger.js` is the same object assigned to
+`window.DS_LEDGER`. `ledger.tsv` has a header row and the same columns:
+
+| Column | Content |
+|---|---|
+| `original` | full original SHA. Empty for a commit made after the rewrite (see `append-extract.py`) |
+| `landing` | full SHA in `Distant-Signal/distant-signal`: the step, pin or squash the original folded into |
+| `kind` | `step`, `folded`, `pinned`, `pre-step` or `post-rewrite` |
+| `step` | the original SHA of the mainline step that holds it |
+| `pr` | PR number, if the step was a PR merge |
+| `tasks` | the original commit's `Task:` IDs, comma-separated |
+| `subject` | the original commit's subject line |
+| `archive` | `Distant-Signal/distant-signal-archive@<original>`. The page links it as the GitHub commit URL, which only you can open |
+| `ext:<repo>` | one column per extraction (`ext:ds-core`, `ext:ds-deploy`, …): the commit in that repository, or empty where the extract pruned it |
+
+`meta` records the original `main` SHA, the rewritten `main` SHA, the
+rewrite date, the tool versions and the list of extractions.
+
+**`gen-ledger.py`** is typed stdlib Python, run once at phase 1:
+
+```sh
+uv run tools/gen-ledger.py \
+  --stage1 ../rewrite/stage1.jsonl \
+  --filter-repo-map ../rewrite/rewrite.git/filter-repo/commit-map \
+  --original ../rewrite/original.git --out site/
+```
+
+It composes the stage-1 commit with filter-repo's map to get the landing
+SHA. It writes the TSV, the JSON and the JS from one in-memory table, so
+they can't differ. It then runs the ledger checks of §5.11.6 item 3.
+
+**`append-extract.py`** runs once per extraction (phases 4 to 9), after the
+extract's first push:
+
+```sh
+uv run tools/append-extract.py --repo ds-core \
+  --filter-repo-map ../extract/ds-core.git/filter-repo/commit-map --out site/
+git commit -am "Add ds-core extraction" && git push
+```
+
+- It adds the `ext:ds-core` column, mapping each `landing` SHA through the
+  extract's `commit-map`.
+- For landing commits made after the rewrite (normal work between phase 1
+  and the extraction), it appends `post-rewrite` rows with an empty
+  `original`, so every SHA an extract inherited stays findable.
+- It regenerates all three data files and pushes. page-bringer picks the
+  change up within 60 s.
+
+**`index.html`.** One search box that matches a SHA prefix of at least 7
+characters in any SHA column, `#123` for a PR, or `DS-123` for a Task. For
+each match it shows a card with:
+
+- the kind;
+- the landing commit, linked to GitHub;
+- every extract's commit;
+- the PR and the Tasks;
+- the subject;
+- the archive link.
+
+For a squashed landing SHA, it lists every original folded into it. All
+CSS and JS are inline, and it reads `window.DS_LEDGER` only. It works with
+an opaque origin, and nothing loads from outside the site.
+
+**The `sites.yaml` entry,** a one-time Ranma-Config change in phase 0,
+deployed with the passkey:
+
+```yaml
+- name: ds-migration-ledger
+  repo: lucy/ds-migration-ledger
+  branch: main
+  path: site
+  access: owner
+```
+
+Leave `isolation` at page-bringer's default. Use **`access: owner`**,
+because the ledger links into a private archive that only you can open,
+and nobody else needs old SHAs resolved. Widen it to `tailnet` only if
+someone else ever needs to read old migration headers. An `owner` site
+doesn't appear on the landing index.
 
 ## 6. Licensing: AGPL-3.0-or-later
 
@@ -1641,6 +1804,14 @@ log and the 37 repaired reverse merges, and writing any title overrides.
   "Generated with Claude Code" footers from now on;
 - create the private `Distant-Signal/distant-signal-archive` and push its
   `tooling` branch;
+- create the private Forgejo repository `lucy/ds-migration-ledger`, with
+  `index.html`, `gen-ledger.py` and `append-extract.py`. Fill it from the
+  rehearsal's output to test the page;
+- add the one-time page-bringer entry to Ranma-Config's
+  `clusters/mine-bringer/apps/page-bringer/sites.yaml`. It is
+  `ds-migration-ledger`, `lucy/ds-migration-ledger`, `main`, `site`, with
+  `access: owner` (§5.11.9). Deploy it through deploy-bringer with the
+  passkey, then open the page on the tailnet;
 - rehearse both stages on a fresh throwaway clone, read
   `git log --oneline` of the result, add `title-overrides.tsv` entries
   where a heuristic title reads badly, and pass the verification
@@ -1671,11 +1842,13 @@ half a day.
    so lift the freeze and retry another day.
 5. **Force-push** `main` with `--force-with-lease`.
 6. **Re-enable Actions.** Merge the first post-rewrite PR. It adds:
-   - the many-to-one commit map;
    - the SHA references in files, with `.git-blame-ignore-revs` pointing
      at the pinned Prettier commit (§5.11.8);
    - the identity check step;
    - the chart base bump to **0.5.0**.
+
+   In the same window, `gen-ledger.py` writes the real ledger and pushes it
+   to `lucy/ds-migration-ledger`.
 7. That PR's `main` build pushes to `ghcr.io/distant-signal/images/*` and
    `charts/distant-signal`. Check that the packages are public, that the
    signature verifies, and that the attestation is there.
@@ -1793,7 +1966,8 @@ Every extraction follows the same recipe:
 
 1. Freeze the paths.
 2. Run `filter-repo` on the rewritten history (§5.6). Run the identity and
-   attribution checks, and commit the extract's `commit-map.tsv`.
+   attribution checks. After the first push, append the extract to the
+   ledger with `append-extract.py`.
 3. Set up the new repository's CI and give it write access to its image
    packages.
 4. The first `main` build pushes to the **same** `images/<service>` paths.
@@ -1873,9 +2047,9 @@ user accepted every recommendation from the first round of questions:
 The same day the user decided the history-rewrite questions:
 
 14. **Regrouping:** a **mainline squash** (§5.11.4). Each mainline step
-    becomes one commit, about 1,650 from 5,365. The 37 reverse merges are
-    repaired, the Prettier reformat is pinned, and the commit map goes
-    many to one.
+    becomes one commit, 1,650 from 5,365. The 37 reverse merges are
+    repaired, and the Prettier reformat is pinned. No merge commits and no
+    merge wording remain.
 15. **Archive:** `Distant-Signal/distant-signal-archive`, private and
     archived (§5.11.7).
 16. **Identity:**
@@ -1892,22 +2066,29 @@ The same day the user decided the history-rewrite questions:
 22. **Branches:** only `main` survives the freeze. A wanted branch is
     recreated afterwards by cherry-picking. This follows from the squash.
 
-### 10.2 Open questions raised by the squash design
+Then the squash-detail questions:
 
-Each comes with a recommendation.
+23. **Local-merge steps stay as separate commits.** They were re-examined
+    (§5.11.4): no step is empty, and folding the 38 integration-branch runs
+    (64 fewer commits) would cost bisect precision. Every surviving commit
+    reads like a direct commit:
+    - its title comes from the PR (with `(#n)`), the merge's summary, its
+      single commit, or its largest folded change;
+    - there is no merge wording;
+    - overrides are used only after one review read of the 184 heuristic
+      titles and the 2 subjects that start with "Merge".
+24. **Pins:** only `.git-blame-ignore-revs` entries, which today is the
+    Prettier reformat.
+25. **No tracking inside any repository.** There is no `Archive:` line in
+    any commit, and no commit map in the landing repository, the extracts
+    or the archive. Old-to-new tracking lives in the migration ledger,
+    `lucy/ds-migration-ledger` on Forgejo, served by page-bringer at
+    `access: owner` (§5.11.9). Each extraction appends to it. The
+    post-rewrite commit points in-repo references at new SHAs. A reader
+    with an old SHA looks it up in the ledger.
 
-1. **Titles for about 280 default-named merges** (`Merge branch
-   'worktree-agent-…'`). Recommended: use the subject of the folded
-   commit that changed the most lines, then read the rehearsal's
-   `git log --oneline` once and override the ones that read badly.
-   Alternative: write every one of them by hand, about a day more.
-2. **Which commits to pin.** Recommended: only `.git-blame-ignore-revs`
-   entries, which today is the one Prettier reformat. The commits that
-   `contract:` headers cite (`9cb89d89` in a 12-commit step, `e44f98f3` in
-   a 3-commit step) could also be pinned, so each resolves to an exact
-   commit. That costs a pre-step whose tree only ever existed on a branch.
-   Recommended against: the map plus the archive already resolve them.
-3. **The `Archive:` line in every squashed commit.** Recommended: keep it.
-   It names a SHA in the private archive, so it is only useful to you, but
-   it is the one-step path from a squashed commit to what it folded.
-   Alternative: rely on the map alone.
+### 10.2 Open questions
+
+None of the plan's decisions are open. One detail waits on Ranma: whether
+`isolation` needs a non-default value for this site, which the
+coordinator is confirming with them.
