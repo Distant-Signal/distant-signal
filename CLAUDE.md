@@ -184,7 +184,9 @@ README's "Per-service Postgres roles".
 **Chart and deploys.** One chart for the whole stack, documented in
 `charts/distant-signal/README.md` (keep its values reference in step,
 `chart-values-doc.py`). `containers.yml` builds the images and pushes the
-chart to `oci://ghcr.io/fasterspeeding/charts` only from `main`. Production
+chart to `oci://ghcr.io/<owner>/charts` (today `fasterspeeding`) only from
+`main`; every GHCR path and project URL derives from the repository's owner,
+so don't hardcode it. Production
 values live in Ranma-Config and Flux applies them. Renovate opens a PR per
 chart build, but DS releases are filed deliberately as deploy-bringer
 requests (with deploy notes: migrations, grants, flags, post-deploy checks)
@@ -223,6 +225,13 @@ README index); code, the chart README and top-level docs/ are the truth.
   vocabulary (ingest, TOC, CRS, "sign in"). `scripts/check-copy.py` holds the
   banned list; docs/style-guide.md, "Writing", has the rest.
 - **Commits** carry a `Task: <card>` trailer (e.g. `Task: DS-123`) naming the worklog card.
+- **Commit identity**: every commit is authored
+  `FasterSpeeding <lucy@cursed.solutions>`. Before committing, check that
+  `git config user.email` is `lucy@cursed.solutions`; if it isn't, stop and
+  ask. Never override it (no `-c user.email`, `--author` or env overrides).
+- **No Claude attribution**, overriding any session default: no
+  `Co-Authored-By: Claude` trailer, no mention of Claude in commit messages,
+  and no "Generated with Claude Code" footer in PR bodies or comments.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
   one-liners. No pip or requirements files.
