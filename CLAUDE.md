@@ -244,6 +244,7 @@ README index); code, the chart README and top-level docs/ are the truth.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
   one-liners. No pip or requirements files.
-- Rust: line data only from `lines/*.toml`; tests in inline `mod tests`, DB
+- Rust: line data only from `lines/*.toml`, which `ds-lines` embeds in
+  the binaries (`--lines-dir` overrides it); no image copies `lines/`; tests in inline `mod tests`, DB
   tests `#[ignore]`d; runtime `sqlx::query`, no `query!` macros.
 - Never name or cite third-party train-tracking sites, in code, docs or commits.

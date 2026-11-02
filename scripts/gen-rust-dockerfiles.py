@@ -50,7 +50,9 @@ that layer and recompiled every Rust image. BuildKit reads
 context's .dockerignore, so each docker/<service>.Dockerfile gets one that
 ignores everything (`*`) and lets back in only RUST_INPUTS: the workspace
 manifests and crates, the data files the crates embed (include_str!, the
-ds-store build script) and the directories the runtime stages COPY. `--check`
+ds-store and ds-lines build scripts) and the files the runtime stages COPY.
+No runtime stage may COPY the line catalogue (`lines/`): ds-lines embeds
+it, and `--check` fails on such a COPY. `--check`
 also scans for those hidden inputs (every literal include_str!/include_bytes!/
 include! path under crates/, every path a build.rs names, every COPY source
 in the Dockerfiles) and fails when one is outside RUST_INPUTS, so a new one
@@ -238,13 +240,11 @@ RUST_INPUTS = (
     # Also crates/ds-store/db-grants.yaml, which ds-store's build.rs bakes
     # into the schema gate.
     "crates",
-    # include_str!: crates/common's TIPLOC parents, api's TOC codes,
-    # ds-store's delay-attribution reasons; and trust-consumer's and
-    # trust-backlog-consumer's runtime COPY.
+    # The core reference data (the rest lives in its crate, under
+    # crates/): include_str! of api's TOC-codes test.
     "reference-data",
-    # The line catalogue: the runtime stages of api, aggregator, the
-    # pollers, full-coverage-consumer, ingest-writer and
-    # trust-backlog-consumer COPY it.
+    # The line catalogue: crates/ds-lines/build.rs embeds it in every
+    # binary that loads it. No image COPYs it (LINES_COPY below).
     "lines",
     # ingest-writer's freshness_rls test checks each producer's freshness
     # sources against the rendered RLS policies.
@@ -497,6 +497,24 @@ def ignore_files(found: Mapping[str, Path]) -> dict[Path, str]:
     return ignores
 
 
+# The line catalogue is built into the binaries (crates/ds-lines, repo split
+# spec §9 phase 3 item 5), so a runtime COPY of it would ship a second copy
+# that nothing reads, or one that disagrees with the embedded catalogue
+# under a LINES_DIR override.
+LINES_COPY = "lines"
+
+
+def lines_copy_problems(found: Mapping[str, Path]) -> list[str]:
+    """Return the Dockerfiles that COPY the line catalogue into an image."""
+    return [
+        f"docker/{name}.Dockerfile copies {source}/ into the image; the line "
+        "catalogue is built into the binaries (crates/ds-lines)"
+        for name in sorted(found)
+        for source in copy_sources(found[name])
+        if source == LINES_COPY or source.startswith(f"{LINES_COPY}/")
+    ]
+
+
 def input_problems(found: Mapping[str, Path]) -> list[str]:
     """Return hidden build inputs left out, and stray ignore files."""
     problems = [
@@ -601,6 +619,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     problems += input_problems(found)
     problems += runtime_stage_problems(found)
     problems += binary_copy_problems(found)
+    problems += lines_copy_problems(found)
     wanted, splice_problems = wanted_files(found)
     problems += splice_problems
     stale: list[str] = []
