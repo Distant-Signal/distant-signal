@@ -1,7 +1,7 @@
 name: Prune build cache
 
 # containers.yml writes each image's BuildKit layer cache to
-# ghcr.io/fasterspeeding/distant-signal/buildcache:<service> on every push
+# ghcr.io/<owner>/distant-signal/buildcache:<service> on every push
 # to main, and on its weekly forced rebuild (Mondays 02:41 UTC, so before
 # this run). Each write moves the tag to a new manifest and leaves the old
 # one untagged, still stored, so untagged versions pile up at ~20 per
@@ -39,6 +39,8 @@ jobs:
       - name: Delete untagged versions of distant-signal/buildcache
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
+          # Relative to the repository's owner (the action's `owner`
+          # default), so it follows the owner like containers.yml's paths.
           package-name: distant-signal/buildcache
           package-type: container
           delete-only-untagged-versions: "true"
