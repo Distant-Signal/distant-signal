@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import type { TripPlanItinerary, TripPlanResponse } from '../lib/types';
+import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '../test/apiDefaults';
 
 // /plan in arrive-by mode, end to end against the real api and the seed's
 // tiny timetable (frontend/e2e/fixtures/seed.sql, "A tiny timetable for
@@ -181,6 +183,7 @@ const preferGrPlan = {
   preferOperatorResult: 'added',
   segments: [
     {
+      ...SEGMENT_DEFAULTS,
       originCrs: 'ZOA',
       destinationCrs: 'ZOD',
       cappedByMaxChanges: false,
@@ -195,27 +198,30 @@ const preferGrPlan = {
     },
   ],
   journeys: [],
-};
+} satisfies TripPlanResponse;
 
-/** One direct train itinerary, as the api serves it (trimmed). */
-function trainItinerary(uid: string, operator: string, departure: string, arrival: string, minutes: number) {
+/** One direct train itinerary, as the api serves it. */
+function trainItinerary(
+  uid: string,
+  operator: string,
+  departure: string,
+  arrival: string,
+  minutes: number,
+): TripPlanItinerary {
   return {
+    ...ITINERARY_DEFAULTS,
     legs: [
-      {
-        kind: 'train',
+      plannedTrainLeg({
         trainUid: uid,
         serviceDate: '2026-09-17',
-        serviceMode: 'train',
         originCrs: 'ZOA',
         destinationCrs: 'ZOD',
         scheduledDeparture: departure,
         scheduledArrival: arrival,
         publicDeparture: departure,
         publicArrival: arrival,
-        departureDayOffset: 0,
-        arrivalDayOffset: 0,
         operator,
-      },
+      }),
     ],
     changeCount: 0,
     totalDurationMinutes: minutes,
@@ -225,10 +231,8 @@ function trainItinerary(uid: string, operator: string, departure: string, arriva
 /** The top-level fields every plan answer here shares. */
 function avoidVtPlanBase() {
   return {
+    ...TRIP_PLAN_DEFAULTS,
     maxChanges: 4,
-    operator: [],
-    operatorGroups: {},
-    operatorsNotRunning: [],
     serviceDates: ['2026-09-17'],
   };
 }
@@ -236,53 +240,26 @@ function avoidVtPlanBase() {
 /** `/Trips/plan`'s answer for ZOA to ZOD from 07:30 avoiding VT: only GR's
  * 08:05 via ZOC (the api's own shape, trimmed to what the page reads). */
 const avoidVtPlan = {
-  results: 'fastest',
-  maxChanges: 4,
-  operator: [],
+  ...avoidVtPlanBase(),
   avoidOperator: ['VT'],
-  operatorGroups: {},
-  operatorsNotRunning: [],
-  serviceDates: ['2026-09-17'],
   segments: [
     {
+      ...SEGMENT_DEFAULTS,
       originCrs: 'ZOA',
       destinationCrs: 'ZOD',
-      cappedByMaxChanges: false,
-      noResultReason: null,
-      itineraries: [
-        {
-          legs: [
-            {
-              kind: 'train',
-              trainUid: 'E2EOP2',
-              serviceDate: '2026-09-17',
-              serviceMode: 'train',
-              originCrs: 'ZOA',
-              destinationCrs: 'ZOD',
-              scheduledDeparture: '08:05:00',
-              scheduledArrival: '09:20:00',
-              publicDeparture: '08:05:00',
-              publicArrival: '09:20:00',
-              departureDayOffset: 0,
-              arrivalDayOffset: 0,
-              operator: 'GR',
-            },
-          ],
-          changeCount: 0,
-          totalDurationMinutes: 75,
-        },
-      ],
+      itineraries: [trainItinerary('E2EOP2', 'GR', '08:05:00', '09:20:00', 75)],
     },
   ],
   journeys: [
     {
       changeCount: 0,
+      accessChangeCount: 0,
       departure: { time: '08:05:00', dayOffset: 0 },
       arrival: { time: '09:20:00', dayOffset: 0 },
       totalDurationMinutes: 75,
     },
   ],
-};
+} satisfies TripPlanResponse;
 
 // Rail, tram, rail (transit trip planning §11): the seed's "A rail, tram,
 // rail route for /plan": ZTA 06:20 to MAN 06:50 (E2ETR1), the Blue Line
@@ -364,10 +341,11 @@ test('plans a route with a tram in the middle, and saves the tram as an untracke
 // the file's `/Trips/plan` budget.
 const ZXB_STOP = { id: '940GZZLUZXB', name: 'Zed Bee', modes: ['tube'], lines: [] };
 const ZXC_STOP = { id: '940GZZLUZXC', name: 'Zed Cee', modes: ['tube'], lines: [] };
+// A transfer leg's `operator` is absent, not `null`, when no operator runs it.
 const TRANSFER_CASES = [
   {
     name: 'an untracked transfer leg',
-    plan: { operator: null },
+    plan: {},
     label: 'Transfer',
     saved: { transitMode: 'transfer', originName: 'ZXB', destinationName: 'ZXC' },
   },
@@ -379,7 +357,7 @@ const TRANSFER_CASES = [
   },
   {
     name: 'a Tube leg with both stop ids when both ends are Tube stops',
-    plan: { operator: null, originStop: ZXB_STOP, destinationStop: ZXC_STOP },
+    plan: { originStop: ZXB_STOP, destinationStop: ZXC_STOP },
     label: 'Tube',
     saved: {
       transitMode: 'tube',
@@ -389,53 +367,50 @@ const TRANSFER_CASES = [
       destinationStopId: '940GZZLUZXC',
     },
   },
-] as const;
+];
 for (const { name, plan, label, saved: expected } of TRANSFER_CASES) {
   test(`saves a TRANSFER link between two stations as ${name}`, async ({ page }) => {
-    const train = (trainUid: string, originCrs: string, destinationCrs: string, dep: string, arr: string) => ({
-      kind: 'train',
-      trainUid,
-      serviceDate: '2026-09-17',
-      originCrs,
-      destinationCrs,
-      scheduledDeparture: dep,
-      scheduledArrival: arr,
-      publicDeparture: dep,
-      publicArrival: arr,
-      arrivalDayOffset: 0,
-    });
-    await page.route('**/api/Trips/plan?*', (route) =>
-      route.fulfill({
-        json: {
-          results: 'fastest',
-          segments: [
+    const train = (trainUid: string, originCrs: string, destinationCrs: string, dep: string, arr: string) =>
+      plannedTrainLeg({
+        trainUid,
+        serviceDate: '2026-09-17',
+        originCrs,
+        destinationCrs,
+        scheduledDeparture: dep,
+        scheduledArrival: arr,
+        publicDeparture: dep,
+        publicArrival: arr,
+      });
+    const transferPlan = {
+      ...TRIP_PLAN_DEFAULTS,
+      segments: [
+        {
+          ...SEGMENT_DEFAULTS,
+          originCrs: 'ZEA',
+          destinationCrs: 'ZEC',
+          itineraries: [
             {
-              originCrs: 'ZEA',
-              destinationCrs: 'ZEC',
-              cappedByMaxChanges: false,
-              itineraries: [
+              ...ITINERARY_DEFAULTS,
+              legs: [
+                train('E2EXF1', 'ZEA', 'ZXB', '08:00:00', '08:40:00'),
                 {
-                  legs: [
-                    train('E2EXF1', 'ZEA', 'ZXB', '08:00:00', '08:40:00'),
-                    {
-                      kind: 'transfer',
-                      mode: 'TRANSFER',
-                      originCrs: 'ZXB',
-                      destinationCrs: 'ZXC',
-                      minutes: 19,
-                      ...plan,
-                    },
-                    train('E2EXF2', 'ZXC', 'ZEC', '09:10:00', '09:50:00'),
-                  ],
-                  changeCount: 1,
-                  totalDurationMinutes: 110,
+                  kind: 'transfer',
+                  mode: 'TRANSFER',
+                  originCrs: 'ZXB',
+                  destinationCrs: 'ZXC',
+                  minutes: 19,
+                  ...plan,
                 },
+                train('E2EXF2', 'ZXC', 'ZEC', '09:10:00', '09:50:00'),
               ],
+              changeCount: 1,
+              totalDurationMinutes: 110,
             },
           ],
         },
-      }),
-    );
+      ],
+    } satisfies TripPlanResponse;
+    await page.route('**/api/Trips/plan?*', (route) => route.fulfill({ json: transferPlan }));
     let saved: { legs: Record<string, unknown>[] } | null = null;
     await page.route('**/api/Journeys/itinerary', async (route) => {
       saved = route.request().postDataJSON() as { legs: Record<string, unknown>[] };
@@ -475,7 +450,7 @@ for (const { name, plan, label, saved: expected } of TRANSFER_CASES) {
 // and the save failed.
 test('saves a plan with walks to and from a Tube station, the stop ids only on the Tube ride', async ({ page }) => {
   const walk = (end: 'to' | 'from', crs: string, stop: { id: string; name: string }) => ({
-    kind: 'transfer',
+    kind: 'transfer' as const,
     mode: 'WALK',
     originCrs: end === 'to' ? crs : null,
     destinationCrs: end === 'to' ? null : crs,
@@ -486,62 +461,58 @@ test('saves a plan with walks to and from a Tube station, the stop ids only on t
   // ends would read alike without their kinds (DS-239).
   const euston = { id: '940GZZLUEUS', name: 'Euston' };
   const westTest = { id: '940GZZLUWTS', name: 'West Test' };
-  await page.route('**/api/Trips/plan?*', (route) =>
-    route.fulfill({
-      json: {
-        results: 'fastest',
-        segments: [
+  const tubePlan = {
+    ...TRIP_PLAN_DEFAULTS,
+    segments: [
+      {
+        ...SEGMENT_DEFAULTS,
+        originCrs: 'ZEA',
+        destinationCrs: 'ZEC',
+        itineraries: [
           {
-            originCrs: 'ZEA',
-            destinationCrs: 'ZEC',
-            cappedByMaxChanges: false,
-            itineraries: [
+            ...ITINERARY_DEFAULTS,
+            legs: [
+              walk('to', 'EUS', euston),
               {
-                legs: [
-                  walk('to', 'EUS', euston),
-                  {
-                    kind: 'transit',
-                    network: 'tfl',
-                    serviceMode: 'tube',
-                    liveTracking: false,
-                    realtime: false,
-                    serviceDate: '2026-09-17',
-                    scheduledDeparture: '08:09:00',
-                    scheduledArrival: '08:25:00',
-                    departureDayOffset: 0,
-                    arrivalDayOffset: 0,
-                    line: { id: 'tfl:district', name: 'District', colour: '#13843f' },
-                    headsign: null,
-                    originCrs: null,
-                    destinationCrs: null,
-                    originStop: { ...euston, platform: null },
-                    destinationStop: { ...westTest, platform: null },
-                    headwayMinutes: 4,
-                    notices: [],
-                  },
-                  walk('from', 'ZWT', westTest),
-                  {
-                    kind: 'train',
-                    trainUid: 'E2EWM1',
-                    serviceDate: '2026-09-17',
-                    originCrs: 'ZWT',
-                    destinationCrs: 'ZEC',
-                    scheduledDeparture: '08:47:00',
-                    scheduledArrival: '09:50:00',
-                    publicDeparture: '08:47:00',
-                    publicArrival: '09:50:00',
-                    arrivalDayOffset: 0,
-                  },
-                ],
-                changeCount: 1,
-                totalDurationMinutes: 110,
+                kind: 'transit',
+                network: 'tfl',
+                serviceMode: 'tube',
+                liveTracking: false,
+                realtime: false,
+                serviceDate: '2026-09-17',
+                scheduledDeparture: '08:09:00',
+                scheduledArrival: '08:25:00',
+                departureDayOffset: 0,
+                arrivalDayOffset: 0,
+                line: { id: 'tfl:district', name: 'District', colour: '#13843f' },
+                headsign: null,
+                originCrs: null,
+                destinationCrs: null,
+                originStop: { ...euston, platform: null },
+                destinationStop: { ...westTest, platform: null },
+                headwayMinutes: 4,
+                notices: [],
               },
+              walk('from', 'ZWT', westTest),
+              plannedTrainLeg({
+                trainUid: 'E2EWM1',
+                serviceDate: '2026-09-17',
+                originCrs: 'ZWT',
+                destinationCrs: 'ZEC',
+                scheduledDeparture: '08:47:00',
+                scheduledArrival: '09:50:00',
+                publicDeparture: '08:47:00',
+                publicArrival: '09:50:00',
+              }),
             ],
+            changeCount: 1,
+            totalDurationMinutes: 110,
           },
         ],
       },
-    }),
-  );
+    ],
+  } satisfies TripPlanResponse;
+  await page.route('**/api/Trips/plan?*', (route) => route.fulfill({ json: tubePlan }));
   const RIDES_WITH_TFL_STOPS = ['tube', 'dlr', 'tram', 'metro'];
   let saved: { legs: Record<string, unknown>[] } | null = null;
   await page.route('**/api/Journeys/itinerary', async (route) => {
