@@ -1,7 +1,9 @@
 # Splitting the monorepo into the Distant-Signal organisation
 
-Status: plan, spec only. No repositories have been created and no code has
-moved. Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
+Status: phase 1 done on 2026-11-02 (§9, "Phase 1 record"): the repository
+is transferred to `Distant-Signal/distant-signal` and its history is
+rewritten. Phases 2 to 10 are still plans; no code has been extracted.
+Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
 the same day after two decisions by the user:
 
 - split thematically now, not on triggers;
@@ -734,6 +736,18 @@ orders the builds correctly.
 | `ds-ingest-gcp/release.yaml` | Chart path | Identity (`ds-deploy`) |
 | `deploy-prs.yaml`, deploy-bringer | None | None: both read Ranma-Config |
 
+The `renovate-github.yaml` row is historical: phase 1 removed
+`mine-bringer-renovate` for good, and the hosted Renovate app
+(`renovate[bot]`) covers the organisation's repositories (§5.10).
+
+**Don't co-file gated-resource edits.** deploy-bringer's post-deploy watch
+waits for every object a change touches to become ready. `ds-ingest-gcp` is
+gated: a suspended HelmRelease with no Kustomization, so it never settles,
+and a change that touches it never finishes its watch (deploys djqg and
+rcfr, 2 Nov 2026). File `ds-ingest-gcp/release.yaml` edits apart from the
+DS chart change, and until `ds-ingest-gcp` is ungated expect to clear the
+watch by hand on any deploy that does touch it.
+
 ### 5.5 CI per repository
 
 **Every repository is public.** That is a requirement, not a preference.
@@ -796,12 +810,13 @@ No extraction rewrites identity or messages again:
    `--path-rename` for the layout of the new repository's root: crates under
    `crates/`, docs under `docs/`.
 3. **Keep authorship as rewritten.** filter-repo keeps authors and dates,
-   so commits stay `FasterSpeeding <lucy@cursed.solutions>` from the phase 1
-   rewrite. Don't pass `--mailmap`, `--email-callback`, `--name-callback`
-   or `--message-callback` here: the identity was settled once, and a
-   second rewrite would only complicate the ledger. Run the identity
-   and attribution checks of §5.11.6 (items 6 to 8) on every extract
-   anyway, before its first push.
+   so the maintainer's commits stay `FasterSpeeding <lucy@cursed.solutions>`
+   from the phase 1 rewrite, and outside contributors' commits keep their
+   own authors. Don't pass `--mailmap`, `--email-callback`,
+   `--name-callback` or `--message-callback` here: the identity was
+   settled once, and a second rewrite would only complicate the ledger.
+   Run `check-commit-identity.py` (§5.10) over every extract's whole
+   history anyway, before its first push.
 4. **Append to the ledger, not the repository.** filter-repo's
    `commit-map` (landing SHA to extract SHA) goes through
    `append-extract.py` into the migration ledger (§5.11.9). That adds an
@@ -869,8 +884,21 @@ plan, and the user accepted it (§10.1, decision 8).
 
 The old `ghcr.io/fasterspeeding/...` packages stay for 90 days as the
 rollback target. After that, prune all but the last deployed chart and its
-images. The cluster pulls anonymously, so check that each new package is
-**public** on its first push.
+images.
+
+**Package visibility.** The cluster pulls anonymously, so every chart and
+image package must be **public**; `images/buildcache` is set to
+**internal**. In phase 1 the first organisation packages came out private,
+because the organisation's package setting blocked public packages. The
+user changed it, and new packages now default to public. Check each new
+package's visibility on its first push anyway: there is **no API to change
+a package's visibility**, only the package settings page, so an extraction
+that creates a package has to check it by hand.
+
+The first organisation packages were deleted and recreated in phase 1, to
+drop stale contributor data carried over from before the rewrite. A
+package recreated that way loses its "Manage Actions access" grants and
+its visibility, so set both again.
 
 **Signing.** The cosign subject is
 `https://github.com/Distant-Signal/<repo>/.github/workflows/<file>@refs/heads/main`.
@@ -896,22 +924,32 @@ verifies images, use one organisation regex:
 - Issues on only in the landing repository;
 - squash and merge commits allowed, as today;
 - delete branch on merge;
-- private vulnerability reporting on.
+- private vulnerability reporting on;
+- the repository ruleset below.
+
+**The ruleset is per repository.** Organisation rulesets need GitHub
+Team, and the organisation is on Free. So phase 1 created a
+**repository-level** ruleset, "Protect main", on `distant-signal` and on
+`.github`: the `deletion` and `non_fast_forward` rules on the default
+branch, with no required reviews or checks and no bypass list. Every
+extracted repository gets the same ruleset when it is created (phases 4
+to 9). It was created at the **end of phase 1**, right after the history
+rewrite's single force-push had been verified (§5.11.5). Nothing later
+needs a force-push, because extractions push to new, empty repositories
+and remove paths with ordinary commits. If a second rewrite is ever
+needed, disable the ruleset for that window and re-enable it.
 
 **Organisation settings:**
 
 - an Actions allow-list: GitHub-owned actions, the already-pinned
-  third-party ones, `FasterSpeeding/Piped` and `Distant-Signal/ci`;
+  third-party ones, `FasterSpeeding/Piped` and `Distant-Signal/ci`. It must
+  also list every action used **inside** an allowed reusable workflow:
+  allowing the workflow doesn't allow what it calls. Piped's
+  `lint-actions.yml` uses `reviewdog/action-actionlint`, and its absence
+  failed the run with `startup_failure` in phase 1. Recheck the list when
+  a reusable workflow's pin moves;
 - a read-only default `GITHUB_TOKEN`;
-- a ruleset on every repository that blocks force-pushes and deletion on
-  `main`, with no required reviews. It is created at the **end of phase 1**,
-  right after the history rewrite's single force-push has been verified
-  (§5.11.5), not in phase 0: an organisation-wide ruleset would cover the
-  repository the moment it is transferred and block that push. Nothing
-  later needs a force-push, because extractions push to new, empty
-  repositories and remove paths with ordinary commits. Don't add a bypass
-  list; if a second rewrite is ever needed, disable the ruleset for that
-  window and re-enable it.
+- packages default to public (above).
 
 **Secrets:** none today, and no environments. `validate-line-catalogue.yml`
 has only `workflow_dispatch`, with its `schedule:` and its RDM env lines
@@ -921,10 +959,13 @@ documented in the file.
 
 ### 5.10 Commit identity
 
-From the phase 1 rewrite on, every commit is authored
+From the phase 1 rewrite on, the maintainer's commits are authored
 `FasterSpeeding <lucy@cursed.solutions>`, and nothing carries Claude
-attribution. GitHub links a commit to an account through a verified address
-on that account, not through the repository owner.
+attribution. Outside contributors keep their own authorship (the user's
+decision, §10.1 decision 26): no rule restricts who may author a commit,
+only which identities are retired. GitHub links a commit to an account
+through a verified address on that account, not through the repository
+owner.
 
 - **Before the rewrite,** the user adds `lucy@cursed.solutions` to the
   FasterSpeeding account and verifies it. If "Keep my email addresses
@@ -940,12 +981,25 @@ on that account, not through the repository owner.
   it. They add no `Co-Authored-By: Claude` trailer and no
   "Generated with Claude Code" footer to commits or PR bodies. Each
   repository's `CLAUDE.md` says so.
-- **`ci`'s reusable `identity.yml`** runs on every PR. It fails when a
-  commit's author is anyone other than `lucy@cursed.solutions` or the
-  Renovate bot's noreply, or its committer is anyone other than those two
-  and `GitHub <noreply@github.com>` (web merges). It also fails on any
-  message line matching the attribution rules of §5.11.3. Until `ci`
-  exists (phase 3), the same check is a step in `ci.yml`, added in phase 1.
+- **The identity check,** `scripts/check-commit-identity.py`, runs on
+  every PR and every push, as the `commit-identity` job in `ci.yml` since
+  phase 1; it moves to `ci`'s reusable `identity.yml` in phase 3. It
+  rejects only the retired identities as author or committer: the two old
+  addresses, matched by SHA-256 so the script doesn't name them, and
+  `noreply@anthropic.com`. It also rejects any message line matching the
+  attribution rules of §5.11.3. Every other identity passes: an outside
+  contributor's commits keep their own author, Renovate's keep
+  `renovate[bot]`, and GitHub stays the committer of web merges.
+- **Renovate** is the hosted public Renovate app, `renovate[bot]`. It
+  replaced `mine-bringer-renovate`, which was removed permanently in
+  phase 1.
+- **Merging PRs:** always
+  `gh pr merge <n> --merge --author-email lucy@cursed.solutions`. Without
+  `--author-email`, GitHub authors the merge commit with the account's
+  default commit email. That happened to #153's merge, which was
+  re-authored before the ruleset existed (§9, "Phase 1 record"). With the
+  ruleset on, such a merge can't be force-pushed away; the push-time
+  identity check fails on it instead.
 - Extracts keep the rewritten authors (§5.6).
 
 ### 5.11 History rewrite
@@ -1318,7 +1372,7 @@ Order inside phase 1 (§9 has the full phase):
 
    Its build is the first organisation build. The ledger is pushed to
    its Forgejo repository in the same window (§5.11.9).
-7. **Create the organisation ruleset** (§5.9).
+7. **Create the repository ruleset** (§5.9).
 8. **Re-clone everywhere.** Don't fetch into an old clone. `git pull`
    refuses unrelated histories, and the ruleset blocks a force-push, so an
    old clone can't merge the original history back in. Keep the old clone
@@ -1418,9 +1472,13 @@ as `refs/verify/original/main`.
    `--format='%cn <%ce>'` gives only that identity and
    `GitHub <noreply@github.com>`. The GitHub count equals the number of
    steps whose original committer was GitHub.
-7. **Old addresses: zero** in messages and in any blob:
-   - `git log --format=%B | grep -ciE 'lmbyrne|lukecmb'`;
-   - `git log -G'lmbyrne\.dev|lukecmb@gmail\.com'`.
+7. **Old addresses: zero** in messages and in any blob, searching for
+   the retired addresses (listed in the archive's `tooling` mailmap) and
+   never writing them into a tracked file:
+   - `git log --format=%B`, counted with a case-insensitive `grep -c` for
+     each retired address;
+   - `git log -G'<regex>'`, the regex being the retired addresses,
+     escaped and joined with `|`.
 8. **Attribution: zero** lines matching the drop pattern, and no
    `@anthropic.com` co-author from `git interpret-trailers --parse`.
 9. **Provenance.**
@@ -1669,7 +1727,8 @@ site must offer them the corresponding source of what is deployed.
 
 - Add a "Source code" link to the frontend footer and the about page. It
   points to the landing repository's index.
-- Add a `/public/version` api route listing each running image's
+- Add a `/public/version` api route, served publicly at
+  `/api/version`, listing each running image's
   `org.opencontainers.image.source` and `revision`. The chart passes the
   pinned digests' labels in as env.
 
@@ -1782,7 +1841,8 @@ Efforts are focused working days.
   directories;
 - add the image `licenses` label;
 - add `"AGPL-3.0-or-later"` to `deny.toml` `allow`;
-- add the source link and `/public/version` (§6).
+- add the source link and the `/public/version` route, served at
+  `/api/version` (§6).
 
 **Owner-agnostic paths:** `IMAGE_BASE` and the chart destination from
 `${{ github.repository_owner }}`, the `values.yaml` repositories,
@@ -1838,6 +1898,11 @@ archive and the tooling change nothing until phase 1.
 
 ### Phase 1: freeze, transfer, rewrite and cutover (about 2 days plus a watched deploy)
 
+**Done on 2026-11-02**, with three deviations from the steps below: a
+repository-level ruleset instead of an organisation one, the first
+packages deleted and recreated, and #153's merge re-authored. The record
+is at the end of this phase.
+
 **When:** as soon as phase 0 is done. A go/no-go comes first, once the
 rehearsal passes the whole verification checklist and the open PRs are
 drained. Then phase 1 starts. The freeze lasts from step 1 until step 6's
@@ -1868,8 +1933,8 @@ PR has merged, which is about half a day.
 7. That PR's `main` build pushes to `ghcr.io/distant-signal/images/*` and
    `charts/distant-signal`. Check that the packages are public, that the
    signature verifies, and that the attestation is there.
-8. **Create the organisation ruleset** (§5.9), then archive
-   `distant-signal-archive`.
+8. **Create the repository ruleset** on `distant-signal` and `.github`
+   (§5.9), then archive `distant-signal-archive`.
 9. **Re-clone** in every workspace, with no `set-url` on old clones
    (§5.11.5). Resume Renovate and lift the freeze.
 10. Make the hand-filed Ranma-Config PR (§5.4 table, phase 1 column)
@@ -1893,6 +1958,41 @@ PR has merged, which is about half a day.
 The archive keeps the original history whatever happens.
 
 **Monorepo after this phase:** everything.
+
+#### Phase 1 record (2026-11-02)
+
+| What | Value |
+|---|---|
+| Original `main` | `026bf592` |
+| Rewritten `main` (force-pushed) | `6c344d3f` |
+| Post-rewrite PR | #153, merged as `2321bff2` (re-authored) |
+| First organisation build | run 969 |
+| Charts | `distant-signal` `0.5.0_build.969.sha.2321bff`, `ds-ingest-bucket` `0.3.0_build.969.sha.2321bff` |
+| Cutover deploy | rcfr, HelmRelease revision v353 |
+| Archive | `Distant-Signal/distant-signal-archive`, release `original-2026-11-02` with the bundle; archived |
+| Ledger | `lucy/ds-migration-ledger`, page-bringer site `ds-migration-ledger`, deploy c9nj |
+| PR footers stripped | 111 (bodies and comments) |
+
+**Deviations from the plan:**
+
+- **Repository-level ruleset.** Organisation rulesets need GitHub Team and
+  the organisation is on Free, so step 8 created "Protect main"
+  (`deletion` and `non_fast_forward` on the default branch) on
+  `distant-signal` and `.github` (§5.9). Each extracted repository gets
+  its own copy at creation.
+- **Packages recreated.** The first organisation packages came out
+  private, because the organisation setting blocked public packages; the
+  user changed it. They were then deleted and recreated, to drop stale
+  contributor data from before the rewrite. `images/buildcache` is
+  internal (§5.9).
+- **Merge re-authored.** GitHub stamped #153's merge commit with the
+  account's default commit email. It was re-authored to
+  `lucy@cursed.solutions` and force-pushed before the ruleset existed. PRs
+  are now merged with `--author-email` (§5.10).
+
+Also found during the phase: the Actions allow-list must cover actions
+used inside allowed reusable workflows (§5.9), and deploy-bringer's watch
+never settles on changes that touch the gated `ds-ingest-gcp` (§5.4).
 
 ### Phase 2: landing presentation (about 1 day)
 
@@ -1940,8 +2040,10 @@ These are the prerequisites. Each one is deployable alone.
 ### Phase 4: extract `ds-core`, the shared libraries first (about 3 to 4 days)
 
 1. Freeze PRs that touch core paths.
-2. Run `filter-repo` (§5.6) to create `Distant-Signal/ds-core`. Add CI and
-   tag **v0.1.0** with its release assets and the `ds-migrate` image.
+2. Run `filter-repo` (§5.6) to create `Distant-Signal/ds-core`. Create its
+   "Protect main" repository ruleset (§5.9) right after the first push.
+   Add CI and tag **v0.1.0** with its release assets and the `ds-migrate`
+   image. Check that the new packages are public (§5.9).
 3. In the monorepo, switch every core crate to `git = ..., tag = "v0.1.0"`
    and the chart's access files to `sync-core.py` vendoring. Deploy a chart
    built this way.
@@ -1962,7 +2064,9 @@ These are the prerequisites. Each one is deployable alone.
 1. Freeze chart paths.
 2. Add the `Distant-Signal/ds-deploy` identity in Ranma-Config.
 3. Run `filter-repo` to create `ds-deploy`, with both charts, the alert
-   tests and the chart scripts. Commit the current image digests into
+   tests and the chart scripts. Create its "Protect main" repository
+   ruleset (§5.9) right after the first push. Commit the current image
+   digests into
    `values.yaml`, and set up Renovate's `ds-images` and `ds-core` groups.
 4. Bump the chart base to **0.6.0**. Grant `ds-deploy` write access to the
    `charts/distant-signal` and `charts/ds-ingest-bucket` packages.
@@ -1982,10 +2086,12 @@ Every extraction follows the same recipe:
 
 1. Freeze the paths.
 2. Run `filter-repo` on the rewritten history (§5.6). Run the identity and
-   attribution checks. After the first push, append the extract to the
-   ledger with `append-extract.py`.
+   attribution checks. After the first push, create the repository's
+   "Protect main" ruleset (§5.9) and append the extract to the ledger with
+   `append-extract.py`.
 3. Set up the new repository's CI and give it write access to its image
-   packages.
+   packages. Make sure the organisation's Actions allow-list covers every
+   action its workflows, and the reusable workflows they call, use (§5.9).
 4. The first `main` build pushes to the **same** `images/<service>` paths.
 5. `ds-deploy`'s Renovate picks up the new digests. Only the source
    repository behind them changed.
@@ -2052,9 +2158,11 @@ user accepted every recommendation from the first round of questions:
    elsewhere.
 10. **Old GHCR packages:** the `fasterspeeding` chart and images are kept
     90 days as the rollback target, then pruned to the last deployed build.
-11. **Organisation ruleset:** blocks force-push and deletion on `main`,
-    with no required reviews or checks. It is created after the history
-    rewrite's force-push, at the end of phase 1, not lifted for it (§5.9).
+11. **Ruleset:** blocks force-push and deletion on `main`, with no
+    required reviews or checks. It is created after the history rewrite's
+    force-push, at the end of phase 1, not lifted for it (§5.9). Because
+    the organisation is on GitHub Free, it is a repository-level ruleset
+    on each repository rather than an organisation one.
 12. **`ds-ingest-bucket`:** goes in `ds-deploy`, not its own repository.
 13. **Automerge:** green `ds-core` bump PRs in consumers, and the grouped
     image PRs in `ds-deploy`. The human gate stays at the Ranma-Config
@@ -2102,6 +2210,13 @@ Then the squash-detail questions:
     `access: owner` (§5.11.9). Each extraction appends to it. The
     post-rewrite commit points in-repo references at new SHAs. A reader
     with an old SHA looks it up in the ledger.
+
+Then, during phase 1:
+
+26. **Outside contributors keep their own authorship.** The identity check
+    rejects only the retired identities and Claude attribution (§5.10).
+27. **Renovate:** the hosted public app (`renovate[bot]`) replaces
+    `mine-bringer-renovate`, which is removed permanently.
 
 ### 10.2 Open questions
 
