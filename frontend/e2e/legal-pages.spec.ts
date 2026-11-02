@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SOURCE_CODE_URL } from '../lib/sourceCode';
 
 test('/attribution renders every required data-source credit', async ({ page }) => {
   await page.goto('/attribution');
@@ -31,6 +32,20 @@ test('the footer links to /attribution', async ({ page }) => {
     'href',
     '/attribution',
   );
+});
+
+// AGPL-3.0 section 13: every page links the source, and the api lists the
+// running images' commits (none here: the e2e api runs without the chart).
+test('the footer links the source code, and /api/version answers', async ({ page, request }) => {
+  await page.goto('/attribution');
+  const footerNav = page.getByRole('contentinfo').getByRole('navigation', { name: 'Site information' });
+  await expect(footerNav.getByRole('link', { name: 'Source code (opens in a new tab)' })).toHaveAttribute(
+    'href',
+    SOURCE_CODE_URL,
+  );
+  const response = await request.get('/api/version');
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual({ images: [] });
 });
 
 const LEGAL_PAGES_RENDERED = process.env.LEGAL_PAGES_PREVIEW === 'true' || process.env.LEGAL_PAGES_PUBLISHED === 'true';

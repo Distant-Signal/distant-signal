@@ -156,3 +156,18 @@ bad a status is; compare through `common::severity_rank`.
 - **Junction stations belong to the shared trunk.** This is the single
   most important rule when authoring line definitions. The exclusive
   segment starts *after* the junction.
+
+## Licence
+
+AGPL-3.0-or-later: the GNU Affero General Public License, version 3 or (at
+your option) any later version. The full text is in `LICENSE`. Every Cargo
+crate, `frontend/package.json`, `pyproject.toml`, both charts and every
+image carry the same licence.
+
+Because the site is used over a network, AGPL §13 applies: every page's
+footer links this repository, and the api's `/public/version` (`/api/version`
+on the site) lists each running image with the commit it was built from.
+
+`lines/` is part of this repository and under the same licence. Some files
+in `reference-data/` are derived from upstream data under its own terms;
+`reference-data/README.md` lists each file's source and terms.
