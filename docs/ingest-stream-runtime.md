@@ -20,8 +20,8 @@ separate crate because:
 - it keeps phase 3 out of `common` while `ds-store` is extracted (phase 1A)
   and the writer skeleton lands in parallel.
 
-It depends on `common` (feature `redis`) for `common::backoff` and the
-bounded `common::redis_conn::RedisConn`. Every dependency was already in
+It depends on `common` (feature `redis`) for `ds_runtime::backoff` and the
+bounded `ds_runtime::redis_conn::RedisConn`. Every dependency was already in
 `Cargo.lock`.
 
 ## Envelope (`ingest_stream::envelope`)
@@ -226,7 +226,7 @@ transit streams; `budget.rs` has every row):
 
 ## Metrics
 
-All prefixed `distant_signal_` (`common::metrics::metric_name`); names in
+All prefixed `distant_signal_` (`ds_runtime::metrics::metric_name`); names in
 `ingest_stream::metrics`.
 
 | Metric | Type | Labels | From |
