@@ -8,7 +8,7 @@
 The api generates api-types/api.ts from its Rust types with ts-rs
 (crates/api/src/api_types.rs; its `api_types_are_current` test fails when
 that file is stale). The frontend imports its copy, frontend/lib/api-types.ts,
-which must match byte for byte. CI's scripts-lint job runs `check`.
+which must match byte for byte. CI's repo-checks job runs `check`.
 
 Repo-split spec §5.3: once the api has its own repository, this script
 reads the file from the pinned api image (frontend/e2e/api-image.txt,

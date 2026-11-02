@@ -15,8 +15,10 @@ commands it needs on its own keys, and `default` is turned off.
 
 ## The users
 
-Defined in `charts/distant-signal/files/redis-users.acl.tpl` (its header
-explains the format). The kinds:
+Defined in `access/redis-users.acl.tpl` (its header explains the format).
+The chart reads a generated copy, `charts/distant-signal/files/redis-users.acl.tpl`:
+after editing the source, run `uv run scripts/sync-chart-core-files.py` and
+commit both (CI fails when the copy differs). The kinds:
 
 - **client**: an existing client. Stage `open`: `~* &* +@all`, today's
   rights. Stage `narrow`: its own rights.
@@ -93,7 +95,7 @@ refused. Edit the template and that test together.
 - **Clients.** `redis.acl.clients.<client>: true` gives that Deployment
   `REDIS_USERNAME` and `REDIS_PASSWORD` from `<user>-password`. The
   services combine them with `REDIS_URL` in
-  `common::redis_auth::redis_url_with_credentials`
+  `ds_runtime::redis_auth::redis_url_with_credentials`
   (`redis://<user>:<password>@host`). Without `REDIS_USERNAME` nothing
   changes.
 - `scripts/render-redis-acl.py` renders the same file outside Helm, for a

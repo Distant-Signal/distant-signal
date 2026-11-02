@@ -85,7 +85,7 @@ cannot do:
 | `CREATE UNLOGGED TABLE` | none at runtime | n/a | The staging tables are permanent `UNLOGGED` tables created by migration `20260926183000`; the services only do DML on them. |
 | `TRUNCATE` | none | n/a | Not granted. |
 | Advisory locks (`pg_advisory_xact_lock`, `pg_try_advisory_xact_lock`) | publish, corpus load, subscriptions | Allowed for any role | None. |
-| `SET LOCAL statement_timeout`, `idle_in_transaction_session_timeout`, `enable_*`; the startup options `client_connection_check_interval`, `tcp_keepalives_*` | `common::pg`, publish, aggregator | All user-settable | None. |
+| `SET LOCAL statement_timeout`, `idle_in_transaction_session_timeout`, `enable_*`; the startup options `client_connection_check_interval`, `tcp_keepalives_*` | `ds_runtime::pg`, publish, aggregator | All user-settable | None. |
 | `pg_stat_statements` | no runtime reads | n/a | The migration `20260927070000` `CREATE EXTENSION` needs a superuser; as the owner it only warns. The setup script creates the extension, so a new cluster has it. Read it as the exporter role (`pg_monitor` sees every query). |
 | Migrations, `_sqlx_migrations` | `ds_store::migrate` (api startup, `ds-migrate run`) | n/a | The owner connection (`MIGRATION_DATABASE_URL`). |
 | Heal of INVALID indexes: `DROP INDEX CONCURRENTLY`, reading `pg_stat_progress_create_index` | `ds_store::migrate` (api startup, `ds-migrate run`) | n/a | Owner connection. The owner owns the indexes; `pg_read_all_stats` lets it see another role's in-flight build, which would otherwise show NULL `relid`s and look abandoned. |
@@ -289,12 +289,14 @@ narrows the roles from.
 | `distant_signal_read_shared` (NOLOGIN) | group | `SELECT` on every shared-train, ingest, derived and reference table | – |
 | `distant_signal_schema_gate` (NOLOGIN) | group | `SELECT` on `_sqlx_migrations` (the phase 1B schema gate) | – |
 
-- **The source of truth is `charts/distant-signal/files/db-grants.yaml`.**
+- **The source of truth is `crates/ds-store/db-grants.yaml`.**
   It classifies every table, sequence, function and (later) view in
   `public`, with each role's target grants. `scripts/gen-db-grants.py
-  render` turns it into `files/postgres-grants.sql`; CI fails when a
-  migration adds an object the YAML does not classify, or when the SQL is
-  stale.
+  render` turns it into `charts/distant-signal/files/postgres-grants.sql`,
+  and `scripts/sync-chart-core-files.py` copies it to the chart's
+  `files/db-grants.yaml` (the templates read the copy). CI fails when a
+  migration adds an object the YAML does not classify, when the SQL is
+  stale, or when the chart's copy differs from the source.
 - **The setup Job runs `postgres-grants.sql` after `postgres-roles.sql`**
   (and so does the initdb script on a new cluster). It is idempotent:
   roles, limits, passwords, memberships and grants are re-applied on every
@@ -698,7 +700,7 @@ default privileges granted when the migrator created it.
   `DATABASE_URL` as the app role and `MIGRATION_DATABASE_URL` as the owner.
   `--mode existing` migrates as the superuser and converts (this runbook);
   `--mode new` creates the roles first and migrates as the owner. The api,
-  aggregator, notifier, `common::pg` and enricher DB suites pass as the app
+  aggregator, notifier, `ds_runtime::pg` and enricher DB suites pass as the app
   role. Only the `#[sqlx::test]` modules are skipped: each test creates its
   own database, which needs `CREATEDB` (a test-harness right, not a runtime
   one).

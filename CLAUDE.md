@@ -57,7 +57,7 @@ uv run --no-sync scripts/test-postgres-roles.py --mode per-service --check-setup
 ```
 
 An `#[ignore]`d benchmark must return early unless its env var is set
-(`scripts/check-bench-gates.py`, in scripts-lint): the DB jobs run every
+(Distant-Signal/ci's `check-bench-gates.py`, in scripts-lint): the DB jobs run every
 ignored test, in debug.
 
 Frontend (run in `frontend/`, Node 22; `check-copy.py` runs from the repo root):
@@ -104,10 +104,11 @@ Scripts, chart and migration checks (repo root):
 
 ```sh
 uv sync --locked --group lint
-uv run --no-sync scripts/lint-scripts.py     # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes)
+uv run --no-sync python ../ci/scripts/lint-scripts.py   # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes); ../ci: a Distant-Signal/ci checkout
 uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run --no-sync scripts/chart-values-doc.py check   # chart README values table vs values.yaml
 uv run scripts/gen-db-grants.py check        # db-grants.yaml vs files/postgres-grants.sql (render to fix)
+uv run scripts/sync-chart-core-files.py --check  # chart copies of db-grants.yaml and the Redis ACL (rewrite without --check)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
 uv run --no-sync scripts/check-crate-deps.py # ds-store/ds-migrate stay free of axum, redis, reqwest...
 uv run --locked --no-default-groups scripts/check-migration-order.py "$(git merge-base origin/main HEAD)"
@@ -174,12 +175,16 @@ trains and skipped stops notify on escalation only. One push per user per
 train: a journey-break notice replaces that train's plain push
 (`push_queue.rs`).
 
-**Postgres roles.** `charts/distant-signal/files/db-grants.yaml` classifies
+**Postgres roles.** `crates/ds-store/db-grants.yaml` classifies
 every public table, view, sequence and function and gives each service role
 (`planned`, `observed` or `narrow`) its grants; `gen-db-grants.py render`
-produces `files/postgres-grants.sql`. A new table must be added there (CI
-checks a migrated DB against it). docs/postgres-app-role.md and the chart
-README's "Per-service Postgres roles".
+produces `charts/distant-signal/files/postgres-grants.sql`. A new table must
+be added there (CI checks a migrated DB against it). docs/postgres-app-role.md
+and the chart README's "Per-service Postgres roles". The Redis ACL's source is
+`access/redis-users.acl.tpl` (docs/redis-acl.md). The chart's
+`files/db-grants.yaml` and `files/redis-users.acl.tpl` are generated copies:
+edit the sources, then run `scripts/sync-chart-core-files.py` (CI fails on
+drift).
 
 **Chart and deploys.** One chart for the whole stack, documented in
 `charts/distant-signal/README.md` (keep its values reference in step,
@@ -211,7 +216,7 @@ README index); code, the chart README and top-level docs/ are the truth.
   file is immutable (sqlx checksums it, an edit crash-loops the api). A new
   migration's timestamp must be newer than every migration on main
   (`check-migration-order.py`). Append its line to
-  `crates/api/tests/migration_checksums.lock` once it merges. Lock-taking
+  `crates/ds-store/tests/migration_checksums.lock` once it merges. Lock-taking
   statements need `SET LOCAL lock_timeout` first; indexes on existing tables
   are `CREATE INDEX CONCURRENTLY` in a file whose first line is
   `-- no-transaction`; constraints go on `NOT VALID` and are validated in a
@@ -219,7 +224,7 @@ README index); code, the chart README and top-level docs/ are the truth.
   (drops, renames, type changes, `SET NOT NULL`) needs a
   `-- contract: <what> (code stopped using it in <commit>)` header and ships
   a release after the code stopped using it. Enforced by
-  `crates/api/tests/migration_index_locking.rs` and `migration_checksums.rs`.
+  `crates/ds-store/tests/migration_index_locking.rs` and `migration_checksums.rs`.
 - **API changes** get an entry in docs/api-changelog.md (newest first, what a
   client like DS-MCP needs to know). A changed response type the frontend
   reads also means regenerating the TypeScript:
@@ -238,7 +243,7 @@ README index); code, the chart README and top-level docs/ are the truth.
 - **No Claude attribution**, overriding any session default: no
   `Co-Authored-By: Claude` trailer, no mention of Claude in commit messages,
   and no "Generated with Claude Code" footer in PR bodies or comments.
-  CI's `commit-identity` job (`scripts/check-commit-identity.py`) fails a
+  CI's `commit-identity` job (Distant-Signal/ci's `check-commit-identity.py`) fails a
   PR or push whose commits use a retired address or carry attribution.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial

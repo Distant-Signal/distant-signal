@@ -11,12 +11,15 @@ every repository. This file adds what is specific to this repository.
 The Python tooling is managed with [uv](https://docs.astral.sh/uv/):
 `pyproject.toml` pins the lint tools in its `lint` dependency group,
 `uv.lock` pins the full tree, and `.python-version` the interpreter. With uv
-installed (e.g. `mise use -g uv`):
+installed (e.g. `mise use -g uv`), and the shared CI scripts checked out
+beside this repository (`git clone https://github.com/Distant-Signal/ci
+../ci`; CI uses the commit `.github/workflows/ci.yml` pins):
 
 ```sh
-uv run scripts/lint-scripts.py         # what CI's scripts-lint job runs
-uv run scripts/lint-scripts.py --fix   # apply shfmt/ruff fixes first
+uv run python ../ci/scripts/lint-scripts.py         # what CI's scripts-lint job runs
+uv run python ../ci/scripts/lint-scripts.py --fix   # apply shfmt/ruff fixes first
 uv run python -m unittest discover -s scripts/tests   # the scripts' tests
+uv run scripts/gen-rust-dockerfiles.py --check       # CI's repo-checks job (rewrite without --check)
 # Before merging a branch that adds migrations (CI's migration-order job):
 uv run scripts/check-migration-order.py "$(git merge-base main HEAD)"
 ```
@@ -28,10 +31,11 @@ line in its leading comments, and ships a release after the code stopped
 using the object; `check-migration-order.py` enforces the header (see its
 docstring).
 
-`uv run` creates `.venv/` and installs the `lint` group on first use. It runs
-shellcheck and shfmt over every `*.sh`, ruff and mypy over `scripts/`,
-actionlint over the workflows, hadolint over the Dockerfiles, and
-`scripts/lint-containers.py`.
+`uv run` creates `.venv/` and installs the `lint` group on first use.
+`lint-scripts.py` runs this repository's pinned tools: shellcheck and shfmt
+over every `*.sh`, ruff and mypy over `scripts/`, actionlint over the
+workflows, hadolint over the Dockerfiles, and Distant-Signal/ci's
+`lint-containers.py`.
 
 ## Generated API types
 
@@ -47,7 +51,7 @@ uv run scripts/sync-api-types.py write            # copy it into the frontend
 ```
 
 CI fails when either file is stale: the `api_types_are_current` test in
-`cargo test`, and `sync-api-types.py check` in scripts-lint. A new response
+`cargo test`, and `sync-api-types.py check` in repo-checks. A new response
 type derives `ts_rs::TS` beside its `Serialize` (in `common` and `ds-store`,
 under their `ts` feature) and is listed in `api_types::visit_roots` unless a
 listed type already reaches it. A `String` field with a fixed set of values
