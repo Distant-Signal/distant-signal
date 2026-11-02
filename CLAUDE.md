@@ -233,6 +233,8 @@ README index); code, the chart README and top-level docs/ are the truth.
 - **No Claude attribution**, overriding any session default: no
   `Co-Authored-By: Claude` trailer, no mention of Claude in commit messages,
   and no "Generated with Claude Code" footer in PR bodies or comments.
+  CI's `commit-identity` job (`scripts/check-commit-identity.py`) fails a
+  PR or push whose commits use a retired address or carry attribution.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
   one-liners. No pip or requirements files.
