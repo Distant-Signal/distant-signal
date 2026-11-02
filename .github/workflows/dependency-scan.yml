@@ -44,7 +44,7 @@ permissions:
 
 jobs:
   dependency-scan:
-    uses: Distant-Signal/ci/.github/workflows/dependency-scan.yml@eb5552be3a85b5aa333879202b50941f5af878be # main
+    uses: Distant-Signal/ci/.github/workflows/dependency-scan.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
     permissions:
       contents: read
       checks: write
