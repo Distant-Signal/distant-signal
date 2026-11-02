@@ -1,47 +1,57 @@
 # Splitting the monorepo into the Distant-Signal organisation
 
-Status: proposal, spec only. No repositories have been created and no code
-has moved. Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`.
+Status: plan, spec only. No repositories have been created and no code has
+moved. Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
+the same day after two decisions by the user:
 
-This spec asks whether Distant Signal (DS) should leave the single
-`FasterSpeeding/Distant-Signal` repository for a set of thematic repositories
-under the GitHub organisation [Distant-Signal](https://github.com/Distant-Signal).
-It also re-evaluates the shared CI and utility code that DS uses or could
-share.
+- split thematically now, not on triggers;
+- license every DS repository under AGPL-3.0-or-later.
 
-**Short answer.** Move the repository into the organisation, but do not split
-it per service.
+This spec moves Distant Signal (DS) from the single
+`FasterSpeeding/Distant-Signal` repository into the GitHub organisation
+[Distant-Signal](https://github.com/Distant-Signal), and splits it into
+thematic repositories. It also re-evaluates the shared CI and utility code
+that DS uses or could share.
 
-- The code is tightly coupled. 14 of 31 crates link `ds-store`, which owns
-  one Postgres schema. One chart deploys all 22 images under a single tag.
-  `ds-store` reads the chart's `db-grants.yaml` when it builds.
-- Changes routinely cross area boundaries. Since 2026-10-01, 512 changes
-  landed on `main` (merged PRs plus direct commits). 52% of them touched more
-  than one area, and 38% touched more than one code area even with CI and the
-  chart left out. 39% of api changes also touched the frontend, and 78% of
-  schema changes also touched the api.
-- CI is cheap enough to keep together. The median `main` run takes 14 minutes
-  of wall time.
+**The plan in one paragraph.** Transfer the repository to
+`Distant-Signal/distant-signal`. It keeps its history, stars, issues, PRs and
+old-URL redirects, and it stays the landing repository and the frontend's
+home. License everything AGPL-3.0-or-later before the transfer. Then cut
+seams inside the monorepo and extract the shared libraries first, as
+`ds-core`. After that, extract one repository at a time, each with
+`git filter-repo` history:
 
-A per-service split would turn about four in ten changes into multi-repo
-releases that need ordering. It would buy little CI time and no deploy
-independence, because everything still ships as one chart, against one
-schema, through one deploy-bringer request.
+- `ds-deploy`: the umbrella chart;
+- `ds-pollers`;
+- `ds-ingest`;
+- `ds-workers`;
+- `ds-api`: the api, the trip planner and the timetable pipeline.
 
-The recommendation is:
+Shared tooling goes to `Distant-Signal/ci`.
 
-1. Transfer the repository into the organisation as `Distant-Signal/distant-signal`.
-   This keeps its history, stars, issues and PRs, plus redirects from the old
-   URLs. It becomes the **landing repository** and keeps the frontend.
-2. Add a `Distant-Signal/.github` repository for the organisation profile and
-   default community files.
-3. Cut internal seams inside the workspace, so that a later split is cheap if
-   the numbers ever justify it.
-4. Extract only satellites with low coupling. The first is `ds-ingest-bucket`.
+How the pieces fit:
 
-None of the shared repositories on Forgejo should move. DS uses none of them
-at build or CI time. They also serve non-DS projects, and GitHub-hosted runners
-can't reach them anyway (§7).
+- Shared crates are git dependencies pinned to `ds-core` tags.
+- Schema, migrations, the checksum lock, Postgres grants and the Redis ACL
+  belong to `ds-core` and ship as release assets.
+- The frontend gets generated API types from the api image it pins for e2e.
+- Images go to the stable path `ghcr.io/distant-signal/images/<service>`
+  whichever repository builds them. `ds-deploy` pins their digests through
+  Renovate, so the OCI chart URL Ranma-Config watches never changes again
+  after phase 1.
+- Every repository stays public, which is what keeps CI free.
+
+Nothing on Forgejo moves (§8.2).
+
+**Risk.** The coupling data in §2 was the case *against* splitting. The plan
+treats it as the list of seams to engineer:
+
+- 38% of changes since 2026-10-01 crossed code areas;
+- 39 to 43% of api and frontend changes were joint;
+- 78% of schema changes also touched the api.
+
+Each of these gets a mechanism in §5: a version pin, an ordering check, or a
+vendored artifact. Without those mechanisms the split would be fragile.
 
 ## 1. Inventory
 
@@ -212,7 +222,10 @@ These are what any split has to cut.
     - `prune-buildcache.yml`'s package name;
     - every `image.repository` default in `values.yaml`.
 
-## 2. Evidence
+## 2. Evidence (risk context)
+
+These numbers argued against splitting. With the split decided, they are
+the list of seams the designs in §5 must handle.
 
 ### 2.1 What changes together
 
@@ -302,99 +315,77 @@ public, or the CI bill changes the whole calculation.**
 - Authors since 2026-10-01: `FasterSpeeding <lucina@lmbyrne.dev>` (1,857
   commits) and `mine-bringer-renovate[bot]` (25).
 
-## 3. Options and the proposed layout
+## 3. Target layout
 
-### 3.1 Option C: one repository per service (rejected)
+### 3.1 Repositories
 
-That would be about 30 repositories: 22 deployables plus libraries. It is
-rejected because:
+All repositories are public and licensed AGPL-3.0-or-later.
 
-- `common` and `ds-store` would need publishing and version bumps in 27 and
-  14 consumers;
-- every migration would become a release train across up to 14 repositories;
-- `api` and `schedule-reference` share `trip-planner`;
-- the chart would need 22 image-bump inputs.
-
-The pollers average 25 commits each in four months, so separate CI would
-save almost nothing.
-
-### 3.2 Option B: thematic repositories (the shape if DS ever splits)
-
-This is the best full split, kept as the target shape for §8 phase 5. It is
-not recommended now.
-
-| Repository | Contents | Why this boundary | Main cost |
+| Repository | Contents | Images it builds | Why this boundary |
 |---|---|---|---|
-| `distant-signal` (landing, existing) | frontend, docs index, community files | Highest change rate (1,263 commits). Users see it first. | 39 to 43% of api and frontend changes become two-repo |
-| `ds-core` | `common`, `health-http`, `trust-schema`, `schedule-query`, `ingest-stream`, `movement-feed`, `ds-store` + migrations + grants, `ds-migrate`, `line-catalogue-validator`, `lines/`, `reference-data/` | Everything with fan-in. One owner for schema, grants and the stream envelope. | Every consumer pins a release, and a migration is a core release plus a consumer bump. |
-| `ds-api` | `api`, `trip-planner` | `trip-planner` is shared with schedule-reference, so it would have to move to core or be duplicated. | Owns the API changelog, and frontend e2e needs its image. |
-| `ds-ingest` | `ingest-writer`, `movement-relay`, `darwin-relay`, TRUST consumers | The three TRUST consumers change together (32 to 61%). Kafka and Redis Streams. | 60% of ingest changes also touch the chart. |
-| `ds-pollers` | the 8 `poller-*` crates, `poller-transit-schedule` | Low churn, and most talk only through the versioned envelope. | `poller-ldbws`, `-incidents` and `-stations` still link `ds-store`. |
-| `ds-schedule` | `schedule-ingest`, `schedule-reference` | One pod sharing a PVC, the SFTP and bucket feed. | Needs `trip-planner` from api or core. |
-| `ds-workers` | `aggregator`, `enricher`, `notifier` | Moderate churn, each a `ds-store` consumer. | Aggregator changes go with `lines/` 52% of the time, and `lines/` would be in core. |
-| `ds-deploy` | `charts/distant-signal`, `db-grants.yaml` rendering, the alert-rules tests, the chart check scripts | The deploy unit. | Every image repository feeds it, and the chart and ci areas change together 63% of the time. |
+| `distant-signal` (landing; the transferred repository) | `frontend/`, the landing README, `CONTRIBUTING.md`, the dev-stack compose file (pulls every image), `docs/superpowers` (historical record), `check-copy.py`, `visual-tests.py`, `tfl-arrivals-stub.py` | frontend | Highest change rate (1,263 commits). It is what users see. It keeps the history, stars and redirects. |
+| `ds-core` | `common`, `ds-runtime` (the domain-free half of `common`, §5.8), `health-http`, `trust-schema`, `schedule-query`, `ingest-stream`, `ds-store` with migrations and the checksum lock, `ds-migrate`, `line-catalogue-validator`, a new `ds-lines` crate that embeds `lines/`, core `reference-data/`, `db-grants.yaml`, the Redis ACL source, and the DB scripts (`gen-db-grants.py`, `render-redis-acl.py`, `test-postgres-roles.py`, `observe-role-usage.py`, `check-migration-order.py`, `check-crate-deps.py`) | ds-migrate | Everything with fan-in: `common` has 27 dependents, `ds-store` 14 and `ingest-stream` 10. It is the one owner of the schema, grants, stream envelope and line catalogue. |
+| `ds-api` | `api`, `trip-planner`, `schedule-ingest`, `schedule-reference`, `docs/api-changelog.md`, the api-only `reference-data` CSVs (station groups, TOC codes, operator names and groups, fixed-link operators) | api, schedule-ingest, schedule-reference | Since July, `trip-planner` changed with api in 38% of its commits, `schedule-reference` in 42% and `schedule-query` in 43%. `schedule-reference` links `trip-planner`. The two schedule crates share a pod and a PVC. Keeping planner and timetable with the api keeps those changes in one repository. |
+| `ds-ingest` | `ingest-writer`, `movement-relay`, `darwin-relay`, `trust-consumer`, `trust-backlog-consumer`, `full-coverage-consumer`, `movement-feed` (only these consumers use it), `stanox-crs.csv` | 6 | The three TRUST consumers change together (32 to 61%). It holds the Kafka and stream runtime and the ingest runbooks. |
+| `ds-pollers` | the 8 `poller-*` crates, `poller-transit-schedule`, the transit `reference-data` | 9 | The quietest code (15 to 49 commits each). Six of the nine talk to the rest only through the golden-pinned `ingest-stream` envelope. |
+| `ds-workers` | `aggregator`, `enricher` (with `eval/`), `notifier` | 3 | Separate `ds-store` consumers at a moderate change rate. Aggregator's churn on `lines/` moves to `ds-core` bumps (§5.2). |
+| `ds-deploy` | `charts/distant-signal`, `charts/ds-ingest-bucket`, `scripts/alert-rules-tests`, `check-*-chart.py`, `chart-values-doc.py`, `check-alert-payloads.py`, `docs/alerts.md` and the deploy runbooks | none (charts) | The deploy unit. It pins every image by digest and is the only thing Ranma-Config watches. Chart and CI changes went together 63% of the time, so the chart takes its CI with it. |
+| `ci` | reusable workflows, composite actions, the Renovate preset, generic scripts (§8.3) | none | Shared by the 7 code repositories. |
+| `.github` | `profile/README.md`, default `SECURITY.md`, `CONTRIBUTING.md`, issue forms | none | Organisation presentation and defaults. |
 
-Releases and versions under Option B:
+That makes 7 code repositories plus `ci` and `.github`, against 31 crates and
+22 images. `ds-ingest-bucket` goes into `ds-deploy` rather than its own
+repository. It is a chart, already versioned and pushed on its own, and one
+deploy repository is simpler than two.
 
-- **Shared crates** would be consumed as git dependencies pinned by tag from
-  `Distant-Signal/ds-core`, for example
-  `common = { git = "https://github.com/Distant-Signal/ds-core", tag = "core-v0.3.1" }`.
-  The repository is public, so this needs no registry and no auth. Renovate's
-  cargo manager bumps git tags. `deny.toml` would add
-  `allow-git = ["https://github.com/Distant-Signal/ds-core"]`.
-- **Not crates.io:** it implies a public API and semver promises for
-  workspace-internal code.
-- **Not a private registry:** a self-hosted one is only reachable on the
-  tailnet (§7.2), and Cloudsmith-style services add cost and secrets.
-- **Versioning:** each service repository tags `vX.Y.Z` on its own cadence
-  and builds images tagged `sha-<short>` plus the semver tag.
-  `ds-deploy` pins image digests in `values.yaml` through Renovate's
-  helm-values manager. Its chart version keeps the
-  `<base>+build.N.sha.S` scheme.
+Under §2.1's grouping, the rejected per-service split (about 30
+repositories) would have made nearly every pollers, workers and ingest change
+a core bump plus a service change, with no gain in deploy independence. One
+chart stays the deploy unit (§5.4).
 
-### 3.3 Option A: core monorepo plus satellites (recommended)
+### 3.2 Dependencies between repositories
 
-| Repository | Contents | Status |
-|---|---|---|
-| `Distant-Signal/distant-signal` | The current monorepo, transferred, with the frontend, landing README and community files. | Phase 1 |
-| `Distant-Signal/.github` | Organisation profile (`profile/README.md`) and default `SECURITY.md`, `CONTRIBUTING.md` and issue forms. No code. | Phase 0 |
-| `Distant-Signal/ds-ingest-bucket` | `charts/ds-ingest-bucket`, `check-ingest-bucket-chart.py`, its CI and its OCI push. | Phase 4 (optional) |
+```mermaid
+graph TD
+  core[ds-core<br/>shared crates, schema, grants, lines]
+  api[ds-api<br/>api, planner, timetable]
+  ing[ds-ingest]
+  pol[ds-pollers]
+  wrk[ds-workers]
+  fe[distant-signal<br/>frontend, landing]
+  dep[ds-deploy<br/>umbrella chart]
+  ci[ci<br/>workflows, Renovate preset]
+  rc[Ranma-Config<br/>Flux, Renovate, deploy-bringer]
+  core -- "git tag (crates)" --> api & ing & pol & wrk
+  core -- "release assets: grants, roles, ACL; ds-migrate image" --> dep
+  api -- "api image + generated TS types" --> fe
+  api & ing & pol & wrk & fe -- "images by digest" --> dep
+  dep -- "signed OCI chart" --> rc
+  ci -. "uses: @sha" .-> core & api & ing & pol & wrk & fe & dep
+```
 
-Why `ds-ingest-bucket` alone:
+The rules:
 
-- 6 commits in four months;
-- an independent version (0.2.1) and OCI artifact already;
-- no crate reads it;
-- Crossplane, not workload, concerns;
-- its Renovate rule in Ranma-Config is disabled until it goes live.
-
-Its only DS coupling is the bucket's name and the reader's service account,
-both of which are values.
-
-Releases and versions under Option A don't change. Crates stay path
-dependencies. There is one chart version per build, and the images share the
-commit tag. Independent service cadence is still possible today without a
-split: the chart can pin one service to an older digest by values. That is
-how the Ranma-Config "hold" pattern for the frontend already works.
+- No service repository depends on another service repository. The one
+  exception is the frontend pinning the api image, for e2e tests and types.
+- Only `ds-core` publishes Rust code.
+- Only `ds-deploy` publishes something Ranma-Config consumes.
 
 ## 4. The landing repository
 
 ### 4.1 Which repository
 
-**Recommendation: the transferred `FasterSpeeding/Distant-Signal`, renamed
-`Distant-Signal/distant-signal`.**
-
-Under Option A it is the frontend's repository, so this is the user's default.
-It also keeps the 5,360 commits, the star, the issues and PRs, and the
-redirects from every existing link. Those links are in Ranma-Config, the
-deploy records, Renovate PR bodies, DS-MCP comments and old alert annotations.
+The landing repository is **`Distant-Signal/distant-signal`, the transferred
+`FasterSpeeding/Distant-Signal`**. It keeps the frontend, which is the user's
+default. As services are extracted it ends up as the frontend plus the
+project front page.
 
 | Candidate | For | Against |
 |---|---|---|
-| **Transferred monorepo, which holds the frontend (recommended)** | No new repository. History and stars kept. Old URLs redirect. It is where the product visibly lives. | The README has to serve both visitors and developers. |
-| Frontend extracted to a new repository, which becomes the landing page | Matches "frontend first" literally. | Loses the stars, issues and PR history unless the *backend* is extracted instead (§4.4). Turns 43% of frontend changes into two-repo changes (§2.1). |
-| Thin meta or docs repository (`distant-signal-docs` or similar) | Clean front page, independent of code churn. | A repository with nothing to build. Its README drifts from the code. It adds a hop for every visitor. Only worth it once there are 4 or more code repositories. |
-| `.github` profile only | Every organisation visitor sees it. | Not a repository people star, file issues on or clone. It complements the landing repository rather than replacing it. |
+| **The transferred repository, keeping the frontend (chosen)** | The 5,360 commits, the star, the 142 PRs and the issues stay. Every old link redirects: Ranma-Config, the deploy records, Renovate PR bodies, DS-MCP comments, old alert annotations. | Its history is the whole monorepo's, which is useful: `contract:` migration headers cite its SHAs. |
+| A new frontend repository | A clean start. | Loses the stars, issues and PR history, and the old links would point at an archived repository. |
+| A thin meta or docs repository | A front page independent of code churn. | Nothing to build, so the README drifts. It adds a hop. The `.github` profile already plays this role at the organisation level. |
+| `ds-core` | The technical centre. | Not what visitors come for. Its README is for crate consumers. |
 
 ### 4.2 What it carries
 
@@ -405,368 +396,585 @@ deploy records, Renovate PR bodies, DS-MCP comments and old alert annotations.
   3. four screenshots: home and train page at 390 px and 1366 px, light and
      dark;
   4. a feature list;
-  5. an architecture overview, a Mermaid diagram derived from `CLAUDE.md`'s
-     Architecture section: producers to Postgres or Redis streams to
-     ingest-writer, api and frontend, notifier;
-  6. the repository index;
+  5. an architecture overview, a Mermaid diagram of producers to Postgres or
+     Redis streams to ingest-writer, api and frontend, notifier;
+  6. the repository index (§3.1);
   7. links to "Run it locally" and "Contributing".
 
   Generate the screenshots from the seeded e2e stack inside the pinned
-  Playwright container. Use the same `visual-tests.py` route, committed under
+  Playwright container (the `visual-tests.py` route) into
   `docs/screenshots/`, so they are reproducible and never show real user
   data. Don't reuse `frontend/e2e/visual-baselines/`: those are test
-  baselines and must stay byte-exact. Regenerate the screenshots
-  deliberately, not on every UI change.
-- **Repository index.** A table of every organisation repository and its
-  role (§3.3). Add a row for DS-MCP noting that it is hosted elsewhere and
-  consumes the public API, without linking a tailnet URL.
-- **Contributing and dev setup.** Write `CONTRIBUTING.md` from the
-  `CLAUDE.md` command blocks: toolchain, `docker compose --env-file local.env
-  up --build`, the DB test passes and the frontend checks. Under Option A
-  there is no cross-repo setup; one clone is the full stack. If Option B ever
-  happens, the landing repository's compose file pulls the other services'
-  images from `ghcr.io/distant-signal/...` by default. A `DS_<SERVICE>_SRC`
-  path override builds a locally checked-out repository instead.
+  baselines and must stay byte-exact.
+- **Repository index.** Every organisation repository and its role. Add a
+  row for DS-MCP saying that it is hosted elsewhere and consumes the public
+  API, without linking a tailnet URL.
+- **Contributing and dev setup across repositories.** `CONTRIBUTING.md`
+  covers the following.
+  - **Full stack locally.** The landing repository's `docker-compose.yml`
+    pulls every image from `ghcr.io/distant-signal/images/*`, using the
+    digests pinned in `ds-deploy`'s `values.yaml`. A small script,
+    `scripts/dev-stack.py`, writes them into `.env`. Setting
+    `DS_<SERVICE>_SRC=../ds-ingest` builds that service from a local
+    checkout instead.
+  - **Working across repositories.** For example, changing `ds-core` and
+    a service together, through a local Cargo `[patch]` (§5.2).
+  - The per-repository toolchain commands from today's `CLAUDE.md`. Each
+    repository gets its own `CLAUDE.md`, with the shared conventions in
+    `ci/docs/conventions.md`.
 - **Issue tracker home.** The landing repository owns *all* issues,
-  cross-cutting and per area, with area labels (`area:api`,
-  `area:frontend`, `area:ingest`, `area:chart`, ...). Satellites disable
-  Issues and point there through `.github` issue-form config. The
-  worklog/Vikunja cards stay the working tracker. GitHub Issues are for
-  external reports and anything that needs a public link.
-- **Security policy and licence.** Put `SECURITY.md` in the `.github`
-  repository so it applies to every organisation repository by default. Use
-  private vulnerability reporting (GitHub's built-in form). It should cover
-  the hosted site, the API (including delegated access) and the images. The
-  repository has **no licence**. As a public repository it is therefore "all
-  rights reserved", and nobody can legally reuse it. Pick one before the
-  move (question 6).
+  cross-cutting and per area, with area labels: `area:frontend`, `area:api`,
+  `area:core`, `area:ingest`, `area:pollers`, `area:workers`, `area:deploy`.
+  The other repositories disable Issues and point here through the
+  `.github` issue-form config. The worklog/Vikunja cards stay the working
+  tracker. GitHub Issues are for external reports and anything that needs a
+  public link.
+- **Security policy and licence.** `SECURITY.md` lives in `.github`, so it
+  is the default for every repository. It uses GitHub private vulnerability
+  reporting and covers the site, the API (including delegated access) and
+  the images. The AGPL-3.0-or-later `LICENSE` is in §6.
 
 ### 4.3 Organisation-level presentation
 
-- `Distant-Signal/.github/profile/README.md`: three lines on what DS is, the
-  site link, one screenshot and the repository index. Keep it short and
+- **`Distant-Signal/.github/profile/README.md`:** three lines on what DS is,
+  the site link, one screenshot and the repository index. Keep it short and
   point to the landing README.
-- Pin `distant-signal` first. The `.github` repository needs no pin, since
-  its profile README already shows on the organisation page. Pin
-  `ds-ingest-bucket` only if it is useful to visitors.
-- Description: "A personal UK rail companion: line status, train and journey
-  tracking, trip planning and Delay Repay support." Homepage: the site.
-  Topics: `rail`, `uk`, `trains`, `transport`, `rust`, `nextjs`, `helm`,
-  `postgres`.
-- Organisation avatar: the app icon (`frontend/public/icon-512.png`).
+- **Pinned repositories:** `distant-signal` first, then `ds-api` and
+  `ds-core`.
+- **Description:** "A personal UK rail companion: line status, train and
+  journey tracking, trip planning and Delay Repay support." Homepage: the
+  site. Topics: `rail`, `uk`, `trains`, `transport`, `rust`, `nextjs`,
+  `helm`, `postgres`, `agpl`. Each other repository gets a one-line
+  description and the shared topics.
+- **Organisation avatar:** the app icon (`frontend/public/icon-512.png`).
 
-### 4.4 Should the existing repository become the landing repository?
+### 4.4 Transfer, not archive
 
-**Yes: transfer it, don't archive it.** A GitHub transfer keeps issues, PRs,
-stars, watchers, releases and wiki. It redirects old web and git URLs to the
-new location until somebody creates a new repository at the old name. Don't
-create one. Renaming on transfer (`Distant-Signal` to `distant-signal`) is
-also redirected.
+Transfer the existing repository and extract the services out of it. Don't
+archive it and start fresh.
 
-Archiving and starting fresh would break those links. It would also leave
-two repositories with the same name in search results, and it would force
-everything to be rebased onto a new history.
+A GitHub transfer keeps issues, PRs, stars, watchers, releases and wiki. It
+redirects old web and git URLs until somebody creates a repository at the
+old name, so never create one. A rename on transfer
+(`Distant-Signal` to `distant-signal`) is also redirected.
 
-If the backend is ever extracted (Option B), extract *outward* from the
-landing repository. The frontend and the landing page stay where the history
-and redirects are, and `ds-core` and the others start as `git filter-repo`
-extracts (§5.6).
+Archiving would break existing links and duplicate the name in search, and
+every extract would need a fresh history.
 
-Redirects are a convenience, not something to depend on:
+Treat redirects as a convenience only. Update explicitly in phase 1:
 
-- Ranma-Config's Flux verification uses an anchored regex on the **new**
-  subject.
-- Renovate's `sourceUrl` and compare links change.
-- The `task-bringer` repository mapping changes.
+- the Flux verification regex;
+- Renovate's `sourceUrl`;
+- the task-bringer repository list;
+- the User-Agent URL.
 
-Update all of these explicitly in phase 1 (§8).
+## 5. Designs
 
-## 5. Hard problems
+### 5.1 Schema, migrations, grants and the Redis ACL: owned by `ds-core`
 
-### 5.1 Schema and migrations: one owner, many consumers
+**What `ds-core` owns:**
 
-Under Option A, nothing changes. Within the repository:
+- `crates/ds-store/migrations/`, which stays forward-only and immutable;
+- the checksum lock and its tests, moved from `crates/api/tests` to
+  `crates/ds-store/tests`: `migration_checksums.lock`,
+  `migration_checksums.rs` and `migration_index_locking.rs`;
+- `check-migration-order.py`;
+- `ds-migrate`, with **its own image** (`images/ds-migrate`). Today it ships
+  inside the api image. The chart's migrate hook Job and the schema-owner
+  backfills switch to it.
 
-- Move `migration_checksums.lock` and its two tests from `crates/api/tests`
-  to `crates/ds-store/tests`, so a migration-only change no longer touches
-  the api. This is phase 3.
-- Keep the conventions: forward-only, `-- contract:` headers,
-  `check-migration-order.py`.
+**Grants and ACL source.** `db-grants.yaml` moves to
+`crates/ds-store/db-grants.yaml`, so `build.rs` reads a file inside its own
+crate rather than the chart. The Redis ACL template (`redis-users.acl.tpl`)
+moves to `ds-core/access/`, and `render-redis-acl.py` and `gen-db-grants.py`
+move with it. `common/tests/redis_acl.rs` keeps checking that the Redis
+commands the code issues are in the ACL, now against a file in the same
+repository.
 
-Under Option B, `ds-core` owns `migrations/`, the lock, the order check and
-`ds-migrate`. `ds-migrate` gets its own image, `ghcr.io/distant-signal/ds-core/ds-migrate`,
-instead of riding in the api image. The chart's migrate hook Job uses it.
+**Release assets.** Every `ds-core` tag `vX.Y.Z` publishes:
 
-The **schema gate** already makes this safe. A service built against core
-`vN` embeds `REQUIRED_MIGRATION`, and it waits (not ready) until the
-database has reached that migration. Older services keep running, because
-migrations are expand-only. The release rule is:
+- the crates, at the git tag (§5.2);
+- `images/ds-migrate:vX.Y.Z`;
+- GitHub release assets: `db-grants.yaml`, `postgres-grants.sql`,
+  `postgres-roles.sql` and `redis-users.acl.tpl`, each signed with
+  `cosign sign-blob` under `ds-core`'s workflow identity.
 
-1. a core release containing migrations is deployed (chart bump) before any
-   service that needs them;
-2. destructive (`contract:`) migrations ship one core release after the last
-   consumer stopped using the object.
+**Vendoring into the chart.** `ds-deploy` keeps a file `core-version`.
+Renovate bumps it through a `github-releases` custom manager. In the same PR,
+`ds-deploy/scripts/sync-core.py` downloads the assets, verifies them and
+writes them into `charts/distant-signal/files/`. The same PR also bumps
+`migrate.image` to the matching `ds-migrate` digest. CI fails when the
+vendored files differ from the release.
 
-Add a check to core's CI that refuses a `contract:` migration while any
-service image pinned in the chart's current `values.yaml` was built against
-an older core tag. That data is in the chart's digests and the images' OCI
-labels.
+**Version labels.** Every service image carries
+`org.distant-signal.core-version=<tag>`, read from its `Cargo.lock`. The
+schema gate already makes a service wait (not ready) until the database has
+its `REQUIRED_MIGRATION` and its role holds the grants baked in from
+`db-grants.yaml`.
 
-### 5.2 Per-service roles and grants
+**Ordering checks in `ds-deploy` CI:**
 
-Keep a single source, `db-grants.yaml`, next to the migrations that make it
-necessary. 56% of grants changes co-change with migrations. Today the file
-lives in the chart, and `ds-store/build.rs` reads it from there.
+1. **Expand.** For every image pinned in `values.yaml`, its `core-version`
+   must be at most the pinned `ds-migrate` version. A service can't
+   reach prod expecting a migration or grant that the chart wouldn't run.
+   The check reads labels with `crane config` over the public registry.
+2. **Contract.** A destructive migration's header gains a version:
+   `-- contract: <what> (code stopped using it in <commit>; safe after core vA.B.C)`.
+   `ds-core`'s release workflow reads `ds-deploy`'s `main` `values.yaml`.
+   It refuses the tag while any pinned image has a `core-version` older than
+   `vA.B.C`. That is today's "ships a release after the code stopped using
+   it" rule, made mechanical.
 
-- **Option A:** move it to `crates/ds-store/db-grants.yaml`. The chart can't
-  read files outside its directory, so the chart's copy becomes a generated
-  file. `gen-db-grants.py render` writes both `charts/.../files/db-grants.yaml`
-  and `postgres-grants.sql`, and `check` fails on drift. `build.rs` then
-  reads a file inside its own crate. Alternatively, leave it where it is: it
-  works, and the cost is only conceptual. Phase 3, optional.
-- **Option B:** `ds-core` owns `db-grants.yaml` and the renderer. Each core
-  release publishes `postgres-grants.sql`, `postgres-roles.sql` and the YAML
-  as release assets. `ds-deploy` vendors them through a Renovate
-  `github-releases` custom manager, with a CI check that the vendored copy
-  matches the tag. A service that needs a new grant opens a PR on core. The
-  schema gate's grant check, baked in at build time, makes the service wait
-  until the roles Job has run the new grants.
+**DB tests in other repositories.** A repository with `#[ignore]` DB tests
+uses `ci`'s reusable `rust-db-tests.yml`. It starts Postgres and Valkey,
+runs `images/ds-migrate` at the repository's pinned core version, applies
+that version's `postgres-grants.sql`, and runs the repository's passes from
+its own `db-tests.toml`. Those are today's `db-tests.py` passes, split by
+crate.
 
-### 5.3 Cross-repo atomic changes
+**Requesting a grant.** A service that needs a new grant opens a `ds-core`
+PR changing `db-grants.yaml`, alongside the migration if there is one, then
+bumps core. The schema gate keeps it unready until the roles Job has run.
 
-The case: an API field plus its frontend use. That is 89 changes since
-October (§2.1).
+### 5.2 How shared crates are consumed: git tags
 
-- **Option A:** stays atomic. One PR, and `frontend-e2e` runs against the
-  api built from the same commit.
-- **Option B:** use expand and contract, which the API changelog already
-  supports:
-  1. The api PR adds the field (optional, additive) and the changelog entry,
-     and ships.
-  2. The frontend PR uses it, with e2e run against the api image pinned by
-     digest in the frontend repository's `e2e/api-image.txt`. Renovate bumps
-     that file when the api publishes.
-  3. A removal is a later api release after the frontend stopped reading the
-     field.
+**Decision: git dependencies on the public `ds-core` repository, pinned by
+tag.**
 
-  Generate the TypeScript types to replace the hand-mirrored `lib/api.ts`,
-  using `ts-rs` or `specta` from the serde types. Publish them as a versioned
-  npm package (`@distant-signal/api-types`) from the api repository, so type
-  drift fails `tsc` rather than e2e. Do this in phase 3 even under Option A:
-  it also helps DS-MCP. For a change that really must land together,
-  off-by-default chart values remain the switch. Both halves deploy dark, and
-  one values change turns them on.
+```toml
+# each consumer's workspace Cargo.toml
+[workspace.dependencies]
+common    = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.4.0" }
+ds-store  = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.4.0" }
+# ... one line per core crate, all on the same tag
+```
 
-### 5.4 The chart: umbrella or per-service
+`Cargo.lock` records the exact commit. In `deny.toml`, `allow-git` gets
+exactly `https://github.com/Distant-Signal/ds-core`. `unknown-git = "deny"`
+stays.
 
-**Keep one umbrella chart** under either option. Today one chart means:
+**Why not a registry:**
 
-- one migrate hook before every workload;
-- one roles Job;
-- one `PrometheusRule`;
-- one signature;
-- one Renovate PR (`renovate/distant-signal-chart`) and one deploy-bringer
-  request, with deploy notes for the whole release.
+- **crates.io** would publish 10+ workspace-internal crates as a public API
+  with semver promises and permanent versions. Names like `common` aren't
+  available.
+- **The Forgejo Cargo registry** can't be reached from GitHub-hosted runners
+  (§8.1).
+- **A hosted private registry** adds cost, a token secret in every
+  repository, and a single point of failure.
 
-Per-service charts would mean 22 HelmReleases and `version.yaml` files in
-Ranma-Config, and 22 Renovate PRs per build. The deploy order (migrations,
-grants, then services) would have to be rebuilt with Flux `dependsOn`.
-deploy-bringer would see a stream of small requests instead of one
-reviewable release.
+Git tags need no infrastructure. The repository is public, so cargo fetches
+over HTTPS without auth.
 
-Image tags and builds:
+**Version-bump workflow:**
 
-- **Option A:** unchanged. `containers.yml` builds the matrix, pins digests
-  and pushes `X.Y.Z+build.N.sha.S`.
-- **Option B:** each service repository publishes signed images on `main`.
-  Renovate in `ds-deploy` bumps `image.tag` and `image.digest` per service,
-  grouped into one weekly PR plus immediate security bumps. Every merge to
-  `ds-deploy`'s `main` produces the chart build. A chart build then means
-  "these exact digests". Deploy notes come from the bump PR's
-  aggregated release notes.
+1. **Change in `ds-core`.** PRs merge to `main` as today. Releases are
+   deliberate: `workflow_dispatch` on `release.yml` with `bump: patch|minor`.
+   It runs `scripts/release.py`, which:
+   - bumps `workspace.package.version`;
+   - prepends `CHANGELOG.md` from the merged PR titles since the last tag,
+     flagging migrations, grants and ACL changes and contract migrations;
+   - tags `vX.Y.Z`;
+   - builds and signs `ds-migrate`;
+   - attaches the access assets.
+2. **Versioning.** While on `0.x`, a breaking Rust API change or a contract
+   migration is a minor bump. Anything else is a patch. Every migration is
+   at least a patch release, so the schema version is the core version.
+3. **Consumers.** Renovate (the `ci` preset) groups all `ds-core` crates
+   into one PR per repository, `renovate/ds-core`. That PR updates every
+   `tag =` line and `Cargo.lock`. The git dependencies use Renovate's cargo
+   manager. Confirm tag tracking with `renovate --platform=local
+   --dry-run=extract`. If it doesn't work, a regex custom manager on
+   `tag = "v..."` with the `git-tags` datasource does. The PR's CI is the
+   compatibility test, and it automerges when green.
+4. **Developing across repositories.** Use a local, uncommitted patch:
+   `cargo --config 'patch."https://github.com/Distant-Signal/ds-core".common.path="../ds-core/crates/common"' test`.
+   A helper, `ci/scripts/core-patch.py --core ../ds-core`, writes all the
+   lines into `.cargo/config.toml`. That file is git-ignored in every
+   consumer. Open the `ds-core` PR, release, then open the consumer PR on
+   the new tag.
 
-The OCI tag scheme doesn't change: `<base>_build.<run>.sha.<short>`, with
-`+` written as `_` in the OCI tag. Ranma-Config's Renovate rule parses
-`build.N` and `sha.S` from it.
+### 5.3 Generated API types and cross-repo api and frontend changes
 
-Two things change with the move:
+**Types.** Derive TypeScript from the api's serde types with `ts-rs`. It
+honours `#[serde(rename_all = "camelCase")]`, `Option` and enums.
 
-1. **The run number.** A transfer keeps the workflow's run counter (verify
-   on the first build). A *new* repository restarts at 1, which Renovate
-   would order below 0.4.1+build.700. Bump the chart base to **0.5.0** at the
-   cutover either way. Semver precedence ignores build metadata, so 0.5.0
-   beats every 0.4.1 build whatever N is.
-2. **The repository path,** in §5.8 and §5.9.
+- `ds-api` CI regenerates `api-types/api.ts` and fails if the committed copy
+  is stale.
+- The api image bakes the file in at `/usr/share/distant-signal/api-types.ts`.
+- The image's tag (`build.<run>-<sha>`) is the types' version.
 
-### 5.5 CI cost and caching across repositories
+**Consumption by the frontend.** No npm registry is needed. GitHub's npm
+registry requires a token even for public packages, and npmjs would need an
+organisation and a secret.
 
-Minutes are free while every repository is public (§2.2). The real cost of a
-split is time and duplication:
+- The frontend keeps one pin, `frontend/e2e/api-image.txt`, holding
+  `ghcr.io/distant-signal/images/api:<tag>@sha256:...`. Renovate bumps it.
+- `scripts/sync-api-types.py` extracts the types file from that exact image
+  into `frontend/lib/api-types.ts`, and CI checks the two match.
+- `lib/api.ts` keeps its fetch helpers but imports every request and
+  response type. The hand-mirrored interfaces go.
+- e2e runs the same pinned image, migrated with the `ds-migrate` version
+  from the image's `core-version` label, and then `seed.sql`.
+- DS-MCP can fetch the same file from the public image, or from the
+  `ds-api` release asset.
 
-- Each Rust repository compiles the heavy shared dependencies again in its
-  own cache (sqlx, rdkafka with vendored librdkafka, axum, reqwest).
-  `Swatinem/rust-cache` and the GitHub Actions cache are scoped to one
-  repository.
-- Docker layer caches live in GHCR (`buildcache:<service>`). Those *can* be
-  read across organisation repositories, because `cache-from` takes any
-  readable ref. Keep them registry-based.
-- Each Postgres-backed repository needs its own copy of the services
-  containers and the DB-pass harness.
+**The process for a change across api and frontend.** This applies to the
+39 to 43% of changes that touched both (§2.1).
 
-Under Option A, the cheaper lever is path filtering within the one repository.
-`paths-changed.py` exists and gates only `frontend-e2e` today. Gating the
-Rust DB passes and Playwright on their inputs would cut the many docs-, chart-
-and script-only runs, from 66 job-minutes to a few. This is phase 3.
+1. **The `ds-api` PR** adds the field or route. It must be additive: a new
+   optional field, or a new route. It includes regenerated types and a
+   `docs/api-changelog.md` entry. Merge it, and the api image is published.
+2. **Renovate** opens the frontend's api-pin PR with the new types. The
+   developer pushes the frontend change onto that PR, or onto a branch built
+   on it. e2e runs against the new api image. Merge it, and the frontend
+   image is published with `org.distant-signal.api-build=<api tag>`.
+3. **`ds-deploy`'s ordering check:** the frontend image's `api-build` must
+   be at most the pinned api image's build. A chart can't ship a frontend
+   that expects an api it doesn't deploy. Normally both bumps land in the
+   same grouped image PR (§5.4), so they deploy together.
+4. **Removing or renaming a field** is a later `ds-api` PR, made only after
+   the deployed frontend no longer reads it. DS-MCP is checked through the
+   changelog, as today.
+5. **A change that must switch on at once** ships dark behind an
+   off-by-default chart value. Both halves deploy, then one `ds-deploy`
+   values change turns it on.
 
-### 5.6 Preserving git history
+### 5.4 Chart and deploy: one umbrella chart, per-service images
 
-- **The landing repository:** a GitHub transfer keeps everything, with the
-  same SHAs.
-- **Satellites:** `git filter-repo` from a fresh clone, with explicit
-  `--path` and `--path-rename`. For `ds-ingest-bucket` that is
-  `--path charts/ds-ingest-bucket/ --path scripts/check-ingest-bucket-chart.py --path-rename charts/ds-ingest-bucket/:chart/`.
-  Then delete those paths in one commit in the landing repository that names
-  the new repository and its first SHA.
+**Decision: one umbrella chart in `ds-deploy`; images versioned per
+service.** Per-service charts would mean:
 
-  filter-repo keeps authors and dates. It rewrites SHAs, so links to old
-  commit SHAs only resolve in the landing repository. It drops signatures:
-  3 of the last 10 `main` commits are GitHub-signed merges, and those lose
-  their "Verified" badge in the extract.
-- **Not a fresh start.** Blame on migrations and the chart is regularly how
-  incidents are explained (`-- contract: ... in <commit>` headers cite SHAs).
-  Those SHAs stay valid in the landing repository either way.
+- 22 HelmReleases and `version.yaml` files in Ranma-Config;
+- 22 Renovate PRs per build;
+- rebuilding today's ordering (migrate Job, roles Job, then workloads) out
+  of Flux `dependsOn`;
+- a flood of small deploy-bringer requests instead of one reviewable
+  release.
+
+**How image tags flow:**
+
+1. **Every service repository** builds on each `main` push, through `ci`'s
+   `image.yml`, and pushes `ghcr.io/distant-signal/images/<service>`.
+   - Tags: `build.<run>-<short sha>` plus `sha-<short sha>`.
+   - Labels: `org.opencontainers.image.source`, `.revision`, `.licenses`,
+     `org.distant-signal.core-version`, and `api-build` on the frontend.
+   - Each image is signed with cosign keyless and attested.
+
+   The image path doesn't depend on the source repository. Each package is
+   linked to the repository that builds it, through the package's "Manage
+   Actions access" setting, so moving a service between repositories changes
+   nothing in the chart. The `global.imageRegistry` rule (keep the last two
+   segments) yields `images/<service>`.
+2. **`ds-deploy` Renovate** tracks each `values.yaml` `image.repository` and
+   `image.tag` plus `image.digest`. It uses the helm-values manager with
+   regex versioning `^build\.(?<major>\d+)-[0-9a-f]+$`, so builds order by
+   run number.
+   - All DS images go into **one group PR**, `renovate/ds-images`, which
+     automerges when green.
+   - `ds-core`'s `core-version` and `ds-migrate` bumps get their own group,
+     `renovate/ds-core`, which merges first, because the ordering checks
+     (§5.1) block the images otherwise.
+   - Security bumps are never grouped.
+3. **Every `ds-deploy` `main` push** packages the chart as
+   `<base>+build.<run>.sha.<short>`. It pushes to
+   `oci://ghcr.io/distant-signal/charts/distant-signal`, the same URL as
+   after phase 1, and signs it. The digest pinning moves from
+   `containers.yml`'s `SERVICE_TO_PATH` step into the bump PRs: digests are
+   committed in `values.yaml`, not injected at package time.
+4. **Ranma-Config** keeps one OCIRepository and one Renovate PR per chart
+   build (`renovate/distant-signal-chart`), filed deliberately to
+   deploy-bringer with deploy notes, approved with the passkey.
+
+   The notes come from the `ds-deploy` compare range. Each image bump's PR
+   body lists the per-service commit ranges, which Renovate generates from
+   the image's `org.opencontainers.image.source` label. Migrations, grants
+   and contract flags come from the `ds-core` CHANGELOG entries in the
+   range.
+
+**Holding one service back** (today's frontend "hold" pattern) is a `ds-deploy`
+PR reverting that one digest, or a Renovate `ignoreDeps` for a while.
+
+**The chart version.** The base goes to 0.5.0 at phase 1, then to **0.6.0**
+when `ds-deploy` takes over the push. That repository's run counter starts
+at 1, and semver ignores build metadata, so a new base guarantees Renovate
+orders the builds correctly.
+
+**Changes in Ranma-Config:**
+
+| Where | Phase 1 (transfer) | `ds-deploy` cutover |
+|---|---|---|
+| `clusters/base/apps/distant-signal/version.yaml` | `url` becomes `oci://ghcr.io/distant-signal/charts/distant-signal`, plus a new `tag`. Add the identity `Distant-Signal/distant-signal`. | `url` unchanged. Add the identity `Distant-Signal/ds-deploy`. |
+| `renovate.json5` | `matchPackageNames`, `sourceUrl`, compare template | `sourceUrl` and compare template point to `ds-deploy` |
+| `renovate-github.yaml` | `discoveryFilters`: the new name, and the App installed on the organisation | Add every organisation repository, or use a `Distant-Signal/*` filter |
+| `task-bringer/release.yaml` | Add the new name | Add every new repository to the DS project |
+| `scripts/bump-distant-signal.sh` | Chart path | Notes source |
+| `ds-ingest-gcp/release.yaml` | Chart path | Identity (`ds-deploy`) |
+| `deploy-prs.yaml`, deploy-bringer | None | None: both read Ranma-Config |
+
+### 5.5 CI per repository
+
+**Every repository is public.** That is a requirement, not a preference.
+Public repositories get free GitHub-hosted minutes. On the Free plan a
+private repository gets 2,000 minutes a month, and today's CI is about
+11,000 job-minutes a week (§2.2).
+
+**The Free plan's 20-concurrent-job limit is shared across the
+organisation.** Today's 22-leg container matrix already hits it. A `ds-core`
+release triggers four consumer PRs at once. Mitigations:
+
+- `concurrency` with `cancel-in-progress` in every workflow;
+- path filters (`paths-changed.py`) on the heavy jobs;
+- Renovate's `ds-core` PRs staggered with `prConcurrentLimit: 2` in the
+  preset;
+- container matrices limited to the services whose inputs changed. A `main`
+  build still builds all of them weekly, to pick up base-image fixes.
+
+**Per repository:**
+
+| Repository | Jobs, all from `ci`'s reusable workflows |
+|---|---|
+| `ds-core` | rust-ci (fmt, clippy in both feature sets, MSRV, deny, test), rust-db-tests (superuser, app role, per-service role), migration order and grants checks, release |
+| `ds-api`, `ds-ingest`, `ds-workers`, `ds-pollers` | rust-ci, rust-db-tests where there are DB tests (not for most pollers), image |
+| `distant-signal` | node-ci (lint, prettier, tsc, vitest, build), e2e and visual tests against the pinned api image, check-copy, image |
+| `ds-deploy` | helm lint and render assertions, the chart check scripts, alert-rules tests, values docs, the §5.1 and §5.3 ordering checks, chart push |
+| `ci` | actionlint, the scripts lint, a self-test that calls its own workflows |
+
+**Caching:**
+
+- `Swatinem/rust-cache` is per repository, so each Rust repository compiles
+  sqlx, axum and reqwest once more. Only `ds-ingest` pays for rdkafka.
+- Docker layer caches stay in the registry, at
+  `ghcr.io/distant-signal/images/buildcache:<service>`. They can be read
+  across the organisation.
+- `cargo-chef` keeps the dependency layer cached across `ds-core` bumps
+  that change only path crates.
+
+The per-PR job time drops for most repositories, because a pollers PR no
+longer runs Playwright or the api's DB passes.
+
+`ci` is consumed as `uses: Distant-Signal/ci/.github/workflows/<x>.yml@<sha> # vN`,
+and Renovate bumps it. It is public, so no cross-repository access settings
+are needed.
+
+### 5.6 History preservation: `git filter-repo` per repository
+
+The landing repository keeps the full history with its original SHAs,
+through the transfer. Each extracted repository is built from a fresh
+mirror clone:
+
+1. **List the paths, including historical names.** For each path in the
+   target set, run `git log --follow --name-only --format= -- <path>`
+   (and for directories, `git log --name-status --diff-filter=R`) to collect
+   old names. Examples are pre-rename crate directories and
+   `charts/nr-status`. Write `paths/<repo>.txt` in `ci`, so the extraction
+   is reviewable and repeatable.
+2. **Run** `git filter-repo --paths-from-file paths/ds-ingest.txt`, plus
+   `--path-rename` for the layout of the new repository's root: crates under
+   `crates/`, docs under `docs/`.
+3. **Keep authorship.** filter-repo keeps authors and dates, so commits stay
+   `FasterSpeeding <lucina@lmbyrne.dev>`. Never pass `--mailmap`,
+   `--email-callback` or `--name-callback`. Signatures are dropped: 3 of the
+   last 10 `main` commits are GitHub-signed merges and lose "Verified" in
+   the extracts.
+4. **Commit the commit map.** filter-repo's `commit-map` (old to new SHA)
+   goes in as `docs/history/monorepo-commit-map.tsv`, so a `contract:`
+   header or a runbook that cites a monorepo SHA can be resolved. The
+   landing repository still has every old SHA anyway.
+5. **Add a top commit** that adds `LICENSE`, the repository's README and CI,
+   and switches path dependencies to `ds-core` tags.
+6. **Remove the extracted paths from the landing repository** in one commit
+   that names the new repository and its first SHA. Do this only after the
+   new repository's images have been deployed once (§9).
 
 ### 5.7 Issue and PR migration
 
-The transfer moves all 142 PRs and 6 issues. Satellites start empty with
-Issues disabled (§4.2). Transfer any open issue that is really about a
-satellite with GitHub's "Transfer issue", which works within one owner.
-Closed PRs stay in the landing repository as history.
+- **The transfer** moves all 142 PRs and 6 issues to the landing
+  repository, where they stay.
+- **Open issues** that belong to an extracted area keep living in the
+  landing repository with an `area:` label (§4.2). Nothing needs
+  transferring, because the other repositories have Issues disabled. If a
+  repository ever enables Issues, GitHub's "Transfer issue" works within the
+  organisation.
+- **Open PRs can't be moved.** Each extraction has a **freeze**: no open PR
+  touches the paths being moved. Merge or close them first. A PR that
+  can't wait is re-created in the new repository by cherry-picking it onto
+  the extract, with a link back.
+- **Renovate branches** in the landing repository that touch moved paths are
+  closed. Renovate re-opens them in the new repository.
+- **Worklog.** Commits carry `Task: DS-123` trailers in every repository.
+  task-bringer's DS project lists all repositories (§5.4 table).
 
-Update the worklog `Task:` trailers: task-bringer's DS project maps to
-`repos: [FasterSpeeding/Distant-Signal]` in Ranma-Config
-(`clusters/mine-bringer/apps/task-bringer/release.yaml`). Add the new name,
-and keep the old one for old commits.
+### 5.8 `common`: domain and runtime
 
-### 5.8 GHCR paths
+Before `ds-core` is extracted, split `common` into two crates.
 
-Packages owned by the `FasterSpeeding` user don't move with a repository
-transfer. New pushes go wherever `IMAGE_BASE` points.
+- **`ds-runtime`**, domain-free: `backoff`, `log_once`, `logging`,
+  `metrics`, `secret`, `redis_conn`, `redis_auth`, `redis_group`, `pg`,
+  `startup`, `heap`, `outbound_endpoint_guard`, `service_args`, `progress`,
+  `advisory_locks`, `user_agent`, with `health-http` folded in or alongside.
+- **`common`**, the domain: matcher, segments, severity, stations, TfL,
+  TRUST timestamps, transit, island of Ireland, and so on.
 
-New paths:
+`ds-runtime` stays in `ds-core`; nothing is published elsewhere (question 9).
+`user_agent::PROJECT_URL` becomes the organisation URL.
 
-- **Images:** `ghcr.io/distant-signal/distant-signal/<service>`. This keeps
-  the three-segment shape, so `global.imageRegistry`'s "keep the last two
-  segments" rule (`_helpers.tpl`) still yields `distant-signal/<service>`.
-  Under Option B the middle segment becomes the source repository
-  (`ghcr.io/distant-signal/ds-ingest/ingest-writer`), and the helper keeps
-  working.
-- **Charts:** `oci://ghcr.io/distant-signal/charts/distant-signal` and
+**The line catalogue.** `lines/` and its validator go into `ds-core` as a
+`ds-lines` crate. It embeds the TOML (`include_dir`), so a consumer's
+catalogue is exactly its pinned core version. Services keep `--lines-dir`
+as an override for local edits. The api and aggregator images stop copying
+`lines/`.
+
+Since July, 52% of aggregator commits touched `lines/`. Most of those were
+catalogue edits followed by matcher checks. They now become a `ds-core`
+release plus an automerged bump. That is the largest new friction in the
+plan, so it is question 8.
+
+### 5.9 GHCR paths, signing and repository settings
+
+**Paths:**
+
+- **Images:** `ghcr.io/distant-signal/images/<service>`, from phase 1 on,
+  for every repository.
+- **Charts:** `ghcr.io/distant-signal/charts/distant-signal` and
   `.../charts/ds-ingest-bucket`.
-- **Build cache:** `ghcr.io/distant-signal/distant-signal/buildcache:<service>`.
-  For the first week, `cache-from` lists the old path as well, so the first
-  builds aren't cold.
+- **Build cache:** `ghcr.io/distant-signal/images/buildcache:<service>`.
+  For the first week, `cache-from` also lists the old fasterspeeding cache.
 
-What to update:
+The old `ghcr.io/fasterspeeding/...` packages stay for 90 days as the
+rollback target. After that, prune all but the last deployed chart and its
+images. The cluster pulls anonymously, so check that each new package is
+**public** on its first push.
 
-- In DS: `IMAGE_BASE`, the chart `DEST`, every `image.repository` default in
-  `values.yaml` and its README table, `prune-buildcache.yml`'s
-  `package-name`, `user_agent::PROJECT_URL` and the alert `runbook_url`s.
-  Phase 0 makes all of these one variable each.
-- **Package visibility:** check the first organisation push. The packages
-  must be **public**, because the cluster pulls anonymously today. Link each
-  package to the repository so `GITHUB_TOKEN` keeps write access.
-- **Old packages:** keep them for 90 days, as the rollback target. After
-  that, prune all but the last deployed chart and its images.
+**Signing.** The cosign subject is
+`https://github.com/Distant-Signal/<repo>/.github/workflows/<file>@refs/heads/main`.
+Flux verifies only the chart, and `matchOIDCIdentity` is a list. Add the
+next identity **before** each cutover:
 
-### 5.9 Signing identities, secrets and Actions settings
+1. the landing repository in phase 0;
+2. `ds-deploy` before phase 5.
 
-The cosign keyless subject is
-`https://github.com/<owner>/<repo>/.github/workflows/containers.yml@refs/heads/main`.
-The transfer changes it immediately. Flux verifies only the **chart**
-(Ranma-Config `clusters/base/apps/distant-signal/version.yaml`, an anchored
-`matchOIDCIdentity` regex), and `matchOIDCIdentity` is a list.
+Drop each old identity 90 days later. If the cluster ever verifies images,
+use one organisation regex:
+`^https://github\.com/Distant-Signal/[^/]+/\.github/workflows/[^/]+@refs/heads/main$`.
+`ds-core`'s access assets are verified in `sync-core.py` against
+`Distant-Signal/ds-core`'s `release.yml`.
 
-Steps:
+**Repository settings,** applied identically by a script
+(`ci/scripts/repo-settings.py`, through the GitHub API):
 
-1. **Before the transfer:** add a second identity for
-   `^https://github\.com/Distant-Signal/distant-signal/\.github/workflows/containers\.yml@refs/heads/main$`.
-   Both identities verify, so the switch is safe in either direction.
-2. **Cutover:** in one hand-filed Ranma-Config PR, change the
-   OCIRepository's `url` to the new chart path and its `tag` to the first
-   organisation build.
-3. **After 90 days:** drop the old identity.
+- Issues on only in the landing repository;
+- squash and merge commits allowed, as today;
+- delete branch on merge;
+- private vulnerability reporting on.
 
-`containers.yml`'s own `cosign verify` self-check and the provenance
-attestation derive from `github.workflow_ref`, so they follow automatically.
-`gh attestation verify --repo` callers in docs change to the new name.
+**Organisation settings:**
 
-Under Option B, if images are ever verified in the cluster, use one regex
-over the organisation:
-`^https://github\.com/Distant-Signal/[^/]+/\.github/workflows/containers\.yml@refs/heads/main$`.
+- an Actions allow-list: GitHub-owned actions, the already-pinned
+  third-party ones, `FasterSpeeding/Piped` and `Distant-Signal/ci`;
+- a read-only default `GITHUB_TOKEN`;
+- a ruleset on every repository that blocks force-pushes and deletion on
+  `main`, with no required reviews.
 
-Secrets and settings:
-
-- **Secrets:** none at repository level today. Confirm where
-  `validate-line-catalogue.yml`'s RDM secrets come from, and re-create them
-  as repository secrets if they are needed.
-- **Organisation Actions settings:**
-  - allow GitHub-owned actions, plus the pinned third-party ones already in
-    use (`dtolnay`, `Swatinem`, `taiki-e`, `astral-sh`, `azure`, `docker`,
-    `sigstore`) and `FasterSpeeding/Piped`;
-  - default `GITHUB_TOKEN` to read-only. The workflows already request
-    `packages: write`, `id-token: write` and `attestations: write` per job.
-- **Renovate:** the mine-bringer Renovate GitHub App must be installed on
-  the organisation (or the repository). Ranma-Config's
-  `renovate-github.yaml` `discoveryFilters` must list the new name.
-- **Rulesets:** an organisation ruleset that blocks force-pushes and
-  deletion on `main`. No required reviews, which matches today's flow, where
-  green PRs are merged directly.
+**Secrets:** none today. The RDM secrets named in
+`validate-line-catalogue.yml` aren't set at repository level, so confirm
+them. That workflow moves to `ds-core`.
 
 ### 5.10 Commit identity
 
-Commits must stay authored as `FasterSpeeding <lucina@lmbyrne.dev>`.
-Attribution on GitHub depends on that email being verified on the
-FasterSpeeding account, not on which owner holds the repository, so nothing
-changes there.
+Attribution depends on `lucina@lmbyrne.dev` being verified on the
+FasterSpeeding account, not on the repository owner.
 
-The risks are new clones and agent worktrees picking up a different global
-identity. Mitigations:
+- `ci`'s reusable `identity.yml` runs on every PR. It fails when a commit
+  author is outside `lucina@lmbyrne.dev` and the Renovate bot's noreply.
+- Agent sessions keep checking `git config user.email` before committing.
+- Extracts keep the original authors (§5.6).
 
-- keep the existing pre-commit check in agent sessions: `git config
-  user.email` must be `lucina@lmbyrne.dev`;
-- optionally add a CI job on PRs that fails when a commit's author email is
-  outside an allowlist (`lucina@lmbyrne.dev` and the Renovate bot's noreply).
+## 6. Licensing: AGPL-3.0-or-later
 
-filter-repo extracts keep the original authors. Never pass `--mailmap` or
-`--email-callback`.
+This is decided. It applies to every DS repository: the 7 code repositories,
+`ci` and `.github`. It is done in phase 0, before the transfer.
 
-### 5.11 Ranma-Config, Renovate and deploy-bringer
+**Files and fields:**
 
-| Where | Change |
-|---|---|
-| `clusters/base/apps/distant-signal/version.yaml` | `url`, `tag` and a second identity under `verify` (§5.9) |
-| `renovate.json5` | `matchPackageNames` to the new chart path; `sourceUrl`; the `compare/` link template in `prBodyNotes` |
-| `clusters/mine-bringer/apps/renovate-github.yaml` | `discoveryFilters`, and the App installation |
-| `clusters/mine-bringer/apps/task-bringer/release.yaml` | Add the new repository to the DS project |
-| `scripts/bump-distant-signal.sh` and its header | Chart path |
-| `clusters/mine-bringer/apps/ds-ingest-gcp/release.yaml` | Chart path, if it moves in phase 4 |
-| `deploy-prs.yaml` | No change: `exclude: ["renovate/distant-signal-chart"]` is a branch name in Ranma-Config |
-| deploy-bringer | No change: it reads Ranma-Config, which stays at `FasterSpeeding/Ranma-Config` |
+- **`LICENSE`:** the verbatim GNU AGPL v3 text at the root of every
+  repository, with the README stating "AGPL-3.0-or-later".
+- **Cargo:** `license = "AGPL-3.0-or-later"` in `[workspace.package]`, and
+  `license.workspace = true` in every crate's `[package]`. `publish = false`
+  stays everywhere except where Cargo needs nothing more: git dependencies
+  don't publish.
+- **npm:** `"license": "AGPL-3.0-or-later"` in `frontend/package.json`.
+  `"private": true` stays.
+- **Python:** `license = "AGPL-3.0-or-later"` in `pyproject.toml`
+  (PEP 639), in every repository that has one.
+- **Helm.** `Chart.yaml` has no licence field. Add the annotation
+  `artifacthub.io/license: AGPL-3.0-or-later` and a `LICENSE` file inside
+  each chart directory, so `helm package` ships it.
+- **Images:** the `org.opencontainers.image.licenses=AGPL-3.0-or-later`
+  label in the `containers.yml` and `image.yml` label block.
+- **SPDX headers: not per file.** Over 470k lines of Rust and 156k lines of
+  TypeScript, the headers would be noise. The licence is unambiguous from
+  `LICENSE` and the manifests. The exception is files designed to be copied
+  out: `ci`'s workflows, composite actions and scripts get
+  `# SPDX-License-Identifier: AGPL-3.0-or-later`.
 
-## 6. What else depends on the DS repository
+**Dependency compatibility, checked:**
+
+- **Rust.** I ran `cargo deny --locked check licenses`, with cargo-deny
+  0.20.2 as in CI, on this branch: `licenses ok`. Every licence in
+  `deny.toml`'s allow-list is compatible with AGPL-3.0: Apache-2.0 (with
+  and without the LLVM exception), BSD-2/3-Clause, BSL-1.0,
+  CDLA-Permissive-2.0, ISC, MIT, MPL-2.0 (through its secondary-licence
+  clause), Unicode-3.0 and Zlib.
+
+  I also ran a simulation on a scratch copy: workspace crates set to
+  `AGPL-3.0-or-later` and `[licenses.private] ignore = false`. It fails
+  only on the 31 workspace crates' own licence, `rejected: not explicitly
+  allowed`. With `AGPL-3.0-or-later` added to `allow`, it passes. So add
+  `"AGPL-3.0-or-later"` to `allow` and keep `private.ignore = true`. That
+  makes the own-licence policy explicit and harmless.
+- **npm production dependencies,** from `frontend/package-lock.json`:
+  - MIT 195, Apache-2.0 21, ISC 21;
+  - LGPL-3.0-or-later 14 (sharp's libvips binaries);
+  - BSD-2/3-Clause, BlueOak-1.0.0, MIT-0, 0BSD, CC0-1.0, Unlicense;
+  - MPL-2.0 OR Apache-2.0;
+  - CC-BY-4.0 (browser-support data).
+
+  All of these are compatible. There is no npm licence gate today, so add
+  `check-npm-licences.py` to `ci`, with this allow-list, and run it in node-ci.
+- **Python** tools are lint-only and never distributed.
+- **Base images** (Debian, Node, Postgres, Valkey) are aggregation, not
+  derivative works.
+
+**AGPL §13 (network use).** Users interact with DS over the network, so the
+site must offer them the corresponding source of what is deployed.
+
+- Add a "Source code" link to the frontend footer and the about page. It
+  points to the landing repository's index.
+- Add a `/public/version` api route listing each running image's
+  `org.opencontainers.image.source` and `revision`. The chart passes the
+  pinned digests' labels in as env.
+
+Then every user can reach the exact commits.
+
+**Data is separate from code.** `lines/` (DS-authored) is covered by the
+AGPL. `reference-data/` includes upstream-derived data: add a
+`reference-data/README.md` stating each file's source and terms. The user
+treats the current RDM use as permitted.
+
+## 7. What else depends on the DS repository
 
 - **DS-MCP** (Forgejo, `lucy/Distant-Signal-MCP`) depends only on the
   deployed API and on `docs/api-changelog.md` by name. Its comments cite the
   file path. After the move, the old GitHub links redirect. Generated API
   types (§5.3) would let it pin a package instead of reading Rust structs.
-- **Ranma-Config** depends on the chart, the images and the identity (§5.11).
+- **Ranma-Config** depends on the chart, the images and the identity (§5.4).
 - **The bedrock-openai-proxy test fixture** in Ranma-Config names the
   repository as a string. Update it when convenient.
 
-## 7. Shared CI and utilities
+## 8. Shared CI and utilities
 
-### 7.1 What DS actually uses today
+### 8.1 What DS actually uses today
 
 These were grepped across workflows, `Cargo.toml`, `deny.toml`, Dockerfiles,
 `renovate.json5`, `pyproject.toml`/`uv.lock`, `package.json`, the chart and
@@ -798,7 +1006,7 @@ consumers". Forgejo's composite actions also need the in-cluster URL
 Forgejo can be a `uses:`, a Renovate `local>` preset, or a git dependency of
 an organisation repository on GitHub.
 
-### 7.2 (b) Forgejo repositories: move, keep or copy
+### 8.2 (b) Forgejo repositories: move, keep or copy
 
 | Repository | Used by DS? | Also used by | Verdict | Why |
 |---|---|---|---|---|
@@ -810,223 +1018,260 @@ an organisation repository on GitHub.
 | `lucy/renovate-config` | No | Forgejo repositories | **Keep** | GitHub Renovate can't read it. DS uses Piped's preset. |
 | `lucy-ts-libs` | No (not in `frontend/package.json`) | DS-MCP and other TypeScript services | **Keep** | Not used by DS. |
 | `FasterSpeeding/Piped` (GitHub) | Yes | Aurora-Fauxy, the Forgejo repositories' presets | **Keep where it is** | Already on GitHub, public and neutral. Moving it into a DS-branded organisation would be wrong for its other users. |
-| `lucy/Distant-Signal-MCP` | Consumer of DS | DS users | **Keep for now** (question 7) | Its pipeline is Forgejo end to end: Actions, the registry, `deploy-releases.yaml` and Forgejo Renovate. Moving it is a separate project. Revisit if it becomes public. |
+| `lucy/Distant-Signal-MCP` | Consumer of DS | DS users | **Keep for now** (question 5) | Its pipeline is Forgejo end to end: Actions, the registry, `deploy-releases.yaml` and Forgejo Renovate. Moving it is a separate project. Revisit if it becomes public. |
 
-### 7.3 (a) What to pull out of DS
 
-The rule: extract only when there is a **second consumer on the same
-platform**. Under Option A there is one Rust repository on GitHub, so most of
-this stays.
+### 8.3 (a) What to pull out of DS: `Distant-Signal/ci`
 
-| Piece | Generic? | Verdict | Where, if extracted |
+With 7 code repositories, the shared CI gets a home now. It goes in a
+DS-organisation repository, not on Forgejo (§8.1), and not in Piped for the
+DS-specific parts. Piped is neutral and serves other projects.
+
+| Piece | Today | Goes to | Notes |
 |---|---|---|---|
-| clippy, rustfmt, MSRV and cargo-deny jobs | Yes | **Keep** in `ci.yml` until a second organisation Rust repository exists | `Distant-Signal/.github` as a reusable `rust-ci.yml`, a GitHub port of `lucy/ci-workflows`'s design |
-| nextest archive and the three DB passes, plus `db-tests.py` | The mechanism is; the passes are DS roles | **Keep** | Option B: a reusable `rust-db-tests.yml` in `Distant-Signal/.github`, with the passes file as input |
-| Chart checks (`check-*-chart.py`, render asserts in `helm-lint`) | No: they name DS values paths (up to 34 references in one script) | **Keep** with the chart | Option B: `ds-deploy` |
-| cosign sign with retry (three copies in `containers.yml`) | Yes | **Copy now** into a local composite action `.github/actions/cosign-sign` in DS, removing the duplication | Later `Distant-Signal/.github` (for DS) or Piped (if neutral is wanted) |
-| `lint-scripts.py`, `lint-containers.py`, `paths-changed.py`, `check-bench-gates.py` | Yes, no DS names | **Keep**. Forgejo has the equivalent (`ci-workflows/scripts-lint.yml`). | If a second GitHub repository needs them: Piped (neutral) |
-| Renovate rules (MSRV toolchain, sqlx `<0.9`, Valkey and Postgres majors, cargo 0.x minors, TypeScript `<7`) | DS-specific | **Keep** in `renovate.json5` | Option B: `Distant-Signal/renovate-config` (`github>Distant-Signal/renovate-config`), extending Piped |
-| `common` generic modules: `backoff`, `log_once`, `logging`, `metrics`, `secret`, `redis_conn`/`redis_auth`/`redis_group`, `pg`, `startup`, `heap`, `outbound_endpoint_guard`, `service_args`, `progress`, `advisory_locks`, `user_agent` (minus `PROJECT_URL`), and `health-http` | Yes | **Keep**, but split internally (phase 3) into a domain-free `ds-runtime` crate and a domain `common` | If deploy-bringer or worklog-mcp (Rust, Forgejo) want it: a neutral name (`svc-runtime`), published to crates.io, since both platforms can reach it and `deny.toml` already allows it. Not DS-branded. |
+| clippy, rustfmt, MSRV, cargo-deny, test | `ci.yml` jobs | `ci/.github/workflows/rust-ci.yml` | Inputs: features, MSRV, system packages (the rdkafka set only for `ds-ingest`). This is a GitHub port of the design in `lucy/ci-workflows`, whose Forgejo copy stays. |
+| nextest archive and the three DB passes | `ci.yml`, `db-tests.py`, `test-postgres-roles.py` | `rust-db-tests.yml`, with the runner script in `ci/scripts/` | Passes come from each repository's `db-tests.toml`. Migrations and grants come from the pinned core version (§5.1). `test-postgres-roles.py` stays in `ds-core`; the workflow fetches it at the pinned tag. |
+| Image build, sign with retry, attest, digest output | `containers.yml` (three copies of the retry loop) | `image.yml` and the composite `actions/cosign-sign` | Labels as in §5.4. |
+| Chart lint, package, push and sign | `containers.yml` `push-helm-chart` | `helm-chart.yml`, used by `ds-deploy` | The chart-specific asserts stay in `ds-deploy`. |
+| Script lint (shellcheck, shfmt, ruff, mypy, actionlint, hadolint) | `lint-scripts.py`, `lint-containers.py` | `scripts-lint.yml` and `ci/scripts/` | Each repository keeps its own `pyproject.toml` lint group. |
+| `paths-changed.py`, `check-bench-gates.py`, `gen-rust-dockerfiles.py` | `scripts/` | `ci/scripts/` | The Dockerfile generator takes a crate list per repository. Renovate's custom managers for `RUST_TAG` and cargo-chef move with it. |
+| OSV dependency scan | `dependency-scan.yml` | `dependency-scan.yml` | Same pinned binary. |
+| Commit identity check | none | `identity.yml` | §5.10 |
+| npm licence gate | none | `ci/scripts/check-npm-licences.py` | §6 |
+| Renovate rules (MSRV toolchain, sqlx `<0.9`, Valkey and Postgres majors, cargo 0.x minors, TypeScript `<7`, grouping) | `renovate.json5` | `ci/renovate/default.json5` (`github>Distant-Signal/ci//renovate/default.json5`), which extends Piped's preset | It adds the `ds-core` and `ds-images` groups and `prConcurrentLimit`. Each repository keeps only local rules. |
+| `core-patch.py`, `repo-settings.py`, `paths/<repo>.txt` | none | `ci/scripts/` | §5.2, §5.9 and §5.6 |
+| Chart checks (`check-*-chart.py`, alert-rules tests, `chart-values-doc.py`) | `scripts/` | `ds-deploy` | DS-chart specific: they name DS values paths, up to 34 times in one script. |
+| `common` runtime modules | `crates/common` | `ds-core/crates/ds-runtime` | §5.8. A neutral crate outside DS only on demand (question 9). |
 
-## 8. Phased migration plan
+Everything in `ci` is DS-branded and AGPL-3.0-or-later. Two pieces are
+generic and could later be offered to Piped as neutral versions: the cosign
+retry action and the script lint. That is question 7.
 
-Each phase leaves `main` deployable and has its own rollback.
+## 9. Phased migration plan
 
-### Phase 0: preparation (about 1.5 days)
+Each phase leaves production deployable. Each one is a set of normal PRs,
+deployed through the usual deploy-bringer flow before the next phase starts.
+Efforts are focused working days.
 
-**In DS:**
+### Phase 0: preparation and licence (about 2.5 days)
 
-- Make the owner one variable each:
-  - `IMAGE_BASE` and the chart `DEST`, from `${{ github.repository_owner }}`;
-  - `values.yaml` repositories;
-  - `PROJECT_URL`, as a constant plus a test that it is an https URL;
-  - the alert `runbook_url`s, through a chart value
-    `alerts.runbookBaseUrl`.
-- Add the `cosign-sign` composite action.
-- Check where the RDM secrets come from.
+**Licence (§6), before anything moves:**
 
-**In Ranma-Config:** add the second `matchOIDCIdentity` (§5.9).
+- add the `LICENSE` file;
+- set the Cargo, npm and Python licence fields;
+- add the chart annotation and the `LICENSE` files in both chart
+  directories;
+- add the image `licenses` label;
+- add `"AGPL-3.0-or-later"` to `deny.toml` `allow`;
+- add the source link and `/public/version` (§6).
 
-**In GitHub:**
+**Owner-agnostic paths:** `IMAGE_BASE` and the chart destination from
+`${{ github.repository_owner }}`, the `values.yaml` repositories,
+`PROJECT_URL`, and the alert runbook URLs through
+`alerts.runbookBaseUrl`.
 
-- create `Distant-Signal/.github` with `profile/README.md`, `SECURITY.md`,
-  `CONTRIBUTING.md` and the issue-form config;
-- set the organisation Actions policy and ruleset;
-- install the Renovate App on the organisation.
+**Ranma-Config:** add the second `matchOIDCIdentity` (`Distant-Signal/distant-signal`).
 
-**Decide** the licence (question 6).
+**GitHub organisation:**
+
+- create `.github`: profile, `SECURITY.md`, `CONTRIBUTING.md`, issue forms;
+- set the Actions allow-list and the read-only token default;
+- add the ruleset;
+- install the Renovate App;
+- confirm the RDM secrets.
 
 **Rollback:** revert the PRs. The extra Flux identity is harmless.
 
 ### Phase 1: transfer and cutover (about 1 day plus a watched deploy)
 
-1. Transfer `FasterSpeeding/Distant-Signal` to `Distant-Signal` and rename
-   it `distant-signal`.
-2. Bump the chart base to 0.5.0.
-3. The first `main` build pushes to `ghcr.io/distant-signal/...`. Check that
-   the packages are public, the signature verifies and the attestation is
-   there.
-4. Update local remotes (`git remote set-url`) in the main clone and the
-   worktrees.
-5. File one hand-made Ranma-Config PR, through a normal deploy-bringer
-   request with deploy notes:
-   - the OCIRepository `url` and `tag`;
-   - Renovate `matchPackageNames`, `sourceUrl` and the compare template;
-   - `discoveryFilters`;
-   - the task-bringer repository list;
-   - `bump-distant-signal.sh`.
+1. Transfer the repository and rename it `distant-signal`.
+2. Bump the chart base to **0.5.0**.
+3. The first `main` build pushes to `ghcr.io/distant-signal/images/*` and
+   `charts/distant-signal`. Check that the packages are public, that the
+   signature verifies, and that the attestation is there.
+4. Run `git remote set-url` in the local clones.
+5. Make the hand-filed Ranma-Config PR (§5.4 table, phase 1 column) through
+   deploy-bringer.
 6. Confirm that Renovate's next chart PR comes from the new path.
 
-**Rollback:** revert the Ranma-Config PR. The old chart, the old images and
-the old identity are all still valid for 90 days, and the cluster goes back
-to the last `fasterspeeding` build. Transferring the repository back is
-possible but muddles redirects; fix forward instead.
+**Rollback:** revert the Ranma-Config PR. The old chart, images and
+identity stay valid for 90 days. Fix the repository forward rather than
+transferring it back.
 
-**What stays in the monorepo:** everything.
+**Monorepo after this phase:** everything.
 
-### Phase 2: landing-repository presentation (about 1 day)
+### Phase 2: landing presentation (about 1 day)
 
-- Restructure the README (§4.2) and add the screenshots under
-  `docs/screenshots/`.
-- Add the repository index, `CONTRIBUTING.md` (from `CLAUDE.md`), and the
-  repository description, topics and pin.
-- Add the area labels.
+README front page, screenshots, repository index (with the future
+repositories marked "planned"), `CONTRIBUTING.md`, area labels,
+descriptions, topics and pins.
 
-**Rollback:** revert. Docs only.
+**Rollback:** revert; docs only.
 
-### Phase 3: internal seams (about 3 to 5 days, independent PRs)
+### Phase 3: seams inside the monorepo (about 8 to 10 days, independent PRs)
 
-- Move `migration_checksums.lock` and its tests into `ds-store`.
-- Make `ds-store` own `db-grants.yaml`, with the chart copy generated
-  (optional, §5.2).
-- Split `common` into `ds-runtime` and domain `common`.
-- Add generated API types (ts-rs or specta) replacing the hand-written
-  `lib/api.ts` types, behind a `tsc` drift check.
-- Path-filter the heavy CI jobs: Rust DB passes on `crates/**` and
-  migrations; Playwright on `frontend/**`, `crates/api/**` and migrations.
-- Extend `check-crate-deps.py` to enforce the §1.1 layering, for example
-  pollers may not link `trip-planner`.
+These are the prerequisites. Each one is deployable alone.
+
+1. Move the migration checksum lock and its tests into `ds-store` (§5.1).
+2. Move `db-grants.yaml` into `ds-store` and the Redis ACL source into
+   `access/`. The chart's copies become generated files with a drift check.
+3. Give `ds-migrate` its own image, and switch the migrate hook Job and the
+   backfills to it. Deploy, and watch the migrate Job.
+4. Split `common` into `ds-runtime` and `common` (§5.8).
+5. Add the `ds-lines` crate embedding the catalogue, with `--lines-dir` as
+   an override. Stop copying `lines/` into images.
+6. Split `reference-data/` by owner (§3.1). Each file moves next to its
+   consumer, or into `ds-core`.
+7. Turn the 10 crate tests that read chart files into **contract checks run
+   from the chart side**:
+   - each service gets a `--print-config-defaults` flag (in `ds-runtime`'s
+     `service_args`) that prints its defaults as JSON;
+   - a chart CI step compares `values.yaml` against the output of the
+     pinned images.
+
+   The Redis ACL test stays with the ACL in `ds-core`.
+8. Add the image labels `core-version`, `api-build` and `licenses`, plus the
+   ordering checks (§5.1, §5.3), running in the monorepo's chart CI.
+9. Add `ts-rs` generated API types. Make the frontend import them, and
+   delete the hand-written interfaces.
+10. Create `Distant-Signal/ci` with the reusable workflows, the preset and
+    the scripts (§8.3), and switch the monorepo's CI to them. The monorepo
+    proves them before any extraction.
+11. Add the identity check workflow.
 
 **Rollback:** per PR.
 
-**What stays in the monorepo:** everything. This phase only makes a later
-split cheap.
+**Monorepo after this phase:** everything. CI comes from `ci`.
 
-### Phase 4: satellite `ds-ingest-bucket` (about 1 day, optional)
+### Phase 4: extract `ds-core`, the shared libraries first (about 3 to 4 days)
 
-Do this when the bucket goes live, or never.
+1. Freeze PRs that touch core paths.
+2. Run `filter-repo` (§5.6) to create `Distant-Signal/ds-core`. Add CI and
+   tag **v0.1.0** with its release assets and the `ds-migrate` image.
+3. In the monorepo, switch every core crate to `git = ..., tag = "v0.1.0"`
+   and the chart's access files to `sync-core.py` vendoring. Deploy a chart
+   built this way.
+4. After a clean deploy, delete the core paths from the monorepo.
 
-1. `filter-repo` extract (§5.6) to `Distant-Signal/ds-ingest-bucket`, with
-   its own `ci.yml` (helm lint and the check script) and an OCI push to
-   `oci://ghcr.io/distant-signal/charts/ds-ingest-bucket`, signed by the new
-   repository's identity.
-2. Remove the files from the landing repository in one commit.
-3. Ranma-Config: `ds-ingest-gcp/release.yaml` path and identity, and the
-   Renovate rule.
+**Rollback:**
 
-**Rollback:** the landing repository's commit before the deletion still
-builds and pushes the chart. Revert the deletion and point Ranma-Config back.
+- before the delete, revert the dependency switch (back to path
+  dependencies);
+- after it, revert the delete commit.
 
-### Phase 5: conditional thematic split (1 to 2 weeks per extract)
+`images/ds-migrate` already exists from phase 3.
 
-Only start this when the triggers in §9.2 are met. Extract in this order,
-because each step depends on the one before:
+**Monorepo after this phase:** the services, the frontend and the chart.
 
-1. `ds-core` (shared crates and schema). Tag `core-v*`. The landing
-   repository consumes it by git tag for one release while keeping the code,
-   to prove the pin. Then delete the code.
-2. `ds-deploy` (chart), with Renovate digest bumps from the landing
-   repository's images.
-3. `ds-pollers`, the stream-only pollers first. They depend only on
-   `common`, `health-http` and the golden-pinned `ingest-stream`.
-4. Then `ds-ingest`, `ds-schedule`, `ds-workers` and `ds-api` if they still
-   earn it.
+### Phase 5: extract `ds-deploy` (about 3 days)
 
-The frontend stays in the landing repository (§4.4).
+1. Freeze chart paths.
+2. Add the `Distant-Signal/ds-deploy` identity in Ranma-Config.
+3. Run `filter-repo` to create `ds-deploy`, with both charts, the alert
+   tests and the chart scripts. Commit the current image digests into
+   `values.yaml`, and set up Renovate's `ds-images` and `ds-core` groups.
+4. Bump the chart base to **0.6.0**. Grant `ds-deploy` write access to the
+   `charts/distant-signal` and `charts/ds-ingest-bucket` packages.
+5. The monorepo stops pushing the chart. Its image builds continue.
+6. The first `ds-deploy` chart goes through Ranma-Config's normal Renovate
+   PR. Only `sourceUrl` and the compare template change there.
 
-**Rollback per extract:** the landing repository keeps the code for one
-release after each extract (dual-sourced). Reverting is "point the chart back
-at the landing repository's images".
+**Rollback:** re-enable the monorepo's chart push. Its identity is still
+accepted, and the URL is the same, so no Ranma-Config URL change is needed.
 
-## 9. Recommendation
+**Monorepo after this phase:** the services and the frontend. Image digests
+reach prod only through `ds-deploy` bumps.
 
-### 9.1 What to do
+### Phases 6 to 9: extract the services, one repository at a time
 
-Do phases 0 to 3 now. Phase 4 is optional. Don't start phase 5. The numbers
-behind that:
+Every extraction follows the same recipe:
 
-- **Coupling is high and rising.** 38% of changes since 2026-10-01 cross
-  code areas, against 32% over the whole history. api and frontend changes
-  share 39 to 43%. Store changes touch the api 78% of the time. The chart
-  and CI change together 63% of the time. Under a split, every one of those
-  becomes an ordered multi-repo release.
-- **The fan-in is concentrated.** `common` has 27 dependents and `ds-store`
-  14. One schema and one grants file serve 13 roles, and `ds-store` reads
-  the chart at build time.
-- **The deploy unit is one chart,** and it stays one (§5.4). A split adds no
-  deploy independence that pinning one service's digest by values doesn't
-  already give.
-- **CI is fast and free:** a 14-minute median, public minutes. A split saves
-  little and duplicates the heavy Rust and Postgres setup per repository.
-  Path filtering inside the repository gets most of the saving.
-- **It is four months old,** with one author. Repository boundaries pay off
-  for team ownership, which DS doesn't have.
+1. Freeze the paths.
+2. Run `filter-repo`.
+3. Set up the new repository's CI and give it write access to its image
+   packages.
+4. The first `main` build pushes to the **same** `images/<service>` paths.
+5. `ds-deploy`'s Renovate picks up the new digests. Only the source
+   repository behind them changed.
+6. Deploy once.
+7. Delete the paths from the monorepo.
 
-The organisation move itself is worthwhile without a split. It gives:
+**Rollback:** revert the `ds-deploy` digest bump. The last monorepo-built
+image is in the same package. If the paths were already deleted, also revert
+the delete commit.
 
-- project branding and a front page;
-- `ghcr.io/distant-signal/...` image paths;
-- a home for community files;
-- a clean place for future repositories, including DS-MCP if it goes public.
+| Phase | Repository | Effort | Why this order |
+|---|---|---|---|
+| 6 | `ds-pollers` | about 2 days | Lowest coupling. Most talk only through `ingest-stream`. It proves the service recipe. |
+| 7 | `ds-ingest` | about 2 to 3 days | rdkafka build deps, the TRUST consumers and the stream runtime docs. |
+| 8 | `ds-workers` | about 2 days | Aggregator's `lines/` work now goes through `ds-core` (question 8). |
+| 9 | `ds-api` | about 4 days | Last, because it is most coupled to the frontend. It needs §5.3's types and pin flow running. After it, the landing repository holds just the frontend, the docs and the dev stack. |
 
-### 9.2 When to revisit a split
+### Phase 10: cleanup (about 1 day, 90 days after phase 9)
 
-Revisit phase 5 when, over a rolling 8 weeks, **all** of these hold:
+- Drop the old Flux identities, keeping `ds-deploy`'s.
+- Prune the `fasterspeeding` packages.
+- Remove the `cache-from` fallbacks.
+- Archive the Ranma-Config notes.
 
-- fewer than 15% of changes cross code areas, measured with this spec's
-  script;
-- generated API types are in place;
-- a second regular contributor works mainly on one theme.
+### Total
+
+About 30 working days. What lives where during the transition:
+
+| After phase | Landing repository | Elsewhere |
+|---|---|---|
+| 1 to 3 | everything | `ci` (from phase 3) |
+| 4 | services, frontend, chart | `ds-core` |
+| 5 | services, frontend | `ds-core`, `ds-deploy` |
+| 6 to 8 | shrinking services, frontend | plus `ds-pollers`, `ds-ingest`, `ds-workers` |
+| 9 | frontend, docs, dev stack | all 7 code repositories |
 
 ## 10. Open questions for the user
 
-1. **Split beyond the organisation move?** Recommended: no. Transfer the
-   repository, add seams and keep Option A, with phase 5 only on the §9.2
-   triggers.
-2. **Repository name in the organisation.** Recommended: `distant-signal`
+The split and the licence are decided (§3, §6). The rest are listed with my
+recommendation.
+
+1. **Repository name in the organisation.** Recommended: `distant-signal`
    (lowercase, matching GHCR paths). Alternative: keep `Distant-Signal`.
-3. **Landing repository.** Recommended: the transferred monorepo, which
-   keeps the frontend, rather than a thin meta or docs repository or an
-   extracted frontend repository (§4.1).
-4. **Image path shape.** Recommended: `ghcr.io/distant-signal/distant-signal/<service>`,
-   which keeps the `global.imageRegistry` two-segment rule. Alternative:
-   `ghcr.io/distant-signal/<service>`, which needs a helper change and
-   breaks overrides for anyone using them.
-5. **Chart version at the cutover.** Recommended: bump the base to 0.5.0, so
-   Renovate ordering is safe whatever the run number does.
-6. **Licence.** The repository is public with no licence today, so nobody
-   may reuse it. Recommended: choose before phase 1. AGPL-3.0-or-later fits
-   a hosted service whose improvements you want shared back. MIT or
-   Apache-2.0 if you'd rather allow anything. Or keep it all rights
-   reserved, and say so in the README.
-7. **DS-MCP.** Recommended: keep it on Forgejo for now. Move it into the
-   organisation only if it becomes public, as a separate project with its
-   own CI, registry and deploy changes.
-8. **Issue tracker.** Recommended: GitHub Issues in the landing repository
-   for external and public-facing reports, with area labels. Satellites
-   disable Issues. Worklog cards stay the working tracker.
-9. **Home for shared GitHub CI, if it is ever needed.** Recommended:
-   DS-specific reusable workflows in `Distant-Signal/.github`, and neutral
-   ones (script lint, cosign retry) in `FasterSpeeding/Piped`. Nothing from
-   Forgejo moves (§7.2).
+2. **Landing repository.** The transferred repository, keeping the
+   frontend, follows from your decision. Confirm you don't want a separate
+   thin docs repository (§4.1). Recommended: no.
+3. **Image path shape.** Recommended: `ghcr.io/distant-signal/images/<service>`
+   for every repository. It is stable across extractions and keeps the
+   `global.imageRegistry` two-segment rule. Alternative:
+   `ghcr.io/distant-signal/<repo>/<service>`, which changes path at every
+   extraction.
+4. **Chart version bumps.** Recommended: 0.5.0 at the transfer and 0.6.0 at
+   the `ds-deploy` cutover, so Renovate ordering is safe whatever the new
+   run counters do.
+5. **DS-MCP.** Recommended: keep it on Forgejo. It is a separate project
+   with its own CI, registry and deploy. It can consume the generated API
+   types from the public api image.
+6. **Issue tracker.** Recommended: GitHub Issues only in the landing
+   repository, with `area:` labels. The other repositories disable Issues.
+   Worklog cards stay the working tracker.
+7. **Neutral copies in Piped.** Recommended: not now. Keep everything in
+   `Distant-Signal/ci`, and offer the cosign retry action and the script
+   lint to Piped only when a non-DS GitHub repository wants them.
+8. **The line catalogue.** It lives in `ds-core`, so a catalogue edit is a
+   core release plus an automerged bump; aggregator and `lines/` changed
+   together 52% of the time. Recommended: accept that. The alternative,
+   `lines/` in `ds-workers`, would leave the api and `common::matcher`
+   reading another service repository's data.
+9. **Neutral runtime crate.** Recommended: keep `ds-runtime` inside
+   `ds-core`. Publish a neutral crate only if a Forgejo Rust service
+   (deploy-bringer, worklog-mcp) wants the same code.
 10. **Old GHCR packages.** Recommended: keep the `fasterspeeding` chart and
     images for 90 days as the rollback target, then prune all but the last
     deployed build.
 11. **Organisation ruleset.** Recommended: block force-push and deletion on
-    `main`, with no required reviews or checks, which matches today's
-    direct merges of green PRs.
-12. **`ds-ingest-bucket`.** Recommended: extract it to its own repository
-    when the bucket goes live (phase 4), not before.
-13. **`common` runtime extraction.** Recommended: do the internal
-    `ds-runtime` split now (phase 3). Publish a neutral crate only if a
-    Forgejo Rust service (deploy-bringer, worklog-mcp) wants the same code.
+    `main`, with no required reviews or checks, which matches today's direct
+    merges of green PRs.
+12. **`ds-ingest-bucket`.** Recommended: put it in `ds-deploy` with the main
+    chart, not in its own repository. It is a chart with its own version
+    already.
+13. **Automerge.** Recommended: automerge the green `ds-core` bump PRs in
+    consumers, and the grouped image PRs in `ds-deploy`. This keeps today's
+    "green main reaches a chart build" speed. The human gate stays where it
+    is: the Ranma-Config chart PR, filed to deploy-bringer and approved with
+    the passkey.
