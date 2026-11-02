@@ -111,6 +111,7 @@ uv run scripts/gen-db-grants.py check        # db-grants.yaml vs files/postgres-
 uv run scripts/sync-chart-core-files.py --check  # chart copies of db-grants.yaml and the Redis ACL (rewrite without --check)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
 uv run --no-sync scripts/check-crate-deps.py # ds-store/ds-migrate stay free of axum, redis, reqwest...
+uv run --no-sync scripts/release-order.py check --values charts/distant-signal/values.yaml --source  # image version labels vs the chart's ordering rules
 uv run --locked --no-default-groups scripts/check-migration-order.py "$(git merge-base origin/main HEAD)"
 helm lint --strict charts/distant-signal
 helm lint --strict charts/distant-signal -f charts/distant-signal/values-example.yaml
