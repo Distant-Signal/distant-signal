@@ -8,9 +8,10 @@ the same day after two decisions by the user:
 - license every DS repository under AGPL-3.0-or-later.
 
 Revised again the same day: the user accepted every recommendation in the
-first list of open questions (§10.1), and asked for a git history rewrite
-as part of the migration (§5.11). The history figures in §5.11 were measured
-against `main` at `cc44d13c`.
+first list of open questions, and asked for a git history rewrite as part
+of the migration (§5.11). The user then decided every rewrite question,
+including a mainline squash. All of these are recorded in §10.1. The
+history figures in §5.11 were measured against `main` at `cc44d13c`.
 
 This spec moves Distant Signal (DS) from the single
 `FasterSpeeding/Distant-Signal` repository into the GitHub organisation
@@ -22,9 +23,14 @@ that DS uses or could share.
 `Distant-Signal/distant-signal`. It keeps its stars, issues, PRs and
 old-URL redirects, and it stays the landing repository and the frontend's
 home. License everything AGPL-3.0-or-later before the transfer. In the same
-frozen window as the transfer, rewrite the history once (§5.11): one
-author identity, no Claude attribution, every commit kept one for one,
-and the original history frozen in a private archive. Then cut
+frozen window as the transfer, rewrite the history once (§5.11):
+- squash each mainline step into one commit, about 1,650 commits from
+  5,365, each with the exact tree `main` had;
+- use one author identity;
+- remove Claude attribution;
+- freeze the original history in a private archive.
+
+Then cut
 seams inside the monorepo and extract the shared libraries first, as
 `ds-core`. After that, extract one repository at a time, each with
 `git filter-repo` history:
@@ -391,7 +397,7 @@ project front page.
 
 | Candidate | For | Against |
 |---|---|---|
-| **The transferred repository, keeping the frontend (chosen)** | The 5,360 commits (rewritten one for one, §5.11), the star, the 142 PRs and the issues stay. Every old link redirects: Ranma-Config, the deploy records, Renovate PR bodies, DS-MCP comments, old alert annotations. | Its history is the whole monorepo's, which is useful: `contract:` migration headers cite its commits, resolved through the commit map (§5.11.8). |
+| **The transferred repository, keeping the frontend (chosen)** | The history (squashed per mainline step, §5.11), the star, the 142 PRs and the issues stay. Every old link redirects: Ranma-Config, the deploy records, Renovate PR bodies, DS-MCP comments, old alert annotations. | Its history is the whole monorepo's, which is useful: `contract:` migration headers cite its commits, resolved through the many-to-one commit map (§5.11.8). |
 | A new frontend repository | A clean start. | Loses the stars, issues and PR history, and the old links would point at an archived repository. |
 | A thin meta or docs repository | A front page independent of code churn. | Nothing to build, so the README drifts. It adds a hop. The `.github` profile already plays this role at the organisation level. |
 | `ds-core` | The technical centre. | Not what visitors come for. Its README is for crate consumers. |
@@ -472,7 +478,7 @@ every extract would need a fresh history.
 
 The transfer keeps the repository; it does not keep the SHAs. The history
 rewrite (§5.11) runs in the same frozen window and force-pushes `main`
-once. Old PR pages keep showing the original commits, because GitHub
+once, after squashing it to one commit per mainline step. Old PR pages keep showing the original commits, because GitHub
 manages `refs/pull/*` and they can't be rewritten. The original history
 stays complete in the private archive (§5.11.7).
 
@@ -793,7 +799,7 @@ No extraction rewrites identity or messages again:
    rewrite. Don't pass `--mailmap`, `--email-callback`, `--name-callback`
    or `--message-callback` here: the identity was settled once, and a
    second rewrite would only add a second map to chain. Run the identity
-   and attribution checks of §5.11.6 (items 5 to 7) on every extract
+   and attribution checks of §5.11.6 (items 6 to 8) on every extract
    anyway, before its first push.
 4. **Commit the commit map.** filter-repo's `commit-map` (landing SHA to
    extract SHA) goes in as `docs/history/commit-map.tsv`. Old SHAs resolve
@@ -938,44 +944,53 @@ on that account, not through the repository owner.
 
 ### 5.11 History rewrite
 
-The history is rewritten once, in phase 1, before any extraction. It does
-three things:
+The history is rewritten once, in the phase 1 freeze, before any
+extraction (§10.1, decisions 14 to 22). It does three things:
 
-- normalises every identity to `FasterSpeeding <lucy@cursed.solutions>`;
-- strips Claude attribution from commit messages;
-- keeps every commit, tree, parent and date, one for one.
+- **Squashes the mainline.** Each mainline step becomes one commit: a
+  direct commit, a PR merge or a local merge. That turns 5,365 commits into
+  1,650, with no merges left. Every new commit's tree is exactly the tree
+  `main` had at that step.
+- **Normalises your identity.** Both of your old addresses become
+  `FasterSpeeding <lucy@cursed.solutions>`.
+- **Strips Claude attribution** from commit messages.
 
-It does **not** regroup commits (§5.11.4). The original history is frozen
-in a private archive repository (§5.11.7).
-
-All figures are from `main` at `cc44d13c` (5,365 commits) unless stated.
-Across all branches there are 5,380 commits.
+The original history is frozen in a private, archived repository
+(§5.11.7). All figures are from `main` at `cc44d13c`.
 
 #### 5.11.1 Identities
 
-| Identity today | Author | Committer | Becomes |
+| Identity today | Author | Committer | After the rewrite |
 |---|---:|---:|---|
 | `FasterSpeeding <lucina@lmbyrne.dev>` | 5,334 | 5,197 | `FasterSpeeding <lucy@cursed.solutions>` |
 | `FasterSpeeding <lukecmb@gmail.com>` (5 commits on 2026-09-03, the client-local timezone work) | 5 | 5 | `FasterSpeeding <lucy@cursed.solutions>` |
 | `Claude <noreply@anthropic.com>` (one commit, `aa3ab695`, a docs fix) | 1 | 1 | `FasterSpeeding <lucy@cursed.solutions>` |
-| `GitHub <noreply@github.com>` (134 PR merges, 3 other merges and 25 Renovate squash commits, all made on GitHub) | 0 | 162 | committer `FasterSpeeding <lucy@cursed.solutions>` |
-| `mine-bringer-renovate[bot] <…@users.noreply.github.com>` | 25 | 0 | unchanged |
+| `GitHub <noreply@github.com>` | 0 | 162 | **kept** as committer |
+| `mine-bringer-renovate[bot] <…@users.noreply.github.com>` | 25 | 0 | **kept** as author |
 
-**The Claude-authored commit is reattributed.** The user asked for no
-Claude attribution, and this is the only commit where Claude is the author
-rather than a trailer. Its `Co-Authored-By` trailer goes under §5.11.3 like
-every other.
+GitHub committed 162 commits:
 
-**GitHub-made commits are normalised to the owner as committer.** There
-are 159 commits with a GitHub signature today. Any rewrite drops every
-signature, so after it "committed by GitHub" would be an unsigned claim
-that GitHub made a commit it never made. The rewritten commit is in fact
-committed by the owner running the rewrite. The author (FasterSpeeding or
-the Renovate bot) and both dates are kept. Merges made on GitHub **after**
-the rewrite keep GitHub as committer, because GitHub really signs those.
+- 134 PR merges;
+- 25 Renovate branch commits, made through GitHub's API;
+- 3 other merges, from GitHub's "Update branch" button.
 
-**The Renovate bot keeps its authorship.** It isn't one of the user's
-identities, and its noreply address already links to the bot.
+**How the squash keeps these identities:**
+
+- **Committer and both dates** come from the original mainline commit
+  of that step. So every PR merge's squashed commit keeps GitHub as
+  committer (134 in the rehearsal), with the merge's dates.
+- **The Renovate branch commits and the 3 "Update branch" merges** sit
+  inside PRs. They fold into their PR's commit, and its committer is
+  GitHub because the merge's was.
+- **Renovate's commits are not edited.** None carries an old address, and
+  the identity rules only match the three addresses above. Each Renovate
+  PR's commits fold, like any PR's, into one commit that keeps the bot as
+  author (20 such commits) and GitHub as committer.
+- **The Claude-authored commit** `aa3ab695` is reattributed to you through
+  the mailmap. Its `Co-Authored-By` trailer goes under §5.11.3.
+
+GitHub's signatures are lost in any rewrite. The 159 signed commits become
+unsigned commits whose committer is still GitHub.
 
 #### 5.11.2 What mentions Claude in commit messages today
 
@@ -988,40 +1003,43 @@ Scanning `git log origin/main --format=%B`: 3,609 messages contain
 | `Claude-Session: https://claude.ai/code/session_…` trailers | 11 | strip mechanically |
 | "🤖 Generated with [Claude Code](…)" footers | 0 in commits (109 PR bodies) | strip mechanically wherever found |
 | Messages where nothing mentions Claude once the above are gone | 3,538 | none needed |
-| **Messages that still mention Claude: the review list** | **71** | reviewed, not stripped |
+| **Messages that still mention Claude** | **71** | kept as they are (§10.1, decision 19) |
 
-The 71 messages on the review list, by what the mention is:
+The 71 messages that still mention Claude, by what the mention is:
 
-| Mention | Messages | Default |
-|---|---:|---|
-| The product's `/connect-claude` route, the Claude connector and the user's Claude API key (`ClaudeKeySettings`) | 44 | keep: product history |
-| The enricher's Anthropic/Claude LLM provider, Message Batches, `claude-default` eval profiles | 14 | keep: product history |
-| Claude.ai and Claude Desktop as MCP clients of the API | 3 | keep: product history |
-| Other product prose ("Claude with your own API key", Claude Message Batch alerts, the user's own Claude client) | 6 | keep: product history |
-| `Merge pull request #3/#4 from FasterSpeeding/claude/…` (branch names) | 2 | keep: a branch name is a fact about the merge |
-| `CLAUDE.md` and a `.claude/` path named in prose | 2 | keep: they name tracked files |
+| Mention | Messages |
+|---|---:|
+| The product's `/connect-claude` route, the Claude connector and the user's Claude API key (`ClaudeKeySettings`) | 44 |
+| The enricher's Anthropic/Claude LLM provider, Message Batches, `claude-default` eval profiles | 14 |
+| Claude.ai and Claude Desktop as MCP clients of the API | 3 |
+| Other product prose ("Claude with your own API key", Claude Message Batch alerts, the user's own Claude client) | 6 |
+| `Merge pull request #3/#4 from FasterSpeeding/claude/…` (branch names) | 2 |
+| `CLAUDE.md` and a `.claude/` path named in prose | 2 |
 
-So none of the 71 is attribution. File names and file contents that
-mention Claude (`CLAUDE.md`, `crates/enricher/prompts/claude-haiku-5.*`,
-`ClaudeKeySettings.tsx`, `docs/enricher-anthropic.md`) are product content
-and are never touched.
+None of them is attribution. After the squash, only 25 commit messages
+mention Claude, because folded commits contribute only their subjects. All
+25 are product content: 15 are about the connector or the API key, and 10
+about the LLM provider or MCP clients.
 
-#### 5.11.3 Rewrite rules
+File names and file contents that mention Claude are product content, and
+the rewrite never touches them:
 
-**Identity.** One mailmap, passed with `--mailmap`. filter-repo applies it
-to authors and committers; the match is on the address and is
-case-insensitive:
+- `CLAUDE.md`;
+- `crates/enricher/prompts/claude-haiku-5.*`;
+- `ClaudeKeySettings.tsx`;
+- `docs/enricher-anthropic.md`.
+
+#### 5.11.3 Identity and attribution rules
+
+**Identity.** One mailmap. filter-repo applies it to authors and
+committers; the match is on the address and is case-insensitive. GitHub
+and the Renovate bot aren't in it, so they are never touched.
 
 ```text
 FasterSpeeding <lucy@cursed.solutions> <lucina@lmbyrne.dev>
 FasterSpeeding <lucy@cursed.solutions> <lukecmb@gmail.com>
 FasterSpeeding <lucy@cursed.solutions> <noreply@anthropic.com>
-FasterSpeeding <lucy@cursed.solutions> <noreply@github.com>
 ```
-
-No author uses `noreply@github.com`, so the last line changes only
-committers. A mailmap is declarative, which makes it easier to review than
-an `--email-callback` doing the same thing.
 
 **Messages.** One `--message-callback`. filter-repo passes it the raw
 message as `bytes` and uses the return value:
@@ -1052,25 +1070,11 @@ In words:
 4. Only in a message where something was deleted, remove trailing spaces,
    collapse runs of blank lines to one, and end with exactly one newline.
    Every other message is returned byte for byte.
-5. Nothing else is touched. Any "claude" left after rules 1 to 3 goes on
-   the review list. The `Task: DS-…` trailers (624) stay.
-
-filter-repo also rewrites abbreviated commit IDs inside messages by
-default, so "fixed in `9cb89d89`" points at the new commit. Messages hold
-569 distinct hex tokens. In the rehearsal, filter-repo left 7 as-is, and
-none of them was a commit: they were migration timestamps and agent
-worktree IDs.
-
-**The review list.** `scan-messages.py` writes `review.tsv` with the
-columns old SHA, category, line, decision. Every row needs a decision
-before the real run. `keep` is the default for all 71 rows. An `edit`
-decision becomes an exact old-to-new line replacement in
-`message-overrides.tsv`, keyed by old SHA, which the callback applies
-after rule 3. With every row on `keep`, there are no overrides.
+5. Nothing else is touched. `Task:` trailers stay.
 
 **File contents.** No file on `main`, on any branch, or in any tag names
-either old address, except this spec on `docs/repo-split-spec`, which has
-to name them. The rewrite passes `--replace-text` with:
+either old address, except this spec, which has to name them. The rewrite
+passes `--replace-text` with:
 
 ```text
 lucina@lmbyrne.dev==><old address>
@@ -1078,37 +1082,31 @@ lukecmb@gmail.com==><old address>
 ```
 
 That changes this spec's blob in every commit that contains it, and
-nothing else. The mailmap that names the addresses lives in the private
-archive (§5.11.7), not in any public repository.
+nothing else. The mailmap lives in the private archive (§5.11.7), not in
+any public repository.
 
 **Tags and releases.** There are none today: no tags and no GitHub
-releases. If any exist at the rewrite, filter-repo rewrites annotated tags'
-tagger through the same mailmap. Run the message rules over each tag
-message with `--refs` including `refs/tags/*`, and re-create each release
-on its rewritten tag.
+releases. If any exist at the rewrite, each tag is moved to the squashed
+commit that its target maps to. Its tagger goes through the mailmap, and
+its message goes through the message rules.
 
-**PR titles, bodies and comments.** These aren't in git, so they are
-edited through the API.
+**PR titles, bodies and comments** (§10.1, decision 17). These aren't in
+git, so they are edited through the API.
 
 - No PR title mentions Claude.
 - 109 of 143 PR bodies end with the "🤖 Generated with [Claude Code]"
   footer. None has a `Co-Authored-By` line or an old address.
 - 2 PR comments (#29 and #33) carry the footer. Issue bodies carry none.
 
-Recommended: **do it.** It is one script, `strip-pr-footers.py`. It reads
-each body through `gh api`, applies rules 1 to 4, and `PATCH`es only when
-something changed, at under 2 minutes for 111 calls. Those pages are the
-most visible place the attribution sits, and they stay after the
-transfer.
+`strip-pr-footers.py` reads each body through `gh api`, applies rules 1 to
+4, and `PATCH`es only when something changed: 111 calls. GitHub keeps a
+body's edit history, which anyone who can see the PR can open, so this
+cleans the page but doesn't erase the old text. The script is independent
+of the git rewrite and runs in phase 0.
 
-One caveat: GitHub keeps a body's edit history, which anyone who can see
-the PR can open. Deleting a revision is a per-revision click in the web
-UI, with no API. Treat the edit as presentation, not erasure (question
-§10.2.5).
+#### 5.11.4 Mainline squash
 
-#### 5.11.4 Regrouping history: evaluated, not recommended
-
-**What the history looks like** (`main` at `cc44d13c`):
+**Why a squash, on the numbers** (`main` at `cc44d13c`):
 
 | Measure | Value |
 |---|---:|
@@ -1116,235 +1114,328 @@ UI, with no API. Treat the edit as presentation, not erasure (question
 | Merge commits | 1,246 (23%) |
 | First-parent chain | 1,679 commits (31% of history): 790 direct commits and 889 merges |
 | Merged PRs | 134, all into `main`, the first on 2026-10-04 |
-| PR merges on the first-parent chain | 120 |
-| Commits per PR | mean 3.3, median 2, max 22 (399 commits under the 120 merges) |
+| Commits per PR | mean 3.3, median 2, max 22 |
 | Commits that arrived through a PR | 545 (10%) |
 | Local (non-PR) merges on the first-parent chain | 769, carrying 3,287 commits: mean 4.3, median 2, max 103 |
-| Of those, merges of `main` *into* a branch that `main` later fast-forwarded to | 111 |
-| Since the first PR (2026-10-04), first-parent steps | 526: 123 PR merges, 261 direct commits, 69 local merges, 73 reverse merges |
+| Merges on the first-parent chain whose subject has "into" | 111: 34 merges of `main` into a branch, and 77 merges into an integration branch |
 
-Ninety per cent of the history never went through a PR, and even since
-PRs started they are under a quarter of the first-parent steps.
+A per-PR squash would only reach the 10% of history that went through PRs,
+so the squash works on mainline steps. A thematic regrouping was rejected:
+its trees never existed and wouldn't build.
 
-**The options:**
+**1. Find the mainline.** Walk back from the tip of `main`, normally along
+the first parent. The exception is a merge of `main` into a branch. Its
+subject matches
+`^Merge (?:(?:remote-tracking )?branch '(?:origin/)?main'|origin/main\b).* into `
+(34 on today's first-parent chain). For such a merge, follow the **second**
+parent.
 
-| Option | Result | Bisect | Provenance | In-repo SHA references (124 distinct, 63 not on the first-parent chain) | Effort and risk |
-|---|---|---|---|---|---|
-| **A. One for one (recommended)** | 5,365 commits, same trees, parents and dates | Unchanged. `git bisect --first-parent` already gives the mainline view | Every message, `Task:` trailer and date kept | All 124 map one to one. filter-repo also rewrites commit IDs cited in messages | About half a day plus verification. filter-repo native; each commit is checked by tree equality |
-| B. Collapse each PR into one commit | Only the 120 PR merges collapse, about 400 fewer commits. The other 90% is untouched | Coarser for PR-era changes only | PR merges lose their branch commits and messages | The commits inside PRs map many to one | Custom script. It still needs A's rules, so it is more work than A for a small cosmetic gain |
-| C. Mainline squash: each first-parent step becomes one commit, with `PR: #n` trailers where there is a PR | About 1,650 to 1,680 commits (69% fewer) | Every commit was a real `main` state, but a step can hold up to 103 commits' work | Messages concatenated; per-commit authorship and dates are lost (one author anyway) | 63 references land in a squashed commit, many to one. The `.git-blame-ignore-revs` Prettier commit (`1d552032`) merges with other work, so blame can't skip it any more | Custom `git commit-tree` script, about 1.5 to 2 days. The 111 reverse merges make the first-parent chain wander into branch history, so each one needs repairing by hand (follow the second parent). Extracts inherit steps whose messages describe other areas' work |
-| D. Thematic regrouping (features, fixes, migrations) | Some tens of commits | Broken: the regrouped trees never existed and would not build | Lost | Mostly unresolvable | Days of hand work, can't be checked by tree equality, and it fights `contract:` ordering. Rejected |
+Here is what happened in those cases. A branch merged `main` in, then
+`main` fast-forwarded to the branch. The first-parent walk then wanders
+into the branch's history and sees `main`'s own steps as the side branch.
+Following the second parent keeps `main`'s real steps, and folds the
+branch's work into the merge's step, where it landed. Walking that way
+reaches 37 such merges, including 3 that the plain first-parent chain never
+visits.
 
-**Fixed points every option shares:**
+The other 77 "into" merges merge an agent branch into an integration
+branch, such as `integ-batch2` or `integration-preview`. That integration
+branch was then fast-forwarded onto `main`. Those merges are kept as
+ordinary steps: each one is one agent branch's work landing. That makes
+1,648 steps:
 
-- **Migration headers can't change.** Migrations are immutable and
-  checksum-locked. The 3 real `-- contract:` headers cite `9cb89d89`,
-  `b944ddb0` and `e44f98f3`, and those texts stay old SHAs forever. They
-  resolve through `docs/history/commit-map.tsv`. Under A the map gives one
-  exact commit. Under C two of the three land inside a squashed step.
-- **Chart OCI tags** `0.4.1+build.<run>.sha.<short>` already published keep
-  their old short SHAs, and so do images' `build.<run>-<sha>` tags and
-  `org.opencontainers.image.revision` labels. Semver ignores build
-  metadata, and the base goes to 0.5.0 at phase 1 anyway, so Renovate
-  ordering is safe under every option.
-- **The image-label ordering checks** (§5.1, §5.3) compare `core-version`
-  tags and api build run numbers, never SHAs, and they arrive in phase 3,
-  after the rewrite. No option affects them.
-- **Old PR and issue links to SHAs** break the same way under every option,
-  because every SHA changes. The transferred repository's old PR pages keep
-  their original commits through GitHub-managed `refs/pull/*`. Everything
-  else resolves through the map and the archive.
-- **Per-repository extraction** (§5.6) works on any of them. Under A each
-  extract gets per-crate commits with accurate messages. Under C an extract
-  gets mainline steps whose messages also describe work that stayed behind.
+- 721 direct commits;
+- 756 local merges;
+- 134 PR merges, all of them, including the 14 that weren't on the plain
+  first-parent chain;
+- 37 repaired reverse merges.
 
-**Recommendation: A, applied once to the monorepo before any extraction.**
-The tidy view that regrouping would buy already exists without rewriting:
+Every repaired merge is listed in the rehearsal log for a read-through.
 
-- `git log --first-parent` and `git bisect --first-parent` show the
-  mainline;
-- GitHub's PR list shows the PR-era changes.
+**2. Fold.** Each step S takes every commit reachable from S and not from
+the previous step (`git rev-list ^prev S`). Every original commit lands in
+exactly one step. In the rehearsal, 498 steps fold more than one work
+commit, at most 59.
 
-Regrouping costs exact SHA resolution, blame-ignore, and a large part of
-the provenance the user's `Task:` trailers carry. It also only reaches the
-10% of history that went through PRs, unless it is C, which is the riskiest
-mechanical option. Doing the rewrite once, before extraction, gives every
-repository the same clean identity, and needs one map rather than one per
-extract. If the user still wants C, it slots into the same phase 1 window
-in place of A's commit graph. That is question §10.2.1.
+**3. Pinned commits.** A commit listed in `.git-blame-ignore-revs` keeps
+its own commit, so blame can still skip it exactly. Today that is one
+commit: the frontend Prettier reformat `1d552032`. Its step folds 4
+commits:
+
+1. the Prettier scope change;
+2. a test made whitespace-tolerant;
+3. the reformat;
+4. the blame-ignore file itself.
+
+The step is split into three commits, and each tree is a real original
+tree:
+
+1. the commits before the pin, whose tree is the pin's parent's tree;
+2. the pin alone;
+3. the rest of the step, whose tree is the step's tree.
+
+That adds 2 commits, so the total is 1,650.
+
+**4. The message of each new commit:**
+
+- **A direct commit** keeps its message.
+- **A step with one work commit** keeps that commit's message.
+- **A squashed step:**
+
+  ```text
+  <title>
+
+  Squashes <n> commits:
+
+  - <subject of each folded non-merge commit, oldest first>
+
+  PR: #<n>                        (PR merges only)
+  Task: DS-<…>                    (every distinct Task: of the folded commits)
+  Archive: <original step SHA>
+  ```
+
+The title is picked like this:
+
+1. For a PR merge, the PR title from GitHub's merge message, then
+   ` (#<n>)`.
+2. For a local merge with a written summary (`Merge: …`, or
+   `Merge <branch>: …`), that summary, with the `Merge` prefix dropped.
+3. For a merge with only git's default subject (`Merge branch 'x'`, about
+   280 steps), the subject of the folded commit that changed the most
+   lines.
+4. `title-overrides.tsv`, keyed by original step SHA, can replace any
+   title after a read of the rehearsal's `git log --oneline`.
+
+Folded commits' bodies, including their attribution trailers, aren't
+copied. The `Archive:` line points at the original step, so
+`git log ^<prev> <step>` in the archive lists exactly what was folded. All
+170 distinct `Task:` IDs survive; the rehearsal checked the set.
+
+**5. Author and dates.**
+
+- **Author:** the most frequent mapped author among the folded work
+  commits; on a tie, the most recent one. That is FasterSpeeding
+  everywhere except Renovate PRs, where it is the bot.
+- **Dates and committer:** the author date, the committer and the
+  committer date come from the original step commit, so the new history's
+  dates are those of when each step reached `main`.
+- **Pinned commits** keep their own author and dates.
+
+**6. Identity, attribution and hashes.** Then the result goes through
+filter-repo with the rules of §5.11.3. filter-repo's own hash rewriting
+updates commit IDs cited in the kept messages. Stage 1 first resolves each
+original SHA in a message to the squashed commit that folded it.
+
+- 35 references in the rehearsal pointed at an earlier step and were
+  rewritten.
+- 2 point at a commit that lands in a later step. They are left as
+  original SHAs and resolve through the map.
+
+**7. The commit map goes many to one.** `docs/history/commit-map.tsv` has
+one row per original commit, with three columns:
+
+- `original`;
+- `rewritten`;
+- `kind`: `step` for the original mainline commit, `folded` for a commit
+  inside a step, or `pinned`.
+
+There are 5,365 rows pointing at 1,649 rewritten commits. The extra pinned
+pre-step has no original of its own.
+
+**Costs we accept:**
+
+- `git bisect` lands on a step, up to 59 commits; bisect further inside
+  it in the archive.
+- Per-commit authorship and dates inside a step are lost. It was one
+  person anyway, apart from the bot, and the archive keeps them.
+- Extracts (§5.6) get steps whose folded subjects also describe work that
+  stayed behind in another repository.
 
 #### 5.11.5 When: phase 1, behind a freeze
 
 The rewrite changes every SHA. Doing it at the transfer means the one URL
 break and the one SHA break happen together. Ranma-Config is edited in that
 window anyway, and the first organisation-built chart (0.5.0) is already
-built from rewritten history. Doing it per extraction instead would leave
-the landing repository, which holds most of the history, unrewritten, and
-would need a fresh map per extract.
+built from rewritten history. Rewriting per extraction instead would leave
+the landing repository unrewritten, and would need a map per extract.
 
 Order inside phase 1 (§9 has the full phase):
 
-1. **Freeze.** Merge or close every open PR, PR #149 included. Pause
-   Renovate on the repository. Push every branch worth keeping to
-   `origin`, and abandon the rest: filter-repo rewrites every branch it is
-   given, so a pushed branch comes through rewritten. Stop agent sessions
-   and remove their worktrees. Make sure deploy-bringer has no DS chart PR
-   in flight.
+1. **Freeze.**
+   - Merge or close every open PR, PR #149 included.
+   - Pause Renovate on the repository.
+   - Delete every other branch. Only `main` survives the squash. A branch
+     still wanted is recreated afterwards by cherry-picking onto the new
+     `main`.
+   - Stop agent sessions and remove their worktrees.
+   - Make sure deploy-bringer has no DS chart PR in flight.
 2. **Archive** the original (§5.11.7).
 3. **Transfer and rename.** Disable Actions on the repository for the
    window.
-4. **Rewrite** in a fresh clone of heads and tags only (§5.11.6), and
-   verify it.
-5. **Force-push** each branch with
-   `git push --force-with-lease=<branch>:<original sha>`, then delete the
-   remote branches that weren't kept.
+4. **Rewrite and verify** (§5.11.6).
+5. **Force-push** `main` with
+   `git push --force-with-lease=main:<original sha>`.
 6. **Re-enable Actions.** The first commit after the rewrite is a normal
-   PR that adds:
+   PR. It adds:
    - `docs/history/commit-map.tsv`;
-   - `.git-blame-ignore-revs` with the mapped SHA of `1d552032`. filter-repo
-     doesn't edit file contents, so this one file is fixed by hand;
+   - the SHA references in files (§5.11.8), including
+     `.git-blame-ignore-revs`;
    - the identity check step (§5.10);
    - the chart base bump to 0.5.0.
 
    Its build is the first organisation build.
 7. **Create the organisation ruleset** (§5.9).
-8. **Re-clone everywhere.** Don't fetch into an old clone. An old clone
-   can't silently merge the new history in: `git pull` refuses unrelated
-   histories, and the ruleset blocks a force-push. Keep the old clone
-   renamed (`Distant-Signal.pre-rewrite`) until phase 2 ends, then delete
-   it.
+8. **Re-clone everywhere.** Don't fetch into an old clone. `git pull`
+   refuses unrelated histories, and the ruleset blocks a force-push, so an
+   old clone can't merge the original history back in. Keep the old clone
+   renamed (`Distant-Signal.pre-rewrite`) until phase 2 ends.
 
 #### 5.11.6 Tooling and verification
 
-**Install.** `git-filter-repo` isn't installed and doesn't need to be. Run
-it through uv at a pinned version:
+**Two stages.** The scripts live on a `tooling` branch of the private
+archive, because the mailmap names the old addresses. They are typed
+stdlib Python, checked with ruff and `mypy --strict`.
 
-```sh
-uv tool run --from 'git-filter-repo==2.47.0' git-filter-repo --version
-```
+1. **`squash.py`** builds the new linear history in a throwaway bare
+   clone, with `git commit-tree`. It covers §5.11.4 steps 1 to 5 and
+   writes the stage-1 map.
+2. **`git-filter-repo`** then applies the mailmap, the message callback
+   and `--replace-text` (§5.11.3). It isn't installed; run it through uv
+   at a pinned version:
 
-The scripts live on a `tooling` branch of the private archive
-(§5.11.7), because the mailmap names the old addresses:
+   ```sh
+   uv tool run --from 'git-filter-repo==2.47.0' git-filter-repo \
+     --mailmap ../tooling/mailmap \
+     --replace-text ../tooling/replace-text.txt \
+     --message-callback "$(cat ../tooling/message_callback.py)"
+   ```
 
-- `rewrite.py`;
-- `message_callback.py`;
-- `scan-messages.py`;
-- `verify-rewrite.py`;
-- `strip-pr-footers.py`.
+3. **`compose-map.py`** joins the stage-1 map with filter-repo's
+   `filter-repo/commit-map` into `docs/history/commit-map.tsv`.
 
-They are typed stdlib Python, checked with ruff and `mypy --strict`, with
-uv for anything else.
+The other scripts are `scan-messages.py`, `verify-rewrite.py` and
+`strip-pr-footers.py`. Work in a bare clone of `main` only, with the
+remote removed, so nothing pushes by accident.
 
-**The run:**
+**Rehearsals, both on throwaway local copies, never pushed, deleted
+afterwards:**
 
-```sh
-git clone --bare https://github.com/Distant-Signal/distant-signal.git rewrite.git
-cd rewrite.git
-git remote remove origin   # nothing pushes by accident
-uv tool run --from 'git-filter-repo==2.47.0' git-filter-repo \
-  --mailmap ../tooling/mailmap \
-  --replace-text ../tooling/replace-text.txt \
-  --message-callback "$(cat ../tooling/message_callback.py)"
-```
-
-A bare clone fetches `refs/heads/*` and `refs/tags/*`, and not
-`refs/pull/*`, which GitHub would refuse anyway. filter-repo writes
-`filter-repo/commit-map` and `filter-repo/ref-map`.
-
-**Rehearsal, already done once.** On 2026-11-02 the exact rules above ran
-on a throwaway local copy of every branch. It was never pushed, and it was
-deleted after the run. The results:
-
-- 5,371 commits in 20 seconds;
-- 5,371 mapped and 0 pruned;
-- trees identical in every commit except the 2 that contain this spec;
-- exactly two identities left: FasterSpeeding with the new address, and
-  the Renovate bot;
-- zero old addresses in messages or blobs;
-- zero attribution trailers or footers;
-- 71 messages still mentioning Claude, which is the review list;
-- no empty messages;
-- `Task:` trailers intact.
+- **The identity and message rules alone,** with filter-repo, over every
+  branch. 5,371 commits in 20 s, 0 pruned. Trees were identical except
+  the 2 commits containing this spec, with zero old addresses and zero
+  attribution lines.
+- **The squash prototype,** with the identity and attribution rules applied
+  inline, on `main` at `cc44d13c`. It ran in 27 s:
+  - 5,365 commits became 1,650, with zero merges: 1,648 steps plus the
+    Prettier pin and its pre-step;
+  - every new commit's tree equalled its original's, and the tip trees
+    were equal;
+  - authors: 1,630 FasterSpeeding and 20 the Renovate bot;
+  - committers: 1,516 FasterSpeeding and 134 GitHub;
+  - zero old addresses and zero attribution lines;
+  - 25 messages mention Claude, all of them product content;
+  - 170 of 170 `Task:` IDs kept.
 
 **Verification checklist** (`verify-rewrite.py`, run before the push; every
-item must pass). Fetch the archive's original refs into the rewrite clone
-as `refs/verify/original/*`, so both histories sit in one object store.
+item must pass). Fetch the archive's original `main` into the rewrite clone
+as `refs/verify/original/main`.
 
-1. **Refs.** Every kept branch is rewritten. `git rev-list --count` on
-   each one equals the original's.
-2. **Map.** `commit-map` has one row per original commit and no
-   all-zero (pruned) rows.
-3. **Trees.** For each mapped pair, `git diff --name-only <old> <new>` is
-   empty. Where it isn't, it lists only `docs/specs/repo-split.md`, and
-   only the two addresses differ.
-4. **Graph and dates.** Each new commit's parents are the mapped parents of
-   its original. Author and committer timestamps and time zones are
-   unchanged.
-5. **Identities.** `git log --all --format='%an <%ae>%n%cn <%ce>' | sort -u`
-   prints exactly `FasterSpeeding <lucy@cursed.solutions>` and the Renovate
-   bot.
-6. **Old addresses: zero** in messages
-   (`git log --all --format=%B | grep -ciE 'lmbyrne|lukecmb'`), in any blob
-   (`git log --all -G'lmbyrne\.dev|lukecmb@gmail\.com'`), and in tag
-   messages.
-7. **Attribution: zero.** Zero lines match the drop pattern in any commit
-   or tag message, and `git interpret-trailers --parse` finds no
-   `@anthropic.com` co-author.
-8. **Messages otherwise untouched.** For each pair, the old message with
-   rules 1 to 4 applied and the SHA substitutions from the map equals the
-   new message.
-9. **Review list handled.** A fresh scan's remaining "claude" messages
-   equal `review.tsv` row for row, every row has a decision, and every
-   `edit` was applied.
-10. **Build.** The rewritten tip's tree equals the original tip's, so CI
-    on the first post-rewrite PR is the build check.
+1. **Shape.** The new `main` is linear, with zero merges. Its length is
+   the number of mainline steps plus pins plus pre-steps: 1,650 at
+   `cc44d13c`. Recompute the expected number from the original at rewrite
+   time.
+2. **Trees.**
+   - Each step commit's tree equals its original step commit's tree.
+   - Each pinned commit's tree equals the original pin's tree.
+   - Each pre-step's tree equals the pin's parent's tree.
+   - Allowed difference: `docs/specs/repo-split.md` with only the two
+     addresses changed.
+   - The tip trees are equal under that same rule.
+3. **Map.** Every original commit appears exactly once. Every target
+   exists in the new history. `step` rows are one to one with the mainline
+   steps, in order.
+4. **Mainline.**
+   - Every one of the 134 PR merges is a step with `PR: #n`.
+   - The repaired reverse merges match the subject rule, and each is listed
+     in the log.
+   - Each step's parent is the previous step.
+5. **Dates.** Each step keeps its original step commit's committer date and
+   author date.
+6. **Identities.** `git log --format='%an <%ae>'` gives only
+   `FasterSpeeding <lucy@cursed.solutions>` and the Renovate bot.
+   `--format='%cn <%ce>'` gives only that identity and
+   `GitHub <noreply@github.com>`. The GitHub count equals the number of
+   steps whose original committer was GitHub.
+7. **Old addresses: zero** in messages and in any blob:
+   - `git log --format=%B | grep -ciE 'lmbyrne|lukecmb'`;
+   - `git log -G'lmbyrne\.dev|lukecmb@gmail\.com'`.
+8. **Attribution: zero** lines matching the drop pattern, and no
+   `@anthropic.com` co-author from `git interpret-trailers --parse`.
+9. **Provenance.**
+   - The set of `Task:` IDs equals the original's.
+   - Every squashed commit has an `Archive:` line that resolves in the
+     archive.
+   - The remaining Claude mentions match `scan-messages.py`'s list. It
+     should all be product content; anything else stops the run.
+10. **Build.** The tip tree equals the original tip's, so CI on the first
+    post-rewrite PR is the build check.
 
 #### 5.11.7 The archive: `Distant-Signal/distant-signal-archive`
 
-**Recommendation: a separate archive repository, private and archived.
-Not a `refs/archive/*` namespace in the landing repository.**
+The archive is a separate repository, **private and archived** (§10.1,
+decision 15). It is not a `refs/archive/*` namespace in the landing
+repository.
 
 **What it holds:**
 
 - every original branch;
 - the original `refs/pull/<n>/head` commits pushed as branches
   `pull/<n>`, since GitHub refuses pushes to `refs/pull/*`;
-- the `tooling` branch (§5.11.6);
+- the `tooling` branch;
 - a `git bundle create --all` of the original mirror, attached as a
   release asset;
-- a README that names the rewrite date, the final original `main` SHA, and
-  the map.
+- a README naming the rewrite date, the final original `main` SHA, and the
+  map.
 
-Archive it (read-only) as soon as the rewrite is verified.
+Archive it (read-only) once the rewrite is verified.
 
 **Why not `refs/archive/*` in the landing repository:** GitHub serves a
 commit page for any SHA reachable from any ref. The landing repository
 would go on publishing the old identities and trailers that the rewrite
-exists to remove, and `git log --all` and mirror clones would show two
-histories.
+exists to remove, and `git log --all` would show two histories.
 
-**Why private:** the public doesn't need the original. The public commit
-map resolves every original SHA (contract headers, deploy notes, old
-links) to a public rewritten commit, and old PR pages already show the
-original PR commits. A private repository costs nothing here, because the
-archive runs no CI. If the user prefers public, nothing else in the plan
-changes (question §10.2.2).
+**Why private:** the public commit map resolves every original SHA to a
+public rewritten commit, and old PR pages already show the original PR
+commits (§10.1, decision 20). The archive runs no CI, so being private
+costs nothing.
+
+The old addresses stay verified on the FasterSpeeding account, so the
+original commits on old PR pages stay linked to it (§10.1, decision 16).
 
 #### 5.11.8 What still names an original SHA, and how it resolves
 
+At `cc44d13c`, tracked files cite 124 distinct original commits in 89
+files, most of them in `docs/superpowers`.
+
+- **38** cite a commit that is a step on its own, so they map to exactly
+  one commit.
+- **86** cite a commit that folds into a squashed step.
+
 | Where | What happens |
 |---|---|
-| Commit messages | Rewritten by filter-repo |
-| The 3 `contract:` headers and other migration comments | Immutable. Resolve through `docs/history/commit-map.tsv` |
-| `.git-blame-ignore-revs` | Updated in the first post-rewrite commit (§5.11.5) |
-| The other in-repo SHA mentions: 124 distinct, most of them in `docs/superpowers` | Left as historical text. `scripts/resolve-sha.py` resolves them |
-| Old PR pages | Show the original commits through `refs/pull/*`. Direct-to-`main` commits that were never in a PR become unreachable in the landing repository; use the archive |
-| Published chart tags, image tags and `revision` labels | Keep the original short SHAs. Resolve through the map |
-| Ranma-Config deploy records and Renovate compare links, worklog card commit links | Old compare URLs may 404 after GitHub's GC. Use the archive or the map. No action needed |
+| Commit messages | Rewritten to the squashed commit that holds the cited one (§5.11.4, step 6) |
+| Tracked files: 118 of the 124 references, excluding migrations | The first post-rewrite commit replaces each with its rewritten SHA. A folded one points at its squashed commit, and the original stays findable through the map and the archive |
+| `.git-blame-ignore-revs` | The same commit points it at the pinned Prettier commit, which still holds only the reformat |
+| Migrations: 6 references, including the 3 `contract:` headers (`9cb89d89`, `b944ddb0`, `e44f98f3`) | Checksum-locked, so they can't change and keep the original SHAs. They resolve through the map. `b944ddb0` maps to exactly one commit; `9cb89d89` maps to a step of 12 commits and `e44f98f3` to a step of 3 |
+| Old PR pages | Show the original commits through `refs/pull/*` (§10.1, decision 20). Direct-to-`main` commits become unreachable in the landing repository; use the archive |
+| Published chart tags, image tags and `revision` labels | Keep their original short SHAs, resolved through the map. Semver ignores build metadata, and the base moves to 0.5.0, so Renovate ordering is safe |
+| The image-label ordering checks (§5.1, §5.3) | Compare versions and run numbers, never SHAs. They arrive in phase 3, after the rewrite |
+| Ranma-Config deploy records, Renovate compare links, worklog card commit links | Old compare URLs may 404 after GitHub's GC; use the map or the archive. No action needed |
 
-The map is `docs/history/commit-map.tsv`, with two columns, original and
-rewritten, for every rewritten commit. It is about 440 KB and holds SHAs
-only, so it is public. Extracts chain their own maps on top (§5.6).
+`scripts/resolve-sha.py <sha>`, in the landing repository and later in
+`ci`, prints the rewritten commit, whether it is a step, folded or pinned,
+and the original step's `Archive:` SHA. Extracts chain their own maps on
+top (§5.6).
 
 ## 6. Licensing: AGPL-3.0-or-later
 
@@ -1510,7 +1601,7 @@ Each phase leaves production deployable. Each one is a set of normal PRs,
 deployed through the usual deploy-bringer flow before the next phase starts.
 Efforts are focused working days.
 
-### Phase 0: preparation, licence and rewrite preparation (about 3 days)
+### Phase 0: preparation, licence and rewrite preparation (about 4.5 to 5 days)
 
 **Licence (§6), before anything moves:**
 
@@ -1538,7 +1629,9 @@ Efforts are focused working days.
 
 The ruleset waits until the end of phase 1 (§5.9).
 
-**History rewrite preparation (§5.11), about half a day:**
+**History rewrite preparation (§5.11), about 2 to 2.5 days.** Of this,
+1.5 to 2 days are the squash: hardening `squash.py`, reading the rehearsal
+log and the 37 repaired reverse merges, and writing any title overrides.
 
 - the user adds and verifies `lucy@cursed.solutions` on the FasterSpeeding
   account, and checks the email-privacy push setting (§5.10);
@@ -1548,8 +1641,10 @@ The ruleset waits until the end of phase 1 (§5.9).
   "Generated with Claude Code" footers from now on;
 - create the private `Distant-Signal/distant-signal-archive` and push its
   `tooling` branch;
-- rehearse the rewrite on a fresh throwaway clone, run the verification
-  checklist, and settle every `review.tsv` row;
+- rehearse both stages on a fresh throwaway clone, read
+  `git log --oneline` of the result, add `title-overrides.tsv` entries
+  where a heuristic title reads badly, and pass the verification
+  checklist;
 - run `strip-pr-footers.py` on the PR bodies and comments. It is
   independent of the git rewrite, so it can run any time.
 
@@ -1561,8 +1656,8 @@ archive and the tooling change nothing until phase 1.
 The freeze lasts from step 1 until step 6's PR has merged, which is about
 half a day.
 
-1. **Freeze** (§5.11.5): no open PRs, Renovate paused, branches worth
-   keeping pushed, agent worktrees removed, no DS chart PR in flight.
+1. **Freeze** (§5.11.5): no open PRs, Renovate paused, every branch but
+   `main` deleted, agent worktrees removed, no DS chart PR in flight.
 2. **Archive the original:**
    - mirror the repository into `Distant-Signal/distant-signal-archive`,
      with the `pull/<n>` branches;
@@ -1570,14 +1665,17 @@ half a day.
    - record the original `main` SHA.
 3. **Transfer** the repository, rename it `distant-signal`, and disable
    Actions for the window.
-4. **Rewrite** in a fresh bare clone, and pass the whole verification
-   checklist (§5.11.6). If any item fails, stop: nothing has been pushed,
+4. **Rewrite** in a fresh bare clone: the squash, then filter-repo, then
+   the composed map. Pass the whole verification checklist (§5.11.6). The
+   run takes under a minute. If any item fails, stop: nothing has been pushed,
    so lift the freeze and retry another day.
-5. **Force-push** the rewritten branches with `--force-with-lease`, and
-   delete the remote branches that weren't kept.
-6. **Re-enable Actions.** Merge the first post-rewrite PR: the commit map,
-   `.git-blame-ignore-revs`, the identity check step, and the chart base
-   bump to **0.5.0**.
+5. **Force-push** `main` with `--force-with-lease`.
+6. **Re-enable Actions.** Merge the first post-rewrite PR. It adds:
+   - the many-to-one commit map;
+   - the SHA references in files, with `.git-blame-ignore-revs` pointing
+     at the pinned Prettier commit (§5.11.8);
+   - the identity check step;
+   - the chart base bump to **0.5.0**.
 7. That PR's `main` build pushes to `ghcr.io/distant-signal/images/*` and
    `charts/distant-signal`. Check that the packages are public, that the
    signature verifies, and that the attestation is there.
@@ -1593,7 +1691,7 @@ half a day.
 
 - **Rewrite, before step 5:** abandon the clone. Nothing has changed.
 - **Rewrite, after step 5 and before any new commit merges:** force-push
-  the original branches back from the archive. The ruleset doesn't exist
+  the original `main` back from the archive. The ruleset doesn't exist
   yet, which is why it comes at step 8.
 - **Rewrite, after new commits:** fix forward. A second rewrite would need
   another freeze and a second map, so rerun only if the verification missed
@@ -1724,13 +1822,14 @@ the delete commit.
 
 ### Total
 
-About 31.5 working days: 30 for the split, plus about 1.5 for the history
-rewrite (half a day in phase 0, one day in phase 1). What lives where
+About 33 to 33.5 working days: 30 for the split, plus 3 to 3.5 for the
+history rewrite. That is 2 to 2.5 days in phase 0, including 1.5 to 2 for
+the squash, and one day in phase 1. What lives where
 during the transition:
 
 | After phase | Landing repository | Elsewhere |
 |---|---|---|
-| 1 to 3 | everything, with rewritten history | `distant-signal-archive` (original history, private, archived); `ci` (from phase 3) |
+| 1 to 3 | everything, with the squashed history | `distant-signal-archive` (original history, private, archived); `ci` (from phase 3) |
 | 4 | services, frontend, chart | `ds-core` |
 | 5 | services, frontend | `ds-core`, `ds-deploy` |
 | 6 to 8 | shrinking services, frontend | plus `ds-pollers`, `ds-ingest`, `ds-workers` |
@@ -1771,39 +1870,44 @@ user accepted every recommendation from the first round of questions:
     image PRs in `ds-deploy`. The human gate stays at the Ranma-Config
     chart PR, filed to deploy-bringer and approved with the passkey.
 
-### 10.2 Open questions: the history rewrite
+The same day the user decided the history-rewrite questions:
+
+14. **Regrouping:** a **mainline squash** (§5.11.4). Each mainline step
+    becomes one commit, about 1,650 from 5,365. The 37 reverse merges are
+    repaired, the Prettier reformat is pinned, and the commit map goes
+    many to one.
+15. **Archive:** `Distant-Signal/distant-signal-archive`, private and
+    archived (§5.11.7).
+16. **Identity:**
+    - your two old addresses map to `FasterSpeeding <lucy@cursed.solutions>`;
+    - the old addresses stay verified on the GitHub account;
+    - GitHub stays committer wherever the original step commit had it;
+    - Renovate bot commits are untouched.
+17. **PR footers:** stripped through the API: 109 bodies and 2 comments.
+18. **The Claude-authored commit** `aa3ab695` is reattributed to you.
+19. **The remaining Claude mentions** in messages, which are all product
+    content, are kept.
+20. **Old PR pages** keep showing the original commits, which is accepted.
+21. **Timing:** once, in the phase 1 freeze, before any extraction.
+22. **Branches:** only `main` survives the freeze. A wanted branch is
+    recreated afterwards by cherry-picking. This follows from the squash.
+
+### 10.2 Open questions raised by the squash design
 
 Each comes with a recommendation.
 
-1. **Regrouping.** Recommended: **none**; rewrite one for one (option A in
-   §5.11.4). Only 10% of commits came through PRs, and a mainline squash
-   (C) would lose exact SHA resolution for 63 of the 124 in-repo
-   references and the blame-ignore commit, for a view that
-   `git log --first-parent` already gives. Alternative: C, at about 1,650
-   to 1,680 commits, for about 1.5 extra days in the same window.
-2. **Archive visibility.** Recommended: `Distant-Signal/distant-signal-archive`
-   **private** and archived, with the public commit map resolving every
-   original SHA. Alternative: public archived, if old links should resolve
-   for anyone.
-3. **GitHub-made commits.** Recommended: normalise the committer of the
-   162 GitHub-committed commits to `FasterSpeeding <lucy@cursed.solutions>`,
-   since their signatures are lost either way, and keep their authors.
-   Alternative: keep `GitHub <noreply@github.com>` as committer, unsigned.
-4. **The Claude-authored commit** `aa3ab695`. Recommended: reattribute it
-   to `FasterSpeeding <lucy@cursed.solutions>` and strip its trailer.
-   Alternative: keep Claude as its author, the one exception to the rule.
-5. **PR bodies and comments.** Recommended: strip the footer from the 109
-   PR bodies and 2 comments through the API, accepting that GitHub's edit
-   history still holds the old text. Alternative: leave the PR text alone.
-6. **The review list.** Recommended: keep all 71 remaining Claude mentions.
-   All are product content (the connector, the LLM provider, MCP clients)
-   or names of tracked files and branches.
-7. **Old PR pages.** Recommended: accept that they keep showing the
-   original commits and old identities through `refs/pull/*`. Purging them
-   would mean asking GitHub Support to delete PRs or refs, which also
-   loses the review record.
-8. **Old addresses on the GitHub account.** Recommended: keep them verified,
-   so the original commits on old PR pages stay linked to the account.
-9. **Timing.** Recommended: in the phase 1 freeze, once, before any
-   extraction. Alternative: per extraction, which leaves the landing
-   repository's history unrewritten and needs a map per extract.
+1. **Titles for about 280 default-named merges** (`Merge branch
+   'worktree-agent-…'`). Recommended: use the subject of the folded
+   commit that changed the most lines, then read the rehearsal's
+   `git log --oneline` once and override the ones that read badly.
+   Alternative: write every one of them by hand, about a day more.
+2. **Which commits to pin.** Recommended: only `.git-blame-ignore-revs`
+   entries, which today is the one Prettier reformat. The commits that
+   `contract:` headers cite (`9cb89d89` in a 12-commit step, `e44f98f3` in
+   a 3-commit step) could also be pinned, so each resolves to an exact
+   commit. That costs a pre-step whose tree only ever existed on a branch.
+   Recommended against: the map plus the archive already resolve them.
+3. **The `Archive:` line in every squashed commit.** Recommended: keep it.
+   It names a SHA in the private archive, so it is only useful to you, but
+   it is the one-step path from a squashed commit to what it folded.
+   Alternative: rely on the map alone.
