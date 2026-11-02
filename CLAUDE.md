@@ -183,9 +183,10 @@ README's "Per-service Postgres roles".
 
 **Chart and deploys.** One chart for the whole stack, documented in
 `charts/distant-signal/README.md` (keep its values reference in step,
-`chart-values-doc.py`). `containers.yml` builds the images and pushes the
-chart to `oci://ghcr.io/<owner>/charts` (today `fasterspeeding`) only from
-`main`; every GHCR path and project URL derives from the repository's owner,
+`chart-values-doc.py`). `containers.yml` builds the images and pushes them
+to `ghcr.io/<owner>/images/<service>` and the chart to
+`oci://ghcr.io/<owner>/charts` (today `distant-signal`) only from `main`;
+every GHCR path and project URL derives from the repository's owner,
 so don't hardcode it. Production
 values live in Ranma-Config and Flux applies them. Renovate opens a PR per
 chart build, but DS releases are filed deliberately as deploy-bringer
