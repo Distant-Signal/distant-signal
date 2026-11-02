@@ -1,6 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
+  // Renovate runs here as the hosted Renovate GitHub App, so this file and
+  // the public Piped preset below are the whole config: there is no admin
+  // config, host rule, registry credential or package cache behind them.
+  // Keep it that way: no presets or registries on private hosts, no
+  // postUpgradeTasks (the hosted app doesn't run them).
+
   // Piped-derived: extends the same shared base preset
   // FasterSpeeding/Aurora-Fauxy's own renovate.json5 extends
   // (github>FasterSpeeding/Piped//config/renovate.json5), rather than
@@ -225,6 +231,17 @@
       // real image: there is nothing to look up.
       "matchManagers": ["docker-compose"],
       "matchDepNames": ["ghcr.io/CHANGE-ME/distant-signal-mcp"],
+      "enabled": false,
+    },
+    {
+      // This repository's own images and chart: CI publishes them and the
+      // deployer picks the tag, so a lookup can only propose wrong tags.
+      // values.yaml leaves their tags empty, which already skips them; this
+      // keeps it so if a tag is ever set there. Renovate runs as the hosted
+      // GitHub App, which has no credentials for private packages, and
+      // these are only public once the org's packages are.
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/distant-signal/**"],
       "enabled": false,
     },
     {
