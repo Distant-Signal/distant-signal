@@ -1,6 +1,6 @@
 /**
  * Server-side structured logging: one JSON object per line on stdout, the
- * same schema as the Rust services' `common::logging` (and the MCP server):
+ * same schema as the Rust services' `ds_runtime::logging` (and the MCP server):
  *
  * - `timestamp`: RFC 3339, UTC (`2026-10-01T09:30:00.123Z`);
  * - `level`: `DEBUG`, `INFO`, `WARN` or `ERROR`;
