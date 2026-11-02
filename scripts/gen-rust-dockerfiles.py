@@ -58,6 +58,10 @@ in the Dockerfiles) and fails when one is outside RUST_INPUTS, so a new one
 breaks CI here rather than the image build. frontend/Dockerfile gets the
 same treatment (FRONTEND_IGNORE): only frontend/, minus its local build
 output.
+
+Licence label: every runtime stage (and frontend/Dockerfile's runtime-prod)
+gets LICENCE_LABEL as the line after its FROM, so an image built anywhere,
+not only by containers.yml, says it is AGPL-3.0-or-later.
 """
 
 import argparse
@@ -400,6 +404,30 @@ def with_runtime_upgrade(text: str, stage: str, path: Path) -> str:
     return "".join([*lines[: run + 1], f"{APT_UPGRADE}\n", *lines[run + 1 :]])
 
 
+# The OCI licence label (repo split spec §6), the same value as the
+# `org.opencontainers.image.licenses` label containers.yml sets.
+LICENCE_LABEL = 'LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"'
+
+
+def with_licence_label(text: str, stage: str, path: Path) -> str:
+    """Return `text` with LICENCE_LABEL as the line after `stage`'s FROM."""
+    lines = text.splitlines(keepends=True)
+    start = next(
+        (
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("FROM ") and line.split()[-2:] == ["AS", stage]
+        ),
+        None,
+    )
+    if start is None:
+        msg = f"{path}: no `FROM ... AS {stage}` stage for the licence label"
+        raise ValueError(msg)
+    if start + 1 < len(lines) and lines[start + 1].rstrip("\n") == LICENCE_LABEL:
+        return text
+    return "".join([*lines[: start + 1], f"{LICENCE_LABEL}\n", *lines[start + 1 :]])
+
+
 def runtime_stage_problems(found: Mapping[str, Path]) -> list[str]:
     """Return the Dockerfiles whose last stage isn't named RUNTIME_STAGE."""
     problems: list[str] = []
@@ -484,14 +512,18 @@ def wanted_files(found: Mapping[str, Path]) -> tuple[dict[Path, str], list[str]]
         path = found[name]
         try:
             text = splice(path.read_text(encoding="utf-8"), render(name), path)
-            wanted[path] = with_runtime_upgrade(text, RUNTIME_STAGE, path)
+            text = with_runtime_upgrade(text, RUNTIME_STAGE, path)
+            wanted[path] = with_licence_label(text, RUNTIME_STAGE, path)
         except ValueError as error:
             problems.append(str(error))
     try:
-        wanted[FRONTEND_DOCKERFILE] = with_runtime_upgrade(
+        text = with_runtime_upgrade(
             FRONTEND_DOCKERFILE.read_text(encoding="utf-8"),
             FRONTEND_RUNTIME_STAGE,
             FRONTEND_DOCKERFILE,
+        )
+        wanted[FRONTEND_DOCKERFILE] = with_licence_label(
+            text, FRONTEND_RUNTIME_STAGE, FRONTEND_DOCKERFILE
         )
     except ValueError as error:
         problems.append(str(error))
