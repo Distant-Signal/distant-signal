@@ -136,8 +136,8 @@ class BuildInputsTests(unittest.TestCase):
         # The scan sees the known ones (so it is not silently empty).
         for known in (
             "charts/distant-signal/files/db-grants.yaml",
-            "reference-data/tiploc-parent-stations.csv",
-            "reference-data/delay-attribution-reasons.tsv",
+            "crates/common/reference-data/tiploc-parent-stations.csv",
+            "crates/ds-store/reference-data/delay-attribution-reasons.tsv",
             "crates/ds-store/migrations",
             "lines",
         ):
@@ -199,7 +199,8 @@ class LinesCopyTests(unittest.TestCase):
         text = (
             "COPY . .\n"
             "COPY --from=builder /usr/local/bin/api /usr/local/bin/api\n"
-            "COPY reference-data/stanox-crs.csv /app/reference-data/\n"
+            "COPY crates/trust-consumer/reference-data/stanox-crs.csv "
+            "/app/reference-data/stanox-crs.csv\n"
         )
         self.assertEqual(self.problems(text), [])
 

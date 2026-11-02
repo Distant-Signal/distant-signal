@@ -239,9 +239,8 @@ RUST_INPUTS = (
     ".cargo/config.toml",
     "Cargo.lock",
     "crates",
-    # include_str!: crates/common's TIPLOC parents, api's TOC codes,
-    # ds-store's delay-attribution reasons; and trust-consumer's and
-    # trust-backlog-consumer's runtime COPY.
+    # The core reference data (the rest lives in its crate, under
+    # crates/): include_str! of api's TOC-codes test.
     "reference-data",
     # The line catalogue: crates/ds-lines/build.rs embeds it in every
     # binary that loads it. No image COPYs it (LINES_COPY below).

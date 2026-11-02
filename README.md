@@ -201,6 +201,8 @@ Because the site is used over a network, AGPL §13 applies: every page's
 footer links this repository, and the api's `/public/version` (`/api/version`
 on the site) lists each running image with the commit it was built from.
 
-`lines/` is part of this repository and under the same licence. Some files
-in `reference-data/` are derived from upstream data under its own terms;
-`reference-data/README.md` lists each file's source and terms.
+`lines/` is part of this repository and under the same licence. Some
+reference data files (in `reference-data/`, and in a `reference-data/`
+directory beside the crate that reads them) are derived from upstream data
+under its own terms; each of those directories has a README listing each
+file's source and terms, and `reference-data/README.md` lists them all.

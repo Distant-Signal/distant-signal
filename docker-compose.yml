@@ -577,8 +577,8 @@ services:
       REDIS_AUTOCLAIM_MIN_IDLE_SECS: ${REDIS_AUTOCLAIM_MIN_IDLE_SECS_TRUST_BACKLOG:-30}
       REDIS_GAP_CHECK_SECS: ${REDIS_GAP_CHECK_SECS_TRUST_BACKLOG:-60}
       STANOX_CRS_RELOAD_SECS: ${STANOX_CRS_RELOAD_SECS_TRUST_BACKLOG:-3600}
-      # Matches docker/trust-backlog-consumer.Dockerfile's COPY of
-      # reference-data/ into the image, same pattern as trust-consumer's
+      # Matches docker/trust-backlog-consumer.Dockerfile's COPY of the
+      # STANOX/CRS table into the image, same pattern as trust-consumer's
       # own identical default -- no override needed here.
       # STANOX_CRS_FILE: /app/reference-data/stanox-crs.csv (binary default)
       HEALTH_BIND_URL: 0.0.0.0:8083

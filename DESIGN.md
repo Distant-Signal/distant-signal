@@ -438,7 +438,8 @@ distant-signal/
 │   └── line-catalogue-validator/ checks lines/*.toml against reference data
 ├── frontend/                  Next.js web client
 ├── charts/distant-signal/     Helm chart for deploying the full stack
-├── reference-data/            checked-in reference tables (e.g. stanox-crs.csv)
+├── reference-data/            core reference tables (e.g. crs-tiploc.csv); the
+│                              rest sit in crates/<crate>/reference-data/
 └── docker-compose.yml         local dev environment
 ```
 
