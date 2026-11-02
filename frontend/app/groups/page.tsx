@@ -3,7 +3,7 @@ import { TrackEmptyState } from '@/components/TrackEmptyState';
 import { groupRoleLabel } from '@/lib/memberLabel';
 import type { Metadata } from 'next';
 import { getMyGroups } from '@/lib/api';
-import { AutoOpenLoginPrompt } from './AutoOpenLoginPrompt';
+import { AutoOpenLoginPrompt } from '@/components/AutoOpenLoginPrompt';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import type { GroupSummary } from '@/lib/types';

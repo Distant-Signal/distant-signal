@@ -1,6 +1,6 @@
 import { Stack, Text, Title } from '@mantine/core';
 import { getSessionOrLoggedOut } from '@/lib/api';
-import { AutoOpenLoginPrompt } from '../AutoOpenLoginPrompt';
+import { AutoOpenLoginPrompt } from '@/components/AutoOpenLoginPrompt';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { TicketEntryForm } from '@/components/TicketEntryForm';
@@ -30,10 +30,9 @@ export const metadata: Metadata = { title: 'Add a ticket', robots: { index: fals
  * confirmed is logged in, so this page keeps that promise rather than
  * only discovering "actually, you're not logged in" reactively at submit
  * time -- e.g. a session that expired between loading /journeys and
- * clicking through. `AutoOpenLoginPrompt` is reused as-is from the
- * sibling /journeys route (relative import) rather than duplicated --
- * it already takes arbitrary `children` and has no dependency on which
- * page renders it. */
+ * clicking through. `AutoOpenLoginPrompt` is the shared component in
+ * `components/` -- it takes arbitrary `children` and has no dependency
+ * on which page renders it. */
 export default async function AddTicketPage() {
   const session = await getSessionOrLoggedOut();
 

@@ -1,6 +1,6 @@
 import { Stack, Text, Title } from '@mantine/core';
 import { getSessionOrLoggedOut } from '@/lib/api';
-import { AutoOpenLoginPrompt } from '@/app/track/mine/AutoOpenLoginPrompt';
+import { AutoOpenLoginPrompt } from '@/components/AutoOpenLoginPrompt';
 import { LoginControl } from '@/components/LoginControl';
 import { ChatPanel } from '@/components/ChatPanel';
 import { TextLink } from '@/components/TextLink';

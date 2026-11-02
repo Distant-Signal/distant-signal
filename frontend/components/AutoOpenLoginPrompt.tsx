@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { LoginPromptModal } from '@/components/LoginPromptModal';
 
-/** The Journeys page (`app/journeys/page.tsx`) must stay a Server Component (it directly
- * awaits `getMyTrackedTrains()`/`getMyTickets()`), so it can't hold the
- * `useState` a controlled `LoginPromptModal` needs itself -- this small
- * sibling Client Component is the wrapper. See
+/** A login prompt that opens on arrival, for a Server Component page
+ * that gates on a session (`/track/mine/add-ticket`, `/groups`, `/chat`).
+ * Those pages can't hold the `useState` a controlled `LoginPromptModal`
+ * needs themselves, so this small Client Component is the wrapper. See
  * docs/superpowers/specs/2026-09-02-modal-login-prompt-design.md
- * Decision 6.
+ * Decision 6. It used to have a copy per page; this is the one shared
+ * version.
  *
  * Starts open (there is no click event on a Server Component to open it
  * from) and stays fully controlled to match `LoginPromptModal`'s own
@@ -16,7 +17,7 @@ import { LoginPromptModal } from '@/components/LoginPromptModal';
  * controlled-`Modal` convention. Closing it (Escape, backdrop, or its own
  * close control) leaves the page showing just its heading -- a deliberate,
  * accepted simplification (Decision 6's Open Question 1), not a gap this
- * component tries to close. A fresh navigation back to `/journeys`
+ * component tries to close. A fresh navigation back to the page
  * reopens it, since `opened` re-initializes to `true` on every fresh
  * mount. */
 export function AutoOpenLoginPrompt({ children }: { children: React.ReactNode }) {
