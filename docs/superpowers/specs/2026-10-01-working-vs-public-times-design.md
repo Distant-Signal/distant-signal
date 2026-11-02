@@ -5,7 +5,7 @@ characterisation test was committed with it
 (`set_down_and_pick_up_only_characterisation` in
 `crates/schedule-reference/src/main.rs`).
 
-Code references are to main at `b84e97de`. Measurements come from the
+Code references are to main at `90d37a59`. Measurements come from the
 production RJTTF975 full extract (delivered 2026-09-30) and read-only
 production queries made on 2026-10-01.
 

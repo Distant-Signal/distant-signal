@@ -331,7 +331,7 @@ For a traveller this is the panel failing at its one job — "which train
 is this?" — while looking like data. It also violates the vocabulary rule
 (2026-09-17 §2.9, 2026-09-02 F5: engineering/fallback strings reaching
 user copy), and it's worse than the sibling `/train` page, whose
-"Unknown location" rows were just removed (`bcf7ea9d`). Note the panel's
+"Unknown location" rows were just removed (`0166b173`). Note the panel's
 own comment: the schedule (`callingPoints`) "is present on every entry
 regardless of live-status coverage" — the time shown already comes from
 `callingPoints[0]`. The first and last calling points' names are right

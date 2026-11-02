@@ -233,7 +233,7 @@ day plus 288 single-row writes.
 
 ## 3. Sources and measurements
 
-**Code** (worktree of `main` at `c32285b3`):
+**Code** (worktree of `main` at `448bb3ff`):
 
 - `crates/api/src/{app.rs,main.rs,migrate.rs}`;
 - `crates/api/src/routes/{ingest.rs,samples.rs,mod.rs}`;

@@ -508,7 +508,7 @@ former).
   binding, per both predecessor docs' own out-of-scope sections.
 - **Any change to `crates/api/src/routes/train.rs`'s `get_by_uid_and_date`,
   `is_known_scheduled_train`, `post_track_by_uid`, or `find_or_create_train`**
-  — the just-merged `f65c8f8` fix and the CTA wiring are untouched.
+  — the just-merged `68e9f28` fix and the CTA wiring are untouched.
 - **A `date`/`operator` field on `TrainSearchForm`** — still out of scope,
   per the form's own existing comment this document does not revisit.
 - **Retention/pruning changes** — `prune_schedule_destination_departures`

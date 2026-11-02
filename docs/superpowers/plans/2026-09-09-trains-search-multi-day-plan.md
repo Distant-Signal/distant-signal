@@ -666,7 +666,7 @@ Add a `date` field to `TrainSearchParams` (`:85-124`), directly after
     /// runs against; defaults to today (London-local, computed from the
     /// same single `Utc::now()` read this handler already uses for
     /// everything else -- see this file's own module doc comment on
-    /// timezone handling and git history `baa4e75`/`8250a9a`). Must be
+    /// timezone handling and git history `a628841`/`6f48e62`). Must be
     /// within `SEARCH_WINDOW_BACKWARD_DAYS` days ago and
     /// `SEARCH_WINDOW_FORWARD_DAYS` days from today, inclusive, or this
     /// 400s -- a date outside the supported window is a request this
@@ -713,7 +713,7 @@ In `get_trains_search` (`:213-319`), change this block:
     // by design. `today` and `now` are deliberately read from ONE
     // `Utc::now().with_timezone(...)` call rather than two independent
     // `Utc::now()` calls -- see this same reasoning's original writeup in
-    // this route's git history (baa4e75) for why two independent reads can
+    // this route's git history (a628841) for why two independent reads can
     // disagree about which calendar day it is around the UTC/London
     // midnight boundary during British Summer Time.
     let london_now = chrono::Utc::now().with_timezone(&chrono_tz::Europe::London);
@@ -737,7 +737,7 @@ to:
     // `today` and `now` are deliberately read from ONE
     // `Utc::now().with_timezone(...)` call rather than two independent
     // `Utc::now()` calls -- see this same reasoning's original writeup in
-    // this route's git history (baa4e75) for why two independent reads can
+    // this route's git history (a628841) for why two independent reads can
     // disagree about which calendar day it is around the UTC/London
     // midnight boundary during British Summer Time. `date` (if supplied)
     // is validated against THIS SAME `today`, never a second, independently
@@ -846,7 +846,7 @@ Defaults to today, unchanged from existing behavior. Bounded to a 7-day
 forward / 7-day backward window; anything outside it is a 400, not a 404.
 The existing now-forward default on from/to now only applies when the
 resolved date is today -- browsing a different day shows the whole day.
-Reuses the existing single-Utc::now()-read pattern from baa4e75/8250a9a
+Reuses the existing single-Utc::now()-read pattern from a628841/6f48e62
 for both the default and the window-bounds check. See
 docs/superpowers/specs/2026-09-09-trains-search-multi-day-design.md §5-6.
 EOF

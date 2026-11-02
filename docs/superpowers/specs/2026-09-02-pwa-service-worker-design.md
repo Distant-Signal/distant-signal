@@ -42,7 +42,7 @@ the same rigor and citation discipline as those two documents.
   { src: '/icon-512.png', ... }]`. `frontend/public/icon-192.png` and
   `frontend/public/icon-512.png` both exist (confirmed by directory
   listing, `git log --oneline -- frontend/public/` shows one commit,
-  `86b26b6`). `frontend/app/error.tsx` (read in full, 21 lines) is a small,
+  `734007b`). `frontend/app/error.tsx` (read in full, 21 lines) is a small,
   reusable visual precedent this spec leans on directly (Decision 3): a
   plain `Stack`/`Title`("Couldn't load status data")/`Text`(dimmed,
   `error.message`)/`Button`("Try again", calls `reset`) — the app's
@@ -159,7 +159,7 @@ the same rigor and citation discipline as those two documents.
   --from=builder-prod --chown=frontend:frontend /app/public ./public` back
   in at that point"* — that was true when written but is now **stale**:
   `frontend/public/icon-192.png` and `icon-512.png` were added by the
-  manifest spec's implementation (commit `86b26b6`) and this COPY line was
+  manifest spec's implementation (commit `734007b`) and this COPY line was
   never restored. In `next dev` (used for all local testing) `public/` is
   read directly off disk, so this gap is invisible there; in the actual
   `runtime-prod` container, both manifest icons are almost certainly

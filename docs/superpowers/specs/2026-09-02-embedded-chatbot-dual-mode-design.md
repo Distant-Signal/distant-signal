@@ -20,7 +20,7 @@ one).
 - **`docs/superpowers/specs/2026-09-01-embedded-chatbot-mcp-integration-research.md`**
   (hereafter "the chatbot research doc"), including its own
   **`## Corrections (2026-09-02)`** section (read in full this session from
-  `main`, at commit `3becd14` — this document's own worktree branch predates
+  `main`, at commit `e753757` — this document's own worktree branch predates
   that merge and does not carry the correction on disk; its content was
   read via `git show main:docs/superpowers/specs/2026-09-01-embedded-chatbot-mcp-integration-research.md`,
   not from a stale on-disk copy). That correction is the direct origin of
@@ -46,8 +46,8 @@ one).
   to redesign `distant-signal-mcp` as a publicly-reachable OAuth 2.1
   resource server, gated behind Distant Signal's own Authentik-backed OIDC.
   That revision has **not landed on `main`** as of this session (confirmed:
-  `git merge-base --is-ancestor 7643b5f main` reports `main lacks 7643b5f`,
-  where `7643b5f` is that sibling task's "Corrections: reverse train-mcp
+  `git merge-base --is-ancestor 4981521 main` reports `main lacks 4981521`,
+  where `4981521` is that sibling task's "Corrections: reverse train-mcp
   Decisions 4/6 to public + DS-OIDC-gated" commit, present only on a
   separate, unmerged worktree branch). Per this task's own instruction,
   this document does **not** read that unmerged branch's content and does

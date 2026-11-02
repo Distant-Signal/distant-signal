@@ -19,7 +19,7 @@ passthrough (design §5), no migration, no wire-type change.
    content), plus `renderableGroups`' empty-skipping (§4.10, §2.5).
 4. **No new headings.** The section owns one `h2`; every pattern renders as
    text, lists, or the existing `Accordion` disclosure, so the just-merged
-   full-ruleset axe sweep (`e90cb78f`) keeps passing unchanged.
+   full-ruleset axe sweep (`50a7ae46`) keeps passing unchanged.
 
 ## Phase 1 — fixtures
 

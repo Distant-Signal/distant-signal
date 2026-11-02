@@ -78,8 +78,8 @@ intentional simplification this design does not touch or attempt to fix.
   adapting it to operate over a list of periods, without letting the LLM
   call count scale with period count. This is the central design lever:
   cost/timeout pressure on this pipeline is already a live, recently-tuned
-  concern (`8f3801b Expose LLM request timeout and reclaim tuning as Helm
-  values`, `0619b8d Make the LLM request timeout configurable and raise its
+  concern (`a74f69a Expose LLM request timeout and reclaim tuning as Helm
+  values`, `ac05498 Make the LLM request timeout configurable and raise its
   default`) that a naive "N periods × 3 calls" design would make
   materially worse.
 - Generalize `apply_extraction`/`now_within_window`/
@@ -769,7 +769,7 @@ for what the sweep is already designed to do.
    during implementation — the echo is defense-in-depth regardless of the
    answer.
 5. **Cost/timeout, even with call count held fixed.** Recent history
-   (`8f3801b`, `0619b8d`) shows real self-hosted endpoints already needed
+   (`a74f69a`, `ac05498`) shows real self-hosted endpoints already needed
    timeout tuning at *today's* flat, single-period payload sizes. A
    genuinely multi-period incident's larger structured JSON response (both
    in the primary pass's output and the adversarial passes' now-larger

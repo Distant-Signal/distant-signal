@@ -5,7 +5,7 @@ Scope: the `/operators` list page (logged out, logged in, Firefox), the
 homepage's "Your Lines / Your Stations / Your Operators" pinning sections,
 as captured in `frontend/e2e/screenshots/output/` (all 1440×900, Chromium
 unless noted; see `manifest.ndjson`). The feature code reviewed lives on
-branch `worktree-agent-aa9d33a8a0709d13a` (HEAD `e19af671`); file paths
+branch `worktree-agent-aa9d33a8a0709d13a` (HEAD `abcaacf8`); file paths
 below are relative to that tree. Design intent is taken from
 `docs/superpowers/specs/2026-09-22-operator-overview-design.md` (§C, §D, §E);
 the bar applied is the one already set by the 2026-09-02 and 2026-09-17
@@ -59,7 +59,7 @@ Everything else is Minor. A closing recommendations list is in §5.
 `operators-list-desktop.png` shows nine cards whose only interactive element
 is the pin star. `frontend/components/OperatorStatusCard.tsx` documents this
 as a deliberate call ("deliberately NOT wrapped in a `Link` … there is no
-`/operators/[code]` detail page in this phase"), and commit `e19af671`
+`/operators/[code]` detail page in this phase"), and commit `abcaacf8`
 removed a "dead operator-detail link". But `/operators/[code]/history`
 *does* exist in this phase (`operator-history-gr-desktop.png`), and a
 repo-wide grep finds no `href` pointing at it or at `/network/history`

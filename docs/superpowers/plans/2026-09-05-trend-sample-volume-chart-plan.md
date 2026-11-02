@@ -43,7 +43,7 @@ were written against a pre-granularity-merge codebase (three separate
 sibling mapper functions, a two-value `granularity` union, no
 `GranularityControl.tsx`) that has since been replaced on `main` by
 `docs/superpowers/plans/2026-09-05-configurable-trend-granularity-plan.md`
-(merged, commit `ab43057`). This plan re-derives the file-level facts
+(merged, commit `265b97f`). This plan re-derives the file-level facts
 against the real, current worktree (see "What changed since the spec was
 written" below) rather than trusting that spec's own file/line citations.
 

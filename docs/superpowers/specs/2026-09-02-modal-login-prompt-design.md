@@ -101,8 +101,8 @@ the concrete mechanism.
   `TextLink`.
 - **`LoginPrompt.tsx`** (the `verb`-prop wrapper `useNeedsLogin`'s own doc
   comment still references) **no longer exists.** Confirmed via `git log`:
-  introduced in `7d04aed` ("Extract shared useNeedsLogin/LoginPrompt,
-  retrofit CustomLineForm and DeleteLineButton"), deleted in `584e1d1`
+  introduced in `22d70b0` ("Extract shared useNeedsLogin/LoginPrompt,
+  retrofit CustomLineForm and DeleteLineButton"), deleted in `678b15a`
   ("Consolidate remaining login prompts onto LoginLink") earlier this
   session, which moved every remaining call site directly onto `LoginLink`
   with call-site-specific `children` text instead. `LoginPromptModal` (the
@@ -205,7 +205,7 @@ Two options were weighed:
 - **A generic modal with a customizable `verb`/`reason` prop** (reviving
   something close to the retired `LoginPrompt`'s `verb` prop). Rejected:
   this session already deliberately retired that exact shape in favor of
-  plain `children` (`584e1d1`, "Consolidate remaining login prompts onto
+  plain `children` (`678b15a`, "Consolidate remaining login prompts onto
   LoginLink") specifically because a bare verb couldn't express every
   call site's actual phrasing (`CustomLineForm`'s "edit" vs. "create" a
   line is itself already a ternary inside the string, not a single

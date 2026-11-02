@@ -53,7 +53,7 @@ in an existing Server Component.
 ## Verified facts (ground truth for this plan — do not re-derive)
 
 Everything below was read out of the working tree while planning, at
-commit `6903e5d`. File and line numbers are as of that HEAD.
+commit `7f5a75a`. File and line numbers are as of that HEAD.
 
 ### The formatter module
 

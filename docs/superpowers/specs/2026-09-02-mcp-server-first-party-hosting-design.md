@@ -184,7 +184,7 @@ true, unchanged, through everything that's landed since:
   "replaces the DISCORD_CLIENT_ID/DISCORD_ALLOWED_USER_IDS env vars this
   block used to render here"), and gates tool access on DS's own
   Authentik-native access groups (`MCP_USERS_GROUP`/
-  `MCP_LIVE_BOARDS_GROUP`, added `cc27754`/`b105b36`). A DS user reaches
+  `MCP_LIVE_BOARDS_GROUP`, added `7f36ca2`/`7f36ca2`). A DS user reaches
   it through the exact same identity provider as the rest of DS.
 - **docker-compose.yml.** `rail-mcp` (`docker-compose.yml:572-612`) is
   gated behind `profiles: ["rail-mcp"]` the same opt-in mechanism as
@@ -265,28 +265,28 @@ The task's premise — that today's session had to explicitly coordinate
 branch/commit state across the two repos, repeatedly — is directly
 confirmed by this repo's own commit messages, not inferred:
 
-- **`b105b36`** ("Add railMcp.accessGroups.\* chart values (Discord
+- **`7f36ca2`** ("Add railMcp.accessGroups.\* chart values (Discord
   retirement already landed on main)"): *"Task 7 of the
   mcp-server-oauth-access-groups plan originally also retired
   railMcp.discord.\* and its secret.yaml/_helpers.tpl plumbing, but that
-  retirement already landed on main via commit 1bc3603... confirmed by
+  retirement already landed on main via commit 346d5ba... confirmed by
   re-checking this session — no discord.\* values, secret keys, or
   helpers remain anywhere in this chart."*
-- **`cc27754`** ("Add MCP_USERS_GROUP/MCP_LIVE_BOARDS_GROUP env vars to
+- **`7f36ca2`** ("Add MCP_USERS_GROUP/MCP_LIVE_BOARDS_GROUP env vars to
   rail-mcp (Discord retirement already landed on main)"): the same
   pattern repeats one commit later — a second plan task (Task 8) also
   had to be re-derived against state that had already landed, requiring
   an explicit re-check rather than being visible from a single
   `git log`.
-- **`621541e`** ("Fix railmcp per-address rate limiter collapsing
+- **`867212c`** ("Fix railmcp per-address rate limiter collapsing
   behind Ingress: set TRUST_PROXY_HOPS"): a bug that could only be
   diagnosed by reading `distant-signal-mcp`'s own `src/app.ts`/
   `src/config.ts` behavior (how its `addressLimiter` resolves `req.ip`)
   and then fixing it from *this* repo's chart — a single logical fix
   that spans both repos' source, landing as two separate,
   independently-timed commits in two separate histories.
-- **`7643b5f`** ("Corrections: reverse train-mcp Decisions 4/6 to
-  public + DS-OIDC-gated") and **`3becd14`** ("Corrections: re-evaluate
+- **`4981521`** ("Corrections: reverse train-mcp Decisions 4/6 to
+  public + DS-OIDC-gated") and **`e753757`** ("Corrections: re-evaluate
   embedded-chatbot MCP research now that distant-signal-mcp is going
   public") show the same pattern one level up: a design decision made
   in one doc had to be explicitly revisited once state in the *other*

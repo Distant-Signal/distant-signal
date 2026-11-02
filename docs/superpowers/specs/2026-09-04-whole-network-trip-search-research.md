@@ -36,9 +36,9 @@ That sizing predates `crates/schedule-query` by minutes, not months, in
 real repository history, but the two were built in parallel, unaware of
 each other: the sibling document that re-confirmed "no cheap slice" for the
 CIF path, `2026-09-03-trip-search-design.md`, was authored at 23:38 on
-2026-09-03 (`cff5463`); `schedule-query`'s scaffolding started six minutes
-later, 23:44 (`6b529a9`), in a different worktree, and wasn't merged until
-`fd35c78`. Confirmed directly from `git log --format="%h %ad %s" --date=format:"%Y-%m-%d %H:%M"`
+2026-09-03 (`34be2ba`); `schedule-query`'s scaffolding started six minutes
+later, 23:44 (`9f05098`), in a different worktree, and wasn't merged until
+`9f05098`. Confirmed directly from `git log --format="%h %ad %s" --date=format:"%Y-%m-%d %H:%M"`
 against both commits. **`2026-09-03-trip-search-design.md`'s own
 "Re-examining the research doc's 'no cheap partial version' conclusion"
 section (`:95-170`) never had `schedule-query` to examine** — it checked
@@ -46,7 +46,7 @@ two hand-rolled simplifications (skip STP resolution; skip `LI` records)
 and one external crate (`nr-cif`), all found wanting, and correctly
 concluded the CIF path itself was still not worth building *at that
 moment*, then pursued the LDBWS-based picker instead (shipped,
-`f6f6498`). This document is the first pass to ask the question with
+`34be2ba`). This document is the first pass to ask the question with
 `schedule-query` actually in hand.
 
 ## Part 1: what `schedule-query` actually gives you, precisely
@@ -57,7 +57,7 @@ moment*, then pursued the LDBWS-based picker instead (shipped,
 the real, local `timetable_full.zip`'s `RJTTF948MCA.txt` and confirmed to
 parse **463,947 real `BS` records into 234,941 distinct UIDs, zero parse
 errors**, with a real five-TIPLOC WCML-corridor `schedules_touching` query
-returning **1,227 well-formed matches** (commit `7909720`, quoted in full
+returning **1,227 well-formed matches** (commit `181e8f9`, quoted in full
 in its own commit message; `crates/schedule-query/src/lib.rs:1-73`'s module
 doc corroborates the same figures were independently re-derived four times
 across the validation sessions it cites). This is not a fixture-scale
@@ -162,7 +162,7 @@ parsing six CIF record types plus STP-overlay resolution, at real national
 scale — is not a future cost to schedule. **It is a sunk cost, already
 paid, already running correctly in production every 30 minutes**, as part
 of the already-merged Option B shadow-mode pipeline
-(`a404a0f`). The only thing scoped to `full_coverage_enabled`/shadow lines
+(`df763ac`). The only thing scoped to `full_coverage_enabled`/shadow lines
 today is *downstream consumption* of the published per-line rows
 (`full-coverage-consumer`'s `shadow_lines` config,
 `crates/full-coverage-consumer/src/config.rs:98-104,121-149`, defaulting to
@@ -331,7 +331,7 @@ private routes (`POST`/`GET`, copy-adjacent to
 `schedule-reference`'s existing writer credential is reused (it already
 posts to `/private/schedule-line-population` with its own credential,
 `main.rs:167,224-234`); a new reader credential (mirroring
-`internal_oauth_group_full_coverage`'s precedent, `0274548`) only if the
+`internal_oauth_group_full_coverage`'s precedent, `df763ac`) only if the
 new GET route needs the same private-route auth split
 `/schedule-line-population` uses — likely yes, for consistency, though the
 *public* passthrough route (unauthenticated, matching every other

@@ -15,7 +15,7 @@ The MCP team's `Distant-Signal-MCP` (`src/tools/plan-journey.ts`,
 `dsTripPlanEligible`) sends every `arriveBy`, `via` or `avoid` query to its own
 local planner for these reasons. Skye's `train-mcp` has these features.
 
-The MCP team reviewed the waypoint chaining of `d5d8acfe` and found three
+The MCP team reviewed the waypoint chaining of `4dc9a13d` and found three
 problems:
 
 - it charged a change at a waypoint even when the traveller stays on a

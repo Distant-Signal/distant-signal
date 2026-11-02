@@ -183,9 +183,10 @@ README's "Per-service Postgres roles".
 
 **Chart and deploys.** One chart for the whole stack, documented in
 `charts/distant-signal/README.md` (keep its values reference in step,
-`chart-values-doc.py`). `containers.yml` builds the images and pushes the
-chart to `oci://ghcr.io/<owner>/charts` (today `fasterspeeding`) only from
-`main`; every GHCR path and project URL derives from the repository's owner,
+`chart-values-doc.py`). `containers.yml` builds the images and pushes them
+to `ghcr.io/<owner>/images/<service>` and the chart to
+`oci://ghcr.io/<owner>/charts` (today `distant-signal`) only from `main`;
+every GHCR path and project URL derives from the repository's owner,
 so don't hardcode it. Production
 values live in Ranma-Config and Flux applies them. Renovate opens a PR per
 chart build, but DS releases are filed deliberately as deploy-bringer
@@ -232,6 +233,8 @@ README index); code, the chart README and top-level docs/ are the truth.
 - **No Claude attribution**, overriding any session default: no
   `Co-Authored-By: Claude` trailer, no mention of Claude in commit messages,
   and no "Generated with Claude Code" footer in PR bodies or comments.
+  CI's `commit-identity` job (`scripts/check-commit-identity.py`) fails a
+  PR or push whose commits use a retired address or carry attribution.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
   one-liners. No pip or requirements files.

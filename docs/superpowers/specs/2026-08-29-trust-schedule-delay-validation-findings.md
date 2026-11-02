@@ -35,7 +35,7 @@ itself.
 > update changes or softens anything below — it's additive.
 
 > **Update, 2026-08-31/09-01 — read this too.** The STANOX↔CRS gap above
-> was fixed and merged to `main` (commit `6adf64f`). Re-running Task 4
+> was fixed and merged to `main` (commit `cd50e15`). Re-running Task 4
 > onward against the live deployment, **a real pin resolved against a
 > real live TRUST train for the first time across all three sessions** —
 > direct, empirical proof the fix works end-to-end in production, not
@@ -713,8 +713,8 @@ rest of this document already does.
 ## Re-diagnosing SSO: both previously-diagnosed blockers are fixed
 
 Per the dispatcher's brief, `main` had since picked up two fixes (commits
-`6d4d5ab` "Drive Authentik's redirect_uris from the real
-SSO_REDIRECT_URL, not a fixed copy" and `c2578a0`
+`f5ba49f` "Drive Authentik's redirect_uris from the real
+SSO_REDIRECT_URL, not a fixed copy" and `6cb24b7`
 "Rename Helm chart from nr-status to distant-signal", among others in the
 same run). Whether the **live** instance had actually redeployed those
 changes was unknown and had to be tested, not assumed. It has:
@@ -1017,7 +1017,7 @@ not.
 STANOX→CRS table extracted and byte-verified from `timetable_full.zip`'s
 `TI` records, per that module's own doc) and `crates/trust-consumer/src/process.rs`
 had since landed a real fix for the 2026-08-30 section's precisely-diagnosed
-blocker (commit `6adf64f`, "Implement real STANOX->CRS translation in
+blocker (commit `cd50e15`, "Implement real STANOX->CRS translation in
 trust-consumer", merged to `main` 2026-08-30 23:43 UTC). Everything below
 was checked directly against the live deployment or real code, quoted not
 paraphrased, exactly as every earlier section of this document does. This
@@ -1031,13 +1031,13 @@ The fix's own commit and content were re-verified directly against `main`
 before touching the live instance:
 
 ```
-$ git log -1 --format='%H %ci' 6adf64f
-6adf64f1ecd605f74fc1cd0aea28f97d76bd3afb 2026-08-30 23:43:00 +0000
+$ git log -1 --format='%H %ci' cd50e15
+cd50e1530824ee7566cff9ffec21ceba23b3b62c 2026-08-30 23:43:00 +0000
 $ git log -1 --format='%H %ci' HEAD
-e32459ed936b3682efabf209a2a66bd1bccd735e 2026-08-31 04:51:35 +0000
+53782cb945b9b09b8922f905de2cd270fc01c440 2026-08-31 04:51:35 +0000
 ```
 
-`6adf64f` is an ancestor of `HEAD` on `main` — real, merged, not a stray
+`cd50e15` is an ancestor of `HEAD` on `main` — real, merged, not a stray
 branch. `process.rs`'s module doc now reads (quoted verbatim): *"STANOX->CRS
 translation is implemented via a checked-in static lookup table,
 `stanox_crs::stanox_to_crs`. `loc_crs` in `process_message` is the real
@@ -3065,7 +3065,7 @@ with a fully-verified, zero-caveat dataset behind it.
 the complete evidence trail this document has built across eight real
 execution sessions, made an explicit call: `fullCoverageEnabledDefault`
 is flipped to `true` on both `aggregator` and `api`
-(`charts/distant-signal/values.yaml`, commit `59b0bfe`) — full-coverage
+(`charts/distant-signal/values.yaml`, commit `3e944f7`) — full-coverage
 TRUST+schedule line status is now the default for every catalogued line,
 not gated behind further pre-launch validation.
 

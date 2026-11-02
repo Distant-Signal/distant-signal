@@ -617,7 +617,7 @@ export function AllLinesTable({
                 Those are hidden on mobile only because they are re-surfaced in the
                 `hiddenFrom="sm"` sub-line under the line name (:225) -- Pin got the
                 hiding half of that pattern without the re-surfacing half in
-                bd4d739, and unlike a number it is an interactive control with no
+                678b15a, and unlike a number it is an interactive control with no
                 other home: `PinToggle` exists in exactly two places in this app,
                 here and on the station detail page (`kind="station"`), so below the
                 sm breakpoint there was no way to pin or unpin a LINE anywhere in

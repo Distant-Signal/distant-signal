@@ -66,7 +66,7 @@ implementer, not this spec" being the clearest example) and a handful of
 smaller things the spec's prose left implicit.
 
 **A note on staleness.** This plan was written against `main` at commit
-`5fd42b47` (2026-09-22). Two things named explicitly because they may have
+`47e10b4f` (2026-09-22). Two things named explicitly because they may have
 shifted by the time this plan is executed:
 
 1. `crates/api/src/data/queries.rs`'s `search_schedule_calling_point_departures`

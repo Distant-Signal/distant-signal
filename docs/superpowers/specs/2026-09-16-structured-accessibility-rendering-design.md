@@ -885,7 +885,7 @@ one is offered as a follow-up, not a prerequisite.
   `href="javascript:"`, and an `onerror` attribute must all render inert.
 - **The existing axe-core sweep is now a strong safety net — and it already
   covers the exact surface this design changes.** As of
-  `e90cb78f` (*"Merge: audit every route with axe, not eight of them with
+  `50a7ae46` (*"Merge: audit every route with axe, not eight of them with
   five rules"*) `frontend/e2e/accessibility.spec.ts` runs axe's **full
   default ruleset** with a small explicitly-evidenced `WAIVED_RULES` list,
   where it previously ran only five named rules. Better, it now has a

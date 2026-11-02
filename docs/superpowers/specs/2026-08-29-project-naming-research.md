@@ -22,10 +22,10 @@ shows:
 | Capability | State | Evidence |
 |---|---|---|
 | Line-status aggregation (original core) | Implemented, still central | `DESIGN.md`, `crates/aggregator`, `lines/*.toml` |
-| Individual train journey tracking (TRUST-sourced) | **Implemented, merged** | `crates/trust-consumer` (10 source files), `git log`: `d9811d3 Merge branch 'worktree-train-tracking'`, `6085302 Wire the full TRUST consume-match-derive-write processing loop` |
+| Individual train journey tracking (TRUST-sourced) | **Implemented, merged** | `crates/trust-consumer` (10 source files), `git log`: `4c500fb Merge branch 'worktree-train-tracking'`, `4c500fb Wire the full TRUST consume-match-derive-write processing loop` |
 | User accounts (OIDC/SSO) | **Implemented, merged** | `crates/api/src/auth/oidc.rs`, `crates/api/src/auth.rs` (`pub mod oidc;`), design doc `2026-08-28-user-accounts-sso-design.md` |
-| Per-service Prometheus metrics | **Implemented, merged** | `crates/common/src/metrics.rs` (`nr_status_` prefix helper), `git log`: `56d8e9f Merge branch 'worktree-metrics-impl'`, metrics wired into every crate |
-| Local dev identity provider (Authentik, opt-in) | **Implemented, merged** | `git log`: `4de1e3b Add opt-in docker-compose.authentik.yml local dev IdP overlay`, `38700ae Add the devAuthentik values.yaml block` |
+| Per-service Prometheus metrics | **Implemented, merged** | `crates/common/src/metrics.rs` (`nr_status_` prefix helper), `git log`: `683a839 Merge branch 'worktree-metrics-impl'`, metrics wired into every crate |
+| Local dev identity provider (Authentik, opt-in) | **Implemented, merged** | `git log`: `4d36b7a Add opt-in docker-compose.authentik.yml local dev IdP overlay`, `4d36b7a Add the devAuthentik values.yaml block` |
 | Journey ticket tracking + Delay Repay eligibility estimation | **Design only, not implemented** | `docs/superpowers/specs/2026-08-29-journey-ticket-tracking-design.md` — explicitly never auto-submits a claim, only estimates and links out; no barcode/ITSO decoding |
 | Line-catalogue expansion to all major TOCs/regional networks | **Research/gap-analysis only, not implemented** | `docs/superpowers/specs/2026-08-29-line-coverage-gap-analysis.md` (766 lines; audit of what's missing, no new `.toml` files written) |
 

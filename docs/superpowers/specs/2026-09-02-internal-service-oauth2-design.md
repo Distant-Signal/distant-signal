@@ -38,8 +38,8 @@ a DS-side design.
 scheme (`InternalService` enum, `InternalServiceRegistry`, a static
 Rust route-scoping table, per-service secrets minted and stored by this
 app's own Helm chart/`docker-compose.yml`). That work was implemented,
-merged (`0bcd0e285963e7aee07e5bb3b45fadaa1ee07d03`), and has just been
-**reverted** (`927efc5`, a clean revert — confirmed via `cargo build
+merged (`2ccd73f16f27ec7a37de3814a1412947490d5880`), and has just been
+**reverted** (`f253f2a`, a clean revert — confirmed via `cargo build
 --workspace` and `helm lint` on this worktree) because it was flagged as
 the wrong architectural direction: building a bespoke identity/authorization
 system by hand when this app already has a real, working OAuth2/OIDC

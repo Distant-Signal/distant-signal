@@ -292,7 +292,7 @@ are not "DS has the data, needs a new endpoint" — DS currently receives
 and verifies the raw CIF *files* (a real, working, recently-built
 capability: `schedule-ingest` and its SFTP delivery path are live per
 `docs/superpowers/specs/2026-09-01-schedule-feed-push-design.md` and the
-`b5cbdfe`/`cbbd59a`/`3f60263` commits visible in this repo's own recent
+`aa9c3e6`/`6bcc428`/`b95a253` commits visible in this repo's own recent
 history) but parses none of their content into a store. Building that
 store — CIF record parsing, STP resolution, a schema, RAPTOR/CSA over
 it — is substantively the same engineering investment train-mcp's own

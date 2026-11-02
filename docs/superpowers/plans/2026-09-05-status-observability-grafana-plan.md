@@ -1161,7 +1161,7 @@ must have merged, and the `distant-signal` chart's own pinned reference in
 `clusters/base/apps/distant-signal.yaml`'s `HelmRelease` must have been
 bumped to a commit/version that includes it — same "chart pin bump" flow
 this repo already uses (confirmed real precedent: that file's own comment
-records "chart pin bumped to bfa965e086ab193ce1e2f4a1736a092e9e20f1fe" for
+records "chart pin bumped to eeace172a5ee904bcd1dfe9c5583c6379bc56513" for
 an unrelated prior change). **Not a hard ordering requirement** — see
 Rollout Order below for why applying R2 before the pin bump is merely
 *incomplete*, not broken — but doing the pin bump first means this edit

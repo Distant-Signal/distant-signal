@@ -254,7 +254,7 @@ one Pod, one shared `data` volume (`volumeMounts` at lines 164-166 and
 225-227, same `mountPath: /data/schedule-feed` in both containers) — this
 pattern is already proven, already deployed, and already survived a real
 incident (the `fsGroup`/`chown` permission-denied fix visible in this
-repo's own recent commit history, `b5cbdfe`).
+repo's own recent commit history, `aa9c3e6`).
 
 ## Decisions
 

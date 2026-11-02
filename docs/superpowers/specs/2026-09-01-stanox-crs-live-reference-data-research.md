@@ -141,7 +141,7 @@ found this policy is *not* already applied in that file).
 ### Update history in practice: none, ever
 
 `git log --follow -- reference-data/stanox-crs.csv` returns exactly one
-commit, `d2fe0f1` ("Move trust-consumer's hardcoded STANOX->CRS table into
+commit, `e40d4fc` ("Move trust-consumer's hardcoded STANOX->CRS table into
 an external, runtime-loaded config file") — the commit that *created* the
 file. **It has never been regenerated or edited since.** There is no
 CI job, cron, script, or Makefile target that regenerates it automatically

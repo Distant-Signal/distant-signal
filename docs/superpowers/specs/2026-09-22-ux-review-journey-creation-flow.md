@@ -9,7 +9,7 @@ manifest is `frontend/e2e/screenshots/output/manifest.ndjson`.
 
 The code that produced these screenshots is **not** on `main`. It is the
 `integration-preview` branch checked out at
-`/home/coder/Distant-Signal/.integration-worktree` (commit `c84dfb4e`). File
+`/home/coder/Distant-Signal/.integration-worktree` (commit `3c3afc15`). File
 paths below that start with `.integration-worktree/` refer to that checkout;
 paths without the prefix are identical on `main` and there. Where a claim
 depends on code rather than pixels, the file and line are cited so the

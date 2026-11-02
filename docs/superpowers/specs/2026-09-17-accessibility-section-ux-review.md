@@ -1,7 +1,7 @@
 # UX review: the structured "Accessibility & facilities" section
 
 **Status: UX review, not approved for implementation.** This document
-critiques what `main` at `5d123914` renders for `/stations/[crs]`'s
+critiques what `main` at `341dabd0` renders for `/stations/[crs]`'s
 "Accessibility & facilities" section (`frontend/lib/stationAccessibility.ts`,
 `frontend/components/StationAccessibilitySection.tsx`), built from
 `2026-09-16-structured-accessibility-rendering-design.md`. It recommends; it

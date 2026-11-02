@@ -1,13 +1,13 @@
 # Design: windowed full-coverage stats (recent window + day-to-date)
 
 > **Status (2026-09-28):** branch `wt-fc-windowed-impl` has been merged into
-> `main` (merge commit `9872c278`); every switch is still off by default.
+> `main` (merge commit `56991e1d`); every switch is still off by default.
 
 **Status: implemented (branch `wt-fc-windowed-impl`), every switch off by
 default. The "Decisions (2026-09-27)" section below overrides the rest of
 this document where they differ; "Implementation notes" at the end records
 what the implementation changed and why.**
-Base: local `main` at `c3d5a0fc` (includes the 2026-09-27 full-coverage
+Base: local `main` at `ac958da7` (includes the 2026-09-27 full-coverage
 restart fix: startup replay, partial days, population gating, date-keyed
 `full_coverage_line_stats`, exact gap detection).
 
@@ -461,7 +461,7 @@ reboots), so memory figures come from the review and the live pod.
   `DayState` and wipes them, and the startup replay starts at the day
   start, so the day's first trains can never be matched.
 - Observation, not investigated further: the production consumer (image
-  `sha256:cb4fc6b1…`, started 03:40Z, pre-dates `c3d5a0fc`) had matched no
+  `sha256:cb4fc6b1…`, started 03:40Z, pre-dates `ac958da7`) had matched no
   movement at all by 04:25Z although 59 population trains of 09-27 had
   reported movements. `events_matched_total` has no series at all.
 
@@ -1303,7 +1303,7 @@ Over the 7-day window, from the report:
 
 ## 9. Implementation tasks, file-level changes and tests
 
-Line numbers are at `c3d5a0fc`. Migrations use only
+Line numbers are at `ac958da7`. Migrations use only
 `20260927120000`–`20260927129999`. Each task ends green on the brief's
 verification list (fmt, clippy `-D warnings`, `cargo +1.88.0 check`,
 workspace tests, DB-gated tests of touched crates on a fresh DB, and

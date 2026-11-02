@@ -87,7 +87,7 @@ it is the same reasoning repeated for every entry in this list):
   `scheduleReference`), each an Authentik service-account app-password.
   This is the credential shape landed by
   `docs/superpowers/specs/2026-09-02-internal-service-oauth2-design.md`
-  (git log: `b78d30b`, `8b660eb`, `d8150b2` — implemented and merged this
+  (git log: `17d4e17`, `17d4e17`, `17d4e17` — implemented and merged this
   session's own history, not still a proposal).
 - `sso-client-secret` (`secret.yaml:92-95`) — Authentik's own OIDC client
   secret for human login.
@@ -190,8 +190,8 @@ secret-store swap alone.
 ### The internal-service credential rotation story is already solved — without Vault
 
 `docs/superpowers/specs/2026-09-02-internal-service-oauth2-design.md`
-(implemented this session: `git log` shows `b78d30b`, `8b660eb`, `d8150b2`
-merged, plus the follow-on MCP-groups work `9499334`..`9f87acf`) redesigned
+(implemented this session: `git log` shows `17d4e17`, `17d4e17`, `17d4e17`
+merged, plus the follow-on MCP-groups work `7f36ca2`..`7f36ca2`) redesigned
 exactly the rotation-sensitive part of this chart's credential surface: the
 8 internal callers' access to `api`'s `/private/*` routes now runs on
 Authentik-issued, short-lived OAuth2 access tokens (client-credentials

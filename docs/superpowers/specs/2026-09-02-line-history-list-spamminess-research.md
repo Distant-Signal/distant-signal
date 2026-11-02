@@ -68,7 +68,7 @@ and sketches prioritized directions — not a fix.
   `STATION_HIT`/`KEYWORD_ONLY`/`OPERATOR_ONLY` taxonomy could produce more
   than one entry per line for one real incident.
 - Read `docs/superpowers/specs/2026-07-16-stale-incident-handling-design.md`
-  (found via `git log --all`/`git show 343e4a2`, per the brief — it is not
+  (found via `git log --all`/`git show 4094197`, per the brief — it is not
   present under `docs/superpowers/plans/` but its design doc **is** still
   present under `docs/superpowers/specs/`, and its rail-day-boundary
   incident-expiry mechanism it specifies is implemented as described in the
@@ -388,7 +388,7 @@ investigation. This specific hypothesis is not supported by the code.
   unrelated sample-count dedup mechanism, cited only to rule it out as the
   source of this problem.
 - `docs/superpowers/specs/2026-07-16-stale-incident-handling-design.md`
-  (recovered via `git show 343e4a2`; not present under
+  (recovered via `git show 4094197`; not present under
   `docs/superpowers/plans/`, still present under `docs/superpowers/specs/`)
   — origin of the rail-day-boundary expiry mechanism discussed above.
 - `docs/superpowers/specs/2026-08-31-sample-data-availability-design.md` —

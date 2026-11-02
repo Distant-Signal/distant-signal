@@ -31,7 +31,7 @@ Read directly, this session:
   surface and what it stores.
 - `crates/poller-ldbws/src/{main,config}.rs` — the sampler that is DS's
   only source of LDBWS-derived data, including the `numRows` retry-fallback
-  fix (commit `821abaf`, merged `c69bae7`, 2026-09-02).
+  fix (commit `fa571ad`, merged `fa571ad`, 2026-09-02).
 - `docs/superpowers/specs/2026-09-02-internal-service-oauth2-design.md`
   and `docs/superpowers/specs/2026-09-02-mcp-server-oauth-access-groups-design.md`
   — the two pieces of concurrent/recent work this task asked to be factored
@@ -169,7 +169,7 @@ shape is exactly sufficient for that job and no more.
 
 Three things this task specifically asked to be weighed:
 
-**1. The `numRows` retry-fallback fix (`821abaf`/`c69bae7`, merged
+**1. The `numRows` retry-fallback fix (`fa571ad`/`fa571ad`, merged
 2026-09-02).** `poller-ldbws::fetch_departures` now retries a busy
 station's `GetDepBoardWithDetails` call with a halved `numRows` (10 → 5 →
 2 → 1, `numrows_step_down`, `crates/poller-ldbws/src/main.rs:205-210`) up

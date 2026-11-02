@@ -233,7 +233,7 @@ describe('AppNavBar', () => {
   });
 });
 
-// I4 regression guard (2026-09-17 whole-branch review): commit 5fcc5686
+// I4 regression guard (2026-09-17 whole-branch review): commit 1cb38895
 // fixed the auth Suspense fallback's colour to match the resolved
 // `<LoginControl>`'s (both render the literal string "Log in", and the
 // boundary is identical on every route, so a mismatch here is purely a

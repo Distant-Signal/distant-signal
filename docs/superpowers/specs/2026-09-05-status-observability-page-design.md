@@ -623,7 +623,7 @@ overlaying all three on one chart** (`movement-relay` published vs.
 `trust-consumer` received vs. `full-coverage-consumer` matched, as three
 series on one `@mantine/charts` `LineChart`, same multi-series/legend/gap-band
 shape `TrendsCharts.tsx` already established) — the most recent commit in
-this repo's own history (`4ca522e`, "trust-consumer: add per-msg_type
+this repo's own history (`33268d0`, "trust-consumer: add per-msg_type
 received/matched counters, comparable directly against movement-relay's
 own publish counter") already frames these two counters as intentionally
 comparable; this graph is that comparison made visible, rather than only

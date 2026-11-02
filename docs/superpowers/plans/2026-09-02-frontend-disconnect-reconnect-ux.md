@@ -70,7 +70,7 @@ Helm values comment.
 ## Verified facts (ground truth for this plan — do not re-derive)
 
 Everything below was read out of the working tree while planning, at
-commit `c69bae7`. File and line numbers are as of that HEAD.
+commit `fa571ad`. File and line numbers are as of that HEAD.
 
 ### The error-boundary mechanism
 
@@ -83,7 +83,7 @@ commit `c69bae7`. File and line numbers are as of that HEAD.
 - `frontend/app/error.tsx` is 25 lines: `'use client'`,
   `Stack`/`Title order={1} size="h2"`/`Text c="dimmed"{error.message}`/
   `Button onClick={reset}`. **The `order={1} size="h2"` and its comment
-  block landed in `43595ce` (accessibility fixes) and must be preserved
+  block landed in `420a529` (accessibility fixes) and must be preserved
   verbatim by Task 4** — do not drop the heading-level fix while rewriting
   around it.
 - There is no `frontend/app/error.test.tsx`. Task 4 creates the first one.
@@ -384,7 +384,7 @@ The spec left six open. All six are decided here.
 - **Flat Mantine named exports only, never dot-notation.** `Notification`,
   `Stack`, `Title`, `Text`, `Button` — not `Mantine.Notification`. This
   repo has already been broken twice by dot-notation across the
-  Server/Client boundary (`ae0bd22`, "use flat ListItem export, not
+  Server/Client boundary (`fe9d1ef`, "use flat ListItem export, not
   List.Item").
 - **Anything reading browser-only state is `useMounted()`-gated** and
   renders the deterministic server value until mounted. Precedents:
@@ -417,7 +417,7 @@ also rewrites `frontend/app/error.tsx` (finding F5b: stop rendering
   wraps it in the `disconnected` conditional.
 
 Either order works. The one thing neither may do is drop
-`<Title order={1} size="h2">` or its comment block (landed in `43595ce`).
+`<Title order={1} size="h2">` or its comment block (landed in `420a529`).
 
 ---
 
@@ -962,7 +962,7 @@ Implements spec Decision 6. **Depends on Task 0's finding and on Task 3.**
 - [ ] **Step 1: Rewrite `error.tsx`**
 
 Preserve `<Title order={1} size="h2">` and its full comment block
-verbatim (landed in `43595ce`). Add:
+verbatim (landed in `420a529`). Add:
 
 ```tsx
 const { disconnected } = useConnectivity();

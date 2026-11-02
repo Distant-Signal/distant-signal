@@ -4,7 +4,7 @@
  * footer links here on every page and `/attribution` says so (repo split
  * spec §6). `/api/version` (the api's `/public/version`) lists the exact
  * commit each running image was built from. */
-export const SOURCE_CODE_URL = 'https://github.com/FasterSpeeding/Distant-Signal';
+export const SOURCE_CODE_URL = 'https://github.com/Distant-Signal/distant-signal';
 
 /** The licence, by its SPDX name and the GNU page for it. */
 export const SOFTWARE_LICENCE_NAME = 'GNU Affero General Public License v3.0 or later';
