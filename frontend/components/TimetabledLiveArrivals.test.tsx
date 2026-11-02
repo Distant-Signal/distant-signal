@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { TimetabledLiveArrivals } from './TimetabledLiveArrivals';
+import { JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
 import type { JourneyLegDetail, LegLiveArrivalsFilter, TflStopArrivals } from '@/lib/types';
 
 const FILTER: LegLiveArrivalsFilter = { stopId: '940GZZLUKSX', lineId: 'victoria', destinations: ['Brixton'] };
@@ -9,6 +10,7 @@ const FILTER: LegLiveArrivalsFilter = { stopId: '940GZZLUKSX', lineId: 'victoria
 function leg(departInMinutes: number): JourneyLegDetail {
   const at = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
   return {
+    ...JOURNEY_LEG_DEFAULTS,
     id: 7,
     kind: 'untracked',
     originCrs: null,

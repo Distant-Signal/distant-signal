@@ -26,12 +26,9 @@ function hasPublicTimes(stop: JourneyStop): boolean {
 
 /** A passing point: the train runs through without stopping. Shown only in
  * the detailed working-timetable view, never as a stop -- including once the
- * train has passed it and it carries actual times. A response without
- * `passingPoint` falls back to "a pass time and no working stop time": not
- * `scheduled*`, which an older API filled in from the live movement. */
-export function isPassingPoint(stop: JourneyStop): boolean {
-  if (stop.passingPoint !== undefined) return stop.passingPoint;
-  return stop.workingPass != null && stop.workingArrival == null && stop.workingDeparture == null;
+ * train has passed it and it carries actual times. */
+export function isPassingPoint(stop: Pick<JourneyStop, 'passingPoint'>): boolean {
+  return stop.passingPoint;
 }
 
 /** A call only staff timetables show: the train stops (it has a working
@@ -58,10 +55,10 @@ export function isRoadOrWaterStop(stop: Pick<JourneyStop, 'locationType'>): bool
 export function stopDirectionLabels(stop: JourneyStop): string[] {
   const labels: string[] = [];
   if (stop.kind === 'Intermediate' && !isPassingPoint(stop)) {
-    if (stop.canBoard === false && stop.canAlight === true) labels.push('Set down only');
-    if (stop.canAlight === false && stop.canBoard === true) labels.push('Pick up only');
+    if (!stop.canBoard && stop.canAlight) labels.push('Set down only');
+    if (!stop.canAlight && stop.canBoard) labels.push('Pick up only');
   }
-  if (stop.requestStop === true) labels.push('Request stop');
+  if (stop.requestStop) labels.push('Request stop');
   return labels;
 }
 

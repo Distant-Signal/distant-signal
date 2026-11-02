@@ -42,13 +42,27 @@ const TRAIN_DATE = process.env.E2E_TRAIN_DATE;
 const GROUP_ID = process.env.E2E_GROUP_ID;
 
 async function expectMainMatchesNavWidth(page: Page) {
-  const nav = page.locator('nav[aria-label="Main"] > .mantine-Container-root');
-  const main = page.locator('main.mantine-Container-root');
-  await expect(nav).toBeVisible();
-  await expect(main).toBeVisible();
+  // By role, not `nav[aria-label="Main"]`: while the session check streams
+  // in, React holds the finished bar in a `<div hidden>` beside the
+  // logged-out fallback (app/layout.tsx's `<Suspense>`), so a CSS locator
+  // briefly matches two Containers. The hidden one is out of the
+  // accessibility tree; e2e/nav.spec.ts's `mainNav` says more.
+  await expect(page.getByRole('navigation', { name: 'Main', exact: true })).toBeVisible();
+  await expect(page.locator('main.mantine-Container-root')).toBeVisible();
 
-  const navBox = await nav.boundingBox();
-  const mainBox = await main.boundingBox();
+  // Both boxes in one `evaluate`: the same swap can detach the bar between
+  // two separate measurements.
+  const boxes = await page.evaluate(() => {
+    const box = (selector: string) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return rect && { x: rect.x, width: rect.width };
+    };
+    return {
+      navBox: box('nav[aria-label="Main"]:not([hidden] *) > .mantine-Container-root'),
+      mainBox: box('main.mantine-Container-root'),
+    };
+  });
+  const { navBox, mainBox } = boxes;
   if (!navBox || !mainBox) {
     throw new Error('Could not measure the nav Container or <main> -- one of them did not render.');
   }

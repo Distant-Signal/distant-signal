@@ -16,7 +16,9 @@ export const MAX_OPERATORS = 8;
 
 /** "Only these", "Avoid these" or "Prefer" (Compare options only: an
  * extra option on only these operators, labelled; spec §5.4). */
-export type OperatorMode = 'only' | 'avoid' | 'prefer';
+import type { OperatorMode } from './api-types';
+
+export type { OperatorMode };
 
 export const OPERATOR_GROUP_PREFIX = 'group:';
 export const DS_OPERATOR_PREFIX = 'ds:';
@@ -195,8 +197,8 @@ export function operatorFilterBanner(
   nameOf: (entry: string) => string,
   entries?: readonly string[],
 ): string | null {
-  const only = plan.operator ?? [];
-  const avoid = plan.avoidOperator ?? [];
+  const only = plan.operator;
+  const avoid = plan.avoidOperator;
   if (only.length > 0) {
     const names = joinNames((entries?.length ? entries : only).map(nameOf));
     return only.includes(UNDERGROUND)

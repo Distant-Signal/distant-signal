@@ -4,6 +4,14 @@ import { renderWithMantine } from '@/test/render';
 import { JourneyCreationFlow } from './JourneyCreationFlow';
 import type { JourneyLegDetail, TripPlanResponse } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
+import {
+  ITINERARY_DEFAULTS,
+  JOURNEY_LEG_DEFAULTS,
+  SEGMENT_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+  TRIP_PLAN_DEFAULTS,
+  plannedTrainLeg,
+} from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -15,6 +23,8 @@ vi.mock('next/navigation', () => ({
 
 function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'WAT',
     originName: 'London Waterloo',
@@ -208,6 +218,7 @@ describe('JourneyCreationFlow', () => {
     const matchedLeg = leg({
       destinationCrs: 'CLJ',
       trackedTrainState: {
+        ...TRACKED_TRAIN_STATE_DEFAULTS,
         id: 1,
         serviceDate: '2026-09-22',
         pinOriginCrs: 'WAT',
@@ -280,17 +291,19 @@ describe('JourneyCreationFlow', () => {
   // its post-creation view once the journey exists.
   it('hands off to the post-creation view after the atomic plan-mode save (mode selector -> plan -> save)', async () => {
     const twoSegmentPlan: TripPlanResponse = {
+      ...TRIP_PLAN_DEFAULTS,
       results: 'fastest',
       segments: [
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'EUS',
           destinationCrs: 'MKC',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
-                  kind: 'train',
+                plannedTrainLeg({
                   trainUid: 'C11052',
                   serviceDate: '2026-09-23',
                   originCrs: 'EUS',
@@ -298,7 +311,7 @@ describe('JourneyCreationFlow', () => {
                   scheduledDeparture: '08:00:00',
                   scheduledArrival: '08:50:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 50,
@@ -306,14 +319,15 @@ describe('JourneyCreationFlow', () => {
           ],
         },
         {
+          ...SEGMENT_DEFAULTS,
           originCrs: 'MKC',
           destinationCrs: 'EDB',
           cappedByMaxChanges: false,
           itineraries: [
             {
+              ...ITINERARY_DEFAULTS,
               legs: [
-                {
-                  kind: 'train',
+                plannedTrainLeg({
                   trainUid: 'C22000',
                   serviceDate: '2026-09-23',
                   originCrs: 'MKC',
@@ -321,7 +335,7 @@ describe('JourneyCreationFlow', () => {
                   scheduledDeparture: '09:10:00',
                   scheduledArrival: '13:00:00',
                   arrivalDayOffset: 0,
-                },
+                }),
               ],
               changeCount: 0,
               totalDurationMinutes: 230,

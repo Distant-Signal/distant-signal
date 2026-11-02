@@ -83,7 +83,7 @@ export function timetableNote(
  * for TfL's lines their status page (`/lines/tfl-victoria`). */
 export function noticeHref(network: string, notice: TripPlanTransitNotice): string | null {
   if (notice.situationId) return transitIncidentHref(network, notice.situationId);
-  if (network === 'tfl' && notice.lineId?.startsWith('tfl:')) {
+  if (network === 'tfl' && notice.lineId.startsWith('tfl:')) {
     return `/lines/tfl-${encodeURIComponent(notice.lineId.slice('tfl:'.length))}`;
   }
   return null;

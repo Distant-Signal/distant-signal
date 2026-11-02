@@ -257,6 +257,9 @@ RUST_INPUTS = (
     "charts/distant-signal/files/postgres-grants.sql",
     # include_str!: api's DS-124 migration test replays the rollback.
     "scripts/rollback-tracked-trains-as-journeys.sql",
+    # The api's generated TypeScript types: its `api_types` test checks
+    # them, and its runtime stage COPYs them (repo-split spec §5.3).
+    "api-types",
 )
 # Left out even inside RUST_INPUTS: build output and local env files.
 RUST_EXCLUDES = ("**/target", "**/*.env", "**/.env")

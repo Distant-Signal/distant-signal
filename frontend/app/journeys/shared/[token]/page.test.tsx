@@ -4,6 +4,7 @@ import { renderWithMantine } from '@/test/render';
 import SharedJourneyPage, { generateMetadata } from './page';
 import { getJourney, getJourneyByShareToken, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
+import { JOURNEY_DETAIL_DEFAULTS, JOURNEY_LEG_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -44,6 +45,7 @@ vi.mock('next/headers', () => ({
 // agree on what a "real" tracked-train state looks like.
 function baseTrackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'KGX',
@@ -73,6 +75,8 @@ function baseTrackedTrainState(overrides: Partial<TrackedTrainState> = {}): Trac
 
 function matchedLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'KGX',
     originName: null,
@@ -96,6 +100,7 @@ function matchedLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail
 // the object it returns.
 function sharedJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   return {
+    ...JOURNEY_DETAIL_DEFAULTS,
     id: 167,
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',

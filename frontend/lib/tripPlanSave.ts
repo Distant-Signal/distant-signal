@@ -132,7 +132,7 @@ function trainInstant(leg: TrainLeg, end: 'departure' | 'arrival'): dayjs.Dayjs 
   const [time, offset] = publicTime
     ? [publicTime, publicOffset ?? 0]
     : end === 'departure'
-      ? [leg.scheduledDeparture, leg.departureDayOffset ?? 0]
+      ? [leg.scheduledDeparture, leg.departureDayOffset]
       : [leg.scheduledArrival, leg.arrivalDayOffset];
   const instant = dayjs.tz(`${leg.serviceDate} ${time}`, LONDON_TZ).add(offset, 'day');
   return instant.isValid() ? instant : null;

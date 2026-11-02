@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { journeyDetailSummary, journeyListItemSummary } from './journeyStatus';
 import type { JourneyLegDetail, JourneyListItem, JourneyStop, TrackedTrainState } from './types';
+import {
+  JOURNEY_LEG_DEFAULTS,
+  JOURNEY_LIST_ITEM_DEFAULTS,
+  JOURNEY_STOP_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+} from '@/test/apiDefaults';
 
 function state(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-10-21',
     pinOriginCrs: null,
@@ -34,6 +41,8 @@ function state(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
 
 function leg(id: number, from: string, to: string, overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id,
     originCrs: from,
     originName: null,
@@ -54,6 +63,7 @@ function leg(id: number, from: string, to: string, overrides: Partial<JourneyLeg
 
 function stop(crs: string, overrides: Partial<JourneyStop> = {}): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs,
     name: null,
     tiploc: null,
@@ -310,6 +320,7 @@ describe('journeyDetailSummary: the journey is judged at its final destination',
 
 function row(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
   return {
+    ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: 1,
     customName: null,
     createdAt: '2026-10-01T09:00:00Z',
@@ -317,6 +328,7 @@ function row(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
     originCrs: 'KGX',
     destinationCrs: 'YRK',
     serviceDate: '2026-10-21',
+    firstServiceDate: '2026-10-21',
     originName: null,
     destinationName: null,
     legCount: 2,
@@ -367,21 +379,5 @@ describe('journeyListItemSummary: the same rule from a list row', () => {
 
   it('a later leg still needing a train flags the journey', () => {
     expect(journeyListItemSummary(row({ unmatchedLegCount: 1 }))).toMatchObject({ group: 'unmatched' });
-  });
-
-  it('without the counts (an older backend) it reads the current leg as before', () => {
-    const {
-      trainLegCount: _trainLegCount,
-      cancelledLegCount: _cancelledLegCount,
-      unmatchedLegCount: _unmatchedLegCount,
-      finishedLegCount: _finishedLegCount,
-      startedLegCount: _startedLegCount,
-      finalArrivalDelayMinutes: _finalArrivalDelayMinutes,
-      finalArrivalDelayProvisional: _finalArrivalDelayProvisional,
-      ...old
-    } = row();
-    expect(journeyListItemSummary(old)).toMatchObject({ group: 'delayed', finalArrivalDelayMinutes: 12 });
-    expect(journeyListItemSummary({ ...old, status: 'cancelled' })).toMatchObject({ group: 'partCancelled' });
-    expect(journeyListItemSummary({ ...old, status: 'cancelled', legCount: 1 })).toMatchObject({ group: 'severe' });
   });
 });

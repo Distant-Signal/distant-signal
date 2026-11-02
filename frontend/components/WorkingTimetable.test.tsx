@@ -3,9 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { renderWithMantine } from '@/test/render';
 import { WorkingTimetable } from './WorkingTimetable';
 import type { JourneyStop } from '@/lib/types';
+import { JOURNEY_STOP_DEFAULTS } from '@/test/apiDefaults';
 
 function stop(overrides: Partial<JourneyStop>): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
+    // The api marks a stop with only a pass time a passing point.
+    passingPoint:
+      overrides.workingPass != null && overrides.workingArrival == null && overrides.workingDeparture == null,
     crs: null,
     name: null,
     tiploc: null,

@@ -13,9 +13,17 @@ import {
   resolvePriorOriginCrs,
 } from './journeyLegChaining';
 import type { JourneyDetail, JourneyLegDetail, JourneyStop, TrackedTrainState } from './types';
+import {
+  JOURNEY_DETAIL_DEFAULTS,
+  JOURNEY_LEG_DEFAULTS,
+  JOURNEY_STOP_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+} from '@/test/apiDefaults';
 
 function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'WAT',
     originName: null,
@@ -36,6 +44,7 @@ function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
 
 function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'WAT',
@@ -64,7 +73,15 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
 }
 
 function journey(legs: JourneyLegDetail[]): JourneyDetail {
-  return { id: 1, customName: null, createdAt: '2026-09-22T00:00:00Z', legs, isOwner: true, shareLink: null };
+  return {
+    ...JOURNEY_DETAIL_DEFAULTS,
+    id: 1,
+    customName: null,
+    createdAt: '2026-09-22T00:00:00Z',
+    legs,
+    isOwner: true,
+    shareLink: null,
+  };
 }
 
 describe('journeyPriorDestinationCrs', () => {
@@ -115,6 +132,7 @@ describe('journeyCanAddLeg', () => {
 
 function stop(crs: string, overrides: Partial<JourneyStop> = {}): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs,
     name: null,
     tiploc: null,

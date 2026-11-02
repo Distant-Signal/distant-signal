@@ -72,7 +72,7 @@ describe('timetabled legs (DS-237)', () => {
       severity: 6,
       description: 'Severe Delays',
       message: 'm',
-      reason: null,
+      reason: '',
     };
     expect(noticeHref('metrolink', { ...notice, lineId: 'metrolink:blue', situationId: 'S 1' })).toBe(
       '/transit/metrolink/incidents/S%201',

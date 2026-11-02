@@ -4,6 +4,12 @@ import { renderWithMantine } from '@/test/render';
 import JourneyDetailPage from './page';
 import * as api from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
+import {
+  JOURNEY_DETAIL_DEFAULTS,
+  JOURNEY_LEG_DEFAULTS,
+  JOURNEY_STOP_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+} from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -33,6 +39,7 @@ vi.mock('next/headers', () => ({
 
 function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'KGX',
@@ -54,6 +61,7 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
     scheduleCallingPoints: null,
     journeyStops: [
       {
+        ...JOURNEY_STOP_DEFAULTS,
         crs: 'KGX',
         name: 'London Kings Cross',
         tiploc: null,
@@ -74,6 +82,7 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
         platformChanged: false,
       },
       {
+        ...JOURNEY_STOP_DEFAULTS,
         crs: 'YRK',
         name: 'York',
         tiploc: null,
@@ -103,6 +112,8 @@ function trackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainS
 
 function matchedLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'KGX',
     originName: null,
@@ -123,6 +134,7 @@ function matchedLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail
 
 function baseJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   return {
+    ...JOURNEY_DETAIL_DEFAULTS,
     id: 167,
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
@@ -260,6 +272,8 @@ describe('JourneyDetailPage', () => {
 
 function openLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
   return {
+    kind: 'train',
+    ...JOURNEY_LEG_DEFAULTS,
     id: 1,
     originCrs: 'KGX',
     originName: null,
@@ -280,6 +294,7 @@ function openLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
 
 function openSuiteTrackedState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-09-22',
     pinOriginCrs: 'KGX',
@@ -309,6 +324,7 @@ function openSuiteTrackedState(overrides: Partial<TrackedTrainState> = {}): Trac
 
 function openSuiteJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   return {
+    ...JOURNEY_DETAIL_DEFAULTS,
     id: 1,
     customName: null,
     createdAt: '2026-09-22T10:00:00Z',
@@ -490,6 +506,7 @@ describe('JourneyDetailPage: untracked legs', () => {
 
   function tubeLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
     return {
+      ...JOURNEY_LEG_DEFAULTS,
       id: 2,
       kind: 'untracked',
       originCrs: null,

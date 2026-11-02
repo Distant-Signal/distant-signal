@@ -8,6 +8,7 @@ import type { TrackedTrainListItem, TicketListItem, SharedGroupTrain, JourneyLis
 import { journeyDetail, journeyListItem } from '@/test/journeyFixtures';
 import { cardOf } from '@/test/clickableCard';
 import { byVisibleText, visibleText } from '@/test/routeText';
+import { JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 // The not-logged-in branch's LoginControl calls useLoginHref()
@@ -22,8 +23,15 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
+// These rows leave out `travelled` and `departsAt`, which the api always
+// sends, so the page places them by their own times (its rule for a
+// response from before those fields); the tests that set them say so.
+const { travelled: _trainTravelled, departsAt: _trainDepartsAt, ...TRAIN_ROW } = TRACKED_TRAIN_LIST_ITEM_DEFAULTS;
+const { travelled: _journeyTravelled, departsAt: _journeyDepartsAt, ...JOURNEY_ROW } = JOURNEY_LIST_ITEM_DEFAULTS;
+
 function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
   return {
+    ...(TRAIN_ROW as typeof TRACKED_TRAIN_LIST_ITEM_DEFAULTS),
     id: 1,
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',
@@ -990,8 +998,11 @@ describe('JourneysPage', () => {
   // zero callers, so a journey created by time-window search was
   // unreachable the moment its page was closed.
   describe('journeys (C1)', () => {
+    // A one-leg journey: its whole-journey fields and counts follow its
+    // current leg unless a test sets them.
     function journey(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
-      return {
+      const row: JourneyListItem = {
+        ...(JOURNEY_ROW as typeof JOURNEY_LIST_ITEM_DEFAULTS),
         id: 169,
         customName: null,
         createdAt: '2026-09-22T18:13:54Z',
@@ -999,6 +1010,7 @@ describe('JourneysPage', () => {
         originCrs: 'KGX',
         destinationCrs: 'EDB',
         serviceDate: '2026-09-22',
+        firstServiceDate: '2026-09-22',
         originName: null,
         destinationName: null,
         matchMode: 'unmatched',
@@ -1007,6 +1019,22 @@ describe('JourneysPage', () => {
         status: null,
         delayMinutes: null,
         ...overrides,
+      };
+      return {
+        ...row,
+        firstOriginCrs: 'firstOriginCrs' in overrides ? row.firstOriginCrs : row.originCrs,
+        firstOriginName: 'firstOriginName' in overrides ? row.firstOriginName : row.originName,
+        lastDestinationCrs: 'lastDestinationCrs' in overrides ? row.lastDestinationCrs : row.destinationCrs,
+        lastDestinationName: 'lastDestinationName' in overrides ? row.lastDestinationName : row.destinationName,
+        firstServiceDate: 'firstServiceDate' in overrides ? row.firstServiceDate : row.serviceDate,
+        // The api's counts: every leg a train leg, the current one counted.
+        trainLegCount: overrides.trainLegCount ?? row.legCount,
+        unmatchedLegCount: overrides.unmatchedLegCount ?? (row.trainSubscriptionId === null ? 1 : 0),
+        cancelledLegCount: overrides.cancelledLegCount ?? (row.status === 'cancelled' ? 1 : 0),
+        startedLegCount: overrides.startedLegCount ?? (row.status === 'en_route' || row.status === 'completed' ? 1 : 0),
+        finishedLegCount: overrides.finishedLegCount ?? (row.status === 'completed' ? 1 : 0),
+        finalArrivalDelayMinutes:
+          'finalArrivalDelayMinutes' in overrides ? row.finalArrivalDelayMinutes : row.delayMinutes,
       };
     }
 
@@ -1120,16 +1148,6 @@ describe('JourneysPage', () => {
 
       expect(screen.getByRole('link', { name: 'Trip north' })).toHaveAttribute('href', '/journeys/169');
       expect(screen.getByText('KGX to EDB, 22 Sep 2026')).toBeInTheDocument();
-    });
-
-    it('falls back to the current leg for an older backend without the whole-journey fields', async () => {
-      vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
-      vi.mocked(api.getMyTickets).mockResolvedValue([]);
-      vi.mocked(api.getMyJourneys).mockResolvedValue([journey()]);
-
-      renderWithMantine(await JourneysPage());
-
-      expect(screen.getByRole('link', { name: 'KGX to EDB, 22 Sep 2026' })).toBeInTheDocument();
     });
 
     it("reflects a matched leg's delay in the journey row's badge", async () => {
@@ -1408,7 +1426,8 @@ describe('JourneysPage', () => {
     });
 
     it("does not list a journey leg's own train a second time as a standalone tracked train", async () => {
-      vi.mocked(api.getMyTrackedTrains).mockResolvedValue([train({ id: 295 })]);
+      // The api names the train's journeys (`journeyIds`).
+      vi.mocked(api.getMyTrackedTrains).mockResolvedValue([train({ id: 295, journeyIds: [169] })]);
       vi.mocked(api.getMyTickets).mockResolvedValue([]);
       vi.mocked(api.getMyJourneys).mockResolvedValue([
         journey({

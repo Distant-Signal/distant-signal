@@ -226,7 +226,11 @@ README index); code, the chart README and top-level docs/ are the truth.
   a release after the code stopped using it. Enforced by
   `crates/ds-store/tests/migration_index_locking.rs` and `migration_checksums.rs`.
 - **API changes** get an entry in docs/api-changelog.md (newest first, what a
-  client like DS-MCP needs to know).
+  client like DS-MCP needs to know). A changed response type the frontend
+  reads also means regenerating the TypeScript:
+  `UPDATE_API_TYPES=1 cargo test -p api api_types`, then
+  `uv run scripts/sync-api-types.py write` (CONTRIBUTING.md, "Generated API
+  types").
 - **Copy**: sentence case, "Couldn't <verb> <noun>." failures via
   `describeFailure`, no em dashes, ellipses or arrows, no internal
   vocabulary (ingest, TOC, CRS, "sign in"). `scripts/check-copy.py` holds the

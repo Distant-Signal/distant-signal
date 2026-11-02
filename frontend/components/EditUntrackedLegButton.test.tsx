@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { EditUntrackedLegButton } from './EditUntrackedLegButton';
 import type { JourneyLegDetail } from '@/lib/types';
+import { JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -12,6 +13,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const leg: JourneyLegDetail = {
+  ...JOURNEY_LEG_DEFAULTS,
   id: 12,
   kind: 'untracked',
   originCrs: null,

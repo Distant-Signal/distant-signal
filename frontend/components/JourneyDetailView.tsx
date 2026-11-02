@@ -324,7 +324,7 @@ export function JourneyDetailView({
           {index < journey.legs.length - 1 && <LegConnector leg={leg} next={journey.legs[index + 1] ?? null} />}
         </Stack>
       ))}
-      {journey.isOwner && <EarlierPlans journeyId={journey.id} revisionCount={journey.revisionCount ?? 1} />}
+      {journey.isOwner && <EarlierPlans journeyId={journey.id} revisionCount={journey.revisionCount} />}
     </>
   );
 }

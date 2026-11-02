@@ -4,6 +4,7 @@ import { renderWithMantine } from '@/test/render';
 import { AttachTicketAction } from './AttachTicketAction';
 import type { TrackedTrainListItem } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
+import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -14,6 +15,7 @@ vi.mock('next/navigation', () => ({
 
 function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
   return {
+    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id: 1,
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',

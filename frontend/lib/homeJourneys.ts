@@ -1,6 +1,11 @@
 import { addCalendarDays, londonCalendarDay, londonDayEndIso } from './londonWallClock';
 import { legArrivalInstant, legDepartureInstant, legExpectedDepartureInstant } from './journeyLegChaining';
-import { journeyDetailSummary, journeyListItemSummary, type JourneySummaryGroup } from './journeyStatus';
+import {
+  journeyDetailSummary,
+  journeyListItemSummary,
+  TRAIN_LEG_BLANKS,
+  type JourneySummaryGroup,
+} from './journeyStatus';
 import { viewerCanPickTrain, type TrackedRowStatus } from './trackedRowStatus';
 import { splitTrainRows } from './upcomingPast';
 import { isUntrackedLeg } from './untrackedLeg';
@@ -98,7 +103,7 @@ export function homeJourneyStatusGroup(journey: HomeJourney): JourneySummaryGrou
 }
 
 function firstServiceDate(item: JourneyListItem): string {
-  return item.firstServiceDate ?? item.serviceDate;
+  return item.firstServiceDate;
 }
 
 /** What the home page reads in full: journeys (`GET /Journeys/{id}`) and
@@ -188,6 +193,7 @@ export function loneTrainLeg(train: TrackedTrainListItem, state: TrackedTrainSta
     windowSearched: false,
     trackedTrainState: state,
     legSkip: null,
+    ...TRAIN_LEG_BLANKS,
   };
 }
 

@@ -4,9 +4,11 @@ import { renderWithMantine } from '@/test/render';
 import { TrainJourney } from './TrainJourney';
 import type { JourneyStop, TrackedTrainState } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
+import { JOURNEY_STOP_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
 function journeyStop(overrides: Partial<JourneyStop>): JourneyStop {
   return {
+    ...JOURNEY_STOP_DEFAULTS,
     crs: 'RDG',
     name: 'Reading',
     tiploc: null,
@@ -31,6 +33,7 @@ function journeyStop(overrides: Partial<JourneyStop>): JourneyStop {
 
 function baseState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {
   return {
+    ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
     serviceDate: '2026-08-28',
     pinOriginCrs: 'WAT',
@@ -311,6 +314,7 @@ describe('TrainJourney', () => {
           scheduleDestinationName: 'Woking',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'WAT',
               name: 'London Waterloo',
               tiploc: null,
@@ -331,6 +335,7 @@ describe('TrainJourney', () => {
               platformChanged: false,
             },
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'WOK',
               name: 'Woking',
               tiploc: null,
@@ -372,6 +377,7 @@ describe('TrainJourney', () => {
           mayHaveArrived: true,
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'WOK',
               name: 'Woking',
               tiploc: null,
@@ -408,6 +414,7 @@ describe('TrainJourney', () => {
           trainUid: 'X12345',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'RDG',
               name: 'Reading',
               tiploc: null,
@@ -448,6 +455,7 @@ describe('TrainJourney', () => {
           trainUid: 'X12345',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'RDG',
               name: 'Reading',
               tiploc: null,
@@ -489,6 +497,7 @@ describe('TrainJourney', () => {
           etaSource: 'trust-propagated',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'RDG',
               name: 'Reading',
               tiploc: null,
@@ -615,6 +624,7 @@ describe('TrainJourney', () => {
           trainUid: 'X12345',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'RDG',
               name: 'Reading',
               tiploc: null,
@@ -654,6 +664,7 @@ describe('TrainJourney', () => {
           trainUid: 'X12345',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'RDG',
               name: 'Reading',
               tiploc: null,
@@ -690,6 +701,7 @@ describe('TrainJourney', () => {
           lastReportedLocation: 'Surbiton',
           journeyStops: [
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'WAT',
               name: 'London Waterloo',
               tiploc: null,
@@ -710,6 +722,7 @@ describe('TrainJourney', () => {
               platformChanged: false,
             },
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'SUR',
               name: 'Surbiton',
               tiploc: null,
@@ -730,6 +743,7 @@ describe('TrainJourney', () => {
               platformChanged: false,
             },
             {
+              ...JOURNEY_STOP_DEFAULTS,
               crs: 'WOK',
               name: 'Woking',
               tiploc: null,

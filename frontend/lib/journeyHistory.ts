@@ -38,7 +38,7 @@ export type JourneysPageEntry =
 /** When a journey sets off, in ms: the api's `departsAt`, else (an older
  * api) the London start of its first day. */
 export function journeyDepartsAt(journey: JourneyListItem): number {
-  return Date.parse(journey.departsAt ?? londonDayStartIso(journey.firstServiceDate ?? journey.serviceDate));
+  return Date.parse(journey.departsAt ?? londonDayStartIso(journey.firstServiceDate));
 }
 
 /** When a train sets off, in ms: the api's `departsAt` for one of the

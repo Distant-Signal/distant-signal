@@ -95,7 +95,7 @@ export function splitJourneyRows(
     journeys.map((journey) => ({ journey, status: journeyRowStatus(journey, today) })),
     ({ journey, status }) => ({
       travelled: journey.travelled,
-      startDay: journey.firstServiceDate ?? journey.serviceDate,
+      startDay: journey.firstServiceDate,
       over: status.finished,
     }),
     today,
