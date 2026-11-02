@@ -136,8 +136,8 @@ class BuildInputsTests(unittest.TestCase):
         # The scan sees the known ones (so it is not silently empty).
         for known in (
             "crates/ds-store/db-grants.yaml",
-            "reference-data/tiploc-parent-stations.csv",
-            "reference-data/delay-attribution-reasons.tsv",
+            "crates/common/reference-data/tiploc-parent-stations.csv",
+            "crates/ds-store/reference-data/delay-attribution-reasons.tsv",
             "crates/ds-store/migrations",
             "lines",
         ):
@@ -174,6 +174,39 @@ class RuntimeStageTests(unittest.TestCase):
             problems = gen.runtime_stage_problems({"good": good, "bad": bad})
         self.assertEqual(len(problems), 1)
         self.assertIn("docker/bad.Dockerfile", problems[0])
+
+
+class LinesCopyTests(unittest.TestCase):
+    """No image copies the line catalogue: ds-lines embeds it."""
+
+    def problems(self, text: str) -> list[str]:
+        """Return lines_copy_problems for an api Dockerfile with `text`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "api.Dockerfile"
+            path.write_text(text)
+            return list(gen.lines_copy_problems({"api": path}))
+
+    def test_a_lines_copy_is_a_problem(self) -> None:
+        """A COPY of lines/ (or a file in it) fails the check."""
+        for source in ("lines/", "lines", "lines/c2c.toml"):
+            with self.subTest(source=source):
+                problems = self.problems(f"COPY --chown=a:a {source} /app/lines/\n")
+                self.assertEqual(len(problems), 1)
+                self.assertIn("docker/api.Dockerfile", problems[0])
+
+    def test_other_copies_pass(self) -> None:
+        """Builder copies and other data files are fine."""
+        text = (
+            "COPY . .\n"
+            "COPY --from=builder /usr/local/bin/api /usr/local/bin/api\n"
+            "COPY crates/trust-consumer/reference-data/stanox-crs.csv "
+            "/app/reference-data/stanox-crs.csv\n"
+        )
+        self.assertEqual(self.problems(text), [])
+
+    def test_the_repository_has_none(self) -> None:
+        """No Dockerfile in docker/ copies the catalogue."""
+        self.assertEqual(gen.lines_copy_problems(gen.dockerfiles()), [])
 
 
 class BinaryCopyTests(unittest.TestCase):
