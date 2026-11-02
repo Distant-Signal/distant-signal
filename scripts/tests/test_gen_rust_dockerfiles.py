@@ -114,7 +114,7 @@ class BuildInputsTests(unittest.TestCase):
             "Cargo.toml",
             "crates/api/src/main.rs",
             "reference-data/toc-codes.csv",
-            "charts/distant-signal/files/db-grants.yaml",
+            "crates/ds-store/db-grants.yaml",
         ):
             with self.subTest(path=path):
                 self.assertTrue(gen.rust_allows(path))
@@ -135,7 +135,7 @@ class BuildInputsTests(unittest.TestCase):
         paths = {path for _, path in found}
         # The scan sees the known ones (so it is not silently empty).
         for known in (
-            "charts/distant-signal/files/db-grants.yaml",
+            "crates/ds-store/db-grants.yaml",
             "crates/common/reference-data/tiploc-parent-stations.csv",
             "crates/ds-store/reference-data/delay-attribution-reasons.tsv",
             "crates/ds-store/migrations",

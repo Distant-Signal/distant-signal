@@ -13,9 +13,8 @@ Every docker/<service>.Dockerfile builds one Rust service the same way, so
 the part from `ARG CARGO_PROFILE` to the end of the `builder` stage is
 generated from SERVICES below, between the BEGIN and END marker lines. The
 rest of each file (its header comment and its runtime stage) is written by
-hand and left alone. CI's scripts-lint job runs `--check` (through
-scripts/lint-scripts.py), so an edit inside the markers, or a Dockerfile
-with no SERVICES entry, fails CI.
+hand and left alone. CI's repo-checks job runs `--check`, so an edit
+inside the markers, or a Dockerfile with no SERVICES entry, fails CI.
 
 Why generated: 19 copies of the same four stages, which must differ ONLY in
 the `--bin` flags (see below), drift apart when edited by hand.
@@ -238,6 +237,8 @@ RUST_INPUTS = (
     # user_agent!), when the build passes none.
     ".cargo/config.toml",
     "Cargo.lock",
+    # Also crates/ds-store/db-grants.yaml, which ds-store's build.rs bakes
+    # into the schema gate.
     "crates",
     # The core reference data (the rest lives in its crate, under
     # crates/): include_str! of api's TOC-codes test.
@@ -245,8 +246,6 @@ RUST_INPUTS = (
     # The line catalogue: crates/ds-lines/build.rs embeds it in every
     # binary that loads it. No image COPYs it (LINES_COPY below).
     "lines",
-    # crates/ds-store/build.rs bakes the grants into the schema gate.
-    "charts/distant-signal/files/db-grants.yaml",
     # ingest-writer's freshness_rls test checks each producer's freshness
     # sources against the rendered RLS policies.
     "charts/distant-signal/files/postgres-grants.sql",

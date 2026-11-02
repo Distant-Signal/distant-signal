@@ -907,7 +907,7 @@ services:
     # in its place: CHANGE-ME is a placeholder repo, not an upstream
     # image this repo can look up and verify (see the chart's own
     # railMcp.image.tag comment for the equivalent note). So the default has
-    # no digest to pin (scripts/lint-containers.py opt-out below); set
+    # no digest to pin (lint-containers.py opt-out below); set
     # RAIL_MCP_IMAGE to a `repo:tag@sha256:<digest>` reference.
     # lint-containers: unpinned-image # placeholder default, see above
     image: ${RAIL_MCP_IMAGE:-ghcr.io/CHANGE-ME/distant-signal-mcp:latest}
