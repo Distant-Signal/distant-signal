@@ -87,10 +87,16 @@ SERVICES: Mapping[str, Sequence[str]] = {
         "api",
         "corpus_compare",
         "maintenance",
-        # The ds-migrate crate's binary (plan 1B.1): the migrate hook Job's
-        # command. `--bin` selects it across the workspace.
+        # The ds-migrate crate's binary (plan 1B.1), also built into its own
+        # image below. It stays here for `ds-migrate wait` from an api pod,
+        # and so a values override can point the migrate Job back at the
+        # api image while the ds-migrate image is new (repo split spec
+        # §5.1, phase 3 item 3). `--bin` selects it across the workspace.
         "ds-migrate",
     ),
+    # The schema migrator's own image (repo split spec §5.1): the chart's
+    # migrate hook Job (`migrate.image`) and the schema-owner backfills.
+    "ds-migrate": ("ds-migrate",),
     "enricher": ("enricher",),
     "full-coverage-consumer": ("full-coverage-consumer",),
     # writer-maintenance: the one-off ingest repairs moved out of the api
