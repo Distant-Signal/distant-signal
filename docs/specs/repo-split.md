@@ -1051,6 +1051,7 @@ message as `bytes` and uses the return value:
 
 ```python
 import re
+
 drop = re.compile(
     rb"^(?:co-authored-by:[^\n]*<noreply@anthropic\.com>"
     rb"|claude-session:[ \t]*https://claude\.ai/\S*"
