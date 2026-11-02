@@ -55,12 +55,12 @@ reading anything and refuses the api role. While `postgresql.roles.perService`
 is off, every service shares the app role, which also passes.
 
 ```sh
-# From a checkout
-DATABASE_URL=postgres://<incidents role>@... LINES_DIR=./lines \
+# From a checkout (the catalogue built into the binary; LINES_DIR=./lines
+# reads the directory instead)
+DATABASE_URL=postgres://<incidents role>@... \
   cargo run -p ingest-writer --bin writer-maintenance -- backfill-incident-lines
 
-# From the ingest-writer container image (defaults LINES_DIR to the image's
-# own /app/lines)
+# From the ingest-writer container image (the catalogue built into it)
 /usr/local/bin/writer-maintenance backfill-incident-lines
 ```
 

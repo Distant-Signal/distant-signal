@@ -410,7 +410,6 @@ services:
     environment:
       # crates/aggregator/src/config.rs: Config
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      LINES_DIR: /app/lines
       POLL_INTERVAL_SECS: ${POLL_INTERVAL_SECS_AGGREGATOR:-60}
       HISTORY_RETENTION_DAYS: ${HISTORY_RETENTION_DAYS:-7}
       RUST_LOG: ${RUST_LOG:-info}
@@ -488,9 +487,8 @@ services:
     environment:
       # crates/trust-consumer/src/config.rs: Config. No Kafka settings:
       # movement-relay is the only Kafka client (Deploy C, PL-15a).
-      # Matches docker/trust-consumer.Dockerfile's COPY of reference-data/
-      # into the image, same pattern as aggregator's/api's own explicit
-      # LINES_DIR: /app/lines above.
+      # Matches docker/trust-consumer.Dockerfile's COPY of the STANOX/CRS
+      # table into the image.
       # Writes Postgres and reads its tracked trains and STANOX/CRS from
       # it; subscription changes go through the writer's
       # train_event_outbox loop.
@@ -538,9 +536,6 @@ services:
       STANOX_CRS_RELOAD_SECS: ${STANOX_CRS_RELOAD_SECS_FULL_COVERAGE:-3600}
       STATS_WRITE_INTERVAL_SECS: ${STATS_WRITE_INTERVAL_SECS:-60}
       SHADOW_LINES: ${SHADOW_LINES:-*}
-      # Matches docker/full-coverage-consumer.Dockerfile's COPY of lines/
-      # into the image, same pattern as aggregator's own LINES_DIR above.
-      LINES_DIR: /app/lines
       HEALTH_BIND_URL: 0.0.0.0:8082
       REDIS_URL: redis://redis:6379
       RUST_LOG: ${RUST_LOG:-info}
@@ -586,10 +581,6 @@ services:
       # reference-data/ into the image, same pattern as trust-consumer's
       # own identical default -- no override needed here.
       # STANOX_CRS_FILE: /app/reference-data/stanox-crs.csv (binary default)
-      # Matches docker/trust-backlog-consumer.Dockerfile's COPY of lines/
-      # into the image, same pattern as aggregator's/full-coverage-consumer's
-      # own explicit LINES_DIR above.
-      LINES_DIR: /app/lines
       HEALTH_BIND_URL: 0.0.0.0:8083
       RUST_LOG: ${RUST_LOG:-info}
       # common::logging: json (default) or pretty (dev.env sets pretty).

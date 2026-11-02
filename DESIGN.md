@@ -418,6 +418,7 @@ distant-signal/
 │   └── *.toml                 one file per line
 ├── crates/                    Rust workspace (25 crates; see root Cargo.toml)
 │   ├── common/                 shared types, matcher, segments, config helpers
+│   ├── ds-lines/               the line catalogue, embedded at build time
 │   ├── api/                    axum HTTP service (read API, auth, ingest)
 │   ├── aggregator/             the core status decision logic
 │   ├── enricher/               LLM extraction from incident text
@@ -585,8 +586,8 @@ expectations.
 
 `crates/common/src/matcher.rs`'s and `crates/aggregator/src/aggregation.rs`'s
 own `mod tests` cover the matcher and aggregator layers, loading the
-real `lines/` catalogue via `LineDefinition::from_dir` rather than
-synthetic fixtures. Each new line should add at least one shared-trunk and
+real `lines/` catalogue (`LineDefinition::from_dir`, or the embedded copy
+from `ds_lines::embedded`) rather than synthetic fixtures. Each new line should add at least one shared-trunk and
 one exclusive-segment test case.
 
 ---
@@ -605,8 +606,10 @@ one exclusive-segment test case.
   `common` rather than `aggregator` because `api` runs the same matcher at
   ingest to fill `incidents.affected_lines` — there must be exactly one
   answer to "which lines does this incident affect".
-- `lines/*.toml` is the source of truth for the line catalogue, loaded via
-  `LineDefinition::from_dir`. Don't hardcode line data in Rust.
+- `lines/*.toml` is the source of truth for the line catalogue. The
+  `ds-lines` crate embeds it at build time (`ds_lines::embedded`), and
+  every service's `--lines-dir` defaults to that; a directory still loads
+  through `LineDefinition::from_dir`. Don't hardcode line data in Rust.
 - Tests live inline as `mod tests` next to the code they cover (see §11).
   The exceptions are crate-level integration tests under a crate's own
   `tests/` (e.g. `crates/api/tests/` for migration checks), not a
