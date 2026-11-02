@@ -13,9 +13,8 @@ Every docker/<service>.Dockerfile builds one Rust service the same way, so
 the part from `ARG CARGO_PROFILE` to the end of the `builder` stage is
 generated from SERVICES below, between the BEGIN and END marker lines. The
 rest of each file (its header comment and its runtime stage) is written by
-hand and left alone. CI's scripts-lint job runs `--check` (through
-scripts/lint-scripts.py), so an edit inside the markers, or a Dockerfile
-with no SERVICES entry, fails CI.
+hand and left alone. CI's repo-checks job runs `--check`, so an edit
+inside the markers, or a Dockerfile with no SERVICES entry, fails CI.
 
 Why generated: 19 copies of the same four stages, which must differ ONLY in
 the `--bin` flags (see below), drift apart when edited by hand.
@@ -199,7 +198,7 @@ COPY --from=planner /app/recipe.json recipe.json
     fi
 
 COPY . .
-# The project URL in every outbound User-Agent (crates/common's
+# The project URL in every outbound User-Agent (crates/ds-runtime's
 # user_agent!): containers.yml passes the building repository's URL, so the
 # images follow the repository's owner. Declared after the cook so it never
 # invalidates the dependency layer. Unset or empty (a local or compose
@@ -232,7 +231,7 @@ ARG DS_PROJECT_URL
 # ignored, so a change to it can't invalidate a Rust build layer.
 RUST_INPUTS = (
     "Cargo.toml",
-    # Cargo's `[env]`: the default DS_PROJECT_URL (crates/common's
+    # Cargo's `[env]`: the default DS_PROJECT_URL (crates/ds-runtime's
     # user_agent!), when the build passes none.
     ".cargo/config.toml",
     "Cargo.lock",

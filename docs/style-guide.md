@@ -1027,7 +1027,7 @@ stack (`frontend/e2e/fixtures/seed.sql`), in its own Playwright project
   (`mcr.microsoft.com/playwright:v<version>-noble`), locally and in CI, so
   fonts and rendering match. Outside it every image differs.
 - **CI.** The `frontend-e2e` job runs it after the e2e specs, on every PR
-  and push that touches `frontend/` (`scripts/paths-changed.py` decides,
+  and push that touches `frontend/` (Distant-Signal/ci's `paths-changed` action decides,
   and says "changed" when it can't tell). Failed runs upload the
   expected, actual and diff images in the Playwright report artifact.
 
