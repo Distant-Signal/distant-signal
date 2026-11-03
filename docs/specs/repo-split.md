@@ -2049,6 +2049,8 @@ These are the prerequisites. Each one is deployable alone.
 
 ### Phase 4: extract `ds-core`, the shared libraries first (about 3 to 4 days)
 
+**Done on 2026-11-03.** The record is at the end of this phase.
+
 1. Freeze PRs that touch core paths.
 2. Run `filter-repo` (§5.6) to create `Distant-Signal/ds-core`. Create its
    "Protect main" repository ruleset (§5.9) right after the first push.
@@ -2095,6 +2097,49 @@ These are the prerequisites. Each one is deployable alone.
   removes them from its tree.
 
 **Monorepo after this phase:** the services, the frontend and the chart.
+
+#### Phase 4 record (2026-11-03)
+
+| What | Value |
+|---|---|
+| Seams PR | #184, merged as `9e0fff16` (the access sources under `access/`, the embedded migrations for other crates' tests) |
+| Freeze, landing `main` | `9e0fff16`; no open PR touched the core paths |
+| Extract | `ds-core` `396b3fc`, 549 commits; tree identical to the landing's covered files, every `--follow` commit present, identities clean |
+| First ds-core PRs | ds-core #1 (CI on demand, `e33f7faf`), #2 (the contract check, `a68dc567`) |
+| Release | **v0.1.0** = `a68dc567`: seven assets with Sigstore bundles and `SHA256SUMS`, immutable, signed as `release.yml@refs/tags/v0.1.0`; `images/ds-migrate:v0.1.0@sha256:8692781c…`, public, labelled and attested |
+| Ledger | `ext:ds-core` in `lucy/ds-migration-ledger` (`9f1e880`): 2847 rows mapped, 93 post-rewrite rows |
+| Switch PR | #186, merged as `a165468f`; chart build 1054, deploy azhu (live 21:00 UTC: migrate Job a no-op on ds-core's ds-migrate, roles Job green, every pod Ready) |
+| Follow-up | #188 (`0c5c29d4`): `core-checkout.py` replaces a partial checkout a CI cache restored |
+| Delete PR | #187, merged as `a57b1a7a`, naming `Distant-Signal/ds-core@a68dc567` |
+| Path list | `paths/ds-core.txt` in `Distant-Signal/ci` |
+
+**Deviations from the plan:**
+
+- **The user created the repository and turned Actions on.** The agent's
+  `gh repo create` and the Actions switch were refused by its permission
+  policy, so the user ran the runbook's setup commands (public, Issues,
+  Wiki and Projects off, delete branch on merge, private vulnerability
+  reporting, topics, immutable releases) and granted ds-core Write on
+  `images/ds-migrate` and `images/buildcache`.
+- **CI on demand.** The extract was pushed while Actions was off, and
+  GitHub doesn't replay those events, so ds-core #1 added
+  `workflow_dispatch` to `ci.yml`; its CI was the first on the tree.
+- **The contract check needs pinned values.** `tag.yml`'s first run failed
+  before tagging: the landing repository's checked-in `values.yaml` pins
+  no digests (containers.yml pins them at package time), so
+  `release-order.py check --registry` had nothing to read. ds-core #2 runs
+  it only when a migration carries a versioned contract floor; phase 5
+  points `CHART_VALUES_URL` at ds-deploy's pinned values.
+- **v0.1.0 is #2's merge**, not the extract's top commit: its tree is the
+  extract plus those two workflow changes.
+- **Three monorepo fixes surfaced in CI:** `check-crate-deps.py` checks
+  only workspace members (`cargo tree --all-features` refuses git
+  dependencies), the e2e job's api dropped `LINES_DIR=lines/` for the
+  embedded catalogue, and #188's stale-checkout fix.
+- **The local image build** needed `-o APT::Sandbox::User=root` under the
+  agent's rootless podman (its ID map stops below apt's 65534); the
+  repository's Dockerfile is unchanged, and GitHub's runners build it as
+  is.
 
 ### Phase 5: extract `ds-deploy` (about 3 days)
 
