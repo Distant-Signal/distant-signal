@@ -73,6 +73,7 @@ import type {
   TflStopArrivals,
   TflStopDetail,
 } from './types';
+import type { PersonalTokensResponse } from './api-types';
 import { createLogger } from './logger';
 import { lineTimetableQuery } from './lineTrains';
 import { LIVE_PREVIEW_REVALIDATE_SECONDS } from './livePreview';
@@ -1436,6 +1437,18 @@ export async function getConnectedApps(): Promise<ConnectedAppsData | null> {
   if (response.status === 401) return null;
   if (!response.ok) throw errorForResponse(url, response);
   return response.json() as Promise<ConnectedAppsData>;
+}
+
+/** `GET /public/account/personal-tokens`: the visitor's personal API
+ * tokens (docs/personal-api-tokens.md). `null` when not logged in or when
+ * the feature is off (`404 feature_disabled`), so the section is simply
+ * not shown. */
+export async function getPersonalTokens(): Promise<PersonalTokensResponse | null> {
+  const url = `${baseUrl()}/public/account/personal-tokens`;
+  const response = await apiFetch(url, { cache: 'no-store', ...(await cookieForwardInit()) });
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return response.json() as Promise<PersonalTokensResponse>;
 }
 
 /** `GET /public/account/connected-apps-notice`: the newest app connected

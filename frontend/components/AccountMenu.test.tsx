@@ -251,3 +251,29 @@ describe('AccountMenu', () => {
     expect(item).toHaveAttribute('tabindex', '0');
   });
 });
+
+describe('AccountMenu, personal API tokens', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('offers no token action while personal API tokens are off', async () => {
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} />);
+    openMenu();
+    await menuItem('Log out other sessions');
+    expect(screen.queryByRole('menuitem', { name: 'Revoke all API tokens', hidden: true })).not.toBeInTheDocument();
+  });
+
+  it('revokes every token beside logging out other sessions, after a confirmation', async () => {
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canRevokeTokens />);
+    openMenu();
+    fireEvent.click(await menuItem('Revoke all API tokens'));
+    expect(fetch).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm revoke all API tokens' }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/account/personal-tokens', { method: 'DELETE' }));
+  });
+});

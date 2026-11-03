@@ -2,6 +2,7 @@ import { Stack, Text, Title } from '@mantine/core';
 import type { Metadata } from 'next';
 import { ConnectedAppsSection } from '@/components/ConnectedAppsSection';
 import { LoginControl } from '@/components/LoginControl';
+import { PersonalTokensSection } from '@/components/PersonalTokensSection';
 import { TextLink } from '@/components/TextLink';
 import { getSessionOrLoggedOut } from '@/lib/api';
 import { pageMetadata } from '@/lib/pageMetadata';
@@ -15,8 +16,9 @@ export const metadata: Metadata = pageMetadata(
 );
 
 /** `/account/connected-apps`: the apps the visitor connected (delegated
- * access, docs/connected-apps.md). The same `ConnectedAppsSection` belongs
- * on the Preferences page. */
+ * access, docs/connected-apps.md), and their personal API tokens while
+ * those are on (docs/personal-api-tokens.md). The same
+ * `ConnectedAppsSection` belongs on the Preferences page. */
 export default async function ConnectedAppsPage() {
   const session = await getSessionOrLoggedOut();
   return (
@@ -25,6 +27,7 @@ export default async function ConnectedAppsPage() {
       {session.authenticated ? (
         <>
           <ConnectedAppsSection showTitle={false} />
+          <PersonalTokensSection />
           <Text size="sm">
             <TextLink href="/account">Back to account and data</TextLink>
           </Text>
