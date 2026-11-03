@@ -5,7 +5,7 @@ import { TrainOperatorSelect } from './TrainOperatorSelect';
 import { TrainsAdvancedOptions } from './TrainsAdvancedOptions';
 import { legFilterErrors, operatorChoicesFromList, type LegFilters } from '@/lib/legFilters';
 import { useStopFilterLabels } from '@/lib/useStopFilterLabels';
-import type { TrainSearchOperator } from '@/lib/types';
+import type { TrainSearchOperators } from '@/lib/types';
 
 /** `GET /public/trains/search/operators` as the Operator field's options,
  * fetched once per mount; none (the field then finds nothing) when it
@@ -18,8 +18,8 @@ function useOperatorChoices(): { value: string; label: string }[] {
       try {
         const response = await fetch('/api/trains/search/operators', { signal: controller.signal });
         if (!response.ok) return;
-        const body = (await response.json()) as { operators?: TrainSearchOperator[] };
-        if (Array.isArray(body.operators)) setChoices(operatorChoicesFromList(body.operators));
+        const body = (await response.json()) as TrainSearchOperators;
+        setChoices(operatorChoicesFromList(body.operators));
       } catch {
         // No options: the field stays empty rather than failing the form.
       }

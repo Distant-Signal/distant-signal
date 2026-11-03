@@ -16,7 +16,8 @@ function report(id: string, name: string, severity: number, reason: string, comp
     fullCoverageAvailability: { state: 'not-enabled' },
   };
   return {
-    $type: 'Line',
+    $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id,
     name,
     modeName: 'national-rail',

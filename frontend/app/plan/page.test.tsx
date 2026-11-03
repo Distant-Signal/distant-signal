@@ -267,6 +267,7 @@ describe('PlanPage (/plan, Plan a journey)', () => {
         to: '2026-09-20',
         publishedFrom: '2026-09-04',
         publishedTo: '2026-09-20',
+        provisionalFrom: '2026-09-20',
       });
       await renderPage();
       fireEvent.focus(screen.getByLabelText('Date'));

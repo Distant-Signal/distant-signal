@@ -226,7 +226,7 @@ export function TrainSearchResults({
             >
               {rows.map((row) => {
                 const arrivalRow = isArrival(row) ? row : null;
-                const date = row.serviceDate ?? displayDate;
+                const date = row.serviceDate;
                 return (
                   <ServiceRow
                     key={`${row.uid}-${arrivalRow?.arrival ?? row.scheduled ?? ''}`}

@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import type * as Api from '../lib/api-types';
 
 // "Add a leg" on /plan (components/AddJourneyLegButton.tsx): its
 // From and To fields are the site's standard station search, so a station
@@ -16,7 +17,7 @@ const STATIONS = [
   { code: 'EUS', name: 'London Euston' },
   { code: 'KGX', name: 'London Kings Cross' },
   { code: 'MKC', name: 'Milton Keynes Central' },
-];
+] satisfies Api.Suggestion[];
 
 const JOURNEY_ID = 99;
 
@@ -125,7 +126,7 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
           { code: 'LM', name: 'West Midlands Trains' },
           { code: 'VT', name: 'Avanti West Coast' },
         ],
-      });
+      } satisfies Api.TrainSearchOperators);
     }
     if (path === '/api/tfl/stops/rail-crs') {
       return json(route, url.searchParams.get('ids') === '940GZZLUEUS' ? { '940GZZLUEUS': ['EUS'] } : {});

@@ -7,6 +7,7 @@ import { ApiNotFoundError } from '@/lib/api';
 import { notFound } from 'next/navigation';
 import { formatDateTime } from '@/lib/dateFormat';
 import type { IncidentDetail, Suggestion } from '@/lib/types';
+import { INCIDENT_TIMING_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>();
@@ -35,6 +36,7 @@ vi.mock('next/navigation', () => ({ notFound: vi.fn() }));
 
 function detail(overrides: Partial<IncidentDetail> = {}): IncidentDetail {
   return {
+    ...INCIDENT_TIMING_DEFAULTS,
     incidentId: '12345',
     summary: 'Signal failure at Woking',
     description: '<p>Delays expected</p>',
@@ -200,7 +202,11 @@ describe('IncidentDetailPage', () => {
 
     it('shows a Cleared badge, and replaces "Currently affects" with a cleared notice, once isCleared is true', async () => {
       vi.mocked(api.getIncident).mockResolvedValue(
-        detail({ isCleared: true, currentlyAffectsLines: [{ id: 'south-western', name: 'South Western Main Line' }] }),
+        detail({
+          isCleared: true,
+          state: 'cleared',
+          currentlyAffectsLines: [{ id: 'south-western', name: 'South Western Main Line' }],
+        }),
       );
       renderWithMantine(await IncidentDetailPage({ params: Promise.resolve({ id: '12345' }) }));
       expect(screen.getByText('Cleared')).toBeInTheDocument();
@@ -217,6 +223,7 @@ describe('IncidentDetailPage', () => {
       vi.mocked(api.getIncident).mockResolvedValue(
         detail({
           isCleared: false,
+          state: 'ended',
           sourceRemovedAt: '2026-10-05T22:55:00+00:00',
           currentlyAffectsLines: [{ id: 'south-western', name: 'South Western Main Line' }],
         }),

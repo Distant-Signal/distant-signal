@@ -16,6 +16,7 @@ export function train(overrides: Partial<LineTrainSummary> & { uid: string }): L
   return {
     operator: 'SW',
     serviceMode: 'train',
+    liveTracking: true,
     scope: 'line',
     direction: 'down',
     lineDue: { time: '08:00', dayOffset: 0 },

@@ -365,3 +365,38 @@ export const REVISION_LEG_DEFAULTS = {
   transitLineId: null,
   headsign: null,
 } satisfies Partial<Api.RevisionLeg>;
+
+/** An incident in effect: the api's `state`, `startsAt` and
+ * `validityEndedAt` for one whose validity window covers now. */
+export const INCIDENT_TIMING_DEFAULTS = {
+  state: 'active',
+  startsAt: null,
+  validityEndedAt: null,
+} satisfies Partial<Api.IncidentTiming>;
+
+/** An operator rollup, less the operator and its status. */
+export const OPERATOR_SUMMARY_DEFAULTS = {
+  worstLineId: null,
+  worstLineName: null,
+  computedAt: null,
+} satisfies Partial<Api.OperatorSummary>;
+
+/** A train search row, less the train (`uid`, `scheduled`, `stationCrs`,
+ * `serviceDate`). */
+export const TRAIN_SEARCH_ROW_DEFAULTS = {
+  originCrs: null,
+  originName: null,
+  destinationCrs: null,
+  destinationName: null,
+  destinationArrival: null,
+  destinationArrivalDayOffset: 0,
+  publicDeparture: null,
+  publicDestinationArrival: null,
+  workingDeparture: null,
+  workingDestinationArrival: null,
+  operator: null,
+  identity: null,
+  live: null,
+  serviceMode: 'train',
+  liveTracking: true,
+} satisfies Partial<Api.TrainSearchResult>;

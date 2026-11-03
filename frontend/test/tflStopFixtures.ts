@@ -71,7 +71,8 @@ export const RUSSELL_SQUARE_ARRIVALS: TflStopArrivals = {
 /** A TfL line's status, as `/Line/tfl-piccadilly/Status` answers. */
 export function tflLineStatus(id: string, name: string, severity = 10, reason = ''): LineStatusReport {
   return {
-    $type: 'Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities',
+    $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id: `tfl-${id}`,
     name,
     modeName: 'tube',

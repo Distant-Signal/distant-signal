@@ -23,6 +23,7 @@ import {
   trainState,
   untrackedLeg,
 } from '@/test/journeyFixtures';
+import { OPERATOR_SUMMARY_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 // `withStaleFallback` (lib/liveDataCache.ts) reads the session cookie via
@@ -48,7 +49,8 @@ vi.mock('next/navigation', () => ({
 
 function report(overrides: Partial<LineStatusReport> = {}): LineStatusReport {
   return {
-    $type: 'x',
+    $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id: 'bakerloo',
     name: 'Bakerloo',
     modeName: 'tube',
@@ -68,6 +70,7 @@ function report(overrides: Partial<LineStatusReport> = {}): LineStatusReport {
 
 function operator(overrides: Partial<OperatorSummary> = {}): OperatorSummary {
   return {
+    ...OPERATOR_SUMMARY_DEFAULTS,
     code: 'VT',
     name: 'Avanti West Coast',
     lineIds: ['wcml'],
@@ -857,7 +860,8 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
   it('prefers fullCoverageStats over sampleStats in the pinned-station card subtitle (Decision 3)', async () => {
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([
       {
-        $type: 'x',
+        $type: 'DistantSignal.LineStatusReport',
+        attribution: [],
         id: 'swr-alton',
         name: 'Alton',
         modeName: 'national-rail',

@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { OperatorStatusCard } from './OperatorStatusCard';
 import type { OperatorSummary } from '@/lib/types';
+import { OPERATOR_SUMMARY_DEFAULTS } from '@/test/apiDefaults';
 
 // PinToggle calls useRouter() from next/navigation, which throws
 // "invariant expected app router to be mounted" when rendered outside a
@@ -15,6 +16,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const operator: OperatorSummary = {
+  ...OPERATOR_SUMMARY_DEFAULTS,
   code: 'VT',
   name: 'Virgin Trains',
   lineIds: ['wcml', 'ecml'],
@@ -66,6 +68,7 @@ describe('OperatorStatusCard', () => {
 
   it('renders the TfL hedge when sampleStats is undefined and code is TfL', () => {
     const tflOperator: OperatorSummary = {
+      ...OPERATOR_SUMMARY_DEFAULTS,
       code: 'TfL',
       name: 'Transport for London',
       lineIds: ['elizabeth'],

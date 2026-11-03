@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 // Types only (erased): scripts/visual-tests.py ships this spec into its
 // container with nothing but @playwright/test beside it.
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse, TripPlanTransitLeg } from '../lib/types';
+import type * as Api from '../lib/api-types';
 
 // Visual regression screenshots of the main pages, at phone (390px) and
 // desktop (1366px) widths, in the light and dark schemes.
@@ -487,7 +488,7 @@ for (const scheme of SCHEMES) {
               { code: 'STP', name: 'London St Pancras International', distanceKm: 0.51 },
               { code: 'ZFD', name: 'Farringdon', distanceKm: 1.62 },
               { code: 'MYB', name: 'London Marylebone', distanceKm: 12.04 },
-            ],
+            ] satisfies Api.NearbyStation[],
           }),
         );
         await page.clock.setFixedTime(FIXED_NOW);

@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import type * as Api from '../lib/api-types';
 
 // "Tube, bus or walk" legs (spec
 // docs/superpowers/specs/2026-10-20-untracked-legs-and-tracked-train-states-design.md
@@ -11,7 +12,7 @@ import AxeBuilder from '@axe-core/playwright';
 const STATIONS = [
   { code: 'EUS', name: 'London Euston' },
   { code: 'MKC', name: 'Milton Keynes Central' },
-];
+] satisfies Api.Suggestion[];
 
 /** `GET /tfl/stops` rows (invented ids): the TfL stop lookup. */
 const TFL_STOPS = [

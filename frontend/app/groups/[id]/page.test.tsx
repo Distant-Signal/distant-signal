@@ -729,6 +729,7 @@ describe('GroupDetailPage', () => {
     function report(): LineStatusReport {
       return {
         $type: 'DistantSignal.LineStatusReport',
+        attribution: [],
         id: 'custom-my-commute',
         name: 'My Commute',
         modeName: 'national-rail',
