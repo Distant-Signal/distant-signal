@@ -107,8 +107,8 @@ uv sync --locked --group lint
 uv run --no-sync python ../ci/scripts/lint-scripts.py   # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes); ../ci: a Distant-Signal/ci checkout
 uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run --no-sync scripts/chart-values-doc.py check   # chart README values table vs values.yaml
-uv run scripts/gen-db-grants.py check        # db-grants.yaml vs files/postgres-grants.sql (render to fix)
-uv run scripts/sync-chart-core-files.py --check  # chart copies of db-grants.yaml and the Redis ACL (rewrite without --check)
+uv run scripts/gen-db-grants.py check        # db-grants.yaml vs access/postgres-grants.sql (render, then sync, to fix)
+uv run scripts/sync-chart-core-files.py --check  # chart copies of db-grants.yaml, access/ (grants, roles, ACL) (rewrite without --check)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
 uv run --no-sync scripts/check-crate-deps.py # ds-store/ds-migrate stay free of axum, redis, reqwest...
 uv run --no-sync scripts/release-order.py check --values charts/distant-signal/values.yaml --source  # image version labels vs the chart's ordering rules
@@ -179,11 +179,13 @@ train: a journey-break notice replaces that train's plain push
 **Postgres roles.** `crates/ds-store/db-grants.yaml` classifies
 every public table, view, sequence and function and gives each service role
 (`planned`, `observed` or `narrow`) its grants; `gen-db-grants.py render`
-produces `charts/distant-signal/files/postgres-grants.sql`. A new table must
+produces `access/postgres-grants.sql`. A new table must
 be added there (CI checks a migrated DB against it). docs/postgres-app-role.md
 and the chart README's "Per-service Postgres roles". The Redis ACL's source is
-`access/redis-users.acl.tpl` (docs/redis-acl.md). The chart's
-`files/db-grants.yaml` and `files/redis-users.acl.tpl` are generated copies:
+`access/redis-users.acl.tpl` (docs/redis-acl.md); `access/` also holds the
+roles setup (`postgres-roles.sql`, `postgres-roles-setup.sh`). The chart's
+`files/db-grants.yaml`, `files/postgres-*` and `files/redis-users.acl.tpl`
+are generated copies:
 edit the sources, then run `scripts/sync-chart-core-files.py` (CI fails on
 drift).
 
