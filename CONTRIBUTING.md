@@ -58,6 +58,16 @@ listed type already reaches it. A `String` field with a fixed set of values
 gets a `#[ts(as = "...")]` enum from `crates/api/src/ts_values.rs`. The api
 image carries the file at `/usr/share/distant-signal/api-types.ts`.
 
+The file also exports, as `as const` objects, values the web app keeps its
+own copy of: `ATTRIBUTION_SOURCES` and `NON_AFFILIATION` (the personal-token
+credits) and `USAGE_EVENTS` (the usage-event allowlist). The frontend's
+tests (`components/OpenDataAttribution.test.tsx`, `lib/usageEvents.test.ts`)
+compare its copies against them. No crate reads `frontend/`, so these checks
+survive the api's move to its own repository;
+`scripts/tests/test_crates_do_not_read_frontend.py` fails on a crate that
+does. The line-catalogue validator states its one website credit the same
+way, in `crates/line-catalogue-validator/site-credits.json`.
+
 Not every route is covered yet: the trains, journeys and trip-plan
 responses are; the rest of `lib/types.ts` is still written by hand.
 

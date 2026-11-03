@@ -336,10 +336,9 @@ export const DATA_SOURCES: readonly DataSource[] = [
     // crates/line-catalogue-validator/src/reference.rs, `fetch_live`).
     // Nothing from it is shown on the site. See LEG-24 for the open
     // permission question. Remove this credit when that scrape is removed:
-    // the validator's
-    // `railwaycodes_credit_exists_exactly_while_the_live_tier_scrapes_it`
-    // test fails while one exists without the other (it looks for
-    // `id: 'railwaycodes'` here, so keep that id).
+    // the validator's site-credits.json then says `"railwaycodes": false`,
+    // and `OpenDataAttribution.test.tsx` fails while this entry (matched by
+    // its id, so keep it) disagrees with that file.
     id: 'railwaycodes',
     title: 'railwaycodes.org.uk',
     use: 'Occasionally used during development to cross-check station codes in our line catalogue. Not shown on this site.',

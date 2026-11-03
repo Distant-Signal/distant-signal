@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { cleanup, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import * as legal from '@/lib/legal';
@@ -11,7 +12,10 @@ import {
   OGL_V3_URL,
   OpenDataAttribution,
   OpenDataAttributionDetails,
+  TFL_TERMS_URL,
 } from './OpenDataAttribution';
+import { NATIONAL_RAIL_URL, NationalRailCredit } from './NationalRailCredit';
+import { ATTRIBUTION_SOURCES, NON_AFFILIATION } from '@/lib/api-types';
 import { visibleText } from '@/test/routeText';
 import { SOURCE_CODE_URL } from '@/lib/sourceCode';
 
@@ -293,5 +297,56 @@ describe('OpenDataAttributionDetails (/attribution)', () => {
       expect(a).toHaveAttribute('target', '_blank');
       expect(a).toHaveAttribute('rel', 'noopener noreferrer');
     }
+  });
+});
+
+/** The api's personal-token responses credit their sources in the
+ * website's own words (personal API tokens spec §5.2). It exports them as
+ * `ATTRIBUTION_SOURCES` and `NON_AFFILIATION` in the generated
+ * `lib/api-types.ts` (crates/api/src/api_types.rs); this checks the site
+ * still says the same. */
+describe("the api's attribution", () => {
+  it('uses the same statements and licence links', () => {
+    expect(NRIL_STATEMENT).toBe(ATTRIBUTION_SOURCES.networkRail.notice);
+    expect(NRIL_LICENCE_URL).toBe(ATTRIBUTION_SOURCES.networkRail.url);
+    expect(TFL_TERMS_URL).toBe(ATTRIBUTION_SOURCES.tfl.url);
+    expect(NATIONAL_RAIL_URL).toBe(ATTRIBUTION_SOURCES.nationalRail.url);
+    expect(NON_AFFILIATION_STATEMENT).toBe(NON_AFFILIATION);
+  });
+
+  it('shows each notice the api sends', () => {
+    const { container } = renderWithMantine(
+      <>
+        <OpenDataAttribution />
+        <OpenDataAttributionDetails />
+        <NationalRailCredit />
+      </>,
+    );
+    const text = visibleText(container);
+    const { railDeliveryGroup, ...prescribed } = ATTRIBUTION_SOURCES;
+    for (const source of Object.values(prescribed)) {
+      expect(text).toContain(source.notice);
+    }
+    // Knowledgebase incidents have no prescribed wording: the api names
+    // the publisher in its own sentence, and the site credits it by name.
+    expect(text).toContain(railDeliveryGroup.name);
+    expect(text).toContain(NON_AFFILIATION);
+  });
+});
+
+/** railwaycodes.org.uk is credited only because the line-catalogue
+ * validator's live tier scrapes it. The validator says whether it does in
+ * crates/line-catalogue-validator/site-credits.json (checked against its
+ * scrape by its own test), and the credit must exist exactly while it
+ * does. When the validator moves to its own repository (repo-split spec,
+ * phase 4) this reads the file from the pinned release instead. */
+describe("the line-catalogue validator's credits", () => {
+  const credits = JSON.parse(readFileSync('../crates/line-catalogue-validator/site-credits.json', 'utf8')) as Record<
+    string,
+    boolean
+  >;
+
+  it.each(Object.entries(credits))('lists %s on /attribution exactly while the validator needs it', (id, needed) => {
+    expect(DATA_SOURCES.some((source) => source.id === id)).toBe(needed);
   });
 });

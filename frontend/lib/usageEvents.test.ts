@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { apiErrorStatusFor, isDigest, ROUTE_TEMPLATES, routeTemplateFor } from './usageEvents';
+import { USAGE_EVENTS } from './api-types';
+import {
+  API_ERROR_STATUSES,
+  apiErrorStatusFor,
+  DISPLAY_MODES,
+  EMPTY_STATE_KINDS,
+  EVENT_NAMES,
+  FEATURE_STEPS,
+  FEATURES,
+  isDigest,
+  ROUTE_TEMPLATES,
+  routeTemplateFor,
+} from './usageEvents';
 
 /** Every `page.tsx` under `app/` as a route template (`(home)` adds no
  * segment). */
@@ -22,6 +34,30 @@ describe('ROUTE_TEMPLATES', () => {
     const pages = new Set<string>(['/offline', '/_not-found']);
     pageTemplates('app', '', pages);
     expect([...ROUTE_TEMPLATES].sort()).toEqual([...pages].sort());
+  });
+});
+
+/** The api's allowlist, `USAGE_EVENTS` in the generated `lib/api-types.ts`
+ * (crates/api/src/usage_events.rs): the api drops any event, route or
+ * value it does not list, so this copy must name exactly the same ones.
+ * Order does not matter. */
+describe("the api's allowlist", () => {
+  const sorted = (values: readonly string[]) => [...values].sort();
+  it.each([
+    ['ROUTE_TEMPLATES', ROUTE_TEMPLATES, USAGE_EVENTS.routeTemplates],
+    ['EVENT_NAMES', EVENT_NAMES, USAGE_EVENTS.events],
+    ['FEATURES', FEATURES, USAGE_EVENTS.features],
+    ['EMPTY_STATE_KINDS', EMPTY_STATE_KINDS, USAGE_EVENTS.emptyStateKinds],
+    ['API_ERROR_STATUSES', API_ERROR_STATUSES, USAGE_EVENTS.apiErrorStatuses],
+    ['DISPLAY_MODES', DISPLAY_MODES, USAGE_EVENTS.displayModes],
+  ])('%s names what the api accepts', (_, ours, api) => {
+    expect(sorted(ours)).toEqual(sorted(api));
+  });
+
+  it('FEATURE_STEPS gives each feature the steps the api accepts', () => {
+    const steps = (table: Readonly<Record<string, readonly string[]>>) =>
+      Object.fromEntries(Object.entries(table).map(([feature, list]) => [feature, sorted(list)]));
+    expect(steps(FEATURE_STEPS)).toEqual(steps(USAGE_EVENTS.featureSteps));
   });
 });
 
