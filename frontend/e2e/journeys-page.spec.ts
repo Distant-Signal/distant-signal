@@ -87,6 +87,10 @@ test.describe('the Journeys page, logged in', () => {
   test('lists Past newest first, with shared journeys among the caller’s own', async ({ page }) => {
     await page.goto('/journeys');
     const past = page.getByRole('region', { name: 'Past' });
+    // `evaluateAll` doesn't wait. The page streams in behind its loading
+    // skeleton, and React can hold the finished page in a `<div hidden>`
+    // for a few hundred ms after `load`, so Past may not be shown yet.
+    await expect(past).toBeVisible();
     const hrefs = await past.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('href')));
     const later = hrefs.indexOf('/journeys/900101');
     const own = hrefs.indexOf('/journeys/900001');
