@@ -8,7 +8,13 @@ import type { TrackedTrainListItem, TicketListItem, SharedGroupTrain, JourneyLis
 import { journeyDetail, journeyListItem } from '@/test/journeyFixtures';
 import { cardOf } from '@/test/clickableCard';
 import { byVisibleText, visibleText } from '@/test/routeText';
-import { JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import {
+  DELAY_REPAY_ESTIMATE_DEFAULTS,
+  GROUP_TRAIN_DEFAULTS,
+  JOURNEY_LIST_ITEM_DEFAULTS,
+  TICKET_LIST_ITEM_DEFAULTS,
+  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+} from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 // The not-logged-in branch's LoginControl calls useLoginHref()
@@ -55,6 +61,7 @@ function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListI
 
 function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
   return {
+    ...TICKET_LIST_ITEM_DEFAULTS,
     id: 1,
     trackedTrainId: 1,
     operator: 'LNER',
@@ -73,7 +80,7 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
     trainUid: 'A12345',
     status: 'en_route',
     delayMinutes: 45,
-    estimate: { scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'x' },
+    estimate: { ...DELAY_REPAY_ESTIMATE_DEFAULTS, scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'x' },
     claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
     disclaimer: 'This is a rough, community-sourced estimate...',
     ...overrides,
@@ -83,6 +90,7 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
 
 function sharedTrain(overrides: Partial<SharedGroupTrain> = {}): SharedGroupTrain {
   return {
+    ...GROUP_TRAIN_DEFAULTS,
     groupId: 'group-1',
     groupName: 'Family',
     trainSubscriptionId: 50,

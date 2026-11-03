@@ -4,6 +4,7 @@ import { renderWithMantine } from '@/test/render';
 import { TicketPanel } from './TicketPanel';
 import * as api from '@/lib/api';
 import { byVisibleText } from '@/test/routeText';
+import { DELAY_REPAY_ESTIMATE_DEFAULTS, DELAY_REPAY_RESPONSE_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 // TicketPanel's 200-with-tickets and empty-array branches render the real
@@ -75,8 +76,9 @@ describe('TicketPanel', () => {
       },
     ]);
     vi.mocked(api.getDelayRepayEstimate).mockResolvedValue({
+      ...DELAY_REPAY_RESPONSE_DEFAULTS,
       delayMinutes: 45,
-      estimate: { scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'x' },
+      estimate: { ...DELAY_REPAY_ESTIMATE_DEFAULTS, scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'x' },
       claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
       disclaimer: 'y',
     });

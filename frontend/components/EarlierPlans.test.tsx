@@ -3,6 +3,7 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { EarlierPlans } from './EarlierPlans';
 import type { Revision, RevisionLeg } from '@/lib/types';
+import { REVISION_LEG_DEFAULTS } from '@/test/apiDefaults';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -13,6 +14,7 @@ vi.mock('next/navigation', () => ({
 
 function revisionLeg(overrides: Partial<RevisionLeg> = {}): RevisionLeg {
   return {
+    ...REVISION_LEG_DEFAULTS,
     position: 0,
     sourceLegId: 7,
     kind: 'train',
@@ -45,7 +47,7 @@ function revision(overrides: Partial<Revision> = {}): Revision {
     cause: null,
     fault: null,
     breakId: null,
-    actor: 'user',
+    actor: 'owner',
     isCompensationBaseline: true,
     canRevert: false,
     legs: [revisionLeg()],

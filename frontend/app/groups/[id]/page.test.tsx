@@ -15,6 +15,7 @@ import {
   ApiUnauthorizedError,
 } from '@/lib/api';
 import type { GroupCustomLine, GroupJourney, GroupMember, GroupRole, GroupTrain, LineStatusReport } from '@/lib/types';
+import { GROUP_JOURNEY_DEFAULTS, GROUP_TRAIN_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -115,6 +116,7 @@ describe('GroupDetailPage', () => {
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([
       {
+        ...GROUP_TRAIN_DEFAULTS,
         trainSubscriptionId: 42,
         pinOriginCrs: 'WOK',
         pinDestinationCrs: 'WAT',
@@ -167,6 +169,7 @@ describe('GroupDetailPage', () => {
     });
     vi.mocked(getGroupMembers).mockResolvedValue([]);
     const shared = {
+      ...GROUP_TRAIN_DEFAULTS,
       pinOriginCrs: 'WOK',
       pinDestinationCrs: 'WAT',
       pinOriginName: 'Woking',
@@ -180,7 +183,7 @@ describe('GroupDetailPage', () => {
       addedBy: 'user-2',
       addedByName: 'Sam',
       addedByTag: null,
-    };
+    } satisfies Partial<GroupTrain>;
     vi.mocked(getGroupTrains).mockResolvedValue([
       { ...shared, trainSubscriptionId: 1, trainUid: 'P00001', trackingPhase: 'planned' },
       {
@@ -247,6 +250,7 @@ describe('GroupDetailPage', () => {
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([
       {
+        ...GROUP_TRAIN_DEFAULTS,
         trainSubscriptionId: 42,
         pinOriginCrs: 'WOK',
         pinDestinationCrs: 'WAT',
@@ -308,6 +312,7 @@ describe('GroupDetailPage', () => {
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([
       {
+        ...GROUP_TRAIN_DEFAULTS,
         trainSubscriptionId: 42,
         pinOriginCrs: 'WOK',
         pinDestinationCrs: 'WAT',
@@ -470,6 +475,7 @@ describe('GroupDetailPage', () => {
 
     function sharedTrain(addedBy: string, trainSubscriptionId: number): GroupTrain {
       return {
+        ...GROUP_TRAIN_DEFAULTS,
         trainSubscriptionId,
         pinOriginCrs: 'WOK',
         pinDestinationCrs: 'WAT',
@@ -853,6 +859,7 @@ describe('GroupDetailPage', () => {
 
     function journey(overrides: Partial<GroupJourney> = {}): GroupJourney {
       return {
+        ...GROUP_JOURNEY_DEFAULTS,
         journeyId: 501,
         customName: null,
         legCount: 1,
@@ -861,6 +868,10 @@ describe('GroupDetailPage', () => {
         pinOriginName: 'Woking',
         pinDestinationName: 'London Waterloo',
         pinScheduledDeparture: '2026-09-11T08:00:00Z',
+        firstOriginCrs: 'WOK',
+        firstOriginName: 'Woking',
+        lastDestinationCrs: 'WAT',
+        lastDestinationName: 'London Waterloo',
         serviceDate: '2026-09-11',
         resolutionStatus: 'resolved',
         trainUid: 'A12345',
@@ -946,7 +957,9 @@ describe('GroupDetailPage', () => {
           legCount: 2,
           customName: 'Scotland trip',
           firstOriginCrs: 'WOK',
+          firstOriginName: null,
           lastDestinationCrs: 'EDB',
+          lastDestinationName: null,
         }),
       ]);
       await renderAsViewer('user-other', 'member');

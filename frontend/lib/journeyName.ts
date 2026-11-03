@@ -104,18 +104,12 @@ export function journeyListItemNameInput(item: JourneyListItem): JourneyNameInpu
   };
 }
 
-/** Adapts a group's shared-journey row. Same whole-journey rule; an older
- * backend's row only has the first leg's train pin to fall back to. */
+/** Adapts a group's shared-journey row. Same whole-journey rule. */
 export function groupJourneyNameInput(journey: GroupJourney): JourneyNameInput {
-  const whole = journey.lastDestinationCrs !== undefined;
   return {
     customName: journey.customName,
-    origin: whole
-      ? { crs: journey.firstOriginCrs, name: journey.firstOriginName }
-      : { crs: journey.pinOriginCrs, name: journey.pinOriginName },
-    destination: whole
-      ? { crs: journey.lastDestinationCrs, name: journey.lastDestinationName }
-      : { crs: journey.pinDestinationCrs, name: journey.pinDestinationName },
+    origin: { crs: journey.firstOriginCrs, name: journey.firstOriginName },
+    destination: { crs: journey.lastDestinationCrs, name: journey.lastDestinationName },
     serviceDate: journey.serviceDate,
     legCount: journey.legCount,
     // The row's train is its first TRAIN leg's, which is the first leg

@@ -13,7 +13,6 @@ import type {
   ReplanSuggestion,
   ReplanSuggestionLeg,
   SuggestionSet,
-  TransitMode,
 } from './types';
 import { isUntrackedLeg, transitModeLabel } from './untrackedLeg';
 
@@ -176,7 +175,7 @@ export function suggestionLegLines(suggestion: ReplanSuggestion): string[] {
       const cancelled = leg.cancelled ? ', cancelled' : '';
       return `${formatTime(leg.departure)} ${route}${operator}${cancelled}`.trim();
     }
-    const mode = transitModeLabel(asTransitMode(leg.transitMode));
+    const mode = transitModeLabel(leg.transitMode);
     const what = leg.lineName ? `${mode}: ${leg.lineName}` : mode;
     return route ? `${what}, ${route}` : what;
   });
@@ -267,27 +266,6 @@ export function suggestionBadges(suggestion: ReplanSuggestion): SuggestionBadge[
   return fit ? [...picks, ...operators, fit] : [...picks, ...operators];
 }
 
-const TRANSIT_MODES: ReadonlySet<string> = new Set<TransitMode>([
-  'tube',
-  'dlr',
-  'bus',
-  'tram',
-  'metro',
-  'rail',
-  'walk',
-  'transfer',
-  'ferry',
-  'taxi',
-  'cycle',
-  'other',
-]);
-
-/** A wire mode as a journey mode: lower case, "other" when unknown. */
-function asTransitMode(mode: string): TransitMode {
-  const lower = mode.toLowerCase();
-  return TRANSIT_MODES.has(lower) ? (lower as TransitMode) : 'other';
-}
-
 /** A suggestion's leg as a `POST /Journeys/itinerary` leg, which `POST
  * .../legs/{id}/replace` takes too, leaving out what is unknown. */
 export function suggestionLegBody(leg: ReplanSuggestionLeg): ItineraryLegBody {
@@ -301,7 +279,7 @@ export function suggestionLegBody(leg: ReplanSuggestionLeg): ItineraryLegBody {
   }
   return {
     kind: 'untracked',
-    transitMode: asTransitMode(leg.transitMode),
+    transitMode: leg.transitMode,
     ...(leg.originName ? { originName: leg.originName } : {}),
     ...(leg.destinationName ? { destinationName: leg.destinationName } : {}),
     ...(leg.lineName ? { lineName: leg.lineName } : {}),
@@ -356,7 +334,7 @@ export function revisionTitle(revision: Pick<Revision, 'reason'>): string {
  * untracked leg's mode and places ("Walk, Euston to King's Cross"). */
 export function revisionLegLine(leg: RevisionLeg): string {
   if (leg.kind === 'untracked') {
-    const mode = transitModeLabel(asTransitMode(leg.transitMode ?? 'other'));
+    const mode = transitModeLabel(leg.transitMode ?? 'other');
     const what = leg.lineName ? `${mode}: ${leg.lineName}` : mode;
     const origin = leg.originPlace ?? leg.originName;
     const destination = leg.destinationPlace ?? leg.destinationName;

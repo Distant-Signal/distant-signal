@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { mergeSharedTrains } from './sharedTrains';
 import type { SharedGroupTrain } from './types';
+import { GROUP_TRAIN_DEFAULTS } from '@/test/apiDefaults';
 
 function sharedTrain(overrides: Partial<SharedGroupTrain> = {}): SharedGroupTrain {
   return {
+    ...GROUP_TRAIN_DEFAULTS,
     groupId: 'group-1',
     groupName: 'Family',
     trainSubscriptionId: 1,

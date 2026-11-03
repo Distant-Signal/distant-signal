@@ -7,6 +7,7 @@ import { useNeedsLogin } from './useNeedsLogin';
 import { LoginPromptModal } from './LoginPromptModal';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { ButtonSpinner } from '@/components/LoadingText';
+import type { GroupIdentityResponse } from '@/lib/types';
 
 /** `/groups/new`'s form -- creates a group, then immediately rotates its
  * first invite link (spec §6: "on success, immediately generate the
@@ -47,7 +48,7 @@ export function CreateGroupForm() {
         setSubmitting(false);
         return;
       }
-      const created = (await response.json()) as { id: string };
+      const created = (await response.json()) as GroupIdentityResponse;
       try {
         await fetch(`/api/groups/${created.id}/invite-link`, { method: 'POST' });
       } catch {

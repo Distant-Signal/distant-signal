@@ -275,3 +275,93 @@ export function plannedTrainLeg(
     kind: 'train',
   };
 }
+
+/** A `DelayRepayEstimate`, less its band: `scheme`, `bandMinutes`,
+ * `percentage` and `disclaimer`. */
+export const DELAY_REPAY_ESTIMATE_DEFAULTS = {
+  fareBasis: 'single',
+  ticketKind: 'unknown',
+  roomSupplementPercentage: null,
+  borderline: false,
+  thresholdMinutes: null,
+  provisional: false,
+} satisfies Partial<Api.DelayRepayEstimate>;
+
+/** The Delay Repay fields of `GET .../delay-repay` and
+ * `GET /Train/tickets/mine`, less `claimUrl` and `disclaimer`. */
+export const DELAY_REPAY_DEFAULTS = {
+  delayMinutes: null,
+  provisional: false,
+  delayBasis: null,
+  measuredAtCrs: null,
+  measuredAtName: null,
+  outcome: null,
+  ownScheme: false,
+  schemeOperator: null,
+  estimate: null,
+  rulesCheckedOn: '2026-10-07',
+} satisfies Partial<Api.DelayRepayFields>;
+
+/** A `DelayRepayEstimateResponse`, less `claimUrl` and `disclaimer`. */
+export const DELAY_REPAY_RESPONSE_DEFAULTS = {
+  ...DELAY_REPAY_DEFAULTS,
+  serviceMode: 'train',
+  liveTracking: true,
+  unmeasurableReason: null,
+} satisfies Partial<Api.DelayRepayEstimateResponse>;
+
+/** A `TicketListItem`, less the ticket: its id, route and source. */
+export const TICKET_LIST_ITEM_DEFAULTS = {
+  ...DELAY_REPAY_DEFAULTS,
+  trackedTrainId: null,
+  operator: null,
+  ticketType: null,
+  originName: null,
+  destinationName: null,
+  serviceDate: null,
+  pinOriginCrs: null,
+  pinDestinationCrs: null,
+  pinScheduledDeparture: null,
+  resolutionStatus: null,
+  trainUid: null,
+  status: null,
+  customName: null,
+} satisfies Partial<Api.TicketListItem>;
+
+/** The live fields a `GroupTrain` (and `SharedTrain`) adds to its pin. */
+export const GROUP_TRAIN_DEFAULTS = {
+  delayBasis: null,
+  delayProvisional: false,
+  serviceMode: 'train',
+  liveTracking: true,
+  trackingPhase: null,
+  firstReportExpectedAt: null,
+} satisfies Partial<Api.GroupTrain>;
+
+/** A `GroupJourney` (and `SharedJourney`) summarising a train leg, less
+ * the journey and its pin. */
+export const GROUP_JOURNEY_DEFAULTS = {
+  firstOriginCrs: null,
+  firstOriginName: null,
+  lastDestinationCrs: null,
+  lastDestinationName: null,
+  delayBasis: null,
+  delayProvisional: false,
+  trackingPhase: null,
+  firstReportExpectedAt: null,
+  kind: 'train',
+  transitMode: null,
+  plannedDeparture: null,
+  plannedArrival: null,
+  untrackedStatus: null,
+  following: false,
+} satisfies Partial<Api.GroupJourney>;
+
+/** An earlier plan's leg's untracked stops and network ride. */
+export const REVISION_LEG_DEFAULTS = {
+  originStopId: null,
+  destinationStopId: null,
+  transitNetwork: null,
+  transitLineId: null,
+  headsign: null,
+} satisfies Partial<Api.RevisionLeg>;

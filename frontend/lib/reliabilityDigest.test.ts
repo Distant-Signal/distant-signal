@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { isEligibleForPunctuality, computePunctualitySummary, computeDelayRepayRollup } from './reliabilityDigest';
 import type { TrackedTrainListItem, TicketListItem } from './types';
-import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import {
+  DELAY_REPAY_ESTIMATE_DEFAULTS,
+  TICKET_LIST_ITEM_DEFAULTS,
+  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+} from '@/test/apiDefaults';
 
 const TODAY = '2026-09-12';
 
@@ -173,6 +177,7 @@ describe('computePunctualitySummary', () => {
 
 function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
   return {
+    ...TICKET_LIST_ITEM_DEFAULTS,
     id: 1,
     trackedTrainId: 1,
     operator: 'LNER',
@@ -191,7 +196,13 @@ function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
     trainUid: 'W12345',
     status: 'completed',
     delayMinutes: 35,
-    estimate: { scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'estimate disclaimer' },
+    estimate: {
+      ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+      scheme: 'DR30',
+      bandMinutes: 30,
+      percentage: 50,
+      disclaimer: 'estimate disclaimer',
+    },
     claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
     disclaimer: 'route disclaimer',
     customName: null,
@@ -220,9 +231,36 @@ describe('computeDelayRepayRollup', () => {
 
   it('bandCounts tallies one ticket in each of the three known bands', () => {
     const rollup = computeDelayRepayRollup([
-      ticket({ id: 1, estimate: { scheme: 'DR15', bandMinutes: 15, percentage: 25, disclaimer: 'd' } }),
-      ticket({ id: 2, estimate: { scheme: 'DR15', bandMinutes: 30, percentage: 50, disclaimer: 'd' } }),
-      ticket({ id: 3, estimate: { scheme: 'DR30', bandMinutes: 60, percentage: 100, disclaimer: 'd' } }),
+      ticket({
+        id: 1,
+        estimate: {
+          ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+          scheme: 'DR15',
+          bandMinutes: 15,
+          percentage: 25,
+          disclaimer: 'd',
+        },
+      }),
+      ticket({
+        id: 2,
+        estimate: {
+          ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+          scheme: 'DR15',
+          bandMinutes: 30,
+          percentage: 50,
+          disclaimer: 'd',
+        },
+      }),
+      ticket({
+        id: 3,
+        estimate: {
+          ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+          scheme: 'DR30',
+          bandMinutes: 60,
+          percentage: 100,
+          disclaimer: 'd',
+        },
+      }),
     ]);
     expect(rollup.attachedTicketsWithOperator).toBe(3);
     expect(rollup.eligibleCount).toBe(3);

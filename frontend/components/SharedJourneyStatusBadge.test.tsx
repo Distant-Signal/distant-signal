@@ -3,9 +3,11 @@ import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { SharedJourneyStatusBadge } from './SharedJourneyStatusBadge';
 import type { GroupJourney, UntrackedStatus } from '@/lib/types';
+import { GROUP_JOURNEY_DEFAULTS } from '@/test/apiDefaults';
 
 function journey(overrides: Partial<GroupJourney> = {}): GroupJourney {
   return {
+    ...GROUP_JOURNEY_DEFAULTS,
     journeyId: 1,
     customName: null,
     legCount: 2,

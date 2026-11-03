@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { DelayRepayEstimate } from './DelayRepayEstimate';
 import type { DelayRepayEstimate as DelayRepayEstimateType, DelayRepayEstimateResponse } from '@/lib/types';
+import { DELAY_REPAY_ESTIMATE_DEFAULTS, DELAY_REPAY_RESPONSE_DEFAULTS } from '@/test/apiDefaults';
 
 const TOP_LEVEL_DISCLAIMER =
   'This is a rough, community-sourced estimate, not a guarantee of compensation and not proof you travelled. Distant Signal never submits a claim on your behalf. Verify eligibility and claim directly from the operator using the link above.';
@@ -11,8 +12,7 @@ const ESTIMATE_DISCLAIMER =
 
 function response(overrides: Partial<DelayRepayEstimateResponse> = {}): DelayRepayEstimateResponse {
   return {
-    delayMinutes: null,
-    estimate: null,
+    ...DELAY_REPAY_RESPONSE_DEFAULTS,
     claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
     disclaimer: TOP_LEVEL_DISCLAIMER,
     ...overrides,
@@ -25,7 +25,13 @@ describe('DelayRepayEstimate', () => {
       <DelayRepayEstimate
         response={response({
           delayMinutes: 35,
-          estimate: { scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: ESTIMATE_DISCLAIMER },
+          estimate: {
+            ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+            scheme: 'DR30',
+            bandMinutes: 30,
+            percentage: 50,
+            disclaimer: ESTIMATE_DISCLAIMER,
+          },
         })}
       />,
     );
@@ -43,6 +49,7 @@ describe('DelayRepayEstimate', () => {
           delayBasis: 'publicSchedule',
           measuredAtCrs: 'EDB',
           estimate: {
+            ...DELAY_REPAY_ESTIMATE_DEFAULTS,
             scheme: 'DR30',
             bandMinutes: 120,
             percentage: 100,
@@ -66,6 +73,7 @@ describe('DelayRepayEstimate', () => {
           provisional: false,
           measuredAtCrs: 'EDB',
           estimate: {
+            ...DELAY_REPAY_ESTIMATE_DEFAULTS,
             scheme: 'DR30',
             bandMinutes: 30,
             percentage: 50,
@@ -107,7 +115,13 @@ describe('DelayRepayEstimate', () => {
       response({ delayMinutes: 10 }),
       response({
         delayMinutes: 35,
-        estimate: { scheme: 'DR15', bandMinutes: 30, percentage: 50, disclaimer: ESTIMATE_DISCLAIMER },
+        estimate: {
+          ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+          scheme: 'DR15',
+          bandMinutes: 30,
+          percentage: 50,
+          disclaimer: ESTIMATE_DISCLAIMER,
+        },
       }),
     ];
     for (const r of cases) {
@@ -123,7 +137,13 @@ describe('DelayRepayEstimate', () => {
       <DelayRepayEstimate
         response={response({
           delayMinutes: 60,
-          estimate: { scheme: 'DR15', bandMinutes: 60, percentage: 100, disclaimer: ESTIMATE_DISCLAIMER },
+          estimate: {
+            ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+            scheme: 'DR15',
+            bandMinutes: 60,
+            percentage: 100,
+            disclaimer: ESTIMATE_DISCLAIMER,
+          },
         })}
       />,
     );
@@ -173,15 +193,10 @@ describe('DelayRepayEstimate: bus and ferry legs', () => {
 describe('DelayRepayEstimate: 2026-10-07 states', () => {
   function estimate(overrides: Partial<DelayRepayEstimateType> = {}): DelayRepayEstimateType {
     return {
+      ...DELAY_REPAY_ESTIMATE_DEFAULTS,
       scheme: 'DR15',
       bandMinutes: 15,
       percentage: 25,
-      fareBasis: 'single',
-      ticketKind: 'unknown',
-      roomSupplementPercentage: null,
-      borderline: false,
-      thresholdMinutes: null,
-      provisional: false,
       disclaimer: ESTIMATE_DISCLAIMER,
       ...overrides,
     };

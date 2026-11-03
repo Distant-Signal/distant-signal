@@ -51,6 +51,7 @@ import type {
   ReplanResult,
   ReplanSuggestion,
   SuggestionSet,
+  SuggestionStaleResponse,
 } from '@/lib/types';
 
 /** What the sheet shows suggestions for:
@@ -587,18 +588,8 @@ function AlternativesSheetBody({
  * conflict. */
 async function staleBreak(response: Response): Promise<BreakResponse | null> {
   try {
-    const body: unknown = await response.json();
-    if (
-      body &&
-      typeof body === 'object' &&
-      'error' in body &&
-      body.error === 'suggestion_stale' &&
-      'break' in body &&
-      body.break &&
-      typeof body.break === 'object'
-    ) {
-      return body.break as BreakResponse;
-    }
+    const body = (await response.json()) as SuggestionStaleResponse | { error?: unknown } | null;
+    if (body?.error === 'suggestion_stale' && 'break' in body) return body.break;
   } catch {
     // Not JSON: an ordinary conflict.
   }
