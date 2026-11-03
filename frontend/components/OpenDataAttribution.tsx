@@ -7,6 +7,7 @@ import { LEGAL_LINKS, legalPagesVisible } from '@/lib/legal';
 import { NATIONAL_RAIL_URL } from './NationalRailCredit';
 import { TFL_STOPS_ATTRIBUTION } from '@/lib/tflAttribution';
 import { SOURCE_CODE_URL } from '@/lib/sourceCode';
+import { DEVELOPERS_PATH } from '@/lib/developerDocs';
 
 // Re-exported so existing imports keep working; it lives in its own module
 // because client components render it too.
@@ -179,6 +180,10 @@ export function OpenDataAttribution({ transitOn = false }: { transitOn?: boolean
             page (lib/sourceCode.ts). */}
         <TextLink href={SOURCE_CODE_URL} external size="sm" underline="always">
           Source code
+        </TextLink>
+        {/* The personal API's guide and reference (docs/personal-api-tokens.md). */}
+        <TextLink href={DEVELOPERS_PATH} size="sm" underline="always">
+          Developers
         </TextLink>
         {/* Preferences for everyone, wherever they scroll to: the bar's
             gear, account menu and drawer each cover only some visitors. */}

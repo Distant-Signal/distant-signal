@@ -55,6 +55,12 @@ describe('PersonalTokens', () => {
     expect(screen.queryByRole('button', { name: 'Revoke all tokens' })).not.toBeInTheDocument();
   });
 
+  it('links to the guide and the API reference', () => {
+    renderWithMantine(<PersonalTokens data={data} />);
+    expect(screen.getByRole('link', { name: 'How to use a token' })).toHaveAttribute('href', '/developers');
+    expect(screen.getByRole('link', { name: 'API reference' })).toHaveAttribute('href', '/developers/api');
+  });
+
   it('creates a token with the ticked scopes and shows it once', async () => {
     const created = { ...token, id: 8, name: 'Shortcut', scopes: ['journeys:read'], token: 'dsp_' + 'a'.repeat(38) };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(created), { status: 201 }));

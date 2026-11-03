@@ -24,6 +24,8 @@ export const STATIC_PATHS: readonly string[] = [
   '/incidents',
   '/plan',
   '/attribution',
+  '/developers',
+  '/developers/api',
 ];
 
 /** The legal pages (`lib/legal.ts`), listed only while they are published,

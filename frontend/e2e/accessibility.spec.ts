@@ -261,6 +261,8 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
   ['/account/preferences', '/account/preferences'],
   ['/account/notifications (anonymous login prompt)', '/account/notifications'],
   ['/attribution', '/attribution'],
+  ['/developers', '/developers'],
+  ['/developers/api', '/developers/api'],
   // The draft legal pages 404 unless the server has LEGAL_PAGES_PREVIEW or
   // LEGAL_PAGES_PUBLISHED on (frontend/lib/legal.ts). CI sets
   // LEGAL_PAGES_PREVIEW for this job, and the same env reaches this process.
