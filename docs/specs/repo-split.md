@@ -520,8 +520,13 @@ repository.
 - the crates, at the git tag (§5.2);
 - `images/ds-migrate:vX.Y.Z`;
 - GitHub release assets: `db-grants.yaml`, `postgres-grants.sql`,
-  `postgres-roles.sql` and `redis-users.acl.tpl`, each signed with
-  `cosign sign-blob` under `ds-core`'s workflow identity.
+  `postgres-roles.sql`, `postgres-roles-setup.sh` (the roles Job's
+  entrypoint, which ds-core's role tests run), `redis-users.acl.tpl` and
+  `render-redis-acl.py` (the chart's phase 0 check renders with it) and the
+  line catalogue validator's `site-credits.json` (which sources
+  `/attribution` must credit; the web app's tests read the vendored copy), each
+  with a Sigstore bundle from `cosign sign-blob` under
+  `.github/workflows/release.yml@refs/tags/vX.Y.Z`, and `SHA256SUMS`.
 
 **Vendoring into the chart.** `ds-deploy` keeps a file `core-version`.
 Renovate bumps it through a `github-releases` custom manager. In the same PR,
@@ -549,12 +554,17 @@ its `REQUIRED_MIGRATION` and its role holds the grants baked in from
    `vA.B.C`. That is today's "ships a release after the code stopped using
    it" rule, made mechanical.
 
-**DB tests in other repositories.** A repository with `#[ignore]` DB tests
-uses `ci`'s reusable `rust-db-tests.yml`. It starts Postgres and Valkey,
-runs `images/ds-migrate` at the repository's pinned core version, applies
-that version's `postgres-grants.sql`, and runs the repository's passes from
-its own `db-tests.toml`. Those are today's `db-tests.py` passes, split by
-crate.
+**DB tests in other repositories** (decided at phase 4). A repository
+with `#[ignore]` DB tests uses `ci`'s reusable `rust-db-tests.yml`, which
+starts Postgres and Valkey and runs the repository's passes from its own
+`db-tests.toml` (today's `db-tests.py` passes, split by crate). The schema
+and roles come from the ds-core commit its `Cargo.lock` pins:
+`scripts/core-checkout.py` clones that tag and checks the commit, the
+passes run that checkout's migrations (`sqlx migrate run`), and the role
+passes run that checkout's own `scripts/test-postgres-roles.py`, which
+applies the release's `access/postgres-roles.sql` and
+`postgres-grants.sql`. Nothing in `ci` changes, and no repository keeps a
+copy of ds-core's DB scripts.
 
 **Requesting a grant.** A service that needs a new grant opens a `ds-core`
 PR changing `db-grants.yaml`, alongside the migration if there is one, then
@@ -2056,6 +2066,33 @@ These are the prerequisites. Each one is deployable alone.
 - after it, revert the delete commit.
 
 `images/ds-migrate` already exists from phase 3.
+
+**Decisions (2026-11-03, phase 4 preparation):**
+
+- **Releases** are made by a release pull request
+  (`scripts/release.py prepare --bump patch|minor`). On merge, `tag.yml`
+  runs the contract check, tags `vX.Y.Z` and starts `release.yml` on the
+  tag, so the signatures name the tag. That replaces §5.2's
+  `workflow_dispatch` that bumped and tagged from a workflow: a commit or
+  tag a workflow pushes starts no CI, and the image must build from the
+  tagged commit.
+- **Release integrity:** `ds-core` has GitHub immutable releases on
+  (repository-level), and a second ruleset protects `refs/tags/v*` from
+  deletion and update. `release.yml` creates a draft, attaches every
+  asset, bundle and `SHA256SUMS`, and only then publishes. A broken
+  release is fixed forward with a patch release, never deleted and
+  re-tagged.
+- **DB tests** in other repositories: `core-checkout.py` and ds-core's own
+  scripts (§5.1).
+- **The catalogue attribution check** (the `/attribution` page credits a
+  source exactly while the validator's live tier scrapes it): the
+  validator states it in `site-credits.json` and checks that against its
+  scrape (#182); ds-core publishes the file as a seventh signed release
+  asset, `sync-core.py` vendors it to `frontend/lib/site-credits.json`, and
+  the web app's vitest compares `DATA_SOURCES` against that copy.
+- **History:** the api's shim files that ingest plan 1A copied into
+  ds-store keep their post-move history in the extract; the top commit
+  removes them from its tree.
 
 **Monorepo after this phase:** the services, the frontend and the chart.
 
