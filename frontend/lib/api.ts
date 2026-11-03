@@ -73,7 +73,7 @@ import type {
   TflStopArrivals,
   TflStopDetail,
 } from './types';
-import type { PersonalTokensResponse } from './api-types';
+import type { PersonalTokenRow, PersonalTokensResponse } from './api-types';
 import { createLogger } from './logger';
 import { lineTimetableQuery } from './lineTrains';
 import { LIVE_PREVIEW_REVALIDATE_SECONDS } from './livePreview';
@@ -1451,21 +1451,35 @@ export async function getPersonalTokens(): Promise<PersonalTokensResponse | null
   return response.json() as Promise<PersonalTokensResponse>;
 }
 
+/** The account notices every page can show: the newest app connected,
+ * and the newest personal API token created, each in the last 7 days. */
+export interface AccountNotices {
+  app: ConnectedAppGrant | null;
+  token: PersonalTokenRow | null;
+}
+
+const NO_NOTICES: AccountNotices = { app: null, token: null };
+
 /** `GET /public/account/connected-apps-notice`: the newest app connected
- * in the last 7 days, for the banner every page shows. `null` when there
- * is none, when not logged in (no request is sent without a session
- * cookie), or on any failure: the banner is never worth an error. */
-export async function getConnectedAppNotice(init?: Pick<RequestInit, 'signal'>): Promise<ConnectedAppGrant | null> {
+ * and the newest personal API token created in the last 7 days, for the
+ * banners every page shows. Both `null` when there is none, when not
+ * logged in (no request is sent without a session cookie), or on any
+ * failure: a banner is never worth an error. `tokenNotice` is absent from
+ * an older api, which reads as none. */
+export async function getAccountNotices(init?: Pick<RequestInit, 'signal'>): Promise<AccountNotices> {
   const forward = await cookieForwardInit();
-  if (!forward.headers) return null;
+  if (!forward.headers) return NO_NOTICES;
   try {
     const url = `${baseUrl()}/public/account/connected-apps-notice`;
     const response = await apiFetch(url, { cache: 'no-store', ...init, ...forward });
-    if (!response.ok) return null;
-    const body = (await response.json()) as { notice: ConnectedAppGrant | null };
-    return body.notice;
+    if (!response.ok) return NO_NOTICES;
+    const body = (await response.json()) as {
+      notice: ConnectedAppGrant | null;
+      tokenNotice?: PersonalTokenRow | null;
+    };
+    return { app: body.notice, token: body.tokenNotice ?? null };
   } catch {
-    return null;
+    return NO_NOTICES;
   }
 }
 

@@ -14,8 +14,9 @@ import { legalPagesPublished } from '@/lib/legal';
 import { AppMantineProvider } from '@/components/AppMantineProvider';
 import { ConnectivityMonitor } from '@/components/ConnectivityMonitor';
 import { ConnectedAppNotice } from '@/components/ConnectedAppNotice';
+import { PersonalTokenNotice } from '@/components/PersonalTokenNotice';
 import {
-  getConnectedAppNotice,
+  getAccountNotices,
   getDataFreshness,
   getMyGroups,
   getSessionOrLoggedOut,
@@ -205,10 +206,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // `useGroupSummaries()` already treat `null` as "nothing to offer" --
   // same fail-safe posture `useGroupSummaries` always had, just moved here.
   const groupsPromise = getMyGroups({ signal: AbortSignal.timeout(FRESHNESS_TIMEOUT_MS) }).catch(() => null);
-  // The connected-app banner's notice: null without a session cookie (no
-  // request at all), with no app connected in the last 7 days, or on any
-  // failure. Bounded like the above.
-  const noticePromise = getConnectedAppNotice({ signal: AbortSignal.timeout(FRESHNESS_TIMEOUT_MS) });
+  // The connected-app and personal-token banners' notices: none without a
+  // session cookie (no request at all), with nothing new in the last 7
+  // days, or on any failure. Bounded like the above.
+  const noticePromise = getAccountNotices({ signal: AbortSignal.timeout(FRESHNESS_TIMEOUT_MS) });
   // The tram networks we show, for the footer's licence line: [] by
   // default and on any failure (it never throws), bounded like the above.
   const transitPromise = getTransitNetworks({ signal: AbortSignal.timeout(FRESHNESS_TIMEOUT_MS) });
@@ -227,7 +228,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // sequential wait in practice, just picking up a result that was already
   // being computed alongside it.
   const groups = await groupsPromise;
-  const connectedAppNotice = await noticePromise;
+  const { app: connectedAppNotice, token: personalTokenNotice } = await noticePromise;
   const transitOn = (await transitPromise).length > 0;
   // Set by proxy.ts. Absent only where proxy.ts does not run (a prefetch),
   // and then there is no document for the script to run in.
@@ -347,6 +348,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   {connectedAppNotice && (
                     <Box px="lg" pt="md">
                       <ConnectedAppNotice notice={connectedAppNotice} />
+                    </Box>
+                  )}
+                  {/* For 7 days after a personal API token is created
+                    (docs/personal-api-tokens.md). */}
+                  {personalTokenNotice && (
+                    <Box px="lg" pt="md">
+                      <PersonalTokenNotice notice={personalTokenNotice} />
                     </Box>
                   )}
                   {children}
