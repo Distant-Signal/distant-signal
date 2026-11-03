@@ -8,21 +8,17 @@ narrowed roles" command, and runs the four roles' suites `--observe`d in
 its Stage 0b command until their fixtures move to the owner.
 """
 
-import importlib.util
 import pathlib
 import shlex
-import sys
 import tomllib
-import types
 import unittest
-from typing import Any, cast, override
-
-import yaml
+from typing import Any, cast
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "scripts" / "test-postgres-roles.py"
 PASSES = REPO / ".github" / "db-tests.toml"
-GRANTS_YAML = REPO / "crates" / "ds-store" / "db-grants.yaml"
+# Release D's narrowed roles: db-grants.yaml's phase 5 `narrow` roles in the
+# pinned ds-core (whose own copy of this test checks them against the file).
+RELEASE_D = frozenset({"api", "aggregator", "enricher", "notifier"})
 
 
 def per_service_runs() -> dict[str, list[str]]:
@@ -61,71 +57,6 @@ def flag(args: list[str], name: str) -> set[str]:
     return set(args[args.index(name) + 1].split(","))
 
 
-def load_script() -> types.ModuleType:
-    """Import scripts/test-postgres-roles.py as a module."""
-    spec = importlib.util.spec_from_file_location("test_postgres_roles", SCRIPT)
-    if spec is None or spec.loader is None:
-        msg = f"cannot load {SCRIPT}"
-        raise RuntimeError(msg)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["test_postgres_roles"] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-class RenderNarrowedTest(unittest.TestCase):
-    """The scratch postgres-grants.sql --narrow runs."""
-
-    @override
-    def setUp(self) -> None:
-        """Load the script."""
-        self.script = load_script()
-
-    def test_the_named_roles_render_narrow_and_get_their_own_grants(self) -> None:
-        """A narrowed role leaves app and gets its db-grants.yaml rows."""
-        committed = self.script.GRANTS_SQL.read_text(encoding="utf-8")
-        # Release D (2026-10-28): the committed SQL narrows all four.
-        for kind in ("api", "aggregator", "enricher", "notifier"):
-            self.assertIn(f"('{kind}', 'narrow')", committed)
-            self.assertNotIn(f"('{kind}', 'observed')", committed)
-        narrowed = self.script.render_with_statuses(
-            {"api": "narrow", "aggregator": "narrow", "notifier": "observed"}
-        )
-        self.assertIn("('api', 'narrow')", narrowed)
-        self.assertIn("('aggregator', 'narrow')", narrowed)
-        self.assertNotIn("('api', 'observed')", narrowed)
-        self.assertIn("('notifier', 'observed')", narrowed)
-        # Unnamed roles keep their db-grants.yaml status.
-        self.assertIn("('enricher', 'narrow')", narrowed)
-        # The grants DS-118 adds: the api's outbox insert, the aggregator's
-        # UPDATE on trains.id for its archive's row lock.
-        self.assertIn(
-            "('train_event_outbox', 'api', 'INSERT', "
-            "'tracked_train_id,dedup_key,event')",
-            narrowed,
-        )
-        self.assertIn("('trains', 'aggregator', 'UPDATE', 'id')", narrowed)
-        self.assertNotIn("('train_current_state', 'api', 'UPDATE'", narrowed)
-
-    def test_observe_keeps_a_role_in_the_app_role(self) -> None:
-        """--observe renders a role observed, with no grants of its own."""
-        rendered = self.script.render_with_statuses({"writer": "observed"})
-        self.assertIn("('writer', 'observed')", rendered)
-        self.assertNotIn("('trains', 'writer', 'INSERT'", rendered)
-        # CI's Stage 0b command: release D's four, observed again.
-        rendered = self.script.render_with_statuses(
-            dict.fromkeys(("api", "aggregator", "enricher", "notifier"), "observed")
-        )
-        self.assertIn("('api', 'observed')", rendered)
-        self.assertNotIn("('train_event_outbox', 'api', 'INSERT'", rendered)
-        self.assertNotIn("('trains', 'aggregator', 'UPDATE'", rendered)
-
-    def test_an_unknown_role_is_refused(self) -> None:
-        """A typo must not silently narrow nothing."""
-        with self.assertRaises(RuntimeError):
-            self.script.render_narrowed(["apii"])
-
-
 class CiInvocationTest(unittest.TestCase):
     """CI's per-service passes (.github/db-tests.toml) against db-grants.yaml."""
 
@@ -136,15 +67,7 @@ class CiInvocationTest(unittest.TestCase):
         db-grants.yaml's phase 5 narrow roles: a role narrowed in
         production without both passes, or a list left behind, fails here.
         """
-        raw = cast(
-            "dict[str, Any]", yaml.safe_load(GRANTS_YAML.read_text(encoding="utf-8"))
-        )
-        release_d = {
-            key
-            for key, role in cast("dict[str, dict[str, Any]]", raw["roles"]).items()
-            if role.get("status") == "narrow" and str(role.get("phase")) == "5"
-        }
-        self.assertEqual(release_d, {"api", "aggregator", "enricher", "notifier"})
+        release_d = set(RELEASE_D)
         runs = per_service_runs()
         self.assertEqual(set(runs), {"per-service", "narrow"})
         stage_0b = runs["per-service"]
