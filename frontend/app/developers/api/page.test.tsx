@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { elementsThatEndAParagraph } from '@/test/htmlNesting';
 import openapiDocument from '@/lib/openapi-v1.json';
 import ApiReferencePage, { metadata } from './page';
 
@@ -68,5 +69,10 @@ describe('/developers/api', () => {
     }
     expect(within(statuses).getByText(/Retry-After/)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'TfL-shaped objects' })).toBeInTheDocument();
+  });
+
+  it('keeps its markup valid inside paragraphs, so the browser parses it as rendered', () => {
+    const { container } = renderWithMantine(ApiReferencePage());
+    expect(elementsThatEndAParagraph(container)).toEqual([]);
   });
 });

@@ -134,7 +134,7 @@ export default function DevelopersPage() {
           {POLL_INTERVAL_SECONDS} seconds.
         </Text>
         <Text>
-          <TextLink href={API_REFERENCE_PATH} underline="always">
+          <TextLink href={API_REFERENCE_PATH} inline underline="always">
             API reference
           </TextLink>
         </Text>
