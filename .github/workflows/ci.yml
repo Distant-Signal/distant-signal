@@ -507,8 +507,8 @@ jobs:
       # Repo split spec §5.1, §5.3: the labels this checkout's images get
       # (scripts/release-order.py labels) against the chart's ordering rules.
       # One commit builds every image, so this passes by construction; the
-      # real check runs on the pushed images in containers.yml's
-      # push-helm-chart, before the chart ships.
+      # real check runs in Distant-Signal/ds-deploy, on the images its
+      # values.yaml pins, before its chart ships.
       - name: release ordering (this checkout's image labels)
         run: |
           set -euo pipefail
