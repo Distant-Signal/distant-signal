@@ -14,7 +14,9 @@ ds-store (`git+<url>?tag=<tag>#<sha>`); a shallow clone of the tag must be
 that commit, or this fails.
 
 The default destination is target/ds-core-<sha> (git-ignored, outside the
-images' build context). An existing checkout at the right commit is reused.
+images' build context). An existing checkout at the right commit is reused;
+anything else there (a partial copy a CI cache restored into target/) is
+replaced.
 DS_CORE_GIT_URL replaces the clone URL (a local mirror, a rehearsal's
 file:// stand-in); the pin is still checked.
 
@@ -26,6 +28,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -63,13 +66,30 @@ def git(*args: str, cwd: Path | None = None) -> str:
     ).stdout.strip()
 
 
-def checkout(dest: Path, url: str, tag: str, sha: str) -> Path:
-    """Make `dest` a checkout of `tag` at `sha`; return it."""
-    if (dest / ".git").exists() and git("rev-parse", "HEAD", cwd=dest) == sha:
+def is_checkout_at(dest: Path, sha: str) -> bool:
+    """Whether `dest` is a git checkout whose HEAD is `sha`."""
+    if not (dest / ".git").exists():
+        return False
+    try:
+        return git("rev-parse", "HEAD", cwd=dest) == sha
+    except subprocess.CalledProcessError:
+        return False
+
+
+def checkout(
+    dest: Path, url: str, tag: str, sha: str, *, replace: bool = False
+) -> Path:
+    """Make `dest` a checkout of `tag` at `sha`; return it.
+
+    Anything else already at `dest` is removed when `replace`, else an error.
+    """
+    if is_checkout_at(dest, sha):
         return dest
     if dest.exists():
-        msg = f"{dest} exists and isn't ds-core at {sha}: remove it"
-        raise FileExistsError(msg)
+        if not replace:
+            msg = f"{dest} exists and isn't ds-core at {sha}: remove it"
+            raise FileExistsError(msg)
+        shutil.rmtree(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
     git("clone", "--quiet", "--depth", "1", "--branch", tag, url, str(dest))
     head = git("rev-parse", "HEAD", cwd=dest)
@@ -88,7 +108,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     tag, sha = pinned((args.root / "Cargo.lock").read_text(encoding="utf-8"))
     dest = args.dest or args.root / "target" / f"ds-core-{sha}"
     url = os.environ.get("DS_CORE_GIT_URL") or CORE_REPO
-    print(checkout(dest.resolve(), url, tag, sha))
+    # Only the default destination (our own directory under target/) is
+    # replaced; a --dest that holds something else is an error.
+    print(checkout(dest.resolve(), url, tag, sha, replace=args.dest is None))
     return 0
 
 
