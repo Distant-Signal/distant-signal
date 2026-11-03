@@ -41,7 +41,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Per-user data fails closed, as on the station page: an outage or no
 // session reads as nothing pinned.
-const NO_PREFERENCES: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [] };
+const NO_PREFERENCES: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
 
 async function load(network: string, line: string, date?: string) {
   if (!TRANSIT_ID.test(network) || !TRANSIT_ID.test(line)) notFound();
@@ -77,17 +77,16 @@ export default async function TransitLinePage({ params, searchParams }: Params &
   const fromTfl = lineDetail.statusSource === 'tfl';
   // A direction with several branches lists them, each with its stations
   // (the TfL transit design §8.3); one with a single branch keeps its list.
-  const branchesOf = (direction: string) =>
-    (lineDetail.branches ?? []).filter((branch) => branch.direction === direction);
+  const branchesOf = (direction: string) => lineDetail.branches.filter((branch) => branch.direction === direction);
   const headingOf = (direction: (typeof lineDetail.directions)[number]) => {
     const branches = branchesOf(direction.direction);
     return branches.length > 1 ? branchesHeading(branches) : directionHeading(direction);
   };
-  const pinId = lineDetail.statusLineId ?? lineDetail.id;
+  const pinId = lineDetail.statusLineId;
   const diagram = buildLineDiagram(lineDetail);
   const timetableHref = (query: Record<string, string>) =>
     `/transit/${network}/lines/${line}/timetable?${new URLSearchParams(query).toString()}`;
-  const branches = lineDetail.branches ?? [];
+  const branches = lineDetail.branches;
   const stopNames = Object.fromEntries(
     lineDetail.directions.flatMap((direction) => direction.stations.map((station) => [station.id, station.name])),
   );
@@ -102,7 +101,7 @@ export default async function TransitLinePage({ params, searchParams }: Params &
         <TextLink href={`/transit/${network}`}>{detail.name}</TextLink>
       </Stack>
 
-      {lineDetail.status && lineDetail.status.state !== 'none' && (
+      {lineDetail.status.state !== 'none' && (
         <Group>
           <TransitStatusBadge status={lineDetail.status} />
         </Group>

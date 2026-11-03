@@ -21,6 +21,9 @@ describe('AccountPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
     expect(screen.getByText(/Log in to download your data/)).toBeInTheDocument();
@@ -34,6 +37,9 @@ describe('AccountPage', () => {
       id: 'user-1',
       username: null,
       name: 'Ada',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
     const link = screen.getByRole('link', { name: 'Download my data' });
@@ -48,6 +54,9 @@ describe('AccountPage', () => {
       id: 'user-1',
       username: null,
       name: 'Ada',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
     expect(screen.getByText(/18 months after the day of travel/)).toBeInTheDocument();

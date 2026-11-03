@@ -47,7 +47,7 @@ const lines: LineSummary[] = [
 // `Preferences` requires both `pinnedLines` and `pinnedStations` -- see
 // every other fixture of this type across the test suite (e.g.
 // `app/page.test.tsx`, `components/PinToggle.test.tsx`).
-const preferences: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [] };
+const preferences: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
 const reports: LineStatusReport[] = [];
 const tocs: Suggestion[] = [{ code: 'VT', name: 'Avanti West Coast' }];
 

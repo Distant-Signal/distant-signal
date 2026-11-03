@@ -47,7 +47,7 @@ type Path = readonly TransitStationRef[];
  * inbound one reversed (so all read the same way), by share; a line with no
  * branches gives its directions' lists, the inbound one reversed. */
 function pathsOf(line: Pick<TransitLineDetail, 'directions' | 'branches'>): Path[] {
-  const branches: readonly TransitLineBranch[] = line.branches ?? [];
+  const branches: readonly TransitLineBranch[] = line.branches;
   if (branches.length > 0) {
     const byShare = (a: TransitLineBranch, b: TransitLineBranch) => b.sharePercent - a.sharePercent;
     return [

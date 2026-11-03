@@ -51,6 +51,7 @@ describe('buildLineDiagram', () => {
         { direction: 'outbound', headsign: 'Eccles', stations: ['Piccadilly', 'Cornbrook', 'Eccles'].map(st) },
         { direction: 'inbound', headsign: 'Piccadilly', stations: ['Eccles', 'Cornbrook', 'Piccadilly'].map(st) },
       ],
+      branches: [],
     });
     expect(draw(diagram)).toEqual(['◉ Piccadilly', '• Cornbrook', '◉ Eccles']);
     expect(diagram.from?.name).toBe('Piccadilly');
@@ -64,6 +65,7 @@ describe('buildLineDiagram', () => {
         { direction: 'outbound', headsign: null, stations: ['A', 'B', 'D'].map(st) },
         { direction: 'inbound', headsign: null, stations: ['D', 'C', 'B', 'A'].map(st) },
       ],
+      branches: [],
     });
     expect(draw(diagram)).toEqual(['◉ A', '• B', '  [Via C, rejoining at D]', '    • C', '◉ D']);
   });

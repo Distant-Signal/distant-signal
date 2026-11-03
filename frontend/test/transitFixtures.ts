@@ -11,6 +11,13 @@ import type {
   TransitStopDetail,
 } from '@/lib/types';
 
+/** A line with no status read yet: what a network without a fresh
+ * situations feed serves for each line. */
+export const NO_STATUS: TransitLineStatus = { state: 'none', asOf: null, statuses: [], upcoming: [] };
+
+/** No situations read yet. */
+export const NO_SITUATIONS: TransitSituations = { state: 'none', asOf: null, current: [], upcoming: [] };
+
 /** API responses for the transit pages' tests, in the api's shapes
  * (docs/api-changelog.md, 2026-10-14). */
 export const NETWORK: TransitNetworkDetail = {
@@ -27,9 +34,27 @@ export const NETWORK: TransitNetworkDetail = {
   timetableAsOf: '2026-10-14T03:10:00Z',
   situationsAsOf: null,
   lines: [
-    { id: 'metrolink:blue', lineId: 'blue', name: 'Blue Line', colour: '#1f6fb5' },
-    { id: 'metrolink:green', lineId: 'green', name: 'Green Line', colour: '#2e8b3e' },
+    {
+      id: 'metrolink:blue',
+      lineId: 'blue',
+      name: 'Blue Line',
+      colour: '#1f6fb5',
+      mode: 'tram',
+      statusLineId: 'metrolink:blue',
+      status: NO_STATUS,
+    },
+    {
+      id: 'metrolink:green',
+      lineId: 'green',
+      name: 'Green Line',
+      colour: '#2e8b3e',
+      mode: 'tram',
+      statusLineId: 'metrolink:green',
+      status: NO_STATUS,
+    },
   ],
+  status: { state: 'none', asOf: null },
+  statusSource: 'situations',
 };
 
 export const STOPS: TransitStop[] = [
@@ -40,12 +65,18 @@ export const STOPS: TransitStop[] = [
     lat: 53.48,
     lon: -2.23,
     lines: ['metrolink:blue', 'metrolink:green'],
-    railLinks: [{ crs: 'MAN', tiploc: 'MNCRPIC', kind: 'interchange', note: null }],
+    railLinks: [
+      { crs: 'MAN', tiploc: 'MNCRPIC', kind: 'interchange', note: null, stationName: 'Manchester Piccadilly' },
+    ],
   },
 ];
 
 export const LINE: TransitLineDetail = {
   ...NETWORK.lines[0]!,
+  situations: NO_SITUATIONS,
+  statusSource: 'situations',
+  frequency: null,
+  branches: [],
   directions: [
     {
       direction: 'outbound',
@@ -68,6 +99,8 @@ export const LINE: TransitLineDetail = {
 
 export const STOP: TransitStopDetail = {
   ...STOPS[1]!,
+  notices: [],
+  firstLast: [],
   platforms: [
     { id: '9400ZZMAPIC1', indicator: 'From City' },
     { id: '9400ZZMAPIC2', indicator: 'To Ashton' },
@@ -105,6 +138,7 @@ export const BOARD: TransitBoard = {
 export const TIMETABLE: TransitLineTimetable = {
   date: '2026-10-14',
   direction: 'outbound',
+  branch: null,
   stations: LINE.directions[0]!.stations,
   trips: [
     { tripId: 'T1', headsign: 'Eccles', times: ['07:02', '07:32'] },
@@ -238,7 +272,15 @@ export const TFL_NETWORK: TransitNetworkDetail = {
       statusLineId: 'tfl-victoria',
       status: MINOR_DELAYS,
     },
-    { id: 'tfl:dlr', lineId: 'dlr', name: 'DLR', colour: '#14a39a', mode: 'dlr', statusLineId: 'tfl-dlr' },
+    {
+      id: 'tfl:dlr',
+      lineId: 'dlr',
+      name: 'DLR',
+      colour: '#14a39a',
+      mode: 'dlr',
+      statusLineId: 'tfl-dlr',
+      status: NO_STATUS,
+    },
     {
       id: 'tfl:central',
       lineId: 'central',
@@ -246,6 +288,7 @@ export const TFL_NETWORK: TransitNetworkDetail = {
       colour: '#d6362b',
       mode: 'tube',
       statusLineId: 'tfl-central',
+      status: NO_STATUS,
     },
   ],
   nationalRailLines: [
@@ -309,6 +352,9 @@ export const TFL_BRANCHED_LINE: TransitLineDetail = {
   mode: 'tube',
   statusLineId: 'tfl-northern',
   statusSource: 'tfl',
+  status: NO_STATUS,
+  situations: NO_SITUATIONS,
+  frequency: null,
   directions: [
     {
       direction: 'outbound',

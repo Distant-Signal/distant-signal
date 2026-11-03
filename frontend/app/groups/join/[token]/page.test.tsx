@@ -66,7 +66,15 @@ describe('JoinGroupPage', () => {
 
   it('shows a login link when the visitor is not authenticated', async () => {
     vi.mocked(getGroupJoinPreview).mockResolvedValue({ groupId: 'grp-1', groupName: 'Family', memberCount: 3 });
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({ authenticated: false, id: null, username: null, name: null });
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
+      authenticated: false,
+      id: null,
+      username: null,
+      name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
+    });
 
     renderWithMantine(await JoinGroupPage({ params: Promise.resolve({ token: 'tok123' }) }));
     expect(screen.getByRole('heading', { name: 'Join Family?' })).toBeInTheDocument();
@@ -79,7 +87,15 @@ describe('JoinGroupPage', () => {
   // promoted to the same filled treatment.
   it('renders the anonymous login action as a filled button-styled link, not a plain text link', async () => {
     vi.mocked(getGroupJoinPreview).mockResolvedValue({ groupId: 'grp-1', groupName: 'Family', memberCount: 3 });
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({ authenticated: false, id: null, username: null, name: null });
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
+      authenticated: false,
+      id: null,
+      username: null,
+      name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
+    });
 
     renderWithMantine(await JoinGroupPage({ params: Promise.resolve({ token: 'tok123' }) }));
     expect(await screen.findByRole('link', { name: 'Log in to join Family' })).toHaveClass('mantine-Button-root');
@@ -92,6 +108,9 @@ describe('JoinGroupPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await JoinGroupPage({ params: Promise.resolve({ token: 'tok123' }) }));
@@ -111,6 +130,9 @@ describe('JoinGroupPage', () => {
         id: 'user-1',
         username: null,
         name: 'Alex',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
@@ -141,6 +163,9 @@ describe('JoinGroupPage', () => {
         id: null,
         username: null,
         name: null,
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
 
       renderWithMantine(await JoinGroupPage({ params: Promise.resolve({ token: 'tok123' }) }));
@@ -155,6 +180,9 @@ describe('JoinGroupPage', () => {
         id: 'user-1',
         username: null,
         name: 'Alex',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new ApiUnauthorizedError('401'));
 
@@ -169,6 +197,9 @@ describe('JoinGroupPage', () => {
         id: 'user-1',
         username: null,
         name: 'Alex',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new Error('boom'));
 

@@ -139,6 +139,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -207,6 +210,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -273,6 +279,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -335,6 +344,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -372,6 +384,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -406,6 +421,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -433,6 +451,9 @@ describe('GroupDetailPage', () => {
       id: 'user-1',
       username: null,
       name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -526,6 +547,9 @@ describe('GroupDetailPage', () => {
         id: viewer.userId,
         username: null,
         name: viewer.displayName,
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     }
@@ -638,6 +662,9 @@ describe('GroupDetailPage', () => {
         id: OWNER.userId,
         username: null,
         name: OWNER.displayName,
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -683,6 +710,9 @@ describe('GroupDetailPage', () => {
         id: OWNER.userId,
         username: null,
         name: OWNER.displayName,
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -764,6 +794,9 @@ describe('GroupDetailPage', () => {
         id: viewerId,
         username: null,
         name: null,
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     }
@@ -903,6 +936,9 @@ describe('GroupDetailPage', () => {
         id: viewerId,
         username: null,
         name: null,
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     }

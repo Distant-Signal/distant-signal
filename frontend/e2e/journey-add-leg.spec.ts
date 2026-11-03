@@ -132,7 +132,12 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
       return json(route, url.searchParams.get('ids') === '940GZZLUEUS' ? { '940GZZLUEUS': ['EUS'] } : {});
     }
     if (path === '/api/Journeys' && request.method() === 'POST') {
-      return json(route, { journeyId: JOURNEY_ID, legId: 1, trackingId: 42, resolutionStatus: 'pending' });
+      return json(route, {
+        journeyId: JOURNEY_ID,
+        legId: 1,
+        trackingId: 42,
+        resolutionStatus: 'pending',
+      } satisfies Api.CreateJourneyResponse);
     }
     if (path === `/api/Journeys/${JOURNEY_ID}` && request.method() === 'GET') {
       return json(route, {
@@ -145,7 +150,7 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
     }
     if (path === `/api/Journeys/${JOURNEY_ID}/legs` && request.method() === 'POST') {
       legBodies.push(request.postDataJSON());
-      return json(route, { legId: 2, trackingId: null });
+      return json(route, { legId: 2, trackingId: null } satisfies Api.AddJourneyLegResponse);
     }
     return route.fulfill({ status: 404, body: '' });
   });

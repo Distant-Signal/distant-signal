@@ -68,8 +68,16 @@ const operators: OperatorSummary[] = [
 ];
 // `Preferences` requires `pinnedLines`, `pinnedStations`, and `pinnedOperators` --
 // this page defines its own NO_PREFERENCES constant already in this shape.
-const preferences: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [] };
-const sessionInfo: SessionInfo = { authenticated: false, id: null, username: null, name: null };
+const preferences: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
+const sessionInfo: SessionInfo = {
+  authenticated: false,
+  id: null,
+  username: null,
+  name: null,
+  groups: [],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+};
 
 async function renderPage() {
   return renderWithMantine(await OperatorsPage());

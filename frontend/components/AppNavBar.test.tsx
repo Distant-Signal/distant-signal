@@ -26,8 +26,24 @@ const freshness: DataFreshness = {
   corpus: null,
 };
 
-const loggedOut: SessionInfo = { authenticated: false, id: null, username: null, name: null };
-const loggedIn: SessionInfo = { authenticated: true, id: 'u1', username: 'ada', name: 'Ada' };
+const loggedOut: SessionInfo = {
+  authenticated: false,
+  id: null,
+  username: null,
+  name: null,
+  groups: [],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+};
+const loggedIn: SessionInfo = {
+  authenticated: true,
+  id: 'u1',
+  username: 'ada',
+  name: 'Ada',
+  groups: [],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+};
 
 /** The bar's own links, excluding anything the drawer contributes -- the
  * drawer is closed in every case that uses this, but scoping to the

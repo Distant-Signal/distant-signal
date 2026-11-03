@@ -142,7 +142,7 @@ async function NavBarWithSession({ freshness }: { freshness: DataFreshness }) {
   return (
     <>
       <AppNavBar session={session} freshness={freshness} transitOn={transitNetworks.length > 0} />
-      <UsageTracker signedIn={session.authenticated} accountOptIn={session.analyticsOptIn === true} />
+      <UsageTracker signedIn={session.authenticated} accountOptIn={session.analyticsOptIn} />
     </>
   );
 }

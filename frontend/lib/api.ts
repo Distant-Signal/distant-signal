@@ -548,7 +548,7 @@ export async function getPreferences(): Promise<Preferences> {
     ...(await cookieForwardInit()),
   });
   if (response.status === 401) {
-    return { pinnedLines: [], pinnedStations: [], pinnedOperators: [] };
+    return { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
   }
   if (!response.ok) {
     throw errorForResponse(url, response);
@@ -598,6 +598,8 @@ export const LOGGED_OUT_SESSION: SessionInfo = {
   username: null,
   name: null,
   analyticsOptIn: false,
+  groups: [],
+  personalTokensEnabled: false,
 };
 
 /** The one place `getSession()`'s failure mode is turned into a UI-safe

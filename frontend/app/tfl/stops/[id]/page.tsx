@@ -199,7 +199,7 @@ export default async function TflStopPage({ params, searchParams }: Params & Sea
 
       {timetable && (
         <TflStopTimetable
-          firstLast={timetable.station.firstLast ?? []}
+          firstLast={timetable.station.firstLast}
           dated={dateParam !== undefined && DATE.test(dateParam)}
           board={timetable.board}
           laterHref={
