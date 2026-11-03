@@ -1439,6 +1439,18 @@ export async function getConnectedApps(): Promise<ConnectedAppsData | null> {
   return response.json() as Promise<ConnectedAppsData>;
 }
 
+/** `GET /public/account/personal-tokens`: the visitor's personal API
+ * tokens (docs/personal-api-tokens.md). `null` when not logged in or when
+ * the feature is off (`404 feature_disabled`), so the section is simply
+ * not shown. */
+export async function getPersonalTokens(): Promise<Api.PersonalTokensResponse | null> {
+  const url = `${baseUrl()}/public/account/personal-tokens`;
+  const response = await apiFetch(url, { cache: 'no-store', ...(await cookieForwardInit()) });
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return response.json() as Promise<Api.PersonalTokensResponse>;
+}
+
 /** `GET /public/account/connected-apps-notice`: the newest app connected
  * in the last 7 days, for the banner every page shows. `null` when there
  * is none, when not logged in (no request is sent without a session

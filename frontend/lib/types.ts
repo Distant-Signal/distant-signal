@@ -348,6 +348,10 @@ export interface SessionInfo {
    * when logged out. Optional: an older api leaves it out, which reads as
    * off. */
   analyticsOptIn?: boolean;
+  /** Whether personal API tokens are on, so the account menu can offer
+   * "Revoke all API tokens". Optional: an older api leaves it out, which
+   * reads as off. */
+  personalTokensEnabled?: boolean;
 }
 
 /** The fields an untracked leg adds to a journey leg or list row, `null`

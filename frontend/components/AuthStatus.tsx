@@ -53,5 +53,11 @@ export function AuthStatus({ session }: { session: SessionInfo }) {
   // Name, else the user's own username (the app holds no email address to
   // fall back to). Self-view only: this is the signed-in user's own label.
   const label = session.name?.trim() || session.username?.trim() || 'Logged in';
-  return <AccountMenu label={label} destinations={accountMenuDestinations()} />;
+  return (
+    <AccountMenu
+      label={label}
+      destinations={accountMenuDestinations()}
+      canRevokeTokens={session.personalTokensEnabled === true}
+    />
+  );
 }
