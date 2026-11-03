@@ -18,7 +18,7 @@ describe('transitNetworkSummary', () => {
 
 describe('networkModesPhrase', () => {
   it("names a single-mode network's mode from the network when its lines have none", () => {
-    expect(networkModesPhrase({ mode: 'tram', lines: [{}, {}] })).toBe('tram');
+    expect(networkModesPhrase({ mode: 'tram', lines: [{ mode: '' }, { mode: '' }] })).toBe('tram');
     expect(networkModesPhrase({ mode: 'tram', lines: [] })).toBe('tram');
   });
 
@@ -29,7 +29,7 @@ describe('networkModesPhrase', () => {
   });
 
   it('is null when a mode has no word, rather than guess', () => {
-    expect(networkModesPhrase({ mode: 'metro', lines: [{}] })).toBeNull();
+    expect(networkModesPhrase({ mode: 'metro', lines: [{ mode: '' }] })).toBeNull();
     expect(networkModesPhrase({ mode: 'metro', lines: [{ mode: 'tube' }, { mode: 'ferry' }] })).toBeNull();
   });
 });
@@ -38,7 +38,9 @@ describe('groupLinesByMode', () => {
   it('keeps a single-mode network as one unlabelled list', () => {
     const lines = [{ mode: 'tram' }, { mode: 'tram' }];
     expect(groupLinesByMode(lines)).toEqual([{ mode: 'tram', label: null, lines }]);
-    expect(groupLinesByMode([{}, {}])).toEqual([{ mode: null, label: null, lines: [{}, {}] }]);
+    expect(groupLinesByMode([{ mode: '' }, { mode: '' }])).toEqual([
+      { mode: null, label: null, lines: [{ mode: '' }, { mode: '' }] },
+    ]);
   });
 
   it('groups a mixed network by mode, in line order', () => {

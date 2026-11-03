@@ -19,7 +19,7 @@ const TFL_STOPS = [
   { id: '940GZZTESTE', name: 'Euston', modes: ['tube'], lines: [{ id: 'northern', name: 'Northern' }] },
   { id: '940GZZTESTV', name: 'Victoria', modes: ['tube'], lines: [{ id: 'victoria', name: 'Victoria' }] },
   { id: '940GZZTESTB', name: 'Bank', modes: ['dlr'], lines: [{ id: 'dlr', name: 'DLR' }] },
-];
+] satisfies Api.TflStopSummary[];
 
 const JOURNEY_ID = 77;
 
@@ -161,7 +161,12 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
       const body = request.postDataJSON() as { leg: Record<string, unknown> };
       bodies.push(body.leg);
       if (body.leg.mode === 'untracked') legs.push(untrackedLegFrom(body.leg, 1));
-      return json(route, { journeyId: JOURNEY_ID, legId: 1, trackingId: null, resolutionStatus: null });
+      return json(route, {
+        journeyId: JOURNEY_ID,
+        legId: 1,
+        trackingId: null,
+        resolutionStatus: null,
+      } satisfies Api.CreateJourneyResponse);
     }
     if (path === `/api/Journeys/${JOURNEY_ID}` && request.method() === 'GET') {
       return json(route, {
@@ -177,7 +182,7 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
       const body = request.postDataJSON() as Record<string, unknown>;
       bodies.push(body);
       legs.push(untrackedLegFrom(body, legs.length + 1));
-      return json(route, { legId: legs.length, trackingId: null });
+      return json(route, { legId: legs.length, trackingId: null } satisfies Api.AddJourneyLegResponse);
     }
     return route.fulfill({ status: 404, body: '' });
   });

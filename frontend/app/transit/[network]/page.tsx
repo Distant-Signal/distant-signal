@@ -58,7 +58,7 @@ export default async function TransitNetworkPage({ params, searchParams }: Param
   const fromTfl = detail.statusSource === 'tfl';
   const groups = groupLinesByMode(detail.lines);
   const lineNames = Object.fromEntries(detail.lines.map((line) => [line.id, line.name]));
-  const hasFeed = (detail.status?.state ?? 'none') !== 'none';
+  const hasFeed = detail.status.state !== 'none';
   // Only the TfL network has live data (TfL's arrivals, on each stop's
   // `/tfl/stops/{id}` page); any other says it has none, in its own modes.
   const modes = networkModesPhrase(detail);

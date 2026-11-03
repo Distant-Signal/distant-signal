@@ -16,8 +16,24 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
-const LOGGED_OUT = { authenticated: false, id: null, name: null, username: null };
-const LOGGED_IN = { authenticated: true, id: 'u1', username: 'ada', name: 'Ada' };
+const LOGGED_OUT = {
+  authenticated: false,
+  id: null,
+  name: null,
+  username: null,
+  groups: [],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+};
+const LOGGED_IN = {
+  authenticated: true,
+  id: 'u1',
+  username: 'ada',
+  name: 'Ada',
+  groups: [],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+};
 
 describe('ChatPage', () => {
   afterEach(() => {

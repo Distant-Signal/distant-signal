@@ -59,7 +59,7 @@ export default async function PreferencesPage() {
       <AppearanceSection />
       <UsageAnalyticsSection
         signedIn={session.authenticated}
-        accountOptIn={session.analyticsOptIn === true}
+        accountOptIn={session.analyticsOptIn}
         showPrivacyLink={legalPagesVisible()}
       />
       {session.authenticated ? (

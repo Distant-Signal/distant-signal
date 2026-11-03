@@ -43,12 +43,12 @@ export function networkModesPhrase(network: {
 export function groupLinesByMode<T extends Pick<TransitLine, 'mode'>>(
   lines: readonly T[],
 ): { mode: string | null; label: string | null; lines: T[] }[] {
-  const modes = [...new Set(lines.map((line) => line.mode ?? ''))];
+  const modes = [...new Set(lines.map((line) => line.mode))];
   if (modes.length <= 1) return [{ mode: modes[0] || null, label: null, lines: [...lines] }];
   return modes.map((mode) => ({
     mode: mode || null,
     label: MODE_LABELS[mode] ?? 'Other lines',
-    lines: lines.filter((line) => (line.mode ?? '') === mode),
+    lines: lines.filter((line) => line.mode === mode),
   }));
 }
 

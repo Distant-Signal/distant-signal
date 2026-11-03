@@ -15,8 +15,24 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
-const loggedOut = { authenticated: false, id: null, username: null, name: null } as const;
-const loggedIn = { authenticated: true, id: 'user-1', username: null, name: 'Ada' } as const;
+const loggedOut = {
+  authenticated: false,
+  id: null,
+  username: null,
+  name: null,
+  groups: [] as string[],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+} as const;
+const loggedIn = {
+  authenticated: true,
+  id: 'user-1',
+  username: null,
+  name: 'Ada',
+  groups: [] as string[],
+  personalTokensEnabled: false,
+  analyticsOptIn: false,
+} as const;
 
 describe('PreferencesPage', () => {
   it('is titled Preferences', async () => {

@@ -25,7 +25,15 @@ vi.mock('next/navigation', () => ({
 }));
 
 function session(authenticated: boolean) {
-  return { authenticated, id: authenticated ? 'u1' : null, username: authenticated ? 'a' : null, name: null };
+  return {
+    authenticated,
+    id: authenticated ? 'u1' : null,
+    username: authenticated ? 'a' : null,
+    name: null,
+    groups: [],
+    personalTokensEnabled: false,
+    analyticsOptIn: false,
+  };
 }
 
 describe('LineNotFound', () => {
@@ -66,6 +74,9 @@ describe('LineNotFound', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     renderWithMantine(await LineNotFound());
 

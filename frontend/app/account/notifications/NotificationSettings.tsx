@@ -197,7 +197,7 @@ export function NotificationSettings({ pinnedLines }: { pinnedLines: PinnedLineA
             description="How late a train must be before you hear about it."
             data={THRESHOLD_OPTIONS}
             value={String(settings?.delayThresholdMinutes ?? DEFAULT_THRESHOLD)}
-            disabled={settings === null || saving || settings.trainDelay === false}
+            disabled={settings === null || saving || !settings.trainDelay}
             allowDeselect={false}
             onChange={(value) => {
               if (value) void save({ delayThresholdMinutes: Number(value) as 5 | 10 | 15 | 30 });

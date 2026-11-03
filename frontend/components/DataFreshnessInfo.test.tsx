@@ -76,14 +76,6 @@ describe('DataFreshnessInfo', () => {
     expect(await screen.findByText(/^Network Rail CORPUS: not yet received/)).toBeInTheDocument();
   });
 
-  it('treats a missing corpus field (an older api) as "not yet received"', async () => {
-    const withoutCorpus: DataFreshness = { ...freshness };
-    delete withoutCorpus.corpus;
-    renderWithMantine(<DataFreshnessInfo freshness={withoutCorpus} />);
-    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Data freshness' }));
-    expect(await screen.findByText(/^Network Rail CORPUS: not yet received/)).toBeInTheDocument();
-  });
-
   it('shows the freshness rows on a touch tap, not just mouse hover', async () => {
     // See the equivalent LastUpdated test for why a touch pointer must be
     // established with pointerdown first (and why it's done via a manually

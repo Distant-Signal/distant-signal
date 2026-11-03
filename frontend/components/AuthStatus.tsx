@@ -57,7 +57,7 @@ export function AuthStatus({ session }: { session: SessionInfo }) {
     <AccountMenu
       label={label}
       destinations={accountMenuDestinations()}
-      canRevokeTokens={session.personalTokensEnabled === true}
+      canRevokeTokens={session.personalTokensEnabled}
     />
   );
 }

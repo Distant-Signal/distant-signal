@@ -36,7 +36,12 @@ describe('/transit/[network]/lines/[line]', () => {
     cleanup();
     vi.mocked(api.getTransitNetwork).mockResolvedValue(NETWORK);
     vi.mocked(api.getTransitLine).mockResolvedValue(LINE);
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
   });
 
   it('draws the stops once, in order, with the timetable each way', async () => {
@@ -72,6 +77,7 @@ describe('/transit/[network]/lines/[line]', () => {
       pinnedLines: ['tfl-victoria'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     renderWithMantine(await TransitLinePage({ params: Promise.resolve({ network: 'tfl', line: 'victoria' }) }));
     expect(screen.getByText('Minor delays')).toBeTruthy();
@@ -140,6 +146,7 @@ describe('/transit/[network]/lines/[line]', () => {
       pinnedLines: ['metrolink:blue'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     renderWithMantine(await TransitLinePage(params('blue')));
     expect(screen.getByRole('button', { name: 'Unpin (currently pinned)' })).toBeTruthy();

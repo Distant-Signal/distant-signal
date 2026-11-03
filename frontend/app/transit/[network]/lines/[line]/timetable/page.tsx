@@ -88,7 +88,7 @@ export default async function TransitTimetablePage({ params, searchParams }: Par
   const window = isHighFrequencyMode(lineDetail.mode) ? BUSY_WINDOW : WINDOW;
   const from = seconds(single(search.from)) ?? (date === now.date ? now.fromSeconds : 6 * HOUR);
   const to = Math.min(from + window, DAY);
-  const branches = (lineDetail.branches ?? []).filter((branch) => branch.direction === direction);
+  const branches = lineDetail.branches.filter((branch) => branch.direction === direction);
   const branchParam = single(search.branch);
   const branch = branches.length > 1 ? branches.find((b) => b.id === branchParam) : undefined;
   const timetable = await orNotFound(

@@ -92,8 +92,16 @@ beforeEach(() => {
     id: null,
     username: null,
     name: null,
+    groups: [],
+    personalTokensEnabled: false,
+    analyticsOptIn: false,
   });
-  vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+  vi.mocked(api.getPreferences).mockResolvedValue({
+    pinnedLines: [],
+    pinnedStations: [],
+    pinnedOperators: [],
+    silentPinnedLines: [],
+  });
   vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
   vi.mocked(api.getMyTrackedTrains).mockResolvedValue(null);
   // Every test that predates group sharing says nothing about it -- default
@@ -129,8 +137,16 @@ describe('DashboardPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
     expect(screen.getByRole('heading', { name: 'Live UK rail status', level: 1 })).toBeInTheDocument();
@@ -141,13 +157,21 @@ describe('DashboardPage', () => {
   // page keeps it first among its quick links, as the one journey feature
   // that needs no account.
   it('offers the planner, which needs no account, to a signed-out visitor', async () => {
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue({
       authenticated: false,
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     renderWithMantine(await DashboardPage());
     expect(screen.getByRole('link', { name: 'Plan a journey' })).toHaveAttribute('href', '/plan');
@@ -159,8 +183,16 @@ describe('DashboardPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
     expect(screen.getByText(/Every line is running a Good Service/)).toBeInTheDocument();
@@ -175,10 +207,31 @@ describe('DashboardPage', () => {
   it.each([false, true])('has no notifications control (authenticated: %s)', async (authenticated) => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(
       authenticated
-        ? { authenticated: true, id: 'u1', username: null, name: 'Ada' }
-        : { authenticated: false, id: null, username: null, name: null },
+        ? {
+            authenticated: true,
+            id: 'u1',
+            username: null,
+            name: 'Ada',
+            groups: [],
+            personalTokensEnabled: false,
+            analyticsOptIn: false,
+          }
+        : {
+            authenticated: false,
+            id: null,
+            username: null,
+            name: null,
+            groups: [],
+            personalTokensEnabled: false,
+            analyticsOptIn: false,
+          },
     );
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
     expect(screen.queryByRole('button', { name: /enable notifications/i })).toBeNull();
@@ -190,8 +243,16 @@ describe('DashboardPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
         id: 'central',
@@ -218,8 +279,16 @@ describe('DashboardPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
         id: 'tfl-elizabeth',
@@ -244,11 +313,15 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
       pinnedLines: ['central'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
     renderWithMantine(await DashboardPage());
@@ -268,11 +341,15 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
       pinnedLines: ['metrolink:blue'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getTransitNetwork).mockResolvedValue({
       ...TRAM_NETWORK,
@@ -297,8 +374,16 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
         id: 'central',
@@ -327,8 +412,16 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: ['WAT'], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: ['WAT'],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -342,11 +435,15 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
       pinnedLines: ['central'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
     renderWithMantine(await DashboardPage());
@@ -363,8 +460,16 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
     expect(screen.getByRole('heading', { name: 'Home', level: 1 })).toBeInTheDocument();
@@ -380,8 +485,16 @@ describe('DashboardPage', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
     const sections = screen.getAllByRole('heading', { level: 2 });
@@ -403,11 +516,15 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
         pinnedLines: [],
         pinnedStations: ['WAT'],
         pinnedOperators: [],
+        silentPinnedLines: [],
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       renderWithMantine(await DashboardPage());
@@ -425,11 +542,15 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
         pinnedLines: ['central'],
         pinnedStations: [],
         pinnedOperators: [],
+        silentPinnedLines: [],
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
       renderWithMantine(await DashboardPage());
@@ -444,11 +565,15 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
         pinnedLines: ['central'],
         pinnedStations: [],
         pinnedOperators: [],
+        silentPinnedLines: [],
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
       renderWithMantine(await DashboardPage());
@@ -464,11 +589,15 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
         pinnedLines: [],
         pinnedStations: ['WAT'],
         pinnedOperators: [],
+        silentPinnedLines: [],
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       renderWithMantine(await DashboardPage());
@@ -496,8 +625,16 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
-      vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+      vi.mocked(api.getPreferences).mockResolvedValue({
+        pinnedLines: [],
+        pinnedStations: [],
+        pinnedOperators: [],
+        silentPinnedLines: [],
+      });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
       renderWithMantine(await DashboardPage());
       const names = headingNames();
@@ -512,11 +649,15 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
         pinnedLines: [],
         pinnedStations: ['WAT'],
         pinnedOperators: [],
+        silentPinnedLines: [],
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -539,11 +680,15 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
         pinnedLines: [],
         pinnedStations: [],
         pinnedOperators: ['VT'],
+        silentPinnedLines: [],
       });
       vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT' })]);
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -560,8 +705,16 @@ describe('DashboardPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
         id: 'central',
@@ -718,8 +871,16 @@ describe('DashboardPage', () => {
         id: 'u1',
         username: 'a',
         name: 'A',
+        groups: [],
+        personalTokensEnabled: false,
+        analyticsOptIn: false,
       });
-      vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+      vi.mocked(api.getPreferences).mockResolvedValue({
+        pinnedLines: [],
+        pinnedStations: [],
+        pinnedOperators: [],
+        silentPinnedLines: [],
+      });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(7));
       renderWithMantine(await DashboardPage());
       expect(screen.getByRole('heading', { name: 'Right now', level: 2 })).toBeInTheDocument();
@@ -744,8 +905,16 @@ describe('DashboardPage', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
     expect(screen.getByRole('link', { name: 'Log in to pin your lines, stations and operators' })).toBeInTheDocument();
@@ -772,6 +941,9 @@ describe('DashboardPage -- outage behaviour', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -787,6 +959,9 @@ describe('DashboardPage -- outage behaviour', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getMyTrackedTrains).mockRejectedValue(new Error('500'));
@@ -802,8 +977,16 @@ describe('DashboardPage -- outage behaviour', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: ['KGX'], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: ['KGX'],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getStopPointDisruption).mockRejectedValue(new Error('connect ECONNREFUSED'));
 
@@ -830,8 +1013,16 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       id: 'u1',
       username: 'a',
       name: 'A',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
-    vi.mocked(api.getPreferences).mockResolvedValue({ pinnedLines: [], pinnedStations: ['RAY'], pinnedOperators: [] });
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: ['RAY'],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
     vi.mocked(api.getStationName).mockResolvedValue('Raynes Park');
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
   });
@@ -904,7 +1095,15 @@ describe('DashboardPage -- Lines shared with you section', () => {
     };
   }
 
-  const loggedIn = { authenticated: true as const, id: 'u1', username: 'a', name: 'A' };
+  const loggedIn = {
+    authenticated: true as const,
+    id: 'u1',
+    username: 'a',
+    name: 'A',
+    groups: [],
+    personalTokensEnabled: false,
+    analyticsOptIn: false,
+  };
 
   it('is absent entirely when nothing has been shared with the caller', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
@@ -921,6 +1120,9 @@ describe('DashboardPage -- Lines shared with you section', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
     renderWithMantine(await DashboardPage());
@@ -981,6 +1183,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       pinnedLines: ['custom-my-commute'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'custom-my-commute', name: 'My Commute' })]);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1001,6 +1204,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       pinnedLines: ['custom-my-commute'],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1057,7 +1261,15 @@ describe('DashboardPage -- Lines shared with you section', () => {
 // the same public, unauthenticated `getAllOperators()` catalogue fetched
 // unconditionally above (see the fetch's own comment in app/page.tsx).
 describe('DashboardPage -- Your Operators section', () => {
-  const loggedIn = { authenticated: true as const, id: 'u1', username: 'a', name: 'A' };
+  const loggedIn = {
+    authenticated: true as const,
+    id: 'u1',
+    username: 'a',
+    name: 'A',
+    groups: [],
+    personalTokensEnabled: false,
+    analyticsOptIn: false,
+  };
 
   it('renders a pinned operator with a matching getAllOperators entry as a card under "Your Operators"', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
@@ -1065,6 +1277,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: ['VT'],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT', name: 'Avanti West Coast' })]);
     renderWithMantine(await DashboardPage());
@@ -1079,6 +1292,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: ['VT'],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([
       operator({ code: 'VT', name: 'Avanti West Coast' }),
@@ -1096,6 +1310,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     renderWithMantine(await DashboardPage());
 
@@ -1109,6 +1324,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: ['VT'],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT' })]);
     renderWithMantine(await DashboardPage());
@@ -1128,6 +1344,9 @@ describe('DashboardPage -- Your Operators section', () => {
       id: null,
       username: null,
       name: null,
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
     });
     // This mock's call count accumulates across every earlier test in this
     // file (nothing in this suite resets mocks between tests) -- cleared
@@ -1148,6 +1367,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: ['VT'],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getAllOperators).mockRejectedValue(new Error('network error'));
     renderWithMantine(await DashboardPage());
@@ -1166,6 +1386,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: [],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getAllOperators).mockRejectedValue(new Error('network error'));
     renderWithMantine(await DashboardPage());
@@ -1184,6 +1405,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: [],
       pinnedStations: [],
       pinnedOperators: ['VT'],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT', name: 'Avanti West Coast' })]);
     const { container } = renderWithMantine(await DashboardPage());
@@ -1202,6 +1424,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedLines: ['ecml'],
       pinnedStations: [],
       pinnedOperators: ['LN'],
+      silentPinnedLines: [],
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
@@ -1239,7 +1462,15 @@ describe('DashboardPage -- Your Operators section', () => {
 describe('DashboardPage -- journey sections', () => {
   const KGX: [string, string] = ['KGX', 'London Kings Cross'];
   const YRK: [string, string] = ['YRK', 'York'];
-  const LOGGED_IN = { authenticated: true as const, id: 'u1', username: 'a', name: 'A' };
+  const LOGGED_IN = {
+    authenticated: true as const,
+    id: 'u1',
+    username: 'a',
+    name: 'A',
+    groups: [],
+    personalTokensEnabled: false,
+    analyticsOptIn: false,
+  };
 
   // Midday on 17 Sep 2026, UK time. Only `Date` is faked: the page awaits
   // real promises.

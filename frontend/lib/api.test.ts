@@ -533,7 +533,12 @@ describe('api client', () => {
       'fetch',
       vi.fn(async () => new Response('no session', { status: 401 })),
     );
-    await expect(getPreferences()).resolves.toEqual({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] });
+    await expect(getPreferences()).resolves.toEqual({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+    });
   });
 
   // The 401 tolerance above is deliberately narrow: a backend that is down

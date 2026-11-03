@@ -71,7 +71,7 @@ export default async function TransitStopPage({ params, searchParams }: Params &
   const [[detail, stopDetail], networks] = await Promise.all([load(network, stop), getTransitNetworks()]);
   // Only a network the trip planner routes over can be planned from
   // (`tripPlanning`, on the networks list; transit trip planning §5.2).
-  const plannable = (detail.tripPlanning ?? networks.find((n) => n.id === network)?.tripPlanning) === true;
+  const plannable = networks.find((n) => n.id === network)?.tripPlanning === true;
   const board = await orNotFound(
     getTransitDepartures(network, stop, {
       date: date && DATE.test(date) ? date : undefined,
