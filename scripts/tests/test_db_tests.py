@@ -165,11 +165,26 @@ class PassTests(unittest.TestCase):
                     self.assertEqual(len(step.packages), 1, step.describe())
 
     def test_role_passes_use_roles_test_postgres_roles_creates(self) -> None:
-        """Each role is a created role of db-grants.yaml (DATABASE_URL_<ROLE>)."""
-        roles = _load(
-            "test_postgres_roles", REPO / "scripts" / "test-postgres-roles.py"
-        )
-        _, created = roles.per_service_kinds()
+        """Each role is a created role of db-grants.yaml (DATABASE_URL_<ROLE>).
+
+        The created roles of the pinned ds-core's db-grants.yaml, which
+        test-postgres-roles.py (run from that checkout) gives a URL each.
+        """
+        created = {
+            "api",
+            "aggregator",
+            "enricher",
+            "notifier",
+            "writer",
+            "schedule_reference",
+            "stations",
+            "incidents",
+            "schedule_ingest",
+            "trust_backlog",
+            "trust_consumer",
+            "full_coverage_ro",
+            "ldbws_ro",
+        }
         for name in ("per-service", "narrow"):
             for step in db.PASSES[name]:
                 with self.subTest(pass_name=name, step=step.describe()):

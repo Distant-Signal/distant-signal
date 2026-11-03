@@ -104,9 +104,9 @@ model and the reasoning behind each choice.
 
 ### How line status works
 
-Every line comes from the curated catalogue in [`lines/`](lines/), one TOML
-file per passenger route ([`lines/SCHEMA.md`](lines/SCHEMA.md) has the
-format). Each station on a line belongs to a named segment. A segment name
+Every line comes from the curated catalogue in ds-core's
+[`lines/`](https://github.com/Distant-Signal/ds-core/tree/main/lines), one TOML file per passenger route
+([`lines/SCHEMA.md`](https://github.com/Distant-Signal/ds-core/blob/main/lines/SCHEMA.md) has the format). Each station on a line belongs to a named segment. A segment name
 that appears on several lines is a shared trunk: an incident there shows on
 every line that uses it. An incident on a segment unique to one line shows
 only there. That distinction, for operators with parallel routes over
@@ -141,9 +141,11 @@ lives here.
 ## Getting started
 
 The repository holds a Rust workspace (`crates/`), the Next.js frontend
-(`frontend/`), the Helm charts (`charts/`), the line catalogue (`lines/`)
-and Python tooling (`scripts/`, managed with
-[uv](https://docs.astral.sh/uv/)).
+(`frontend/`), the Helm charts (`charts/`) and Python tooling (`scripts/`,
+managed with [uv](https://docs.astral.sh/uv/)). The shared core (the
+common crates, the database schema, grants and Redis ACL, and the line
+catalogue) is [Distant-Signal/ds-core](https://github.com/Distant-Signal/ds-core), a git dependency pinned by
+tag.
 
 - **The whole stack, locally.** `docker-compose.yml` runs Postgres, Redis
   and every service. Copy `local.env.example` (optimised builds) or
@@ -201,8 +203,9 @@ Because the site is used over a network, AGPL §13 applies: every page's
 footer links this repository, and the api's `/public/version` (`/api/version`
 on the site) lists each running image with the commit it was built from.
 
-`lines/` is part of this repository and under the same licence. Some
-reference data files (in `reference-data/`, and in a `reference-data/`
-directory beside the crate that reads them) are derived from upstream data
-under its own terms; each of those directories has a README listing each
-file's source and terms, and `reference-data/README.md` lists them all.
+The line catalogue (ds-core's `lines/`) is under the same licence. Some
+reference data files (in a `reference-data/` directory beside the crate
+that reads them, here and in ds-core) are derived from upstream data under
+its own terms; each of those directories has a README listing each file's
+source and terms, and ds-core's `reference-data/README.md` lists the core
+ones.

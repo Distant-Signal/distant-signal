@@ -20,16 +20,19 @@ uv run python ../ci/scripts/lint-scripts.py         # what CI's scripts-lint job
 uv run python ../ci/scripts/lint-scripts.py --fix   # apply shfmt/ruff fixes first
 uv run python -m unittest discover -s scripts/tests   # the scripts' tests
 uv run scripts/gen-rust-dockerfiles.py --check       # CI's repo-checks job (rewrite without --check)
-# Before merging a branch that adds migrations (CI's migration-order job):
-uv run scripts/check-migration-order.py "$(git merge-base main HEAD)"
+uv run scripts/sync-core.py --check                  # the chart's files from the pinned ds-core release
 ```
 
-A migration with destructive DDL (a `DROP` of a table, column, view or
-function, a `RENAME`, a column type change, `SET NOT NULL` on an existing
-column) needs a `-- contract: <what> (code stopped using it in <commit>)`
-line in its leading comments, and ships a release after the code stopped
-using the object; `check-migration-order.py` enforces the header (see its
-docstring).
+Migrations, grants, the Redis ACL and the line catalogue live in
+[Distant-Signal/ds-core](https://github.com/Distant-Signal/ds-core): a
+change to one is a ds-core pull request and release, then a bump here
+(Cargo.toml's ds-core tags, `core-version`, `migrate.image`, and
+`uv run scripts/sync-core.py`). To build against a local ds-core checkout
+first, patch it in without committing it:
+
+```sh
+cargo --config 'patch."https://github.com/Distant-Signal/ds-core".common.path="../ds-core/crates/common"' build
+```
 
 `uv run` creates `.venv/` and installs the `lint` group on first use.
 `lint-scripts.py` runs this repository's pinned tools: shellcheck and shfmt
