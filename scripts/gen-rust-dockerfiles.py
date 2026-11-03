@@ -49,10 +49,12 @@ that layer and recompiled every Rust image. BuildKit reads
 `<Dockerfile>.dockerignore` next to the Dockerfile in place of the
 context's .dockerignore, so each docker/<service>.Dockerfile gets one that
 ignores everything (`*`) and lets back in only RUST_INPUTS: the workspace
-manifests and crates, the data files the crates embed (include_str!, the
-ds-store and ds-lines build scripts) and the files the runtime stages COPY.
-No runtime stage may COPY the line catalogue (`lines/`): ds-lines embeds
-it, and `--check` fails on such a COPY. `--check`
+manifests and crates, the data files the crates embed (include_str!) and
+the files the runtime stages COPY. The core crates, with the line catalogue
+and the reference data they embed, are git dependencies on
+Distant-Signal/ds-core (repo split spec §5.2): `cargo chef cook` fetches
+them at the commit Cargo.lock pins, so they need no build context, and no
+runtime stage may COPY a `lines/` directory (`--check` fails on one). `--check`
 also scans for those hidden inputs (every literal include_str!/include_bytes!/
 include! path under crates/, every path a build.rs names, every COPY source
 in the Dockerfiles) and fails when one is outside RUST_INPUTS, so a new one
@@ -68,6 +70,7 @@ not only by containers.yml, says it is AGPL-3.0-or-later.
 import argparse
 import re
 import sys
+import tomllib
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
@@ -87,16 +90,7 @@ SERVICES: Mapping[str, Sequence[str]] = {
         "api",
         "corpus_compare",
         "maintenance",
-        # The ds-migrate crate's binary (plan 1B.1), also built into its own
-        # image below. It stays here for `ds-migrate wait` from an api pod,
-        # and so a values override can point the migrate Job back at the
-        # api image while the ds-migrate image is new (repo split spec
-        # §5.1, phase 3 item 3). `--bin` selects it across the workspace.
-        "ds-migrate",
     ),
-    # The schema migrator's own image (repo split spec §5.1): the chart's
-    # migrate hook Job (`migrate.image`) and the schema-owner backfills.
-    "ds-migrate": ("ds-migrate",),
     "enricher": ("enricher",),
     "full-coverage-consumer": ("full-coverage-consumer",),
     # writer-maintenance: the one-off ingest repairs moved out of the api
@@ -246,15 +240,6 @@ RUST_INPUTS = (
     # Also crates/ds-store/db-grants.yaml, which ds-store's build.rs bakes
     # into the schema gate.
     "crates",
-    # The core reference data (the rest lives in its crate, under
-    # crates/): include_str! of api's TOC-codes test.
-    "reference-data",
-    # The line catalogue: crates/ds-lines/build.rs embeds it in every
-    # binary that loads it. No image COPYs it (LINES_COPY below).
-    "lines",
-    # ingest-writer's freshness_rls test checks each producer's freshness
-    # sources against the rendered RLS policies.
-    "charts/distant-signal/files/postgres-grants.sql",
     # include_str!: api's DS-124 migration test replays the rollback.
     "scripts/rollback-tracked-trains-as-journeys.sql",
     # The api's generated TypeScript types: its `api_types` test checks
@@ -367,11 +352,20 @@ def copy_sources(dockerfile: Path) -> Iterator[str]:
 def hidden_inputs() -> Iterator[tuple[str, str]]:
     """Yield (where, path) for every file the Rust builds read by path.
 
-    Every literal include_str!/include_bytes!/include! under crates/, every
-    path a build.rs names, and every non-`--from` COPY source in
-    docker/*.Dockerfile.
+    Every literal include_str!/include_bytes!/include! in a workspace
+    member's crate, every path a build.rs names, and every non-`--from`
+    COPY source in docker/*.Dockerfile. A crates/ directory that isn't a
+    member (a core crate's leftover before its deletion) builds nothing.
     """
+    members = tuple(
+        ROOT / member
+        for member in tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))[
+            "workspace"
+        ]["members"]
+    )
     for source in sorted((ROOT / "crates").rglob("*.rs")):
+        if not any(source.is_relative_to(member) for member in members):
+            continue
         if "target" not in source.relative_to(ROOT).parts:
             where = source.relative_to(ROOT).as_posix()
             yield from ((where, path) for path in source_inputs(source))

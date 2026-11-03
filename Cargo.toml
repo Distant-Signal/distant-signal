@@ -4,10 +4,6 @@
 # Cargo.lock is updated.
 resolver = "3"
 members = [
-    "crates/common",
-    "crates/ds-runtime",
-    "crates/ds-store",
-    "crates/ds-migrate",
     "crates/api",
     "crates/poller-incidents",
     "crates/poller-stations",
@@ -24,20 +20,33 @@ members = [
     "crates/trust-consumer",
     "crates/schedule-ingest",
     "crates/schedule-reference",
-    "crates/schedule-query",
     "crates/trip-planner",
     "crates/notifier",
-    "crates/trust-schema",
     "crates/full-coverage-consumer",
-    "crates/health-http",
     "crates/movement-feed",
     "crates/movement-relay",
     "crates/darwin-relay",
-    "crates/line-catalogue-validator",
     "crates/ingest-writer",
-    "crates/ingest-stream",
-    "crates/ds-lines",
 ]
+
+# The core crates, from Distant-Signal/ds-core (repo split spec §5.2): git
+# dependencies pinned by tag, every line on the same tag. Cargo.lock records
+# the commit. Renovate's `ds-core` group bumps them, the chart's
+# core-version and its ds-migrate image together. Members inherit these with
+# `{ workspace = true, features = [...] }`; common's and ds-runtime's
+# default features are off here, so a member that wants them lists
+# "default". To build against a local ds-core checkout, patch it in without
+# committing (CONTRIBUTING.md):
+#   cargo --config 'patch."https://github.com/Distant-Signal/ds-core".common.path="../ds-core/crates/common"' ...
+[workspace.dependencies]
+common = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0", default-features = false }
+ds-runtime = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0", default-features = false }
+health-http = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0" }
+trust-schema = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0" }
+schedule-query = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0" }
+ingest-stream = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0" }
+ds-store = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0" }
+ds-lines = { git = "https://github.com/Distant-Signal/ds-core", tag = "v0.1.0" }
 
 [workspace.package]
 edition = "2024"

@@ -17,6 +17,15 @@
 # Postgres and Redis. Each pass already made its own fresh database, so
 # splitting them changes nothing they see.
 #
+# The core crates' own suites (ds-store, ds-migrate, the Redis ACL and stream
+# suites) and the grants classification check run in Distant-Signal/ds-core.
+# Here the schema and the roles come from the ds-core release Cargo.lock
+# pins (repo split spec §5.1, decided at phase 4): scripts/core-checkout.py
+# clones it (target/ds-core-<sha>), and the passes run its migrations and
+# its own scripts/test-postgres-roles.py, which applies that release's
+# access/postgres-roles.sql and postgres-grants.sql, exactly what the chart
+# vendors from the same release.
+#
 # Every script runs with bash -euo pipefail from the repository root, with
 # DATABASE_URL (the superuser), REDIS_URL, DB_TESTS_ARCHIVE, sqlx-cli,
 # cargo-nextest and `uv sync --locked --group lint` (PyYAML for the scripts).
@@ -57,11 +66,9 @@ uv run --locked --no-default-groups scripts/db-tests.py archive --archive-file "
 id = "superuser"
 name = "DB tests as the superuser (+ Redis, fake-gcs-server)"
 run = '''
-echo "== Run the migrations (crates/ds-store/migrations)"
-(cd crates/ds-store && sqlx migrate run)
-
-echo "== every public table, view and sequence is classified (db-grants.yaml)"
-uv run --no-sync scripts/gen-db-grants.py check --database-url "${DATABASE_URL}"
+core="$(uv run --no-sync scripts/core-checkout.py)"
+echo "== Run the migrations (ds-core at ${core})"
+(cd "${core}/crates/ds-store" && sqlx migrate run)
 
 echo "== Start fake-gcs-server"
 docker run -d --name fake-gcs -p 127.0.0.1:4443:4443 \
@@ -85,14 +92,15 @@ FAKE_GCS_URL=http://127.0.0.1:4443 uv run --no-sync scripts/db-tests.py run supe
 '''
 
 # The Postgres role split (docs/postgres-app-role.md): proves no runtime
-# path needs a superuser. scripts/test-postgres-roles.py makes a fresh
-# database and roles with the chart's own setup script
-# (access/postgres-roles.sql; the chart runs its copy), then runs the DB-backed
+# path needs a superuser. The pinned ds-core's scripts/test-postgres-roles.py
+# makes a fresh database and roles with that release's
+# access/postgres-roles.sql (the chart runs the same file), then runs the DB-backed
 # suites with DATABASE_URL as the DML-only app role and
 # MIGRATION_DATABASE_URL as the schema owner, as the chart wires them.
 # `existing` converts a database migrated as the superuser (today's
-# production); `new` creates the roles first and migrates as the owner (a
-# new cluster). The #[sqlx::test] modules are skipped: they create a
+# production). `new` (the roles first, then the migrations as the owner: a
+# new cluster) tests the migrations and ds-store's publish protocol, so it
+# runs in ds-core. The #[sqlx::test] modules are skipped: they create a
 # throwaway database per test, which needs CREATEDB, a test-harness right,
 # not a runtime one; their DML runs in the superuser pass.
 # --check-setup-job: the setup scripts run once more, through the setup
@@ -101,15 +109,12 @@ FAKE_GCS_URL=http://127.0.0.1:4443 uv run --no-sync scripts/db-tests.py run supe
 # lock (2026-10-14, Helm v252).
 [[pass]]
 id = "app-role"
-name = "DB tests as the app role (existing and new cluster)"
+name = "DB tests as the app role (existing cluster)"
 run = '''
+core="$(uv run --no-sync scripts/core-checkout.py)"
 echo "== DB-backed tests as the non-superuser app role (existing cluster)"
-uv run --no-sync scripts/test-postgres-roles.py --mode existing --check-setup-job -- \
+uv run --no-sync python "${core}/scripts/test-postgres-roles.py" --mode existing --check-setup-job -- \
   uv run --no-sync scripts/db-tests.py run existing --archive-file "${DB_TESTS_ARCHIVE}" --extract-to "${GITHUB_WORKSPACE}"
-
-echo "== DB-backed tests as the non-superuser app role (new cluster)"
-uv run --no-sync scripts/test-postgres-roles.py --mode new -- \
-  uv run --no-sync scripts/db-tests.py run new --archive-file "${DB_TESTS_ARCHIVE}" --extract-to "${GITHUB_WORKSPACE}"
 '''
 
 # Stage 0b (postgresql.roles.perService): the same suites, each as its own
@@ -160,11 +165,12 @@ uv run --no-sync scripts/test-postgres-roles.py --mode new -- \
 id = "per-service"
 name = "DB tests as each service's role (Stage 0b, release D)"
 run = '''
+core="$(uv run --no-sync scripts/core-checkout.py)"
 echo "== DB-backed tests as each service's own role (Stage 0b)"
-uv run --no-sync scripts/test-postgres-roles.py --mode per-service --check-setup-job --observe api,aggregator,enricher,notifier -- \
+uv run --no-sync python "${core}/scripts/test-postgres-roles.py" --mode per-service --check-setup-job --observe api,aggregator,enricher,notifier -- \
   uv run --no-sync scripts/db-tests.py run per-service --archive-file "${DB_TESTS_ARCHIVE}" --extract-to "${GITHUB_WORKSPACE}"
 
 echo "== Release D's narrowed roles (api, aggregator, enricher, notifier)"
-uv run --no-sync scripts/test-postgres-roles.py --mode per-service --narrow api,aggregator,enricher,notifier -- \
+uv run --no-sync python "${core}/scripts/test-postgres-roles.py" --mode per-service --narrow api,aggregator,enricher,notifier -- \
   uv run --no-sync scripts/db-tests.py run narrow --archive-file "${DB_TESTS_ARCHIVE}" --extract-to "${GITHUB_WORKSPACE}"
 '''

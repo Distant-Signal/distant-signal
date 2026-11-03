@@ -62,16 +62,17 @@ class RenderTests(unittest.TestCase):
                     bins = re.findall(r"--bin (\S+)", flags)
                     self.assertEqual(tuple(bins), tuple(gen.SERVICES[service]))
 
-    def test_api_ships_its_four_binaries(self) -> None:
-        """Api cooks, builds and copies out all four binaries, ds-migrate too.
+    def test_api_ships_its_three_binaries(self) -> None:
+        """Api cooks, builds and copies out its three binaries.
 
         Ingest phase 5, step 5.4b: none of the writing one-offs is left.
+        ds-migrate ships only in ds-core's image (repo split spec §5.1).
         """
         block = gen.render("api")
         for name in gen.SERVICES["api"]:
             self.assertIn(f"/usr/local/bin/{name} ", block)
-        self.assertIn("ds-migrate", gen.SERVICES["api"])
-        self.assertEqual(len(gen.SERVICES["api"]), 4)
+        self.assertNotIn("ds-migrate", gen.SERVICES["api"])
+        self.assertEqual(len(gen.SERVICES["api"]), 3)
         for gone in (
             "backfill_trains",
             "backfill_incident_lines",
@@ -80,12 +81,9 @@ class RenderTests(unittest.TestCase):
         ):
             self.assertNotIn(gone, gen.SERVICES["api"])
 
-    def test_ds_migrate_image_ships_only_the_migrator(self) -> None:
-        """The ds-migrate image builds one binary (repo split spec §5.1)."""
-        self.assertEqual(tuple(gen.SERVICES["ds-migrate"]), ("ds-migrate",))
-        block = gen.render("ds-migrate")
-        self.assertIn("--bin ds-migrate;", block)
-        self.assertNotIn("--bin api", block)
+    def test_no_ds_migrate_image_here(self) -> None:
+        """ds-core builds the ds-migrate image (repo split spec §5.1)."""
+        self.assertNotIn("ds-migrate", gen.SERVICES)
 
     def test_no_target_cache_mount(self) -> None:
         """A target/ cache mount would leave the cook layer empty."""
@@ -120,8 +118,8 @@ class BuildInputsTests(unittest.TestCase):
         for path in (
             "Cargo.toml",
             "crates/api/src/main.rs",
-            "reference-data/toc-codes.csv",
-            "crates/ds-store/db-grants.yaml",
+            "crates/api/reference-data/station-groups.csv",
+            "api-types/api.ts",
         ):
             with self.subTest(path=path):
                 self.assertTrue(gen.rust_allows(path))
@@ -132,6 +130,9 @@ class BuildInputsTests(unittest.TestCase):
             "crates/api/target/debug/api",
             "crates/api/local.env",
             "Cargo.toml.orig",
+            # ds-core's, fetched as git dependencies.
+            "lines/c2c.toml",
+            "reference-data/toc-codes.csv",
         ):
             with self.subTest(path=path):
                 self.assertFalse(gen.rust_allows(path))
@@ -142,11 +143,9 @@ class BuildInputsTests(unittest.TestCase):
         paths = {path for _, path in found}
         # The scan sees the known ones (so it is not silently empty).
         for known in (
-            "crates/ds-store/db-grants.yaml",
-            "crates/common/reference-data/tiploc-parent-stations.csv",
-            "crates/ds-store/reference-data/delay-attribution-reasons.tsv",
-            "crates/ds-store/migrations",
-            "lines",
+            "crates/api/reference-data/station-groups.csv",
+            "crates/trust-consumer/reference-data/stanox-crs.csv",
+            "scripts/rollback-tracked-trains-as-journeys.sql",
         ):
             self.assertIn(known, paths)
         for where, path in found:

@@ -50,6 +50,19 @@
       "datasourceTemplate": "crate",
       "depNameTemplate": "cargo-chef",
     },
+    {
+      // The ds-core release the chart vendors (repo split spec §5.1):
+      // core-version, bumped with Cargo.toml's ds-core tags and
+      // migrate.image (the `ds-core` group below). The hosted app runs no
+      // post-upgrade commands, so the PR's CI fails until someone runs
+      // `uv run scripts/sync-core.py` on its branch and pushes the vendored
+      // files.
+      "customType": "regex",
+      "managerFilePatterns": ["/^core-version$/"],
+      "matchStrings": ["^(?<currentValue>v\\d+\\.\\d+\\.\\d+)\\s*$"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "Distant-Signal/ds-core",
+    },
   ],
 
   // --- What did NOT get carried over from Aurora-Fauxy, and why --------
@@ -137,6 +150,20 @@
   //                   goauthentik/server all extract with their digests,
   //                   and so does every Dockerfile's `# syntax=` pin.
   "packageRules": [
+    {
+      // Every ds-core pin moves together, in one PR that merges before the
+      // image group (repo split spec §5.2, §5.4): the crates' git tags (and
+      // Cargo.lock), core-version, and the ds-migrate image the chart's
+      // migrate Job runs. Two at a time across the organisation.
+      "groupName": "ds-core",
+      "groupSlug": "ds-core",
+      "matchPackageNames": [
+        "Distant-Signal/ds-core",
+        "https://github.com/Distant-Signal/ds-core",
+        "ghcr.io/distant-signal/images/ds-migrate",
+      ],
+      "prConcurrentLimit": 2,
+    },
     {
       // docker-compose.yml's rail-mcp `${RAIL_MCP_IMAGE:-...}` default is
       // a deliberately invalid placeholder (see the comment there), not a

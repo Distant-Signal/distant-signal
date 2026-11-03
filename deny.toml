@@ -76,4 +76,6 @@ unknown-git = "deny"
 # crates.io only. The guide's Forgejo registry entry is dropped: this repo
 # has no .cargo/config.toml registries and no crate comes from elsewhere.
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-allow-git = []
+# The core crates (repo split spec §5.2): git dependencies on the public
+# ds-core repository, pinned by tag. Nothing else may come from git.
+allow-git = ["https://github.com/Distant-Signal/ds-core"]

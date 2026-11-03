@@ -49,17 +49,16 @@ ROOT = Path(__file__).resolve().parent.parent
 # with one feature resolution; `ds-runtime`'s and `common`'s `postgres`
 # features are named explicitly (pg::tests need ds-runtime's; api and the
 # others enable them anyway).
+# The core crates (ds-store, ds-migrate, common, ds-runtime, ingest-stream)
+# are git dependencies on Distant-Signal/ds-core, which runs their DB
+# suites itself (repo split spec §9, phase 4).
 ARCHIVE_PACKAGES = (
     "api",
-    "ds-store",
-    "ds-migrate",
     "aggregator",
     "notifier",
     "schedule-reference",
     "poller-stations",
     "poller-incidents",
-    "common",
-    "ds-runtime",
     "enricher",
     "movement-feed",
     "ingest-writer",
@@ -68,7 +67,6 @@ ARCHIVE_PACKAGES = (
     "poller-ldbws",
     "schedule-ingest",
     "trust-backlog-consumer",
-    "ingest-stream",
 )
 ARCHIVE_FEATURES = ("common/postgres", "ds-runtime/postgres")
 
@@ -183,8 +181,6 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
         Step(
             packages=(
                 "api",
-                "ds-store",
-                "ds-migrate",
                 "aggregator",
                 "notifier",
                 "schedule-reference",
@@ -192,13 +188,8 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
                 "poller-incidents",
             )
         ),
-        # ds_runtime::pg's pool settings (behind ds-runtime's `postgres`
-        # feature).
-        Step(packages=("ds-runtime",), filters=("pg::tests",)),
         Step(packages=("enricher",), skips=ENRICHER_SKIPS),
         Step(packages=("movement-feed",)),
-        # Every Redis ACL user's command sequence (ingest phase 0c).
-        Step(packages=("common",), test_target="redis_acl"),
         Step(packages=("ingest-writer",)),
         # The phase 4 readers' db sources (#[sqlx::test]).
         Step(
@@ -213,45 +204,21 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
             packages=("schedule-ingest",), filters=("bucket_e2e_tests",), serial=False
         ),
         Step(packages=("trust-backlog-consumer", "trust-consumer")),
-        Step(packages=("ingest-stream",), test_target="redis_stream"),
     ),
     # test-postgres-roles.py --mode existing: DATABASE_URL is the app role.
     "existing": (
         Step(
-            packages=("api", "ds-store", "aggregator", "notifier"),
+            packages=("api", "aggregator", "notifier"),
             skips=SQLX_TEST_SKIPS,
         ),
-        Step(packages=("ds-runtime",), filters=("pg::tests",)),
         Step(packages=("ingest-writer",)),
         Step(packages=("schedule-reference",)),
         Step(packages=("enricher",), skips=ENRICHER_SKIPS),
-    ),
-    # test-postgres-roles.py --mode new: the migrations and the publish
-    # protocol on a cluster whose roles came first.
-    "new": (
-        Step(
-            packages=("api", "ds-store"), filters=("migrate::tests", "schedule_publish")
-        ),
     ),
     # test-postgres-roles.py --mode per-service (Stage 0b): each suite as
     # its own service's role. See the CI step's comment for each role.
     "per-service": (
         per_service("api", "api", skips=SQLX_TEST_SKIPS),
-        per_service(
-            "ds-store",
-            "api",
-            skips=(
-                *SQLX_TEST_SKIPS,
-                "schedule::publish::",
-                "schedule::reference_signals::",
-            ),
-        ),
-        # schedule-reference's tables and its run signals (DS-241).
-        per_service(
-            "ds-store",
-            "schedule_reference",
-            filters=("schedule::publish::", "schedule::reference_signals::"),
-        ),
         per_service("aggregator", "aggregator", skips=SQLX_TEST_SKIPS),
         per_service("notifier", "notifier", skips=SQLX_TEST_SKIPS),
         per_service("ingest-writer", "writer"),
@@ -272,14 +239,6 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
     # test-postgres-roles.py --mode per-service --narrow
     # api,aggregator,enricher,notifier (release D).
     "narrow": (
-        per_service(
-            "ds-store",
-            "api",
-            filters=(
-                "backlog::matching::db_tests::the_api_queues_its_replay_for_the_writer",
-            ),
-            exact=True,
-        ),
         per_service(
             "api",
             "api",
