@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { FeedLinkTarget } from './feeds';
 
 /** The site's name, the suffix of every page title. */
 export const SITE_NAME = 'Distant Signal';
@@ -119,22 +120,31 @@ export function previewImageAlt(subject: string): string {
 export interface PageMetadataOptions extends PreviewCardOptions {
   /** Mark the page `noindex, follow` (`NOINDEX_FOLLOW`). */
   noindex?: boolean;
+  /** The page's Atom feed, as `<link rel="alternate"
+   * type="application/atom+xml">` so feed readers find it. */
+  feed?: FeedLinkTarget;
 }
 
 /** A page's title, description and link-preview cards. `title` is the
  * page's own name (its h1); the root template adds the site name. Pass
  * `OWN_PREVIEW_IMAGE` from a route that has its own `opengraph-image.tsx`.
  *
+ * `feed` adds the page's Atom feed to `alternates`.
+ *
  * `path` (`/stations/EUS`, no query) becomes the canonical URL
  * (`alternates.canonical`) and `og:url`, both made absolute by the root
  * layout's `metadataBase`. Every indexable public page passes it, so each
  * query-string variant of a page names the bare path as its canonical. */
 export function pageMetadata(title: string, description: string, options: PageMetadataOptions = {}): Metadata {
-  const { noindex = false, ...cardOptions } = options;
+  const { noindex = false, feed, ...cardOptions } = options;
+  const alternates = {
+    ...(options.path === undefined ? {} : { canonical: canonicalPath(options.path) }),
+    ...(feed === undefined ? {} : { types: { 'application/atom+xml': [feed] } }),
+  };
   return {
     title,
     description,
-    ...(options.path === undefined ? {} : { alternates: { canonical: canonicalPath(options.path) } }),
+    ...(Object.keys(alternates).length === 0 ? {} : { alternates }),
     ...(noindex ? { robots: NOINDEX_FOLLOW } : {}),
     ...previewCards(fullTitle(title), description, cardOptions),
   };

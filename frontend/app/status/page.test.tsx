@@ -186,4 +186,10 @@ describe('metadata', () => {
     expect(metadata.openGraph).toMatchObject({ title: 'Status · Distant Signal', type: 'website' });
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image', title: 'Status · Distant Signal' });
   });
+
+  it('lists the network Atom feed', () => {
+    expect(metadata.alternates?.types).toEqual({
+      'application/atom+xml': [{ url: '/api/feeds/network', title: 'Every line: status changes and incidents' }],
+    });
+  });
 });

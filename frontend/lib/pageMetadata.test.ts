@@ -54,6 +54,15 @@ describe('canonical URLs', () => {
     expect(metadata.openGraph).toMatchObject({ url: '/lines/tfl-northern' });
   });
 
+  it('lists the feed as an Atom alternate beside the canonical', () => {
+    const feed = { url: '/api/feeds/lines/tfl-northern', title: 'Northern status feed' };
+    const metadata = pageMetadata('Northern', 'd', { path: '/lines/tfl-northern', feed });
+    expect(metadata.alternates).toEqual({
+      canonical: '/lines/tfl-northern',
+      types: { 'application/atom+xml': [feed] },
+    });
+  });
+
   it('sets neither without a path', () => {
     const metadata = pageMetadata('Northern', 'd');
     expect(metadata).not.toHaveProperty('alternates');

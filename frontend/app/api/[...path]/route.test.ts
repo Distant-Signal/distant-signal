@@ -388,6 +388,36 @@ describe('/api/[...path] proxy', () => {
       expect(res.headers.get('x-generated-at')).toBe('2026-09-28T13:40:05Z');
     });
 
+    it('relays an Atom feed with its ETag, and a conditional GET as a 304', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response('<feed/>', {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/atom+xml; charset=utf-8',
+            'Cache-Control': 'public, max-age=300',
+            ETag: '"abc"',
+          },
+        }),
+      );
+      const params = { params: Promise.resolve({ path: ['feeds', 'network'] }) };
+      const res = await GET(makeRequest('/api/feeds/network'), params);
+      expect(vi.mocked(fetch).mock.calls[0]![0].toString()).toBe('http://test-api:8080/public/feeds/network');
+      expect(res.headers.get('content-type')).toBe('application/atom+xml; charset=utf-8');
+      expect(res.headers.get('cache-control')).toBe('public, max-age=300');
+      expect(res.headers.get('etag')).toBe('"abc"');
+
+      vi.mocked(fetch).mockClear();
+      vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 304, headers: { ETag: '"abc"' } }));
+      const revalidated = await GET(makeRequest('/api/feeds/network', { headers: { 'if-none-match': '"abc"' } }), {
+        params: Promise.resolve({ path: ['feeds', 'network'] }),
+      });
+      const [, init] = vi.mocked(fetch).mock.calls[0]!;
+      expect((init as { headers: Record<string, string> }).headers['If-None-Match']).toBe('"abc"');
+      expect(revalidated.status).toBe(304);
+      expect(revalidated.headers.get('etag')).toBe('"abc"');
+      expect(revalidated.headers.get('content-type')).toBeNull();
+    });
+
     it("passes a 503's status, JSON body and Retry-After through (api's database is unavailable)", async () => {
       const body = '{"error":"service_unavailable","retryable":true}';
       vi.mocked(fetch).mockResolvedValueOnce(

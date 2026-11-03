@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { SectionTitle } from '@/components/SectionTitle';
 import type { Metadata } from 'next';
 import { getLineStatusForMode } from '@/lib/api';
@@ -20,6 +20,8 @@ import { LastUpdated } from '@/components/LastUpdated';
 import { RecentlyCleared } from '@/components/RecentlyCleared';
 import type { LineStatusReport } from '@/lib/types';
 import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
+import { feedTarget, NETWORK_FEED_PATH } from '@/lib/feeds';
+import { FeedLink } from '@/components/FeedLink';
 import { StatusBadge } from '@/components/StatusBadge';
 import { StatusCard } from '@/components/StatusCard';
 import { StatusTile } from '@/components/StatusTile';
@@ -37,6 +39,7 @@ const METADATA_DESCRIPTION = 'Live status of every National Rail and TfL line: h
 export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPTION, {
   ...OWN_PREVIEW_IMAGE,
   path: '/status',
+  feed: feedTarget(NETWORK_FEED_PATH, 'Every line'),
 });
 
 const COUNTRY_LABELS: Record<Country, string> = {
@@ -95,7 +98,10 @@ export default async function NetworkStatusPage() {
             question ("how is the whole network doing?") asked over time
             instead of right now, and `/network/history`'s back-link is
             repointed here in the same change so the pair agrees. */}
-        <TextLink href="/network/history">Network history and trends</TextLink>
+        <Group gap="md">
+          <TextLink href="/network/history">Network history and trends</TextLink>
+          <FeedLink href={NETWORK_FEED_PATH} label="every line's status changes and incidents" />
+        </Group>
         {/* 2026-09-22 UX review §2.5: nothing on this page ever said when
             the data was last updated, despite "right now" and being served
             through `withStaleFallback` (so "right now" can legitimately be
