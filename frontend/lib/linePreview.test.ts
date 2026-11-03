@@ -29,7 +29,8 @@ function lineStatus(overrides: Partial<LineStatus> = {}): LineStatus {
 
 function lineReport(overrides: Partial<LineStatusReport> = {}): LineStatusReport {
   return {
-    $type: 'Line',
+    $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id: 'southeastern-chatham',
     name: 'Chatham Main Line',
     modeName: 'national-rail',

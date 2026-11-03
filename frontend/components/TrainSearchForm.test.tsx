@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { TrainSearchForm } from './TrainSearchForm';
-import { nowInLondon } from '@/lib/londonWallClock';
+import { londonToday, nowInLondon } from '@/lib/londonWallClock';
+import { TRAIN_SEARCH_ROW_DEFAULTS } from '@/test/apiDefaults';
 
 /** A small, fixed, real-station-shaped dataset backing every autocomplete
  * field in this file (Station/Departing from/Stops at all share the same
@@ -107,7 +108,7 @@ function searchBody(
   nextCursor: string | null = null,
 ) {
   return JSON.stringify({
-    results: rows.map((row) => ({ destinationArrival: null, destinationName: null, ...row })),
+    results: rows.map((row) => ({ ...TRAIN_SEARCH_ROW_DEFAULTS, serviceDate: londonToday(), ...row })),
     nextCursor,
   });
 }
@@ -279,7 +280,15 @@ describe('TrainSearchForm', () => {
     it('come from searchDates when the page has them', async () => {
       vi.stubGlobal('fetch', mockFetchByUrl());
       renderWithMantine(
-        <TrainSearchForm searchDates={{ from: day(-7), to: day(28), publishedFrom: day(-1), publishedTo: day(28) }} />,
+        <TrainSearchForm
+          searchDates={{
+            from: day(-7),
+            to: day(28),
+            publishedFrom: day(-1),
+            publishedTo: day(28),
+            provisionalFrom: day(29),
+          }}
+        />,
       );
       const input = panelField('Date (optional)');
       expect(input).toHaveAttribute('data-min-date', day(-7));
@@ -775,7 +784,7 @@ describe('TrainSearchForm', () => {
         stationCrs: 'MAN',
         originCrs: 'CRE',
         destinationCrs: 'WAT',
-        headcode: '2B45',
+        identity: '2B45',
       },
       { uid: 'C10003', scheduled: '11:40', stationCrs: 'MAN', originCrs: 'EUS', destinationCrs: 'WAT', identity: null },
     ];
@@ -786,7 +795,6 @@ describe('TrainSearchForm', () => {
 
     const first = await screen.findByRole('link', { name: rowName('08:22', 'WAT') });
     expect(first.closest('li')).toHaveTextContent('From EUS · Headcode 1A23');
-    // An older payload's `headcode` is the fallback.
     expect(screen.getByRole('link', { name: rowName('10:05', 'WAT') }).closest('li')).toHaveTextContent(
       'From CRE · Headcode 2B45',
     );
@@ -1209,8 +1217,24 @@ describe('TrainSearchForm', () => {
 
     it('lists the trains leaving after midnight under the next date, marked +1', async () => {
       const rows = [
-        { uid: 'C20001', scheduled: '23:40', stationCrs: 'MAN', originCrs: 'EUS', destinationCrs: 'WAT', dayOffset: 0 },
-        { uid: 'C20002', scheduled: '00:30', stationCrs: 'MAN', originCrs: 'EUS', destinationCrs: 'OXF', dayOffset: 1 },
+        {
+          uid: 'C20001',
+          scheduled: '23:40',
+          stationCrs: 'MAN',
+          originCrs: 'EUS',
+          destinationCrs: 'WAT',
+          dayOffset: 0,
+          serviceDate: '2026-10-23',
+        },
+        {
+          uid: 'C20002',
+          scheduled: '00:30',
+          stationCrs: 'MAN',
+          originCrs: 'EUS',
+          destinationCrs: 'OXF',
+          dayOffset: 1,
+          serviceDate: '2026-10-23',
+        },
       ];
       vi.stubGlobal('fetch', mockFetchByUrl({ search: () => new Response(searchBody(rows), { status: 200 }) }));
       renderWithMantine(<TrainSearchForm initialStation="MAN" initialDate="2026-10-23" />);

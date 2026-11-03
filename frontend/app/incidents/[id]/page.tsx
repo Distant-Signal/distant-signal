@@ -3,7 +3,7 @@ import { Divider, Group, Stack, Text, Title } from '@mantine/core';
 import { SectionTitle } from '@/components/SectionTitle';
 import type { Metadata } from 'next';
 import { ApiNotFoundError, getAllTocs, getIncident, getPreviewTocs, getStationName } from '@/lib/api';
-import { endedDescription, incidentState, upcomingDescription, validityEndedDescription } from '@/lib/incidents';
+import { endedDescription, upcomingDescription, validityEndedDescription } from '@/lib/incidents';
 import { sanitizeDescription } from '@/lib/sanitizeHtml';
 import { IncidentStateBadge } from '@/components/IncidentStateBadge';
 import { ShareButton } from '@/components/ShareButton';
@@ -111,7 +111,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   ]);
   const tocLookup = tocNameLookup(tocs);
   const stationNamesByCrs = new Map(incident.affectedStations.map((crs, i) => [crs, stationNames[i]]));
-  const state = incidentState(incident);
+  const state = incident.state;
 
   return (
     <Stack p="lg" gap="md">

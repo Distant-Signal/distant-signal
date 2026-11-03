@@ -35,6 +35,7 @@ function ldbwsInferredStatus(reason: string, fromDate: string): LineStatus {
 function report(id: string, name: string, statuses: LineStatus[]): LineStatusReport {
   return {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id,
     name,
     modeName: 'national-rail',

@@ -27,6 +27,7 @@ import {
   TRAIN_PREVIEW_NOW,
 } from '@/test/trainPreviewFixtures';
 import type { IncidentDetail, LineStatus, LineStatusReport, SampleStats } from './types';
+import { INCIDENT_TIMING_DEFAULTS } from '@/test/apiDefaults';
 
 describe('previewTitleFromMetadata', () => {
   it('takes a plain or absolute title, and nothing else', () => {
@@ -194,6 +195,7 @@ const PREVIEW_TOCS = new Map([
 ]);
 function previewIncident(overrides: Partial<IncidentDetail>): IncidentDetail {
   return {
+    ...INCIDENT_TIMING_DEFAULTS,
     incidentId: 'FIXTURE',
     summary: '',
     description: '',
@@ -273,7 +275,8 @@ function previewLineStatus(severity: number, reason: string, sampleStats?: Sampl
 }
 function previewLineReport(id: string, name: string, statuses: LineStatus[]): LineStatusReport {
   return {
-    $type: 'Line',
+    $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id,
     name,
     modeName: 'national-rail',

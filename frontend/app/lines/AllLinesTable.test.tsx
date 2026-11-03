@@ -60,6 +60,7 @@ beforeEach(() => {
 function report(overrides: Partial<LineStatusReport> & { id: string; name: string }): LineStatusReport {
   return {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     modeName: 'national-rail',
     operators: [],
     computedAt: '2026-07-15T09:00:00Z',
@@ -490,6 +491,7 @@ describe('AllLinesTable responsive columns', () => {
   const mobileReports: LineStatusReport[] = [
     {
       $type: 'DistantSignal.LineStatusReport',
+      attribution: [],
       id: 'northern',
       name: 'Northern',
       modeName: 'national-rail',
@@ -574,6 +576,7 @@ describe('AllLinesTable responsive columns', () => {
     const zeroSampleReports: LineStatusReport[] = [
       {
         $type: 'DistantSignal.LineStatusReport',
+        attribution: [],
         id: 'northern',
         name: 'Northern',
         modeName: 'national-rail',
@@ -607,6 +610,7 @@ describe('AllLinesTable full-coverage precedence (Decision 1)', () => {
     const coverageReports: LineStatusReport[] = [
       {
         $type: 'DistantSignal.LineStatusReport',
+        attribution: [],
         id: 'wcml',
         name: 'West Coast Main Line',
         modeName: 'national-rail',

@@ -64,9 +64,7 @@ async function requestHeadcode(headcode: string, date: string, signal: AbortSign
     if (response.status === 404) return signal.aborted ? null : { state: 'unpublished', date };
     if (!response.ok) return signal.aborted ? null : { state: 'error' };
     const body = (await response.json()) as TrainHeadcodePage;
-    return signal.aborted
-      ? null
-      : { state: 'done', headcode, date, rows: body.results, provisional: body.provisional === true };
+    return signal.aborted ? null : { state: 'done', headcode, date, rows: body.results, provisional: body.provisional };
   } catch {
     return signal.aborted ? null : { state: 'error' };
   }
@@ -269,7 +267,7 @@ function HeadcodeResults({
               <ServiceRow
                 key={row.uid}
                 train={searchRowSummary(row)}
-                date={row.serviceDate ?? lookup.date}
+                date={row.serviceDate}
                 timeOverride={searchRowTime(row)}
                 dayOffset={row.dayOffset}
                 details={

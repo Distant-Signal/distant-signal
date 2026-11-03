@@ -73,7 +73,7 @@ import type {
   TflStopArrivals,
   TflStopDetail,
 } from './types';
-import type { PersonalTokensResponse } from './api-types';
+import type * as Api from './api-types';
 import { createLogger } from './logger';
 import { lineTimetableQuery } from './lineTrains';
 import { LIVE_PREVIEW_REVALIDATE_SECONDS } from './livePreview';
@@ -818,7 +818,7 @@ export async function getTrainSearchDates(): Promise<TrainSearchDates> {
  * and any other the published timetable carries, unnamed. Cached like
  * `getAllTocs`, which it extends. */
 export async function getTrainSearchOperators(): Promise<TrainSearchOperator[]> {
-  const body = await fetchJson<{ operators: TrainSearchOperator[] }>(`${baseUrl()}/public/trains/search/operators`, {
+  const body = await fetchJson<Api.TrainSearchOperators>(`${baseUrl()}/public/trains/search/operators`, {
     next: { revalidate: 3600 },
   });
   return body.operators;
@@ -1185,7 +1185,7 @@ export async function getRecentlyCleared(scope: RecentlyClearedScope): Promise<R
   if ('station' in scope) params.set('station', scope.station);
   const query = params.toString();
   const url = `${baseUrl()}/public/incidents/recently-cleared${query ? `?${query}` : ''}`;
-  const body = await fetchJson<{ results: RecentlyClearedIncident[] }>(url, { cache: 'no-store' });
+  const body = await fetchJson<Api.RecentlyClearedResponse>(url, { cache: 'no-store' });
   return body.results;
 }
 
@@ -1443,12 +1443,12 @@ export async function getConnectedApps(): Promise<ConnectedAppsData | null> {
  * tokens (docs/personal-api-tokens.md). `null` when not logged in or when
  * the feature is off (`404 feature_disabled`), so the section is simply
  * not shown. */
-export async function getPersonalTokens(): Promise<PersonalTokensResponse | null> {
+export async function getPersonalTokens(): Promise<Api.PersonalTokensResponse | null> {
   const url = `${baseUrl()}/public/account/personal-tokens`;
   const response = await apiFetch(url, { cache: 'no-store', ...(await cookieForwardInit()) });
   if (response.status === 401 || response.status === 404) return null;
   if (!response.ok) throw errorForResponse(url, response);
-  return response.json() as Promise<PersonalTokensResponse>;
+  return response.json() as Promise<Api.PersonalTokensResponse>;
 }
 
 /** `GET /public/account/connected-apps-notice`: the newest app connected
@@ -1486,7 +1486,7 @@ export async function getTflStop(id: string): Promise<TflStopDetail> {
 
 /** `GET /public/stations/codes`: every station's CRS code. */
 export async function getStationCodes(revalidate: number): Promise<string[]> {
-  const body = await fetchJson<{ codes: string[] }>(`${baseUrl()}/public/stations/codes`, { next: { revalidate } });
+  const body = await fetchJson<Api.StationCodes>(`${baseUrl()}/public/stations/codes`, { next: { revalidate } });
   return body.codes;
 }
 

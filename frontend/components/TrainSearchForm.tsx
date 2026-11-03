@@ -451,7 +451,7 @@ export function TrainSearchForm({
         nextCursor: body.nextCursor,
         date: submittedDateValue ?? '',
         loadMoreFailed: false,
-        provisional: body.provisional === true,
+        provisional: body.provisional,
       });
     } catch {
       if (superseded()) return;

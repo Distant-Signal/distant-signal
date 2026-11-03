@@ -158,13 +158,11 @@ describe('splitSearchRows', () => {
       { uid: 'B', dayOffset: 0, serviceDate: '2026-10-24' },
       { uid: 'C', dayOffset: 1, serviceDate: '2026-10-23' },
       { uid: 'D', dayOffset: 1, serviceDate: '2026-10-24' },
-      // An older backend sends no `serviceDate`: the searched date's.
-      { uid: 'E', dayOffset: 1 },
     ];
     const split = splitSearchRows(rows, '2026-10-24');
     expect(split.previousDay.map((row) => row.uid)).toEqual(['A', 'C']);
     expect(split.sameDay.map((row) => row.uid)).toEqual(['B']);
-    expect(split.afterMidnight.map((row) => row.uid)).toEqual(['D', 'E']);
+    expect(split.afterMidnight.map((row) => row.uid)).toEqual(['D']);
   });
 });
 

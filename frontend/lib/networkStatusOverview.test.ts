@@ -17,6 +17,7 @@ function status(overrides: Partial<LineStatus> & { statusSeverity: number }): Li
 function report(overrides: Partial<LineStatusReport> & { id: string; name: string }): LineStatusReport {
   return {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     modeName: 'national-rail',
     operators: [],
     lineStatuses: [],

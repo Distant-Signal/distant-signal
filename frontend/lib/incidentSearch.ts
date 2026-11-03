@@ -37,7 +37,7 @@ export function affectsSummary(
   lineNamesById: ReadonlyMap<string, string>,
 ): string {
   const operators = row.operators.map((code) => tocNamesByCode.get(code) ?? code).join(', ');
-  const lines = row.affectedLines ?? [];
+  const lines = row.affectedLines;
   const shownLines = lines.slice(0, MAX_LINE_BADGES).map((id) => lineNamesById.get(id) ?? id);
   const moreLines = lines.length > MAX_LINE_BADGES ? ` +${lines.length - MAX_LINE_BADGES} more` : '';
   const lineText = shownLines.length > 0 ? `${shownLines.join(', ')}${moreLines}` : '';

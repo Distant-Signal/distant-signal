@@ -9,7 +9,14 @@
  * same scale as the API's `lineDue` (`dayOffset * 1440` + the time), so a
  * 00:20 train of the night is 1460, after 23:50 (1430).
  */
-import type { LineCatalogueStation, LineDirection, LineTimetableTrain, LineTime, LineTrainSummary } from './types';
+import type {
+  LineCatalogueStation,
+  LineDirection,
+  LineTimetableTrain,
+  LineTime,
+  LineTrainSummary,
+  LineTrainsSummary,
+} from './types';
 
 export const DAY_MINUTES = 24 * 60;
 /** The latest minute the API accepts for a window bound (47:59). */
@@ -493,15 +500,12 @@ export function previousDate(date: string): string {
 }
 
 /** Two summaries' counts added up. */
-export function addCounts(
-  a: Partial<Record<string, Partial<Record<string, number>>>>,
-  b: Partial<Record<string, Partial<Record<string, number>>>>,
-): Partial<Record<string, Partial<Record<string, number>>>> {
-  const out: Partial<Record<string, Partial<Record<string, number>>>> = {};
+export function addCounts(a: LineTrainsSummary['counts'], b: LineTrainsSummary['counts']): LineTrainsSummary['counts'] {
+  const out: LineTrainsSummary['counts'] = {};
   for (const counts of [a, b]) {
     for (const [scope, byDir] of Object.entries(counts)) {
       const target = (out[scope] ??= {});
-      for (const [dir, n] of Object.entries(byDir ?? {})) target[dir] = (target[dir] ?? 0) + (n ?? 0);
+      for (const [dir, n] of Object.entries(byDir)) target[dir] = (target[dir] ?? 0) + n;
     }
   }
   return out;

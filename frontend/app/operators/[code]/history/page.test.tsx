@@ -4,6 +4,7 @@ import { renderWithMantine } from '@/test/render';
 import OperatorHistoryPage from './page';
 import * as api from '@/lib/api';
 import type { HistoryRetention, OperatorSummary, Suggestion } from '@/lib/types';
+import { OPERATOR_SUMMARY_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -30,6 +31,7 @@ const tocs: Suggestion[] = [{ code: 'GR', name: 'London North Eastern Railway' }
 
 function operator(overrides: Partial<OperatorSummary> = {}): OperatorSummary {
   return {
+    ...OPERATOR_SUMMARY_DEFAULTS,
     code: 'GR',
     name: 'London North Eastern Railway',
     lineIds: ['ecml', 'grand-central'],

@@ -5,6 +5,7 @@ import OperatorsPage, { metadata } from './page';
 import * as api from '@/lib/api';
 import { __resetStaleCacheForTests } from '@/lib/liveDataCache';
 import type { OperatorSummary, Preferences, SessionInfo } from '@/lib/types';
+import { OPERATOR_SUMMARY_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -45,6 +46,7 @@ vi.mock('next/navigation', () => ({
 
 const operators: OperatorSummary[] = [
   {
+    ...OPERATOR_SUMMARY_DEFAULTS,
     code: 'VT',
     name: 'Avanti West Coast',
     lineIds: ['wcml'],
@@ -54,6 +56,7 @@ const operators: OperatorSummary[] = [
     computedAt: '2026-09-22T00:00:00Z',
   },
   {
+    ...OPERATOR_SUMMARY_DEFAULTS,
     code: 'TW',
     name: 'Arriva Trains Wales',
     lineIds: ['cardiff-main'],

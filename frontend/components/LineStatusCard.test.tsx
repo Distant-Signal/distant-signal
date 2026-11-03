@@ -6,6 +6,7 @@ import type { LineStatusReport } from '@/lib/types';
 
 const report: LineStatusReport = {
   $type: 'DistantSignal.LineStatusReport',
+  attribution: [],
   id: 'wcml',
   name: 'West Coast Main Line',
   modeName: 'national-rail',

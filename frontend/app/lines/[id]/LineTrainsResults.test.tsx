@@ -8,6 +8,7 @@ import { ApiNotFoundError } from '@/lib/api';
 import type { LineTrainsSummary } from '@/lib/types';
 import { parseLinePageParams } from '@/lib/lineTrains';
 import { STATIONS, train } from '@/test/lineTrainsFixtures';
+import { TRAIN_SEARCH_ROW_DEFAULTS } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 
@@ -106,6 +107,7 @@ describe('LineTrainsResults', () => {
               delayMinutes: 4,
               delayProvisional: false,
               cancelled: false,
+              cancelReason: null,
               lastReportedLocation: null,
             },
           }),
@@ -123,6 +125,7 @@ describe('LineTrainsResults', () => {
               delayMinutes: null,
               delayProvisional: false,
               cancelled: true,
+              cancelReason: null,
               lastReportedLocation: null,
             },
           }),
@@ -454,6 +457,7 @@ describe('LineTrainsResults', () => {
               delayMinutes: 2,
               delayProvisional: false,
               cancelled: false,
+              cancelReason: null,
               lastReportedLocation: null,
             },
           }),
@@ -463,7 +467,9 @@ describe('LineTrainsResults', () => {
     vi.mocked(api.searchTrainsBetween).mockResolvedValue({
       results: [
         {
+          ...TRAIN_SEARCH_ROW_DEFAULTS,
           uid: 'U1',
+          serviceDate: '2026-10-20',
           scheduled: '14:12',
           publicDeparture: '14:12',
           stationCrs: 'WOK',
@@ -474,7 +480,9 @@ describe('LineTrainsResults', () => {
           destinationArrivalDayOffset: 0,
         },
         {
+          ...TRAIN_SEARCH_ROW_DEFAULTS,
           uid: 'U2',
+          serviceDate: '2026-10-20',
           scheduled: '14:20',
           publicDeparture: null,
           stationCrs: 'WOK',
@@ -486,6 +494,12 @@ describe('LineTrainsResults', () => {
         },
       ],
       nextCursor: null,
+      serviceDate: '2026-10-20',
+      window: { from: { time: '14:00', dayOffset: 0 }, to: null, arrivalFrom: null, arrivalTo: null },
+      acrossMidnight: false,
+      serviceDates: ['2026-10-20'],
+      provisional: false,
+      provisionalFrom: '2026-10-30',
     });
     const { container } = renderWithMantine(
       await LineTrainsResults({

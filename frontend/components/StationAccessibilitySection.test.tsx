@@ -3,6 +3,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { loadAccessibilityFixture } from '@/test/fixtures/accessibility';
 import { StationAccessibilitySection } from './StationAccessibilitySection';
+import type { JsonValue } from '@/lib/api-types';
 
 describe('StationAccessibilitySection', () => {
   it('renders the "not yet captured" copy for coverage: unavailable', () => {
@@ -284,7 +285,7 @@ describe('StationAccessibilitySection', () => {
     expect(() =>
       renderWithMantine(
         <StationAccessibilitySection
-          result={{ coverage: 'present', data: { stationFacilities: new Date('2026-09-16') } }}
+          result={{ coverage: 'present', data: { stationFacilities: new Date('2026-09-16') as unknown as JsonValue } }}
         />,
       ),
     ).not.toThrow();
@@ -535,7 +536,7 @@ describe('StationAccessibilitySection, pattern rendering', () => {
       <StationAccessibilitySection
         result={{
           coverage: 'present',
-          data: { carParks: [new Date('2026-09-16'), new Date('2026-09-17')] },
+          data: { carParks: [new Date('2026-09-16'), new Date('2026-09-17')] as unknown as JsonValue },
         }}
       />,
     );

@@ -11,6 +11,7 @@ import {
 } from './incidentPreview';
 import { listPhrase } from './livePreview';
 import type { IncidentDetail } from './types';
+import { INCIDENT_TIMING_DEFAULTS } from '@/test/apiDefaults';
 
 // 30 Oct 2026 is after the clocks went back, so UK time is UTC.
 const NOW = Date.parse('2026-10-30T14:00:00Z');
@@ -25,6 +26,7 @@ const TOCS = new Map([
  * open-ended, on two lines. */
 function incident(overrides: Partial<IncidentDetail> = {}): IncidentDetail {
   return {
+    ...INCIDENT_TIMING_DEFAULTS,
     incidentId: 'DD7A9B809383434BB74A06829BD86DCA',
     summary: 'Disruption between Chester and Llandudno Junction expected until 15:00',
     description: '<p>Lines closed.</p>',
@@ -99,18 +101,6 @@ describe('incidentPreviewCard', () => {
     [{ state: 'ended' as const, isPlanned: true }, 'informational', 'Ended'],
   ])('bands %o as %s, in words', (overrides, tone, label) => {
     expect(card(overrides).status).toEqual({ tone, label });
-  });
-
-  it('works the state out itself against an api that sends none', () => {
-    const stateless = (overrides: Partial<IncidentDetail>) => {
-      const { state: _state, ...rest } = incident(overrides);
-      return incidentPreviewCard(rest, { operatorNames: TOCS, now: NOW }).status.label;
-    };
-    expect(stateless({ isCleared: true })).toBe('Cleared');
-    expect(stateless({ sourceRemovedAt: '2026-10-29T02:00:00Z' })).toBe('Ended');
-    expect(stateless({ validityPeriods: [{ fromDate: '2026-11-02T00:00:00Z', toDate: null, isNow: true }] })).toBe(
-      'Upcoming',
-    );
   });
 
   it('draws a cleared incident with no lines: no "CLEARED:" twice, when it ran', () => {
