@@ -806,6 +806,16 @@ describe('generateMetadata', () => {
     expect(metadata.description).not.toMatch(/Good Service/);
   });
 
+  it("lists a public line's Atom feed, and none for a custom line", async () => {
+    vi.mocked(api.getLineStatus).mockResolvedValue([report('tfl-northern', 'Northern')]);
+    const metadata = await generateMetadata({ params: Promise.resolve({ id: 'tfl-northern' }) });
+    expect(metadata.alternates?.types).toEqual({
+      'application/atom+xml': [
+        { url: '/api/feeds/lines/tfl-northern', title: 'Northern: status changes and incidents' },
+      ],
+    });
+  });
+
   // `generateMetadata` runs independently of the page component and its
   // own `notFound()` 404s the route by itself -- so it has to draw the
   // same "no status row" vs. "no such line" distinction the page does, or

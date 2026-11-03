@@ -10,6 +10,8 @@ import { HistoryRangePicker } from '@/app/lines/[id]/history/HistoryRangePicker'
 import { OperatorTrendsResults } from './OperatorTrendsResults';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { feedTarget, operatorFeedPath } from '@/lib/feeds';
+import { FeedLink } from '@/components/FeedLink';
 
 const log = createLogger('app/operators/history');
 
@@ -72,9 +74,11 @@ async function resolveRetention(): Promise<{
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
-  const name = await resolveOperatorName((await params).code);
+  const { code } = await params;
+  const name = await resolveOperatorName(code);
   return pageMetadata(`${name} history`, `Delays and cancellations across ${name}'s lines over time.`, {
     noindex: true,
+    feed: feedTarget(operatorFeedPath(code), name),
   });
 }
 
@@ -118,6 +122,7 @@ export default async function OperatorHistoryPage({
           {lineCount} {lineCount === 1 ? 'line' : 'lines'}
         </Text>
       )}
+      <FeedLink href={operatorFeedPath(code)} label={`${name} status changes and incidents`} />
       <HistoryRangePicker basePath={basePath} preset={range.preset} from={range.from} to={range.to} />
       <GranularityControl
         basePath={basePath}

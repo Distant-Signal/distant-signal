@@ -346,6 +346,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       headers[name] = value;
     }
   }
+  // A conditional GET, so a feed reader (or the edge) revalidating an Atom
+  // feed (`/api/feeds/...`, docs/feeds.md) gets the api's 304.
+  const ifNoneMatch = req.headers.get('if-none-match');
+  if (ifNoneMatch) {
+    headers['If-None-Match'] = ifNoneMatch;
+  }
 
   const init: RequestInit = {
     method: req.method,
@@ -407,7 +413,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // comma. `getSetCookie()` returns them as a proper string array.
   const setCookies = response.headers.getSetCookie();
 
-  if (response.status >= 300 && response.status < 400) {
+  // 304 Not Modified is a 3xx but no redirect: it carries the ETag and
+  // Cache-Control a revalidating client needs, so it takes the path below.
+  if (response.status >= 300 && response.status < 400 && response.status !== 304) {
     const responseHeaders = new Headers();
     const location = response.headers.get('location');
     if (location) {
@@ -427,9 +435,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   } catch (err) {
     return upstreamFailure(err);
   }
-  const responseHeaders = new Headers({
-    'Content-Type': response.headers.get('Content-Type') ?? 'application/json',
-  });
+  // No default type on a 304: a cache updates its stored headers from it.
+  const contentType = response.headers.get('Content-Type') ?? (response.status === 304 ? null : 'application/json');
+  const responseHeaders = new Headers(contentType === null ? {} : { 'Content-Type': contentType });
   // `GET /account/export` answers with an attachment filename and
   // `no-store`, so the browser saves it as a file (the "Download my data"
   // link) and nothing caches a copy of someone's personal data.
@@ -437,7 +445,8 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // (`GET /public/stations/{crs}/departures`); its body is a bare array.
   // `Retry-After` comes with api's 503 (a dependency is unavailable, see
   // docs/api-changelog.md 2026-10-06) and 429, so a client can wait it out.
-  for (const name of ['Content-Disposition', 'Cache-Control', 'X-Generated-At', 'Retry-After']) {
+  // `ETag` comes with the Atom feeds, for the conditional GET above.
+  for (const name of ['Content-Disposition', 'Cache-Control', 'X-Generated-At', 'Retry-After', 'ETag']) {
     const value = response.headers.get(name);
     if (value) {
       responseHeaders.set(name, value);

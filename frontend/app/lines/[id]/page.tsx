@@ -25,6 +25,8 @@ import { HalfHourlyTrendsResults } from './history/HalfHourlyTrendsResults';
 import { HalfHourlyCoverageTrendsResults } from './history/HalfHourlyCoverageTrendsResults';
 import { LineTrainsResults } from './LineTrainsResults';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { feedTarget, lineFeedPath } from '@/lib/feeds';
+import { FeedLink } from '@/components/FeedLink';
 import { linePreviewImage } from '@/lib/linePreview';
 import { ButtonLink } from '@/components/ButtonLink';
 import { tflTimetableHref } from '@/lib/transit';
@@ -249,9 +251,11 @@ function lineMetadata(id: string, name: string, report: LineStatusReport | null)
   const description = id.startsWith('tfl-')
     ? `Live status, disruption and recent trends for ${name}.`
     : `Live status, disruption, today's trains and recent trends for ${name}.`;
+  const feedPath = lineFeedPath(id);
   return pageMetadata(name, description, {
     path: `/lines/${id}`,
     image: linePreviewImage(id, name, report, previewImageAlt(name)),
+    ...(feedPath === null ? {} : { feed: feedTarget(feedPath, name) }),
   });
 }
 
@@ -418,6 +422,8 @@ export default async function LineDetailPage({
     notFound();
   }
   const operators = resolveLineOperators(statusResult, customLine, summary, definition);
+  // A custom line is private, so it has no feed (`lineFeedPath`).
+  const feedPath = isCustom ? null : lineFeedPath(id);
 
   // Stamped server-side so IssueList's buckets don't depend on a
   // `Date.now()` that differs between the SSR pass and hydration. Fresh on
@@ -529,9 +535,12 @@ export default async function LineDetailPage({
       {operators.length > 0 && (
         <Text c="dimmed">Operators: {operators.map((code) => operatorLabel(code, tocs)).join(', ')}</Text>
       )}
-      <TextLink href={`/lines/${id}/history`} underline="always">
-        View history
-      </TextLink>
+      <Group gap="md">
+        <TextLink href={`/lines/${id}/history`} underline="always">
+          View history
+        </TextLink>
+        {feedPath !== null && <FeedLink href={feedPath} label={`${name} status changes and incidents`} />}
+      </Group>
       {/* The status section proper. Everything above and below it -- name,
           category, sharing, operators, owner controls, history link, the
           embedded trend charts -- describes the line's definition and
