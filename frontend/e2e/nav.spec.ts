@@ -83,6 +83,18 @@ function mainNav(page: Page): Locator {
   return page.getByRole('navigation', { name: 'Main', exact: true });
 }
 
+/** Waits for a client-side navigation to reach `url`, with the same 5s
+ * budget as an `expect`. Not `expect(page).toHaveURL()`: every retry of a
+ * failing toHaveURL blocks the page's main thread while Playwright reads
+ * it, about 1s a time in Firefox on /lines (the longest page; under 50ms
+ * on /status), and that starves the navigation it is waiting for. Measured
+ * from /lines in Firefox: the URL changed 3 to 5s after the click under
+ * toHaveURL, and 0.1 to 1.3s after it under `waitForURL`, which listens
+ * for the change instead of polling the page. */
+async function expectNavigatedTo(page: Page, url: RegExp): Promise<void> {
+  await page.waitForURL(url, { timeout: 5_000 });
+}
+
 /** The same bar as a selector, for the measurements below. They read it in
  * one `evaluate` rather than through a locator, because the swap above
  * can detach the bar a locator resolved before it is measured. */
@@ -196,7 +208,7 @@ test.describe('desktop nav bar (1440x900)', () => {
     await trains.focus();
     await expect(trains).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/\/trains$/);
+    await expectNavigatedTo(page, /\/trains$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Trains' })).toBeVisible();
   });
 
@@ -308,7 +320,7 @@ test.describe('phone nav bar (390x844)', () => {
     const drawer = await openNavDrawer(page);
     await drawer.getByRole('link', { name: 'Stations' }).click();
 
-    await expect(page).toHaveURL(/\/stations$/);
+    await expectNavigatedTo(page, /\/stations$/);
     await expect(drawer).toBeHidden();
   });
 });

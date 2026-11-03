@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Notification } from '@mantine/core';
 import { useMounted, useNetwork } from '@mantine/hooks';
@@ -130,9 +130,19 @@ export function ConnectivityMonitor({
 
   const backendDown = failures >= CONSECUTIVE_FAILURES_TO_TRIP;
   const disconnected = mounted && (!online || backendDown);
+  // The same object until `disconnected` changes, not a fresh one per
+  // render. This provider wraps every page, and it re-renders on mount
+  // (`useMounted`, `useNetwork`, the effect above). React can't see inside
+  // a Suspense boundary whose server HTML has streamed in but isn't shown
+  // yet (a route's `loading.tsx`, the nav's session check), so any changed
+  // context value above one makes it drop that HTML and render the
+  // boundary again on the client. For up to a few hundred ms the page then
+  // held two copies of its content, the shown one in <main> and React's
+  // hidden one in a `<div hidden>` at the end of <body> (DS-298).
+  const connectivity = useMemo(() => ({ disconnected }), [disconnected]);
 
   return (
-    <ConnectivityContext.Provider value={{ disconnected }}>
+    <ConnectivityContext.Provider value={connectivity}>
       {children}
       {disconnected && (
         // Placement and width: `.connectivityBanner` in globals.css.

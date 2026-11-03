@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { formatDateTime } from '@/lib/dateFormat';
-import { ConnectivityMonitor } from './ConnectivityMonitor';
+import { ConnectivityMonitor, useConnectivity } from './ConnectivityMonitor';
 
 // Only `useNetwork` is stubbed; `useMounted` keeps its real implementation
 // so the pre-mount gating below is exercised for real rather than
@@ -208,6 +208,36 @@ describe('ConnectivityMonitor', () => {
     act(() => observe(failure()));
     const status = screen.getByRole('status');
     expect(status).toHaveTextContent('Showing the last update.');
+  });
+
+  // DS-298: a new context value on every render made React drop the server
+  // HTML of any not-yet-shown Suspense boundary below (a streamed page, the
+  // nav's session check) and render it again on the client, which briefly
+  // left two copies of the page in the document.
+  it('keeps the same context value while the connectivity state is unchanged', () => {
+    // Rendered on every parent render (a new element each time), so it
+    // sees the value from the mount, the post-mount render and a new
+    // server observation alike.
+    const seen: unknown[] = [];
+    function Consumer() {
+      seen.push(useConnectivity());
+      return null;
+    }
+    let reobserve: (observedAt: string) => void = () => {};
+    function ConsumerHarness() {
+      const [observedAt, setObservedAt] = useState('obs-1');
+      // eslint-disable-next-line react-hooks/globals -- hands the setter to the test, like Harness above
+      reobserve = setObservedAt;
+      return (
+        <ConnectivityMonitor backendReachable observedAt={observedAt}>
+          <Consumer />
+        </ConnectivityMonitor>
+      );
+    }
+    renderWithMantine(<ConsumerHarness />);
+    act(() => reobserve('obs-2'));
+    expect(seen.length).toBeGreaterThan(1);
+    expect(new Set(seen).size).toBe(1);
   });
 
   // Review §2.16: on a 390px phone the unconstrained `Notification` shrank
