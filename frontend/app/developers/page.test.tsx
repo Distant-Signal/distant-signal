@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { elementsThatEndAParagraph } from '@/test/htmlNesting';
 import { NON_AFFILIATION } from '@/lib/api-types';
 import openapiDocument from '@/lib/openapi-v1.json';
 import DevelopersPage, { metadata } from './page';
@@ -37,5 +38,10 @@ describe('/developers', () => {
     );
     expect(screen.getByRole('link', { name: 'Apple Shortcuts (opens in a new tab)' })).toBeInTheDocument();
     expect(screen.getAllByText(new RegExp(NON_AFFILIATION.slice(0, 40))).length).toBeGreaterThan(0);
+  });
+
+  it('keeps its markup valid inside paragraphs, so the browser parses it as rendered', () => {
+    const { container } = renderWithMantine(DevelopersPage());
+    expect(elementsThatEndAParagraph(container)).toEqual([]);
   });
 });

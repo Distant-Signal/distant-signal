@@ -236,7 +236,9 @@ export default function ApiReferencePage() {
       ))}
 
       <Text size="sm">
-        <TextLink href={DEVELOPERS_PATH}>Back to developers</TextLink>
+        <TextLink href={DEVELOPERS_PATH} inline>
+          Back to developers
+        </TextLink>
       </Text>
     </Stack>
   );
