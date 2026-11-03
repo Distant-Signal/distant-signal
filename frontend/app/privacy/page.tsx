@@ -88,6 +88,14 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
         'Sessions expire after 14 days without use, or 90 days after you log in, and are then deleted. Login state is deleted after 15 minutes.',
     },
     {
+      title: 'Personal API tokens',
+      what: 'For each token you create: its name, what it can read, a scrambled form of the token, its last 4 characters, and when it was created, last used, expires or was revoked.',
+      why: 'To let things you run yourself read your data, and to let you see and revoke them.',
+      basis: CONTRACT,
+      retention:
+        'Until you revoke it, it expires (at most a year), or it goes 90 days without use. The record of an ended token is deleted a year later.',
+    },
+    {
       title: 'Saved lines, stations, operators and custom lines',
       what: 'The lines, stations and operators you pin, and any custom lines you create.',
       why: 'To show you the things you chose to follow.',
@@ -270,6 +278,32 @@ export default function PrivacyPage() {
           date, stations and train) for 30 days, shown in Connected apps so you can save them again. After a connection
           ends we keep a record of it (which app, what it could do, and when it was connected, last used and ended) for
           one year, then delete it.
+        </Text>
+      </LegalSection>
+
+      {/* Personal API tokens (docs/specs/personal-api-tokens.md §9). Worded
+          to ship before production turns the feature on: drop "Once it is
+          available" when api.personalTokens.enabled goes live. */}
+      <LegalSection title="Personal API tokens">
+        <Text>
+          This is optional. Once it is available, you can create a personal API token in Connected apps on your account
+          page, to let something you run yourself, such as a home dashboard or a phone shortcut, read your Distant
+          Signal data. A token can only read. It can&apos;t change or delete anything. You choose what it can read (your
+          journeys, line status, trains, or your settings) and when it expires, up to a year.
+        </Text>
+        <Text>
+          Anyone who has the token can read what it allows, so keep it private. We store only a scrambled form of it, so
+          we can&apos;t show it to you again. If it&apos;s lost or leaked, revoke it in Connected apps. That takes
+          effect straight away. A token also stops working after 90 days without use. Logging out does not end it.
+        </Text>
+        <Text>
+          Where the token&apos;s data goes after that depends on what you put it in. That app or device isn&apos;t run
+          by us.
+        </Text>
+        <Text>
+          We log each request made with a token (your account, which token, the time, what it asked for and whether it
+          worked) and keep these logs for 31 days. After a token is revoked or expires, we keep a record of it (its
+          name, what it could read, and when it was created, last used and ended) for one year, then delete it.
         </Text>
       </LegalSection>
 

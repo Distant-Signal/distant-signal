@@ -1,7 +1,9 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import { Avatar, Menu, UnstyledButton } from '@mantine/core';
+import { ConfirmActionButton, type ConfirmActionButtonHandle } from './ConfirmActionButton';
 import { useLogout } from './useLogout';
 import { useLogoutOtherSessions } from './useLogoutOtherSessions';
 import type { NavDestination } from '@/lib/navLinks';
@@ -60,6 +62,7 @@ export function accountMenuName(label: string): string {
 export function AccountMenu({
   label,
   destinations,
+  canRevokeTokens = false,
 }: {
   /** The visitor's display name, already resolved to something
    * non-blank by `AuthStatus` — this component never sees the raw
@@ -67,8 +70,13 @@ export function AccountMenu({
    * `AuthStatus`'s own `?.trim() ||` chain exists to prevent. */
   label: string;
   destinations: readonly NavDestination[];
+  /** Offer "Revoke all API tokens" beside "Log out other sessions": the
+   * session says personal API tokens are on. A token outlives every
+   * logout, so ending them is its own action. */
+  canRevokeTokens?: boolean;
 }) {
   const { logout, loggingOut } = useLogout();
+  const revokeTokensRef = useRef<ConfirmActionButtonHandle>(null);
   const {
     logoutOtherSessions,
     loggingOut: loggingOutOtherSessions,
@@ -76,60 +84,61 @@ export function AccountMenu({
   } = useLogoutOtherSessions();
 
   return (
-    <Menu
-      position="bottom-end"
-      shadow="md"
-      width={220}
-      // "required for navigation menus following WAI-ARIA disclosure
-      // pattern" (Mantine's own prop doc). This menu is mostly links, so
-      // Tab must walk them rather than skipping straight out of the
-      // dropdown the way the default `-1` would.
-      menuItemTabIndex={0}
-      // Mantine's initial-focus placeholder is a `<div role="presentation"
-      // tabindex="-1">` rendered as the FIRST child of the `role="menu"`
-      // dropdown, and axe's `aria-required-children` (serious) fires on
-      // it: a menu's children must be menuitems, and a presentational div
-      // is not one. Confirmed against this component in
-      // e2e/accessibility.spec.ts's opened-menu case.
-      //
-      // Safe to switch off here specifically because of
-      // `menuItemTabIndex={0}` above: the placeholder exists to stop
-      // keyboard focus jumping past a dropdown whose items are all
-      // `tabindex="-1"`, and this menu's items are all in the tab order
-      // already, so there is nothing for focus to jump over.
-      withInitialFocusPlaceholder={false}
-    >
-      <Menu.Target>
-        {/* The accessible name carries the display name that used to sit
+    <>
+      <Menu
+        position="bottom-end"
+        shadow="md"
+        width={220}
+        // "required for navigation menus following WAI-ARIA disclosure
+        // pattern" (Mantine's own prop doc). This menu is mostly links, so
+        // Tab must walk them rather than skipping straight out of the
+        // dropdown the way the default `-1` would.
+        menuItemTabIndex={0}
+        // Mantine's initial-focus placeholder is a `<div role="presentation"
+        // tabindex="-1">` rendered as the FIRST child of the `role="menu"`
+        // dropdown, and axe's `aria-required-children` (serious) fires on
+        // it: a menu's children must be menuitems, and a presentational div
+        // is not one. Confirmed against this component in
+        // e2e/accessibility.spec.ts's opened-menu case.
+        //
+        // Safe to switch off here specifically because of
+        // `menuItemTabIndex={0}` above: the placeholder exists to stop
+        // keyboard focus jumping past a dropdown whose items are all
+        // `tabindex="-1"`, and this menu's items are all in the tab order
+        // already, so there is nothing for focus to jump over.
+        withInitialFocusPlaceholder={false}
+      >
+        <Menu.Target>
+          {/* The accessible name carries the display name that used to sit
             in the bar as visible text: dropping it from the bar is where
             most of the width saving comes from, but it must not vanish
             from the accessibility tree with it. The visible initials
             are the sighted equivalent and lead the name (Label in Name,
             see `accountMenuName`), and the full name is repeated as the
             dropdown's own `Menu.Label`. */}
-        <UnstyledButton aria-label={accountMenuName(label)}>
-          {/* 28px, the height the nav's `ActionIcon`s render at, because
+          <UnstyledButton aria-label={accountMenuName(label)}>
+            {/* 28px, the height the nav's `ActionIcon`s render at, because
               the bar's height is the tallest control in it: at Mantine's
               default 30px this one control made the authenticated bar
               63px against the anonymous bar's 61px — the very "same
               height for everyone" property the account menu exists to
               establish, lost by two pixels. */}
-          {/* `name` still picks the colour; the text is passed explicitly
+            {/* `name` still picks the colour; the text is passed explicitly
               so it is the same initials the aria-label starts with. */}
-          <Avatar name={label} color="initials" size={28} radius="xl">
-            {accountInitials(label)}
-          </Avatar>
-        </UnstyledButton>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Label>{label}</Menu.Label>
-        {destinations.map((destination) => (
-          <Menu.Item key={destination.href} component={Link} href={destination.href}>
-            {destination.label}
-          </Menu.Item>
-        ))}
-        <Menu.Divider />
-        {/* Ends every OTHER session this account holds (a lost/stolen
+            <Avatar name={label} color="initials" size={28} radius="xl">
+              {accountInitials(label)}
+            </Avatar>
+          </UnstyledButton>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>{label}</Menu.Label>
+          {destinations.map((destination) => (
+            <Menu.Item key={destination.href} component={Link} href={destination.href}>
+              {destination.label}
+            </Menu.Item>
+          ))}
+          <Menu.Divider />
+          {/* Ends every OTHER session this account holds (a lost/stolen
             device, a shared computer, a login the visitor doesn't
             recognise) without logging this browser out too -- the
             user-reachable half of the M14/L6 session-revocation fix. Same
@@ -137,24 +146,45 @@ export function AccountMenu({
             request is in flight, and on success `router.refresh()`
             re-renders the page under the freshly-reissued cookie rather
             than dismissing the menu itself. */}
-        <Menu.Item
-          onClick={logoutOtherSessions}
-          disabled={loggingOutOtherSessions}
-          closeMenuOnClick={false}
-          {...(logoutOtherSessionsError && { color: 'red' })}
-        >
-          {logoutOtherSessionsError ? "Couldn't log out other sessions. Try again." : 'Log out other sessions'}
-        </Menu.Item>
-        {/* `closeMenuOnClick={false}`: the request is in flight and the
+          <Menu.Item
+            onClick={logoutOtherSessions}
+            disabled={loggingOutOtherSessions}
+            closeMenuOnClick={false}
+            {...(logoutOtherSessionsError && { color: 'red' })}
+          >
+            {logoutOtherSessionsError ? "Couldn't log out other sessions. Try again." : 'Log out other sessions'}
+          </Menu.Item>
+          {/* Personal API tokens survive every logout (spec decision 2), so
+            ending them all sits here, beside ending the other sessions. It
+            opens a confirmation, rendered outside the menu below. */}
+          {canRevokeTokens && (
+            <Menu.Item onClick={() => revokeTokensRef.current?.open()}>Revoke all API tokens</Menu.Item>
+          )}
+          {/* `closeMenuOnClick={false}`: the request is in flight and the
             item shows a disabled/busy state while it is, so closing the
             dropdown out from under the press would hide the only
             feedback there is. `useLogout`'s `router.refresh()` re-renders
             this whole control away (into the anonymous "Log in" link)
             once the cookie is gone, which is what actually dismisses it. */}
-        <Menu.Item onClick={logout} disabled={loggingOut} closeMenuOnClick={false}>
-          Log out
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+          <Menu.Item onClick={logout} disabled={loggingOut} closeMenuOnClick={false}>
+            Log out
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+      {canRevokeTokens && (
+        <ConfirmActionButton
+          ref={revokeTokensRef}
+          hideTrigger
+          label="Revoke all API tokens"
+          actionName="revoke all API tokens"
+          title="Revoke all your API tokens?"
+          request={() => fetch('/api/account/personal-tokens', { method: 'DELETE' })}
+          failure={['revoke', 'your tokens']}
+          loginPrompt="Log in to revoke them"
+        >
+          Every personal API token you created will stop working straight away. Your logins are not affected.
+        </ConfirmActionButton>
+      )}
+    </>
   );
 }
