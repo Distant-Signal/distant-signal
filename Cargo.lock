@@ -752,6 +752,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "anyhow",
  "chrono",
@@ -759,7 +760,6 @@ dependencies = [
  "ds-runtime",
  "glob",
  "metrics",
- "metrics-exporter-prometheus",
  "redis",
  "reqwest 0.13.5",
  "schemars 1.2.3",
@@ -769,13 +769,11 @@ dependencies = [
  "serde_repr",
  "sha2 0.10.9",
  "sqlx",
- "tempfile",
  "tokio",
  "toml",
  "tracing",
  "ts-rs",
  "url",
- "wiremock",
 ]
 
 [[package]]
@@ -1286,36 +1284,21 @@ checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 [[package]]
 name = "ds-lines"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "anyhow",
  "common",
- "serde_json",
-]
-
-[[package]]
-name = "ds-migrate"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "common",
- "ds-lines",
- "ds-runtime",
- "ds-store",
- "sqlx",
- "tokio",
- "tracing",
 ]
 
 [[package]]
 name = "ds-runtime"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "anyhow",
  "chrono",
  "clap",
  "libc",
- "log",
  "metrics",
  "metrics-exporter-prometheus",
  "redis",
@@ -1325,7 +1308,6 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
- "tracing-log",
  "tracing-subscriber",
  "url",
 ]
@@ -1333,6 +1315,7 @@ dependencies = [
 [[package]]
 name = "ds-store"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1340,9 +1323,7 @@ dependencies = [
  "common",
  "ds-runtime",
  "metrics",
- "metrics-exporter-prometheus",
  "rand 0.8.8",
- "regex",
  "schedule-query",
  "schemars 1.2.3",
  "serde",
@@ -2005,6 +1986,7 @@ dependencies = [
 [[package]]
 name = "health-http"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "axum",
  "ds-runtime",
@@ -2394,6 +2376,7 @@ dependencies = [
 [[package]]
 name = "ingest-stream"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "chrono",
  "clap",
@@ -2401,7 +2384,6 @@ dependencies = [
  "ds-runtime",
  "flate2",
  "metrics",
- "metrics-exporter-prometheus",
  "redis",
  "serde",
  "serde_json",
@@ -2735,25 +2717,6 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
-]
-
-[[package]]
-name = "line-catalogue-validator"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "common",
- "csv",
- "ds-runtime",
- "glob",
- "quick-xml",
- "regex",
- "reqwest 0.13.5",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
 ]
 
 [[package]]
@@ -4518,11 +4481,11 @@ dependencies = [
 [[package]]
 name = "schedule-query"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "chrono",
  "compact_str",
  "serde",
- "serde_json",
  "tracing",
 ]
 
@@ -5817,6 +5780,7 @@ dependencies = [
 [[package]]
 name = "trust-schema"
 version = "0.1.0"
+source = "git+https://github.com/Distant-Signal/ds-core?tag=v0.1.0#a68dc567d796cfdfd632a7a1f8e52f712d48babe"
 dependencies = [
  "anyhow",
  "chrono",

@@ -344,13 +344,11 @@ describe("the api's attribution", () => {
  * validator's live tier scrapes it. The validator says whether it does in
  * crates/line-catalogue-validator/site-credits.json (checked against its
  * scrape by its own test), and the credit must exist exactly while it
- * does. When the validator moves to its own repository (repo-split spec,
- * phase 4) this reads the file from the pinned release instead. */
+ * does. The validator is ds-core's (repo-split spec, phase 4): this reads
+ * the copy scripts/sync-core.py vendors from the pinned release
+ * (lib/site-credits.json, signed release asset, CI checks it). */
 describe("the line-catalogue validator's credits", () => {
-  const credits = JSON.parse(readFileSync('../crates/line-catalogue-validator/site-credits.json', 'utf8')) as Record<
-    string,
-    boolean
-  >;
+  const credits = JSON.parse(readFileSync('lib/site-credits.json', 'utf8')) as Record<string, boolean>;
 
   it.each(Object.entries(credits))('lists %s on /attribution exactly while the validator needs it', (id, needed) => {
     expect(DATA_SOURCES.some((source) => source.id === id)).toBe(needed);

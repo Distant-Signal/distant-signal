@@ -135,15 +135,15 @@ class StepTests(unittest.TestCase):
         """describe() gives back the `cargo test` line a step replaced."""
         narrow = db.PASSES["narrow"]
         self.assertEqual(
-            narrow[0].describe(),
-            'DATABASE_URL="$DATABASE_URL_API" cargo test -p ds-store -- --ignored '
-            "backlog::matching::db_tests::the_api_queues_its_replay_for_the_writer "
-            "--exact --test-threads=1",
+            narrow[-1].describe(),
+            'DATABASE_URL="$DATABASE_URL_AGGREGATOR" cargo test -p aggregator '
+            "archive::tests:: -- --ignored --test-threads=1",
         )
         superuser = db.PASSES["superuser"]
         self.assertEqual(
             superuser[1].describe(),
-            "cargo test -p ds-runtime pg::tests -- --ignored --test-threads=1",
+            "cargo test -p enricher -- --ignored --test-threads=1 "
+            "--skip live_eval --skip replay_",
         )
 
 
@@ -174,7 +174,7 @@ class PassTests(unittest.TestCase):
             for step in db.PASSES[name]:
                 with self.subTest(pass_name=name, step=step.describe()):
                     self.assertIn(step.role, created)
-        for name in ("superuser", "existing", "new"):
+        for name in ("superuser", "existing"):
             for step in db.PASSES[name]:
                 self.assertIsNone(step.role, step.describe())
 
@@ -231,7 +231,7 @@ class RunTests(unittest.TestCase):
         self.assertIn("--extract-to", extract)
         self.assertEqual(
             [c["database_url"] for c in calls[1:]],
-            ["postgres://api", "postgres://api", "postgres://aggregator"],
+            ["postgres://api", "postgres://aggregator"],
         )
         self.assertEqual({c["narrowed"] for c in calls}, {"api,aggregator"})
         for call in calls[1:]:
@@ -245,10 +245,10 @@ class RunTests(unittest.TestCase):
         out = io.StringIO()
         with redirect_stdout(out):
             status = db.run_pass(
-                "new", Path("a.tar.zst"), extract_to=where, base_env=self.env
+                "existing", Path("a.tar.zst"), extract_to=where, base_env=self.env
             )
         self.assertEqual(status, 0, out.getvalue())
-        extract, run = (call["argv"] for call in self.calls())
+        extract, run, *_ = (call["argv"] for call in self.calls())
         self.assertEqual(extract[extract.index("--extract-to") + 1], str(where))
         self.assertEqual(
             run[run.index("--target-dir-remap") + 1], str(where / "target")
@@ -256,7 +256,7 @@ class RunTests(unittest.TestCase):
 
     def test_steps_without_a_role_keep_database_url(self) -> None:
         """The app-role passes keep the DATABASE_URL test-postgres-roles set."""
-        status, _ = self.run_pass("new", self.env)
+        status, _ = self.run_pass("existing", self.env)
         self.assertEqual(status, 0)
         self.assertEqual(self.calls()[1]["database_url"], "postgres://app")
 
@@ -282,7 +282,7 @@ class RunTests(unittest.TestCase):
             status = db.main(["run", "superuser", "--archive-file", "a", "--dry-run"])
         self.assertEqual(status, 0)
         self.assertFalse(self.log.exists())
-        self.assertIn("cargo test -p ingest-stream --test redis_stream", out.getvalue())
+        self.assertIn("cargo test -p movement-feed -- --ignored", out.getvalue())
 
 
 if __name__ == "__main__":

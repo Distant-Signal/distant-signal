@@ -5,7 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Distant Signal (DS) is a personal UK rail companion: TfL-shaped line status,
 train and journey tracking, groups, trip planning and Delay Repay support.
 Rust workspace (`crates/`), Next.js frontend (`frontend/`), Helm chart
-(`charts/distant-signal/`), TOML line catalogue (`lines/`, `lines/SCHEMA.md`).
+(`charts/distant-signal/`). The shared core (common, ds-runtime,
+health-http, trust-schema, schedule-query, ingest-stream, ds-store with the
+migrations and grants, ds-migrate, ds-lines with the TOML line catalogue,
+the Redis ACL) is Distant-Signal/ds-core, a git dependency pinned by tag in
+Cargo.toml (`[workspace.dependencies]`, all on the tag in `core-version`).
+A core change is a ds-core PR and release, then a bump here; to try one
+first, patch a local checkout in: `cargo --config
+'patch."https://github.com/Distant-Signal/ds-core".common.path="../ds-core/crates/common"' ...`.
 README.md explains segments (junctions belong to the shared trunk), match
 scopes and the severity scale; DESIGN.md's "pollers POST to `/private/*`"
 picture is out of date (see Ingest below).
@@ -25,7 +32,6 @@ cargo +1.88.0 check --workspace --locked --all-features --all-targets   # MSRV
 cargo deny --locked check bans licenses sources
 cargo test --workspace                       # unit tests; #[ignore] DB/Redis tests skipped
 cargo test -p api some_test_name             # one crate, tests matching a filter
-cargo run -p line-catalogue-validator        # lines/*.toml identifiers
 ```
 
 DB/Redis-backed tests are `#[ignore]`d and need `DATABASE_URL` (a superuser,
@@ -33,12 +39,12 @@ CI uses `postgres://postgres:postgres@localhost:5432/postgres`) and
 `REDIS_URL` (`redis://localhost:6379`), with the migrations applied:
 
 ```sh
-(cd crates/ds-store && sqlx migrate run)     # sqlx-cli 0.8.6, postgres,rustls features
-cargo test -p api -p ds-store -p ds-migrate -p aggregator -p notifier -p schedule-reference -p poller-stations -p poller-incidents -- --ignored --test-threads=1
+core="$(uv run scripts/core-checkout.py)"   # the pinned ds-core (target/ds-core-<sha>)
+(cd "$core/crates/ds-store" && sqlx migrate run)   # sqlx-cli 0.8.6, postgres,rustls features
+cargo test -p api -p aggregator -p notifier -p schedule-reference -p poller-stations -p poller-incidents -- --ignored --test-threads=1
 cargo test -p enricher -- --ignored --skip live_eval --skip replay_ --test-threads=1
 cargo test -p api some_db_test -- --ignored --test-threads=1   # a single DB test
 uv sync --locked --group lint
-uv run --no-sync scripts/gen-db-grants.py check --database-url "${DATABASE_URL}"
 ```
 
 CI builds those test binaries once (`rust-db-build`, a cargo-nextest
@@ -107,12 +113,11 @@ uv sync --locked --group lint
 uv run --no-sync python ../ci/scripts/lint-scripts.py   # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes); ../ci: a Distant-Signal/ci checkout
 uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run --no-sync scripts/chart-values-doc.py check   # chart README values table vs values.yaml
-uv run scripts/gen-db-grants.py check        # db-grants.yaml vs access/postgres-grants.sql (render, then sync, to fix)
-uv run scripts/sync-chart-core-files.py --check  # chart copies of db-grants.yaml, access/ (grants, roles, ACL) (rewrite without --check)
+uv run scripts/sync-core.py --check          # chart files/ = the pinned ds-core release's signed access assets (rewrite without --check)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
-uv run --no-sync scripts/check-crate-deps.py # ds-store/ds-migrate stay free of axum, redis, reqwest...
-uv run --no-sync scripts/release-order.py check --values charts/distant-signal/values.yaml --source  # image version labels vs the chart's ordering rules
-uv run --locked --no-default-groups scripts/check-migration-order.py "$(git merge-base origin/main HEAD)"
+uv run --no-sync scripts/check-crate-deps.py # poller-transit-schedule holds no database crate (and ds-store none of the server stack)
+uv run --no-sync scripts/release-order.py check --values charts/distant-signal/values.yaml --source \
+  --migrations "$(uv run scripts/core-checkout.py)/crates/ds-store/migrations"   # image labels vs the chart's ordering rules
 helm lint --strict charts/distant-signal
 helm lint --strict charts/distant-signal -f charts/distant-signal/values-example.yaml
 helm lint --strict charts/ds-ingest-bucket
@@ -176,18 +181,14 @@ trains and skipped stops notify on escalation only. One push per user per
 train: a journey-break notice replaces that train's plain push
 (`push_queue.rs`).
 
-**Postgres roles.** `crates/ds-store/db-grants.yaml` classifies
+**Postgres roles.** ds-core's `crates/ds-store/db-grants.yaml` classifies
 every public table, view, sequence and function and gives each service role
-(`planned`, `observed` or `narrow`) its grants; `gen-db-grants.py render`
-produces `access/postgres-grants.sql`. A new table must
-be added there (CI checks a migrated DB against it). docs/postgres-app-role.md
-and the chart README's "Per-service Postgres roles". The Redis ACL's source is
-`access/redis-users.acl.tpl` (docs/redis-acl.md); `access/` also holds the
-roles setup (`postgres-roles.sql`, `postgres-roles-setup.sh`). The chart's
-`files/db-grants.yaml`, `files/postgres-*` and `files/redis-users.acl.tpl`
-are generated copies:
-edit the sources, then run `scripts/sync-chart-core-files.py` (CI fails on
-drift).
+(`planned`, `observed` or `narrow`) its grants; ds-core renders it into
+`postgres-grants.sql`. The chart's `files/db-grants.yaml`, `files/postgres-*`
+and `files/redis-users.acl.tpl` are the pinned release's signed assets,
+vendored by `scripts/sync-core.py` (CI fails on drift).
+docs/postgres-app-role.md and the chart README's "Per-service Postgres
+roles"; the Redis ACL, docs/redis-acl.md.
 
 **Chart and deploys.** One chart for the whole stack, documented in
 `charts/distant-signal/README.md` (keep its values reference in step,
@@ -215,19 +216,11 @@ README index); code, the chart README and top-level docs/ are the truth.
 
 ## Conventions
 
-- **Migrations** (`crates/ds-store/migrations`, sqlx): forward-only; a merged
-  file is immutable (sqlx checksums it, an edit crash-loops the api). A new
-  migration's timestamp must be newer than every migration on main
-  (`check-migration-order.py`). Append its line to
-  `crates/ds-store/tests/migration_checksums.lock` once it merges. Lock-taking
-  statements need `SET LOCAL lock_timeout` first; indexes on existing tables
-  are `CREATE INDEX CONCURRENTLY` in a file whose first line is
-  `-- no-transaction`; constraints go on `NOT VALID` and are validated in a
-  later migration (`SET NOT NULL` via a validated `CHECK`). Destructive DDL
-  (drops, renames, type changes, `SET NOT NULL`) needs a
-  `-- contract: <what> (code stopped using it in <commit>)` header and ships
-  a release after the code stopped using it. Enforced by
-  `crates/ds-store/tests/migration_index_locking.rs` and `migration_checksums.rs`.
+- **Migrations, grants, the Redis ACL and the line catalogue** live in
+  Distant-Signal/ds-core, with their rules in its CLAUDE.md. A service
+  that needs one opens a ds-core PR, waits for the release, then bumps
+  core here (Cargo.toml's tags, `core-version`, `migrate.image`, and
+  `uv run scripts/sync-core.py` for the chart's files).
 - **API changes** get an entry in docs/api-changelog.md (newest first, what a
   client like DS-MCP needs to know). A changed response type the frontend
   reads also means regenerating the TypeScript:
