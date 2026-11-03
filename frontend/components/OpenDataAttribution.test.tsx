@@ -146,6 +146,12 @@ describe('OpenDataAttribution', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
+  it('links to the developer pages', () => {
+    renderWithMantine(<OpenDataAttribution />);
+    const nav = screen.getByRole('navigation', { name: 'Site information' });
+    expect(within(nav).getByRole('link', { name: 'Developers' })).toHaveAttribute('href', '/developers');
+  });
+
   it('hides the legal page links while the legal pages are unpublished (the default)', () => {
     renderWithMantine(<OpenDataAttribution />);
     for (const name of ['Privacy', 'Terms', 'Cookies', 'Contact', 'Accessibility']) {

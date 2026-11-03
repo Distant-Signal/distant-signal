@@ -18,6 +18,8 @@ import {
 import { ConfirmActionButton } from './ConfirmActionButton';
 import { CopyableLink } from './CopyableLink';
 import { SectionTitle } from './SectionTitle';
+import { TextLink } from './TextLink';
+import { API_REFERENCE_PATH, DEVELOPERS_PATH } from '@/lib/developerDocs';
 import { formatDate, formatDateTime } from '@/lib/dateFormat';
 import { describeFailure } from '@/lib/failure';
 import { lifetimeLabel, personalScopeSentence } from '@/lib/personalTokens';
@@ -100,6 +102,15 @@ export function PersonalTokens({
         A token lets something you run yourself, such as a home dashboard or a phone shortcut, read your Distant Signal
         data. It can only read, never change anything. Anyone with the token can read what it allows, so keep it
         private.
+      </Text>
+      <Text size="sm">
+        <TextLink href={DEVELOPERS_PATH} underline="always">
+          How to use a token
+        </TextLink>
+        {' · '}
+        <TextLink href={API_REFERENCE_PATH} underline="always">
+          API reference
+        </TextLink>
       </Text>
       {data.apiBaseUrl && (
         <Text size="sm">

@@ -28,6 +28,8 @@ export const ROUTE_TEMPLATES = [
   '/connect-claude/authorize',
   '/contact',
   '/cookies',
+  '/developers',
+  '/developers/api',
   '/groups',
   '/groups/[id]',
   '/groups/join/[token]',

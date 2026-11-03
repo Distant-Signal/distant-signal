@@ -18,6 +18,8 @@ next-env.d.ts
 # The api's types (scripts/sync-api-types.py): a byte-for-byte copy of
 # api-types/api.ts, which ts-rs writes.
 lib/api-types.ts
+# The personal-token API's OpenAPI document, a copy of api-types/openapi/v1.json.
+lib/openapi-v1.json
 package-lock.json
 
 # Minified accessibility fixtures (captured axe/page output): formatting
