@@ -87,6 +87,14 @@ class CoreCheckoutTests(unittest.TestCase):
             self.assertEqual(core.checkout(dest, url, "v0.1.0", sha), dest)
             with self.assertRaises(ValueError):
                 core.checkout(Path(tmp) / "other", url, "v0.1.0", SHA)
+            # A partial copy (no .git) is an error, or replaced if asked.
+            stale = Path(tmp) / "stale"
+            (stale / "crates").mkdir(parents=True)
+            with self.assertRaises(FileExistsError):
+                core.checkout(stale, url, "v0.1.0", sha)
+            dest = core.checkout(stale, url, "v0.1.0", sha, replace=True)
+            self.assertEqual((dest / "f").read_text(), "x")
+            self.assertFalse((dest / "crates").exists())
 
 
 if __name__ == "__main__":
