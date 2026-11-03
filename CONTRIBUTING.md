@@ -50,6 +50,12 @@ UPDATE_API_TYPES=1 cargo test -p api api_types   # rewrite api-types/api.ts
 uv run scripts/sync-api-types.py write            # copy it into the frontend
 ```
 
+The same script copies the personal-token API's OpenAPI document,
+`api-types/openapi/v1.json`, to `frontend/lib/openapi-v1.json`, which the
+`/developers/api` reference renders at build time. After
+`UPDATE_OPENAPI=1 cargo test -p api openapi_document_is_current`, run
+`write` again.
+
 CI fails when either file is stale: the `api_types_are_current` test in
 `cargo test`, and `sync-api-types.py check` in repo-checks. A new response
 type derives `ts_rs::TS` beside its `Serialize` (in `common` and `ds-store`,
