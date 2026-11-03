@@ -62,6 +62,7 @@ describe('severityLabel', () => {
 describe('worstStatus', () => {
   const baseReport: LineStatusReport = {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id: 'wcml',
     name: 'West Coast Main Line',
     modeName: 'national-rail',

@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { IncidentSearchForm } from './IncidentSearchForm';
 import type { IncidentSearchResponse, LineSummary, Suggestion } from '@/lib/types';
+import { INCIDENT_TIMING_DEFAULTS } from '@/test/apiDefaults';
 
 // Same rationale as `TrainSearchForm.test.tsx`'s identical mock: `DatePickerInput`'s
 // real popover calendar has no real `<input>` `fireEvent.change` can drive.
@@ -89,8 +90,11 @@ function openFilters() {
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
 }
 
-function summary(overrides: Partial<IncidentSearchResponse['results'][number]> = {}) {
+function summary(
+  overrides: Partial<IncidentSearchResponse['results'][number]> = {},
+): IncidentSearchResponse['results'][number] {
   return {
+    ...INCIDENT_TIMING_DEFAULTS,
     incidentId: '1',
     summary: 'Signal failure at Woking',
     operators: ['VT'],
@@ -102,7 +106,7 @@ function summary(overrides: Partial<IncidentSearchResponse['results'][number]> =
     isCleared: false,
     firstSeenAt: '2026-08-30T09:00:00Z',
     fetchedAt: '2026-08-31T10:15:00Z',
-    sourceRemovedAt: null as string | null,
+    sourceRemovedAt: null,
     ...overrides,
   };
 }
@@ -118,7 +122,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('excludes a custom line from the Line dropdown, offering only catalogue lines', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     openFilters();
     // Synchronously, with no `await` in between: an intervening await lets
@@ -131,7 +135,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('searches the last 30 days on mount, once, without touching the URL', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     const replaceState = vi.spyOn(window.history, 'replaceState');
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await searchSettled();
@@ -169,7 +173,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('builds a comma-joined operator query parameter from multiple selected operators', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     openFilters();
     // Both options from one dropdown open, queried synchronously -- see the
@@ -191,6 +195,7 @@ describe('IncidentSearchForm', () => {
       okResponse({
         results: [summary({ incidentId: '1', affectedLines: ['south-western', 'retired-line'] })],
         nextCursor: null,
+        total: null,
       }),
     );
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
@@ -213,6 +218,7 @@ describe('IncidentSearchForm', () => {
           }),
         ],
         nextCursor: null,
+        total: null,
       }),
     );
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
@@ -224,17 +230,8 @@ describe('IncidentSearchForm', () => {
     expect(list.textContent).not.toContain('line-5');
   });
 
-  // A rolling deploy can serve this bundle against an api that predates
-  // `affectedLines` (or `total`). Rendering must degrade, never throw.
-  it('renders a row with no affectedLines from a response with no total', async () => {
-    const { affectedLines: _dropped, ...withoutLines } = summary({ incidentId: '1' });
-    fetchMock.mockReturnValue(okResponse({ results: [withoutLines], nextCursor: null }));
-    renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
-    expect(await screen.findByText('Signal failure at Woking')).toBeTruthy();
-  });
-
   it('sends London-day bounds for custom dates (FE-5)', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await searchSettled();
     openFilters();
@@ -250,11 +247,11 @@ describe('IncidentSearchForm', () => {
   it('keeps the original filters on a "Load more" request, ignoring a filter change made afterward', async () => {
     let resolveLive!: (response: Response) => void;
     fetchMock
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a' }))
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a', total: null }))
       // The live search the filter change below sets off: held open, so the
       // rows on screen are still page 1 of the first search.
       .mockReturnValueOnce(new Promise<Response>((resolve) => (resolveLive = resolve)))
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '2' })], nextCursor: null }));
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '2' })], nextCursor: null, total: null }));
 
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await screen.findByText('Signal failure at Woking');
@@ -293,7 +290,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('picks Ended in the Status filter and writes state=ended to both the request and the URL', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await searchSettled();
     openFilters();
@@ -306,7 +303,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('picks Upcoming in the Status filter and writes state=upcoming to both the request and the URL', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await searchSettled();
     openFilters();
@@ -317,7 +314,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('restores Upcoming from ?state=upcoming', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialState="upcoming" />);
     await waitFor(() => expect(lastRequestUrl().searchParams.get('state')).toBe('upcoming'));
   });
@@ -353,6 +350,7 @@ describe('IncidentSearchForm', () => {
           }),
         ],
         nextCursor: null,
+        total: null,
       }),
     );
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
@@ -377,10 +375,16 @@ describe('IncidentSearchForm', () => {
       okResponse({
         results: [
           summary({ incidentId: 'a', summary: 'Still listed' }),
-          summary({ incidentId: 'e', summary: 'Purged overnight', sourceRemovedAt: '2026-10-05T22:55:00+00:00' }),
-          summary({ incidentId: 'c', summary: 'Cleared by RDM', isCleared: true }),
+          summary({
+            incidentId: 'e',
+            summary: 'Purged overnight',
+            sourceRemovedAt: '2026-10-05T22:55:00+00:00',
+            state: 'ended',
+          }),
+          summary({ incidentId: 'c', summary: 'Cleared by RDM', isCleared: true, state: 'cleared' }),
         ],
         nextCursor: null,
+        total: null,
       }),
     );
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
@@ -401,7 +405,7 @@ describe('IncidentSearchForm', () => {
   // no layout, so this asserts the structure instead: no Mantine scroll
   // viewport and no pinned height between the list and the form's root.
   it('renders the results list in the page flow, with no fixed-height or scroll-container ancestor', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: null, total: null }));
     const { container } = renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await screen.findByText('Signal failure at Woking');
 
@@ -420,8 +424,8 @@ describe('IncidentSearchForm', () => {
 
   it('says the end has been reached once the last page is in, rather than just dropping the button', async () => {
     fetchMock
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a' }))
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '2' })], nextCursor: null }));
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a', total: null }))
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '2' })], nextCursor: null, total: null }));
 
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await screen.findByText('Signal failure at Woking');
@@ -435,7 +439,7 @@ describe('IncidentSearchForm', () => {
 
   it('does not claim the end of results when a "Load more" page fails -- it reports the failure and keeps the retry', async () => {
     fetchMock
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a' }))
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a', total: null }))
       .mockReturnValueOnce(errorResponse());
 
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
@@ -446,7 +450,9 @@ describe('IncidentSearchForm', () => {
     expect(screen.queryByText(/You've reached the end/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Load more' })).toBeEnabled();
 
-    fetchMock.mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '2' })], nextCursor: null }));
+    fetchMock.mockReturnValueOnce(
+      okResponse({ results: [summary({ incidentId: '2' })], nextCursor: null, total: null }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
     await waitFor(() => expect(screen.getAllByText('Signal failure at Woking')).toHaveLength(2));
     expect(requestUrl(2).searchParams.get('after')).toBe('cursor-a');
@@ -455,7 +461,7 @@ describe('IncidentSearchForm', () => {
 
   it('reports a "Load more" whose fetch throws the same way it reports a non-2xx', async () => {
     fetchMock
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a' }))
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a', total: null }))
       // Lazily: a `Promise.reject` built at setup time is unhandled until used.
       .mockImplementationOnce(() => Promise.reject(new Error('network down')));
 
@@ -468,12 +474,13 @@ describe('IncidentSearchForm', () => {
   it('discards a "Load more" page that lands after a fresh search has already replaced the results', async () => {
     let resolvePageTwo!: (response: Response) => void;
     fetchMock
-      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a' }))
+      .mockReturnValueOnce(okResponse({ results: [summary({ incidentId: '1' })], nextCursor: 'cursor-a', total: null }))
       .mockReturnValueOnce(new Promise<Response>((resolve) => (resolvePageTwo = resolve)))
       .mockReturnValueOnce(
         okResponse({
           results: [summary({ incidentId: '9', summary: 'Points failure at Woking' })],
           nextCursor: null,
+          total: null,
         }),
       );
 
@@ -502,9 +509,11 @@ describe('IncidentSearchForm', () => {
   it('never lets a slow, superseded search land over a newer one', async () => {
     let resolveSlow!: (response: Response) => void;
     fetchMock
-      .mockReturnValueOnce(okResponse({ results: [], nextCursor: null }))
+      .mockReturnValueOnce(okResponse({ results: [], nextCursor: null, total: null }))
       .mockReturnValueOnce(new Promise<Response>((resolve) => (resolveSlow = resolve)))
-      .mockReturnValueOnce(okResponse({ results: [summary({ summary: 'Newer search' })], nextCursor: null }));
+      .mockReturnValueOnce(
+        okResponse({ results: [summary({ summary: 'Newer search' })], nextCursor: null, total: null }),
+      );
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await searchSettled();
     const box = screen.getByRole('textbox', { name: 'Find an incident' });
@@ -524,7 +533,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('renders the empty-results message, not a blank screen', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
     await screen.findByText('No incidents match these filters.');
     expect(screen.queryByText(/You've reached the end/)).not.toBeInTheDocument();
@@ -538,7 +547,7 @@ describe('IncidentSearchForm', () => {
   });
 
   it('pads the operator and line filter clear buttons to the 24px touch-target floor', async () => {
-    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+    fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
     renderWithMantine(
       <IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialOperator="SW" initialLine="south-western" />,
     );
@@ -566,7 +575,7 @@ describe('IncidentSearchForm', () => {
 
   describe('the Period, Type and Status controls', () => {
     it('defaults to the 30-day preset, with the date pickers hidden', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
       await searchSettled();
       openFilters();
@@ -578,7 +587,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('shows Custom dates as selected when initial filters supply an explicit from date', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialFrom="2026-08-01T00:00:00Z" />);
       await searchSettled();
       openFilters();
@@ -589,7 +598,7 @@ describe('IncidentSearchForm', () => {
 
   describe('the Priority range control (review §2.14)', () => {
     it('states the raw-feed caveat once, with accessible Minimum/Maximum fields', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
       await searchSettled();
       openFilters();
@@ -600,7 +609,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('shows the min/max error once, and does not search an inverted range', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
       await searchSettled();
       openFilters();
@@ -621,7 +630,7 @@ describe('IncidentSearchForm', () => {
   // operator) on each change.
   describe('URL state', () => {
     it('writes the filters to the URL with replaceState, never the router', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
       await searchSettled();
       openFilters();
@@ -639,7 +648,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('writes a preset as period, and the 30-day default as nothing', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialOperator="SW" />);
       await searchSettled();
       openFilters();
@@ -651,7 +660,7 @@ describe('IncidentSearchForm', () => {
 
     it('keeps params it does not own', async () => {
       window.history.replaceState(null, '', '/incidents?utm=x');
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} />);
       await searchSettled();
       fireEvent.change(screen.getByRole('textbox', { name: 'Find an incident' }), { target: { value: 'flood' } });
@@ -659,7 +668,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('restores the search, Type, Status and priority range from initial props, and searches with them once', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(
         <IncidentSearchForm
           lines={TEST_LINES}
@@ -693,7 +702,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('restores Ended from initialState, which wins over a legacy initialCleared', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(
         <IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialState="ended" initialCleared="true" />,
       );
@@ -702,7 +711,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('ignores an unknown initialState and unparseable priorities rather than sending them', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(
         <IncidentSearchForm
           lines={TEST_LINES}
@@ -724,7 +733,7 @@ describe('IncidentSearchForm', () => {
       ['7d', 7],
       ['90d', 90],
     ] as const)('restores period=%s', async (period, days) => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(<IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialPeriod={period} />);
       await searchSettled();
       const from = requestUrl(0).searchParams.get('from');
@@ -738,7 +747,7 @@ describe('IncidentSearchForm', () => {
     });
 
     it('restores custom dates with no lower bound from period=custom', async () => {
-      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null }));
+      fetchMock.mockReturnValue(okResponse({ results: [], nextCursor: null, total: null }));
       renderWithMantine(
         <IncidentSearchForm lines={TEST_LINES} tocs={TEST_TOCS} initialPeriod="custom" initialTo="2026-09-15" />,
       );

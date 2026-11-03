@@ -275,7 +275,7 @@ export default async function LineTimetablePage({
   const stations = page.stations;
   const fromName = page.from ? stationName(page.from, stations) : null;
   const toName = page.to ? stationName(page.to, stations) : null;
-  const total = Object.values(page.counts[tp.scope] ?? {}).reduce<number>((sum, n) => sum + (n ?? 0), 0);
+  const total = Object.values(page.counts[tp.scope] ?? {}).reduce<number>((sum, n) => sum + n, 0);
   const dirName = tp.dir ? directionLabel(tp.dir, stations) : null;
   const what = [
     tp.scope === 'shared' ? 'Other trains running along this line' : "This line's trains",

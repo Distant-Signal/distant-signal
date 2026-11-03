@@ -3,13 +3,15 @@ import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { STATIONS, train } from '@/test/lineTrainsFixtures';
 import { ServiceRow, ServiceRowList } from './ServiceRow';
+import type { LineTrainSummaryLive } from '@/lib/types';
 
 const DATE = '2026-10-06';
-const live = {
+const live: LineTrainSummaryLive = {
   status: 'en_route',
   delayMinutes: 0,
   delayProvisional: false,
   cancelled: false,
+  cancelReason: null,
   lastReportedLocation: null,
 };
 

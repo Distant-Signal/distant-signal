@@ -1,4 +1,4 @@
-import { incidentState, type IncidentState } from './incidents';
+import type { IncidentState } from './incidents';
 import {
   listPhrase,
   livePreviewImage,
@@ -143,10 +143,10 @@ function operatorNames(incident: IncidentDetail, names: ReadonlyMap<string, stri
   return incident.operators.map((code) => names.get(code) ?? code);
 }
 
-/** The card's contents. `state` is the api's when it sends one
- * (`incidentState`), so the card and the page's badge always agree. */
+/** The card's contents. `state` is the api's, so the card and the page's
+ * badge always agree. */
 export function incidentPreviewCard(incident: IncidentDetail, lookups: IncidentPreviewLookups): IncidentPreviewCard {
-  const state = incidentState(incident, lookups.now);
+  const state = incident.state;
   const lineNames = incident.currentlyAffectsLines.map((line) => tidy(line.name)).filter((name) => name !== '');
   const operators = operatorNames(incident, lookups.operatorNames);
   const stations = incident.affectedStations.map((crs) => lookups.stationNames?.get(crs) ?? crs);
@@ -204,7 +204,7 @@ export function incidentPreviewAlt(card: IncidentPreviewCard, siteName: string):
 export function incidentPreviewVersion(incident: IncidentDetail): string {
   return previewDigest([
     incident.summary,
-    incident.state ?? null,
+    incident.state,
     incident.isPlanned,
     incident.isCleared,
     incident.sourceRemovedAt ?? null,

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { addCalendarDays, nowInLondon, londonToday, LONDON_TZ } from '@/lib/londonWallClock';
-import type { BoardCallingPoint, LineTrainSummaryLive } from '@/lib/types';
+import type * as Api from '@/lib/api-types';
 
 /** The track form's departure picker: the two wire shapes it lists (the
  * live board and the timetable), the filters that narrow them, and the
@@ -182,109 +182,20 @@ export function matchesScheduledDeparture(
   return rowDateTime >= scheduledDeparture;
 }
 
-/** Wire shape of `GET /public/stations/{crs}/departures`
- * (`crates/api/src/render.rs::station_departure_json`) -- camelCase
- * mirror of `common::StationDeparture`'s own fields, minus `headcode`
- * (always `None` at the source, never carried through). See
- * docs/superpowers/specs/2026-09-03-trip-search-design.md Decision 2/5.
- * Deliberately carries no `uid`: LDBWS/Darwin has no concept of the CIF
- * schedule UID the public `/train/[uid]/[date]` page is keyed on --
- * `serviceId` below is Darwin's own RID-based identifier, a different
- * scheme entirely, not a substitute. That's why this source's row
- * rendering (`DeparturePicker`, `'ldbws'` branch) has no "View live status"
- * link even though the `'cif'` branch does. */
-export interface DepartureRow {
-  serviceId: string;
-  operator: string;
-  destinationCrs: string;
-  /** Resolved via a batched `stations` lookup, added server-side
-   * (`render::station_departure_json`) so this picker can show a name
-   * instead of a bare CRS code -- 2026-09-22 UX review follow-up. `null`
-   * when the code has no `stations` reference row, same "fall back to the
-   * bare code" convention `stationLabel` applies everywhere else in this
-   * app. */
-  destinationName: string | null;
-  scheduled: string;
-  estimated: string;
-  isCancelled: boolean;
-  delayMinutes: number;
-  cancelReason: string | null;
-  delayReason: string | null;
-  skippedStations: string[];
-  // See `JourneyStop.platform`/`plannedPlatform`/`platformChanged`'s own
-  // doc comments in `lib/types.ts` -- same fields, same meaning, this
-  // route's own copy of them (`station_departure_json`).
-  platform: string | null;
-  plannedPlatform: string | null;
-  platformChanged: boolean;
-  // LDBWS Retail Service ID and the service's subsequent calling points
-  // (see `BoardCallingPoint` in `lib/types.ts`). Optional: older backends
-  // and older stored boards don't send them. Not rendered by the picker.
-  rsid?: string | null;
-  callingPoints?: BoardCallingPoint[];
-}
+/** One row of `GET /public/stations/{crs}/departures`, the LDBWS live
+ * board (`render::station_departure_json`). */
+export type DepartureRow = Api.StationDeparture;
 
-/** Wire shape of `GET /public/stations/{crs}/schedule-departures`
- * (`crates/api/src/render.rs::schedule_departure_json`) -- deliberately
- * NOT `DepartureRow`: no `operator`, no live running-status fields at all
- * (`isCancelled`/`delayMinutes`/`estimated`/`cancelReason`/`delayReason`),
- * because the CIF SCHEDULE feed genuinely has none of that -- see
- * docs/superpowers/specs/2026-09-04-whole-network-trip-search-design.md
- * Decision 2/5. (Since 2026-10-07 the server joins the train's own live
- * state, when it has one, into the optional `live` object below.)
- * `destinationCrs` is nullable: `null` when the terminating
- * TIPLOC has no `stanox_crs` row (a real, if rare, gap).
- *
- * `dayOffset` is how many calendar days past this route's own "today" (the
- * server always resolves this endpoint's `service_date` to today, see that
- * route's own doc comment) `scheduled` actually falls on -- mirrors
- * `schedule_query::CallingPoint::day_offset` verbatim. Needed because a
- * bare `"HH:MM"` string carries no day information of its own: a real
- * overnight CIF schedule can have a calling point booked at, say, `00:07`
- * that is genuinely TOMORROW relative to when the schedule itself started
- * (see `schedule_query::resolve`'s own `f49687_raw` doc comment for the
- * live-confirmed c2c Liverpool Street -> Shoeburyness example this exists
- * for). Almost always `0`. `pickCifDeparture` and `matchesScheduledDeparture`
- * both use this to compute the row's REAL departure calendar date instead of
- * always assuming "today" -- see their own doc comments.
- *
- * It never moves the row's SERVICE date: every row in one response belongs
- * to the same CIF service date (the bucket's, `Picker`'s `serviceDate`), and
- * the `/train/{uid}/{date}` link is keyed on that, not on the departure's
- * own day. Optional because an `api` pod from before the field existed
- * (rolled independently of `frontend`) omits it; absent means `0`. */
-export interface ScheduleDepartureRow {
-  uid: string;
-  /** The public departure, else the working one where the call has no
-   * public departure; `dayOffset` is its day. Working (WTT) from an older
-   * backend. */
-  scheduled: string;
-  /** The public (timetable) departure, shown in place of `scheduled` (for
-   * an older backend). `null`/absent until the next schedule publish. */
-  publicDeparture?: string | null;
-  /** The working-timetable departure and its own day offset: what a pin is
-   * made from (`cifDepartureDateTime`), since schedule matching keys on the
-   * working time. Absent from an older backend, whose `scheduled`/
-   * `dayOffset` are the working ones. */
-  workingDeparture?: string | null;
-  workingDayOffset?: number;
-  /** Absent from an older api pod mid-rollout; see `pickCifDeparture`. */
-  dayOffset?: number;
-  destinationCrs: string | null;
-  /** Same server-side batched-lookup enrichment as `DepartureRow`'s own
-   * `destinationName` -- see its doc comment. `null` both when
-   * `destinationCrs` itself is `null` and when it resolved to no
-   * `stations` row. */
-  destinationName: string | null;
-  /** The schedule's true origin CRS, `null` when it does not resolve
-   * (2026-10-07, docs/api-changelog.md). */
-  originCrs?: string | null;
-  /** `originCrs`'s station name, `null` when unknown. */
-  originName?: string | null;
-  /** The line summary's compact live status for this train today; `null`
-   * when it has none. */
-  live?: LineTrainSummaryLive | null;
-}
+/** One row of `GET /public/stations/{crs}/schedule-departures`
+ * (`render::schedule_departure_json`): the CIF timetable, so no live
+ * running fields beyond the train's own `live` state. `dayOffset` is how
+ * many calendar days past the bucket's service date `scheduled` falls on
+ * (an overnight schedule's `00:07` call), and never moves the row's
+ * service date: the `/train/{uid}/{date}` link stays keyed on the bucket's
+ * (`CifPickerRow.serviceDate`). `workingDeparture`/`workingDayOffset` are
+ * what a pin is made from (`cifDepartureDateTime`), since schedule matching
+ * keys on the working time. */
+export type ScheduleDepartureRow = Api.ScheduleDepartureRow;
 
 /** `'unavailable'` replaces the old `'not-sampled'` name: it now means
  * neither the LDBWS live board NOR the CIF-derived timetable had data for
@@ -317,7 +228,7 @@ const RAIL_DAY_ROLLOVER_HOUR = 2;
  * (2026-10-20: `scheduled` became the public time). */
 export function cifDepartureDateTime(row: CifPickerRow): string {
   const time = row.workingDeparture ?? row.scheduled;
-  const dayOffset = (row.workingDeparture != null ? row.workingDayOffset : row.dayOffset) ?? 0;
+  const dayOffset = row.workingDeparture != null ? row.workingDayOffset : row.dayOffset;
   const [hh, mm] = time.split(':');
   return `${addCalendarDays(row.serviceDate, dayOffset)} ${hh}:${mm}:00`;
 }
@@ -368,7 +279,7 @@ export async function fetchCifPickerRows(
   const nowWallClock = now.format('YYYY-MM-DD HH:mm:00');
   const stillDue = yesterdayRows
     .map((row): CifPickerRow => ({ ...row, serviceDate: yesterday }))
-    .filter((row) => (row.dayOffset ?? 0) >= 1 && cifDepartureDateTime(row) >= nowWallClock);
+    .filter((row) => row.dayOffset >= 1 && cifDepartureDateTime(row) >= nowWallClock);
   const seen = new Set<string>();
   return [...stillDue, ...rows]
     .filter((row) => {

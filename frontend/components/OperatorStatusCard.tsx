@@ -108,8 +108,7 @@ export function OperatorStatusCard({
    * of. */
   dedupedLineId?: string | undefined;
 }) {
-  const reasonAlreadyShownAbove =
-    dedupedLineId !== undefined && operator.worstLineId !== undefined && dedupedLineId === operator.worstLineId;
+  const reasonAlreadyShownAbove = dedupedLineId !== undefined && dedupedLineId === operator.worstLineId;
 
   const showCrossReference = reasonAlreadyShownAbove && Boolean(operator.worstLineName);
 

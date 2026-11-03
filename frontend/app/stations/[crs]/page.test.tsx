@@ -7,6 +7,7 @@ import { ApiNotFoundError } from '@/lib/api';
 import { __resetStaleCacheForTests } from '@/lib/liveDataCache';
 import type { LineStatusReport, StationOperatorSampleStats } from '@/lib/types';
 import { visibleText } from '@/test/routeText';
+import type { JsonValue } from '@/lib/api-types';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -56,6 +57,7 @@ vi.mock('next/navigation', () => ({
 function report(id: string, name: string): LineStatusReport {
   return {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id,
     name,
     modeName: 'national-rail',
@@ -412,7 +414,8 @@ describe('StationDisruptionPage -- accessibility & facilities', () => {
     // a total function over `unknown`, so the terminal branch stays
     // reachable even though no real payload reaches it any more (§4.9).
     vi.mocked(api.getStationAccessibility).mockResolvedValue({
-      lifts: new Date('2026-09-16'),
+      // Not JSON: no payload can carry it.
+      lifts: new Date('2026-09-16') as unknown as JsonValue,
     });
 
     await expect(renderPage()).resolves.toBeDefined();

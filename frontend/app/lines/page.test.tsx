@@ -164,6 +164,7 @@ describe('statusGroup deep link', () => {
     const statusGroupTestReports: LineStatusReport[] = [
       {
         $type: 'DistantSignal.LineStatusReport',
+        attribution: [],
         id: 'wcml',
         name: 'West Coast Main Line',
         modeName: 'national-rail',
@@ -184,6 +185,7 @@ describe('statusGroup deep link', () => {
       },
       {
         $type: 'DistantSignal.LineStatusReport',
+        attribution: [],
         id: 'gwr',
         name: 'Great Western Railway',
         modeName: 'national-rail',

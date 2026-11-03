@@ -118,6 +118,60 @@ export type RevisionLegFate = Api.RevisionLegFate;
 export type RevisionLeg = Api.RevisionLeg;
 export type Revision = Api.RevisionResponse;
 export type RevisionsResponse = Api.RevisionsResponse;
+export type ValidityPeriod = Api.ValidityPeriod;
+export type AffectedRoute = Api.AffectedRoute;
+export type Disruption = Api.Disruption;
+export type IncidentLineRef = Api.IncidentLineRef;
+export type IncidentHistoryEntry = Api.IncidentHistoryEntry;
+export type IncidentDetail = Api.IncidentDetail;
+export type IncidentSummary = Api.IncidentSummary;
+export type IncidentTiming = Api.IncidentTiming;
+export type RecentlyClearedIncident = Api.RecentlyClearedIncident;
+export type IncidentSearchResponse = Api.IncidentSearchResponse;
+export type SampleStats = Api.SampleStats;
+export type SampleAvailability = Api.SampleAvailability;
+export type FullCoverageAvailability = Api.FullCoverageAvailability;
+export type LineStatus = Api.LineStatus;
+export type UpcomingDisruption = Api.UpcomingDisruption;
+export type LineStatusReport = Api.LineStatusReport;
+export type LineDailyStats = Api.DailyStats;
+export type LineHalfHourlyStats = Api.HalfHourlyStats;
+export type LineHourlyStats = Api.SubDailyStats;
+export type LineSixHourlyStats = Api.SubDailyStats;
+export type LineDailyCoverageStats = Api.DailyCoverageStats;
+export type LineHalfHourlyCoverageStats = Api.HalfHourlyCoverageStats;
+export type OperatorSummary = Api.OperatorSummary;
+export type StationOperatorSampleStats = Api.StationOperatorSampleStats;
+export type StationAccessibilityData = Api.StationAccessibility;
+export type NearbyStation = Api.NearbyStation;
+export type BoardCallingPoint = Api.BoardCallingPoint;
+export type TrainResolveResult = Api.TrainResolveResult;
+export type LineSummary = Api.LineSummary;
+export type CustomLineDetail = Api.CustomLineDetail;
+export type LineDefinitionSummary = Api.LineDefinitionSummary;
+export type LineTrainCallingPointKind = Api.CallingPointKind;
+export type LineTrainCallingPoint = Api.LineTrainCallingPoint;
+export type LineTrainLiveStatus = Api.LineTrainLiveStatus;
+export type LineTrainEntry = Api.LineTrainEntry;
+export type LineTrainScope = Api.LineTrainScope;
+export type LineDirection = Api.LineDirection;
+export type LineTime = Api.LineTime;
+export type LineTrainStop = Api.LineTrainStop;
+export type LineStationRef = Api.LineStationRef;
+export type LineTrainSummaryLive = Api.LineTrainSummaryLive;
+export type LineTrainSummary = Api.LineTrainSummary;
+export type LineCatalogueStation = Api.LineCatalogueStation;
+export type LineTrainsSummary = Api.LineTrainsSummary;
+export type LineTimetableTrain = Api.LineTimetableTrain;
+export type LineTimetablePage = Api.LineTimetablePage;
+export type TrainSearchResult = Api.TrainSearchResult;
+export type TrainSearchPage = Api.TrainSearchPage;
+export type TrainArrivalResult = Api.TrainArrivalResult;
+export type TrainArrivalsPage = Api.TrainArrivalsPage;
+export type TrainHeadcodePage = Api.TrainHeadcodePage;
+export type TrainSearchOperator = Api.TrainSearchOperator;
+export type TrainSearchOperators = Api.TrainSearchOperators;
+export type TrainSearchDates = Api.TrainSearchDates;
 
 // Field groups the api flattens into many responses, as optional inputs:
 // the helpers that read them also take rows of routes not generated yet.
@@ -135,365 +189,7 @@ export type TrainJourneyState = Omit<
   'id' | 'sharedGroupCount' | 'journeyIds' | 'singleLegJourneyIds' | 'notificationsEnabled'
 > & { pinScheduledDeparture?: string | null };
 
-export interface ValidityPeriod {
-  fromDate: string;
-  toDate: string | null;
-  isNow: boolean;
-}
-
-export interface AffectedRoute {
-  from: string;
-  to: string;
-}
-
-export interface Disruption {
-  category: string;
-  description: string;
-  affectedStops: string[];
-  affectedRoutes: AffectedRoute[];
-  source: string | null;
-  impactType: string | null;
-}
-
-export interface IncidentLineRef {
-  id: string;
-  name: string;
-}
-
-export interface IncidentHistoryEntry {
-  summary: string;
-  description: string;
-  operators: string[];
-  affectedStations: string[];
-  priority: number;
-  validityPeriods: ValidityPeriod[];
-  isPlanned: boolean;
-  isCleared: boolean;
-  recordedAt: string; // RFC3339
-}
-
-/** `GET /public/incidents/{incidentId}`'s response
- * (`crates/api/src/routes/incidents.rs`). `description` is raw HTML —
- * sanitize with `sanitizeDescription` (`frontend/lib/sanitizeHtml.ts`)
- * before rendering, same as `DisruptionDetail`. `currentlyAffectsLines`
- * is computed fresh per request — can be empty for a cleared or
- * no-longer-matched incident, which is a normal outcome, not an error. */
-export interface IncidentDetail {
-  incidentId: string;
-  summary: string;
-  description: string;
-  operators: string[];
-  affectedStations: string[];
-  priority: number;
-  validityPeriods: ValidityPeriod[];
-  isPlanned: boolean;
-  isCleared: boolean;
-  firstSeenAt: string; // RFC3339
-  fetchedAt: string; // RFC3339
-  /** RFC3339: when the Knowledgebase feed last listed an incident it has
-   * since stopped listing without clearing it ("Ended"), else `null`. See
-   * `incidentState` (`lib/incidents.ts`). Optional only for a bundle served
-   * against an api that predates it. */
-  sourceRemovedAt?: string | null;
-  /** The api's `state`, `startsAt` and `validityEndedAt` (2026-10-20):
-   * see `IncidentTiming`. */
-  state?: IncidentTiming['state'];
-  startsAt?: IncidentTiming['startsAt'];
-  validityEndedAt?: IncidentTiming['validityEndedAt'];
-  currentlyAffectsLines: IncidentLineRef[];
-  history: IncidentHistoryEntry[];
-}
-
-/** One row from `GET /public/incidents`. Deliberately lighter than
- * `IncidentDetail` (no description, no validityPeriods, no history, no
- * currentlyAffectsLines) — see
- * docs/superpowers/specs/2026-09-12-incident-archive-design.md Decision 7. */
-export interface IncidentSummary {
-  incidentId: string;
-  summary: string;
-  operators: string[];
-  /** Always empty in practice: RDM's Knowledgebase Incidents feed carries no
-   * station codes, only a free-text route description. Kept on the wire
-   * because the column exists and the detail page renders it; `affectedLines`
-   * is the field that actually says which railway an incident touches. */
-  affectedStations: string[];
-  /** Catalogue line ids, as decided by the same matcher that drives the live
-   * status pages (`common::matcher`). This is what the Line filter matches
-   * on. Empty means "matched no catalogue line" -- which, for a row ingested
-   * before the column existed, may just mean "not backfilled yet". Absent
-   * from an api that predates the field (a rolling deploy). */
-  affectedLines?: string[];
-  priority: number;
-  isPlanned: boolean;
-  isCleared: boolean;
-  firstSeenAt: string; // RFC3339
-  fetchedAt: string; // RFC3339
-  /** See `IncidentDetail.sourceRemovedAt`. */
-  sourceRemovedAt?: string | null;
-  /** See `IncidentTiming`. */
-  state?: IncidentTiming['state'];
-  startsAt?: IncidentTiming['startsAt'];
-  validityEndedAt?: IncidentTiming['validityEndedAt'];
-}
-
-/** Where an incident stands, as the api derives it from RDM's clear flag,
- * the feed's listing and the incident's validity windows (2026-10-20,
- * `queries::IncidentState`; docs/api-changelog.md). Every field is
- * optional on the wire only for a bundle served against an older api,
- * which `incidentState` (`lib/incidents.ts`) falls back from. */
-export interface IncidentTiming {
-  /** `active`: a validity window covers now; `upcoming`: none has started
-   * yet (or now is between two); `ended`: no longer listed by the feed, or
-   * every window has finished; `cleared`: RDM cleared it. */
-  state: 'active' | 'upcoming' | 'ended' | 'cleared';
-  /** RFC3339: when the next window starts, for `upcoming`; else `null`. */
-  startsAt: string | null;
-  /** RFC3339: when the last window finished, once every window has; else
-   * `null`. */
-  validityEndedAt: string | null;
-}
-
-/** One item of `GET /public/incidents/recently-cleared` (docs/api-changelog.md,
- * 2026-10-12): an incident National Rail has cleared but still lists,
- * cleared since 02:00 today. For information only: it never affects a
- * line's status. */
-export interface RecentlyClearedIncident {
-  incidentId: string;
-  /** The clearing summary as published, often starting "CLEARED:". */
-  summary: string;
-  /** The clearing text as published (HTML). */
-  description: string;
-  operators: string[];
-  affectedLines: IncidentLineRef[];
-  clearedAt: string; // RFC3339
-  lastListedAt: string; // RFC3339
-  /** The end time the last live text stated, or null. Shown only while it
-   * is still in the future. */
-  expectedUntil: string | null;
-  /** The last live text said "expected until the end of the day". */
-  expectedUntilEndOfDay: boolean;
-}
-
-export interface IncidentSearchResponse {
-  results: IncidentSummary[];
-  nextCursor: string | null;
-  /** Every match across all pages; first page only, `null` with `after`.
-   * Absent from an api older than 2026-10-14. */
-  total?: number | null;
-}
-
-export interface SampleStats {
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-}
-
-/** Why `sampleStats` is (or isn't) populated on a given `LineStatus` this
- * cycle -- see `common::SampleAvailability`
- * (`crates/common/src/lib.rs`) and
- * docs/superpowers/specs/2026-09-01-line-status-sample-coverage-design.md
- * Decision 2. Always present, unlike `sampleStats` itself. Read this only
- * through `sampleUnavailableReason`/`formatSampleSummary`
- * (`lib/sampleStats.ts`) -- it is not a meaningful signal on its own for a
- * TfL-quality status (see that module's precedence-order doc comment). */
-export type SampleAvailability =
-  { state: 'no-coverage' } | { state: 'below-threshold'; observed: number; required: number } | { state: 'available' };
-
-/** Why `fullCoverageStats` is (or isn't) populated on a given `LineStatus`
- * this cycle -- the full-coverage analog of `SampleAvailability`,
- * deliberately a SIBLING type, not a reuse of it (see
- * `common::FullCoverageAvailability`'s own doc comment,
- * `crates/common/src/lib.rs`, and
- * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md
- * Decision 1). Always present, like `sampleAvailability`. `'not-enabled'` is
- * the default and, as of this app's current line catalogue, the ONLY value
- * this can take -- nothing sets `full_coverage_enabled` on any line yet, and
- * no producer exists to resolve `'pending'`/`'available'`. */
-export type FullCoverageAvailability = { state: 'not-enabled' } | { state: 'pending' } | { state: 'available' };
-
-export interface LineStatus {
-  statusSeverity: number;
-  statusSeverityDescription: string;
-  reason: string;
-  dataQuality: 'knowledgebase' | 'ldbws-inferred' | 'trust-inferred' | 'planned' | 'tfl' | 'transit';
-  validityPeriods: ValidityPeriod[];
-  disruption?: Disruption;
-  sampleStats?: SampleStats;
-  sampleAvailability: SampleAvailability;
-  /** Full-coverage analog of `sampleStats` -- see `FullCoverageAvailability`'s
-   * own doc comment. `undefined` for every line today (nothing produces this
-   * yet); permanent, additive scaffolding, not a replacement for
-   * `sampleStats` -- see the design doc's Decision 3. */
-  fullCoverageStats?: SampleStats;
-  fullCoverageAvailability: FullCoverageAvailability;
-}
-
-/** One of a line's `upcoming` notes (docs/api-changelog.md, 2026-10-06):
- * a disruption announced for the line that has not started yet. Never part
- * of `lineStatuses` or a severity. `to` is exclusive; `null` means no
- * stated end. */
-export interface UpcomingDisruption {
-  from: string;
-  to: string | null;
-  summary: string;
-  incidentId: string;
-}
-
-export interface LineStatusReport {
-  $type: string;
-  id: string;
-  name: string;
-  modeName: string;
-  operators: string[];
-  lineStatuses: LineStatus[];
-  computedAt: string;
-  /** Present only for a line with a TfL counterpart merged into it (see
-   * docs/superpowers/specs/2026-08-22-tfl-service-metrics-v2-design.md
-   * Area 1 -- Elizabeth line today). The counterpart's own current
-   * statuses, rendered separately from `lineStatuses` on the line detail
-   * page rather than merged into it, since only this report's own
-   * `lineStatuses` carries real `sampleStats`. */
-  tflStatus?: LineStatus[];
-  /** Soonest first. Optional: absent from history entries and from an api
-   * older than 2026-10-06. */
-  upcoming?: UpcomingDisruption[];
-}
-
 export type LineStatusHistoryEntry = LineStatusReport;
-
-/** One operator's row from `GET /public/stations/{crs}/sample-stats`
- * (`crates/api/src/routes/station_stats.rs`) --
- * docs/superpowers/specs/2026-09-03-per-station-stats-design.md Decision 9,
- * extended per
- * docs/superpowers/specs/2026-09-04-per-station-full-coverage-stats-design.md
- * Decision 3. `sampleAvailability.state` is never `'no-coverage'` through
- * this route (a documented invariant of the route handler, not
- * type-enforced). `fullCoverageAvailability` is always present, like
- * `LineStatus`'s own field of the same name -- `'not-enabled'` for every
- * real operator today, since no line has `full_coverage_enabled` set. */
-export interface StationOperatorSampleStats {
-  operator: string;
-  sampleAvailability: SampleAvailability;
-  sampleStats?: SampleStats;
-  fullCoverageStats?: SampleStats;
-  fullCoverageAvailability: FullCoverageAvailability;
-}
-
-/** `GET /public/stations/{crs}/accessibility`'s response -- a filtered
- * passthrough of `stations.accessibility` (see
- * docs/superpowers/specs/2026-09-12-station-accessibility-design.md
- * Decision 1 for the exact key allowlist). Every value is `unknown`, not a
- * nested interface, because this codebase has never recorded the RDM
- * feed's field-level shape for any of these keys (design spec
- * Correction 2) -- typing them more precisely here would be inventing a
- * contract this app cannot actually verify. Keys are present only when
- * non-null in the source data; a key with no data is simply absent, not
- * `null`. Deliberately keeps the `accessibility`-named wire vocabulary
- * despite the WCAG "accessibility" naming collision this codebase also
- * uses elsewhere (Correction 4) -- see that section for why this isn't
- * renamed. */
-export interface StationAccessibilityData {
-  stationAccessibility?: unknown;
-  staffAssistance?: unknown;
-  toiletsAndChanging?: unknown;
-  lifts?: unknown;
-  transportLinks?: unknown;
-  cycling?: unknown;
-  carParks?: unknown;
-  dropOffPickUp?: unknown;
-  platformFacilities?: unknown;
-  stationFacilities?: unknown;
-  helpAndSupport?: unknown;
-  loungesAndWaiting?: unknown;
-}
-
-/** `GET /Line/{id}/Stats/{from}/to/{to}`'s per-day response shape.
- * `delayRate`/`cancellationRate`/`skipRate` are fractions (0-1) computed
- * server-side from stored sums over DISTINCT trains, deduped by Darwin
- * `service_id` via the aggregator's `dedup::dedup_new_sample_stats` -- see
- * `crates/aggregator/src/queries.rs`'s `record_daily_stats` doc comment --
- * not a share of poll cycles. Each train is counted once per day, using its
- * status the FIRST time it was observed that day; if it's still dwelling in
- * view and its status changes later (e.g. on-time becomes delayed), that
- * later state is never recorded, so these rates can under-report delays
- * that develop mid-visit. `sampleCycles` is the coverage signal the
- * sparse-data gap-rendering in `TrendsResults.tsx` depends on -- render it,
- * don't discard it. */
-export interface LineDailyStats {
-  day: string; // "YYYY-MM-DD", Europe/London calendar day
-  sampleCycles: number;
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-  delayRate: number;
-  cancellationRate: number;
-  skipRate: number;
-}
-
-/** `GET /Line/{id}/Stats/HalfHourly/{from}/to/{to}`'s per-bucket response
- * shape -- half-hourly sibling of `LineDailyStats`. `halfHourStart` is an
- * RFC3339 UTC instant (the start of the 30-minute bucket -- :00 or :30),
- * not a calendar day -- always render it through
- * `frontend/lib/dateFormat.ts`'s `formatTime` before display, same
- * convention `LineDailyStats.day` follows for its own rendering. Same
- * dedup/attribution caveat as `LineDailyStats` applies, reworded for "that
- * half hour" instead of "that day". Originally `LineHourlyStats` with an
- * `hourStart` field (1-hour buckets); renamed when the trend chart's
- * granularity was doubled -- see git history for the hourly-era version. */
-export interface LineHalfHourlyStats {
-  halfHourStart: string; // RFC3339 UTC instant, start of the 30-minute bucket
-  sampleCycles: number;
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-  delayRate: number;
-  cancellationRate: number;
-  skipRate: number;
-}
-
-/** `GET /Line/{id}/Stats/Hourly/{from}/to/{to}`'s per-bucket response shape
- * -- same fields as `LineHalfHourlyStats`, but `bucketStart` in place of
- * `halfHourStart`: this is the start of a 1-hour bucket, derived at READ
- * time by grouping `line_status_half_hourly_stats` rows
- * (`crates/api/src/data/queries.rs`'s `sub_daily_stats_for_range`) --
- * reusing "halfHourStart" for a 1-hour bucket would be a misleading field
- * name. Always an RFC3339 UTC instant; render it through
- * `frontend/lib/dateFormat.ts`'s `formatTime` before display, same
- * convention `LineHalfHourlyStats.halfHourStart` follows. */
-export interface LineHourlyStats {
-  bucketStart: string; // RFC3339 UTC instant, start of the 1-hour bucket
-  sampleCycles: number;
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-  delayRate: number;
-  cancellationRate: number;
-  skipRate: number;
-}
-
-/** `GET /Line/{id}/Stats/SixHourly/{from}/to/{to}`'s per-bucket response
- * shape -- identical to `LineHourlyStats` except the bucket is 6 hours
- * wide, not 1. */
-export interface LineSixHourlyStats {
-  bucketStart: string; // RFC3339 UTC instant, start of the 6-hour bucket
-  sampleCycles: number;
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-  delayRate: number;
-  cancellationRate: number;
-  skipRate: number;
-}
 
 /** `GET /public/operators/{code}/stats/...` and `GET /public/network/stats/...`
  * share the exact same per-bucket response shape the per-line routes
@@ -510,47 +206,6 @@ export type NetworkHalfHourlyStats = LineHalfHourlyStats;
 export type NetworkHourlyStats = LineHourlyStats;
 export type NetworkSixHourlyStats = LineSixHourlyStats;
 
-/** `GET /Line/{id}/Stats/Coverage/{from}/to/{to}`'s per-day response shape --
- * the full-coverage sibling of `LineDailyStats` (`resolvedWindows` in place
- * of `sampleCycles`). Rates shown cover every scheduled service on the
- * line, cross-referenced against real train-movement data -- not a sample
- * of live departures at a handful of stations. `resolvedWindows` is the
- * coverage/gap-rendering signal here, the full-coverage analog of
- * `sampleCycles` -- how many cycles this day saw a genuinely resolved
- * (not pending) population, not merely "any raw coverage at all". Always
- * an empty array today: no full-coverage producer exists yet to populate
- * the underlying table. See
- * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md
- * Decision 4. */
-export interface LineDailyCoverageStats {
-  day: string; // "YYYY-MM-DD", Europe/London calendar day
-  resolvedWindows: number;
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-  delayRate: number;
-  cancellationRate: number;
-  skipRate: number;
-}
-
-/** `GET /Line/{id}/Stats/Coverage/HalfHourly/{from}/to/{to}`'s per-bucket
- * response shape -- half-hourly sibling of `LineDailyCoverageStats`, same
- * relationship `LineHalfHourlyStats` already has to `LineDailyStats`. */
-export interface LineHalfHourlyCoverageStats {
-  halfHourStart: string; // RFC3339 UTC instant, start of the 30-minute bucket
-  resolvedWindows: number;
-  total: number;
-  delayed: number;
-  cancelled: number;
-  skipped: number;
-  avgDelayMinutes: number;
-  delayRate: number;
-  cancellationRate: number;
-  skipRate: number;
-}
-
 export interface Preferences {
   pinnedLines: string[];
   pinnedStations: string[];
@@ -559,82 +214,6 @@ export interface Preferences {
    * (`PUT /preferences/pinned-lines/{id}/alerts`). Absent from an older
    * backend. */
   silentPinnedLines?: string[];
-}
-
-export interface LineSummary {
-  id: string;
-  name: string;
-  category: string;
-  operators: string[];
-  source: 'catalogue' | 'custom' | 'tfl';
-}
-
-/** `GET /public/operators`'s per-item response shape (+ `GET
- * /public/operators/{code}`'s single-item shape) --
- * `crates/api/src/data/operators.rs`'s `OperatorRollup`, hand-serialized
- * camelCase by `crates/api/src/routes/operators.rs`'s `operator_rollup_json`.
- * `code` is either a real ATOC code (`tocs.atoc_code`) or the literal
- * synthetic string `"TfL"`. `lineIds` is the exact "which lines does this
- * operator run" set the rollup was computed from -- reusable by a future
- * per-operator detail/history view without a second request. `sampleStats`
- * is absent when no matching line had a representative status carrying
- * stats yet (always the case for the `"TfL"` row, which never carries
- * sample stats per-line either) -- render with
- * `lib/operatorStats.ts`'s `formatOperatorSampleSummary`, not
- * `lib/sampleStats.ts`'s `formatSampleSummary` (this type has no
- * `sampleAvailability`/`dataQuality` to satisfy `SampleStatsCarrier` with —
- * see docs/superpowers/plans/2026-09-22-operator-overview-phase3-operators-list-and-pinning-plan.md's
- * Judgment Call 3 for why). `computedAt` is `null` only in the
- * (never-constructed-in-practice) case of a rollup with zero matching
- * lines. */
-export interface OperatorSummary {
-  code: string;
-  name: string;
-  lineIds: string[];
-  worstSeverity: number;
-  reason: string;
-  /** The id/name of the specific line whose status `worstSeverity`/`reason`
-   * above came from -- lets a card/page say WHICH of an operator's lines is
-   * driving its rollup ("Worst of 4 lines · LNER East Coast Main Line")
-   * instead of presenting one line's reason as the whole operator's status
-   * with no scope (2026-09-22 UX review [OH] §2.3/I11).
-   * `crates/api/src/data/operators.rs`'s `OperatorRollup.worst_line_id`/
-   * `worst_line_name`. Optional (rather than always required) so a payload
-   * from a server that hasn't rolled this field out yet still satisfies
-   * this type -- a caller must treat their absence as "no known worst
-   * line" and fall back accordingly, not assume they're always present the
-   * way `reason` is. */
-  worstLineId?: string;
-  worstLineName?: string;
-  sampleStats?: SampleStats;
-  computedAt: string | null;
-}
-
-export interface CustomLineDetail {
-  id: string;
-  name: string;
-  operators: string[];
-  stations: string[];
-  headcodePrefixes: string[];
-  destinationCrsFilter: string[];
-  /** Whether the CALLER owns this line. A `200` from
-   * `GET /public/lines/{id}` used to prove ownership by itself; custom-line
-   * group sharing made that false (a granted group member gets the same
-   * full detail), so every edit/delete affordance must gate on this flag
-   * rather than on "the fetch succeeded". The backend is still the
-   * authority -- `PUT`/`DELETE` remain owner-only and grant-blind -- this
-   * is what stops the UI offering a control that can only ever 404. */
-  isOwner: boolean;
-  /** Every group this line is currently shared into. Populated ONLY when
-   * `isOwner` is true; always `[]` for a granted non-owner, so a fellow
-   * group member never learns which other groups the owner shared it
-   * into. */
-  sharedWithGroups: LineGroupRef[];
-}
-
-export interface LineDefinitionSummary {
-  stations: string[];
-  operators: string[];
 }
 
 export interface DataFreshness {
@@ -679,15 +258,8 @@ export interface HistoryRetention {
 
 /** A code/name pair from the `/public/stations` and `/public/tocs`
  * type-ahead endpoints — CRS codes for stations, ATOC codes for
- * operators. */
-export interface Suggestion {
-  code: string;
-  name: string;
-  // Only on a `?stops=true` station search's bus stops and ferry terminals,
-  // whose `code` is `tiploc:TIPLOC` and `name` already says `(bus)` or
-  // `(ferry)`.
-  kind?: 'bus' | 'ferry';
-  parentCrs?: string;
+ * operators — plus what the app's own merged searches add. */
+export type Suggestion = Api.Suggestion & {
   /** A TfL stop's modes and lines (`Tube: Northern, Victoria`), shown after
    * its name in the dropdown (`searchTflStops`). */
   detail?: string;
@@ -695,7 +267,7 @@ export interface Suggestion {
    * that is not a National Rail station, and where picking it leads. Its
    * `code` is then a key (`tfl:940GZZLUUXB`), never a CRS. */
   place?: StationPlace;
-}
+};
 
 /** A non-National Rail stop in `/stations`' search: a TfL Tube, DLR or tram
  * stop (no page of its own yet), or a served transit network's stop
@@ -761,19 +333,6 @@ export interface TflStopArrivals {
   groups: TflArrivalGroup[];
 }
 
-/** A code/name pair from `GET /public/stations/nearby` --
- * (`crates/api/src/data/reference.rs`'s `NearbyStation`), like `Suggestion`
- * but for a "near me" physical-distance lookup rather than text search, and
- * carrying the great-circle distance from the caller's supplied point, in
- * kilometres. Stations with no recorded coordinates never appear in this
- * response at all (the backend excludes them), so there is no nullable
- * distance case to render here. */
-export interface NearbyStation {
-  code: string;
-  name: string;
-  distanceKm: number;
-}
-
 /** `GET /public/auth/session`'s response — always 200, never 401 (an
  * anonymous visitor gets `authenticated: false` with everything else
  * `null`, not an error). `id`/`name`/`username` can all be `null` even when
@@ -834,36 +393,6 @@ export interface ScheduleCallingPoint {
 }
 
 export type JourneyStopKind = 'Origin' | 'Intermediate' | 'Terminate';
-
-/** One subsequent calling point of a live departure-board row
- * (`GET /public/stations/{crs}/departures`'s `callingPoints`, from LDBWS
- * `subsequentCallingPoints`; `crates/api/src/render.rs`'s
- * `board_calling_point_json`). `st`/`et`/`at` are LDBWS's own strings:
- * `"HH:MM"` London local time, or for `et` a status word ("On time",
- * "Delayed", "Cancelled"). */
-export interface BoardCallingPoint {
-  crs: string;
-  locationName: string | null;
-  st: string | null;
-  et: string | null;
-  at: string | null;
-  isCancelled: boolean;
-}
-
-/** `GET /public/trains/resolve`'s 200 body
- * (`crates/api/src/routes/trains.rs`'s `get_trains_resolve`): a live
- * departure-board row resolved to the `(trainUid, serviceDate)` key of
- * `GET /Train/by-uid/{uid}/{date}` (`href`). `serviceDate` is the CIF
- * service date, which is the day BEFORE the board's date for a train that
- * started before midnight. 404/409 are plain text, not this shape. */
-export interface TrainResolveResult {
-  trainUid: string;
-  serviceDate: string; // "YYYY-MM-DD"
-  // "rsid": the full retail service ID matched; "rsidPrefix": only its
-  // first 6 characters; "timetable": time plus destination/operator.
-  matchedOn: 'rsid' | 'rsidPrefix' | 'timetable';
-  href: string;
-}
 
 /** `common::TimeWindow` on the wire -- `crates/common/src/lib.rs`. Both
  * fields `"HH:MM:SS" | null`. */
@@ -1164,361 +693,6 @@ export interface RenderedTrainLeg {
   arrivalAt: string | null;
   operator: string | null;
   uid: string;
-}
-
-export type LineTrainCallingPointKind = 'Origin' | 'Intermediate' | 'Terminate';
-
-/** One calling point inside a `GET /public/lines/{id}/trains?date=` entry's
- * `callingPoints` array (`crates/api/src/routes/lines.rs`'s `get_line_trains`,
- * rendered by `crates/api/src/render.rs`'s `line_train_json`). NOT the same
- * shape as `ScheduleCallingPoint` above (that one is fully camelCase,
- * backed by a different Rust type, `schedule_matching::ScheduleCallingPointDto`).
- * `line_train_json` passes the population entry's `calling_points` array
- * through UNPROCESSED -- only the outer `callingPoints` envelope key is
- * camelCase; see `render.rs`'s own
- * `line_train_json_with_no_live_row_passes_the_population_entry_through_and_nulls_live_status`
- * test, which asserts `json["callingPoints"] == entry["calling_points"]`
- * verbatim. Field names below are therefore this crate's usual accidental
- * exception, not a typo: the real `schedule_query::CallingPoint` snake_case
- * names, the same documented wart `get_line_schedule`'s own doc comment
- * accepts for this identical underlying data. */
-export interface LineTrainCallingPoint {
-  tiploc: string;
-  kind: LineTrainCallingPointKind;
-  booked_arrival: string | null; // "HH:MM:SS", CIF/UK-local, no date component
-  booked_departure: string | null;
-  is_half_minute_arrival: boolean;
-  is_half_minute_departure: boolean;
-  day_offset: number;
-}
-
-/** The `liveStatus` field of a `GET /public/lines/{id}/trains?date=` entry
- * -- `null` whenever no live `trains`/`train_current_state` row exists yet
- * for this UID on this date (an expected, honest gap: this route never
- * triggers a `find_or_create_train` upsert the way
- * `GET /Train/by-uid/{uid}/{date}` does -- see `get_line_trains`'s own doc
- * comment). Deliberately its own type, not a reuse of `PublicTrainState`:
- * `line_train_json` (`render.rs`) includes only these 21 fields
- * inside `liveStatus`, explicitly omitting `journeyStops`/`callingPoints`/
- * `trainUid`/`serviceDate`/`mayHaveArrived` -- confirmed by that file's
- * `line_train_json_with_a_live_row_attaches_live_status_in_camel_case`
- * test, which asserts all five omitted fields are absent. */
-export interface LineTrainLiveStatus {
-  trainsId: number;
-  trainId: string | null;
-  originCrs: string | null;
-  originName: string | null;
-  destinationCrs: string | null;
-  destinationName: string | null;
-  scheduledDeparture: string | null; // RFC3339
-  status: JourneyStatus | null;
-  lastReportedLocation: string | null;
-  lastEventType: string | null; // "ARRIVAL" | "DEPARTURE" | "PASS"
-  /** Against the PUBLIC timetable at the passenger's own stop (a tracked
-   * train's pin destination; on the public train page, the latest call the
-   * train reported at). */
-  delayMinutes: number | null;
-  /** What `delayMinutes` was measured against: `public` (TRUST's own public
-   * time), `publicSchedule` (the timetable's public time) or `working` (no
-   * public time known). Optional: absent from an older backend. */
-  delayBasis?: DelayBasis | null;
-  /** `true` while `delayMinutes` is a forecast (the train has not reached
-   * the stop it is measured at yet). */
-  delayProvisional?: boolean;
-  nextCallingPoint: string | null;
-  etaNext: string | null; // RFC3339
-  etaSource: EtaSource | null;
-  // See `TrainJourneyState.operatorCode`.
-  operatorCode?: string | null;
-  operatorName?: string | null;
-  // See `TrainJourneyState.cancelled` and the reason fields after it.
-  cancelled?: boolean;
-  cancelReasonCode?: string | null;
-  cancelReason?: string | null;
-  changeOfOriginReasonCode?: string | null;
-  changeOfOriginReason?: string | null;
-}
-
-/** One `GET /public/lines/{id}/trains?date=` response entry
- * (`crates/api/src/routes/lines.rs`'s `get_line_trains`) -- every scheduled
- * UID on one line for one rail day, paired with live status where one
- * already exists. See that route's own doc comment and
- * docs/superpowers/specs/2026-09-09-mcp-schedule-data-follow-up-design.md
- * §5.3. The full response is `LineTrainEntry[]`, not wrapped in an
- * envelope -- unlike `GET /public/trains/search`, this route has no cursor
- * of its own; it always returns the whole day's population in one call. */
-export interface LineTrainEntry extends ServiceModeFields {
-  uid: string;
-  callingPoints: LineTrainCallingPoint[] | null;
-  /** The schedule side's own origin/destination -- the first and last
-   * `callingPoints` entries' TIPLOCs, resolved server-side to a CRS and
-   * name (`crates/api/src/render.rs`'s `ScheduleRouteEndpoints`). Present
-   * (though any individual field may still be `null`) on every entry,
-   * regardless of `liveStatus` coverage -- unlike `liveStatus.originCrs`
-   * etc., which is `null` whenever a live record has no schedule match of
-   * its own. Added so `LineTrainsResults` can always name a route from the
-   * schedule when the live side can't (2026-09-22 UX review §4.1). */
-  scheduleOriginCrs: string | null;
-  scheduleOriginName: string | null;
-  scheduleDestinationCrs: string | null;
-  scheduleDestinationName: string | null;
-  liveStatus: LineTrainLiveStatus | null;
-}
-
-/** A train's membership of a line (docs/superpowers/specs/2026-10-06-line-membership-design.md):
- * `line` one of its own trains, `shared` another route's train running a
- * stretch of it, `touch` only touching it (a hub call). */
-export type LineTrainScope = 'line' | 'shared' | 'touch';
-
-/** Direction along the line's catalogue station order: `down` from the
- * first station towards the last, `up` the reverse, `loop` back to where
- * the run started. */
-export type LineDirection = 'up' | 'down' | 'loop';
-
-/** A time on the line: `"HH:MM"` UK local time, `dayOffset` days after
- * the service date. */
-export interface LineTime {
-  time: string;
-  dayOffset: number;
-}
-
-/** One public call at one of the line's stations. */
-export interface LineTrainStop extends LineTime {
-  crs: string;
-}
-
-export interface LineStationRef {
-  crs: string;
-  name: string | null;
-}
-
-/** The compact live status of `GET /public/lines/{id}/trains?view=summary`. */
-export interface LineTrainSummaryLive {
-  status: string | null;
-  delayMinutes: number | null;
-  delayProvisional: boolean;
-  cancelled: boolean;
-  /** The cancellation's Network Rail reason text while `cancelled`
-   * (DS-181). Optional: absent from an older backend. */
-  cancelReason?: string | null;
-  lastReportedLocation: string | null;
-}
-
-/** One train of the summary view (`crates/api/src/routes/line_trains_summary.rs`). */
-export interface LineTrainSummary {
-  uid: string;
-  operator: string | null;
-  /** `schedule_services`' mode, else from the CIF Train Status; see
-   * `lib/serviceMode.ts`. */
-  serviceMode: ServiceMode;
-  /** `false` exactly when `serviceMode` is not `train`. */
-  liveTracking?: boolean | null;
-  scope: LineTrainScope | null;
-  direction: LineDirection | null;
-  /** The first public call on the line: the row's time and sort key. */
-  lineDue: LineTime | null;
-  origin: LineStationRef | null;
-  /** Never null when the train calls on the line. */
-  destination: LineStationRef | null;
-  onLineStops: LineTrainStop[];
-  live: LineTrainSummaryLive | null;
-}
-
-/** A catalogue station of the line, with its `role`
- * (`terminus`/`major`/`minor`/`junction`, lines/SCHEMA.md). */
-export interface LineCatalogueStation {
-  crs: string;
-  name: string | null;
-  role: string;
-}
-
-/** `GET /public/lines/{id}/trains?view=summary` (2026-10-06). */
-export interface LineTrainsSummary {
-  lineId: string;
-  date: string;
-  /** `false` for a population published before train membership: nothing
-   * was filtered and `scope`/`direction` are null. */
-  scopeApplied: boolean;
-  scopes: LineTrainScope[];
-  /** `"HH:MM"`, hours past 23 for the next morning. */
-  window: { from: string; to: string } | null;
-  at: string | null;
-  directions: LineDirection[] | null;
-  stations: LineCatalogueStation[];
-  /** Trains in the window per scope, then per direction (`none` when a
-   * train has none), before the direction filter. */
-  counts: Partial<Record<string, Partial<Record<string, number>>>>;
-  truncated: boolean;
-  trains: LineTrainSummary[];
-  /** Trains on the line at `at` (only when `at` was given). */
-  running: LineTrainSummary[] | null;
-}
-
-/** One train of `GET /public/lines/{id}/timetable`: the summary row, plus
- * the time it is listed at and its arrival at `to`. */
-export interface LineTimetableTrain extends LineTrainSummary {
-  /** Departure from `from` when given, else `lineDue`. */
-  time: LineTime;
-  /** Arrival at `to`, when `to` was given. */
-  arrival: LineTime | null;
-}
-
-/** `GET /public/lines/{id}/timetable` (2026-10-07): one page of the line's
- * full-day timetable (`crates/api/src/routes/line_timetable.rs`). */
-export interface LineTimetablePage {
-  lineId: string;
-  date: string;
-  scopeApplied: boolean;
-  scopes: LineTrainScope[];
-  directions: LineDirection[] | null;
-  from: string | null;
-  to: string | null;
-  at: string | null;
-  stations: LineCatalogueStation[];
-  /** The day's trains under `scope`/`from`/`to`, per scope then direction
-   * (`none` when a train has none), before `dir`, `at` and the cursor. */
-  counts: Partial<Record<string, Partial<Record<string, number>>>>;
-  trains: LineTimetableTrain[];
-  /** Pass back as `after`; `null` on the last page. */
-  nextCursor: string | null;
-}
-
-/** One row of `GET /public/trains/search` (`render::calling_point_departure_json`).
- * The one wire type for this route (the station board, `/trains` and the
- * line page's station-pair search all read it). */
-export interface TrainSearchResult extends ServiceModeFields {
-  uid: string;
-  /** The departure at `stationCrs`, `HH:MM`: the public time, else the
-   * working one. Working (WTT) from an older backend. */
-  scheduled: string | null;
-  /** The public (timetable) departure, shown in place of `scheduled` (for
-   * an older backend). `null`/absent until the next schedule publish. */
-  publicDeparture?: string | null;
-  /** The working-timetable departure and its `dayOffset`; absent from an
-   * older backend. */
-  workingDeparture?: string | null;
-  workingDayOffset?: number;
-  /** The searched calling point, echoed back on every row. */
-  stationCrs: string;
-  /** The schedule's TRUE origin and destination; either can be
-   * unresolved for a real published schedule. */
-  originCrs: string | null;
-  destinationCrs: string | null;
-  /** Names resolved from the codes; `null` when unresolved, absent from a
-   * backend that predates the field. */
-  originName?: string | null;
-  destinationName?: string | null;
-  /** Public arrival at the destination, else the working one. */
-  destinationArrival: string | null;
-  /** Calendar days past the service date `destinationArrival` falls on. */
-  destinationArrivalDayOffset: number;
-  publicDestinationArrival?: string | null;
-  workingDestinationArrival?: string | null;
-  /** The row's service date, `"YYYY-MM-DD"`: the searched date, or with
-   * `across_midnight` the day before (a train of that date still running
-   * after its midnight). The row's train page and every day offset on it
-   * are of this date. Absent from an older backend: the searched date. */
-  serviceDate?: string;
-  /** Days after the row's service date the departure from `stationCrs`
-   * falls on. Moves the calendar day only, never the service date, so a
-   * row's link keeps its service date. Absent from an older backend: read
-   * as 0. */
-  dayOffset?: number;
-  /** The operating ATOC code, `null` when unknown. */
-  operator?: string | null;
-  /** The CIF Train Identity (headcode, e.g. `1S00`), `null` when blank or
-   * not yet published; absent from an older backend. */
-  identity?: string | null;
-  /** The same headcode under the train payloads' older name, read when
-   * `identity` is absent (as `PublicTrainState` does). */
-  headcode?: string | null;
-  /** The line summary's compact live status, `null` when the train has
-   * none; absent from an older backend. Either way the row reads
-   * "Scheduled". */
-  live?: LineTrainSummaryLive | null;
-  /** Only when the search set `stops_at`: the public arrival (`HH:MM`) at
-   * the earliest call at `stops_at` the filter accepted, `null` when
-   * unknown. Absent without `stops_at` and from an older backend. */
-  stopsAtArrival?: string | null;
-  /** Days after the searched date `stopsAtArrival` falls on; `null` with it. */
-  stopsAtArrivalDayOffset?: number | null;
-  /** The working-timetable arrival at that call (what
-   * `arrival_from`/`arrival_to` compare), `HH:MM`, and its day offset. */
-  stopsAtWorkingArrival?: string | null;
-  stopsAtWorkingArrivalDayOffset?: number | null;
-}
-
-export interface TrainSearchPage extends TimetableCertaintyFields {
-  results: TrainSearchResult[];
-  nextCursor: string | null;
-  /** The service date searched, `"YYYY-MM-DD"`: the whole train day of it,
-   * its after-midnight departures (`dayOffset` 1) included. Absent from an
-   * older backend. */
-  serviceDate?: string;
-  /** The time window as applied, each bound `{time, dayOffset}` (`from`
-   * holds the "from now" default when none was given), `null` where
-   * unbounded. Absent from an older backend. */
-  window?: {
-    from: { time: string; dayOffset: number };
-    to: { time: string; dayOffset: number } | null;
-    arrivalFrom: { time: string; dayOffset: number } | null;
-    arrivalTo: { time: string; dayOffset: number } | null;
-  };
-  /** Whether the search asked for the previous date's late trains too
-   * (`across_midnight=true`). Absent from an older backend. */
-  acrossMidnight?: boolean;
-  /** Every service date the rows can be of, earliest first. Absent from an
-   * older backend. */
-  serviceDates?: string[];
-}
-
-/** One `GET /public/trains/arrivals` row: a search row whose `stationCrs`
- * is the board's station, plus the arrival there. `scheduled`/`dayOffset`
- * are the departure onward: `scheduled` is `null`, and `dayOffset` absent,
- * for a train that terminates here. */
-export interface TrainArrivalResult extends TrainSearchResult {
-  /** The arrival, `HH:MM`: the public time, else the working one. */
-  arrival: string;
-  /** Days after `serviceDate` the arrival falls on. */
-  arrivalDayOffset: number;
-  /** Whether the train ends at this station. */
-  terminates: boolean;
-}
-
-/** `GET /public/trains/arrivals`: a station's arrivals, one page. */
-export interface TrainArrivalsPage extends TimetableCertaintyFields {
-  results: TrainArrivalResult[];
-  nextCursor: string | null;
-  serviceDate?: string;
-}
-
-/** `GET /public/trains/by-headcode`: the trains running under one
- * headcode on a date, each a search row at its origin. */
-export interface TrainHeadcodePage extends TimetableCertaintyFields {
-  results: TrainSearchResult[];
-  serviceDate?: string;
-}
-
-/** One `GET /public/trains/search/operators` entry: an ATOC code the
- * search's `operator` takes, with its name, `null` for a code the
- * timetable carries that the operator reference list does not name. */
-export interface TrainSearchOperator {
-  code: string;
-  name: string | null;
-}
-
-/** `GET /public/trains/search/dates` (`crates/api/src/routes/trains.rs`'s
- * `get_trains_search_dates`): the `date` range the search accepts
- * (`from`/`to`, inclusive) and the range the timetable holds rows for
- * (`publishedFrom`/`publishedTo`, `null` when it holds none). All
- * `"YYYY-MM-DD"`. `provisionalFrom` is the first provisional date (see
- * `TimetableCertaintyFields`); optional, absent from an older backend. */
-export interface TrainSearchDates {
-  from: string;
-  to: string;
-  publishedFrom: string | null;
-  publishedTo: string | null;
-  provisionalFrom?: string;
 }
 
 // --- Transit networks (`/public/transit/...`, crates/api/src/routes/transit.rs;

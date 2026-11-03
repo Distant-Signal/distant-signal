@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { searchRowDetails, searchRowHeadcode, searchRowSummary, searchRowTime } from './searchRow';
 import { train } from '@/test/lineTrainsFixtures';
-import type { TrainSearchResult } from './types';
+import type { LineTrainSummaryLive, TrainSearchResult } from './types';
+import { TRAIN_SEARCH_ROW_DEFAULTS } from '@/test/apiDefaults';
 
 function row(overrides: Partial<TrainSearchResult> = {}): TrainSearchResult {
   return {
+    ...TRAIN_SEARCH_ROW_DEFAULTS,
     uid: 'C1',
+    serviceDate: '2026-10-20',
     scheduled: '08:22',
     stationCrs: 'RDG',
     originCrs: 'PAD',
@@ -19,21 +22,22 @@ function row(overrides: Partial<TrainSearchResult> = {}): TrainSearchResult {
   };
 }
 
-const live = {
+const live: LineTrainSummaryLive = {
   status: 'en_route',
   delayMinutes: 4,
   delayProvisional: false,
   cancelled: false,
+  cancelReason: null,
   lastReportedLocation: null,
 };
 
 describe('searchRowSummary', () => {
-  it('maps the route, operator and mode, with no live state from an older backend', () => {
+  it('maps the route, operator and mode, with no live state', () => {
     expect(searchRowSummary(row())).toEqual({
       uid: 'C1',
       operator: 'GW',
       serviceMode: 'train',
-      liveTracking: null,
+      liveTracking: true,
       scope: null,
       direction: null,
       lineDue: null,
@@ -96,10 +100,8 @@ describe('searchRowDetails', () => {
 });
 
 describe('searchRowHeadcode', () => {
-  it('labels the identity, falling back to the older headcode field', () => {
+  it('labels the identity', () => {
     expect(searchRowHeadcode(row({ identity: '1A23' }))).toBe('Headcode 1A23');
-    expect(searchRowHeadcode(row({ headcode: '2B45' }))).toBe('Headcode 2B45');
-    expect(searchRowHeadcode(row({ identity: '1A23', headcode: '2B45' }))).toBe('Headcode 1A23');
     expect(searchRowHeadcode(row({ identity: null }))).toBeUndefined();
   });
 });

@@ -295,7 +295,7 @@ export function splitSearchRows<Row extends Pick<TrainSearchResult, 'dayOffset' 
   rows: readonly Row[],
   searchedDate: string,
 ): { previousDay: Row[]; sameDay: Row[]; afterMidnight: Row[] } {
-  const isPrevious = (row: Row) => row.serviceDate !== undefined && row.serviceDate < searchedDate;
+  const isPrevious = (row: Row) => row.serviceDate < searchedDate;
   return {
     previousDay: rows.filter(isPrevious),
     ...splitAtMidnight(rows.filter((row) => !isPrevious(row))),

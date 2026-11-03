@@ -90,6 +90,7 @@ vi.mock('@mantine/charts', () => ({
 function report(id: string, name: string): LineStatusReport {
   return {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id,
     name,
     modeName: 'national-rail',

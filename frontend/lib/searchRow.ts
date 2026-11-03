@@ -20,8 +20,8 @@ export function searchRowSummary(row: TrainSearchResult, known?: LineTrainSummar
   return {
     uid: row.uid,
     operator: row.operator ?? null,
-    serviceMode: row.serviceMode ?? known?.serviceMode ?? 'train',
-    liveTracking: row.liveTracking ?? known?.liveTracking ?? null,
+    serviceMode: row.serviceMode,
+    liveTracking: row.liveTracking,
     scope: known?.scope ?? null,
     direction: known?.direction ?? null,
     lineDue: null,
@@ -73,8 +73,8 @@ export function arrivalRowDetails(
 }
 
 /** The row's headcode as labelled secondary text, "Headcode 1S00", as the
- * train page shows it (`trainIdentifiers`). From `identity`, else the
- * older `headcode`; `undefined` when neither is known. */
-export function searchRowHeadcode(row: Pick<TrainSearchResult, 'identity' | 'headcode'>): string | undefined {
-  return trainIdentifiers({ headcode: row.identity ?? row.headcode, uid: null }) ?? undefined;
+ * train page shows it (`trainIdentifiers`), from `identity`; `undefined`
+ * when it is not known. */
+export function searchRowHeadcode(row: Pick<TrainSearchResult, 'identity'>): string | undefined {
+  return trainIdentifiers({ headcode: row.identity, uid: null }) ?? undefined;
 }

@@ -13,6 +13,7 @@ import type { LineStatusHistoryEntry } from './types';
 function entry(computedAt: string, statuses: [number, string][]): LineStatusHistoryEntry {
   return {
     $type: 'DistantSignal.LineStatusReport',
+    attribution: [],
     id: 'northern',
     name: 'Northern',
     modeName: 'national-rail',

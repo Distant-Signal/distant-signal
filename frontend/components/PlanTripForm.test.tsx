@@ -236,6 +236,7 @@ describe('PlanTripForm', () => {
             to: '2026-09-20',
             publishedFrom: '2026-09-04',
             publishedTo: '2026-09-20',
+            provisionalFrom: '2026-09-20',
           }}
         />,
       );
