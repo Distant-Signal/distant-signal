@@ -41,7 +41,7 @@ CI uses `postgres://postgres:postgres@localhost:5432/postgres`) and
 ```sh
 core="$(uv run scripts/core-checkout.py)"   # the pinned ds-core (target/ds-core-<sha>)
 (cd "$core/crates/ds-store" && sqlx migrate run)   # sqlx-cli 0.8.6, postgres,rustls features
-cargo test -p api -p aggregator -p notifier -p schedule-reference -p poller-stations -p poller-incidents -- --ignored --test-threads=1
+cargo test -p api -p aggregator -p notifier -p schedule-reference -- --ignored --test-threads=1
 cargo test -p enricher -- --ignored --skip live_eval --skip replay_ --test-threads=1
 cargo test -p api some_db_test -- --ignored --test-threads=1   # a single DB test
 uv sync --locked --group lint
@@ -115,7 +115,6 @@ uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run scripts/sync-core.py --check          # frontend/lib/site-credits.json = the pinned ds-core release's signed asset; Cargo tags = core-version (rewrite without --check)
 uv run scripts/check-sftp-entrypoint.py      # docker/schedule-sftp-entrypoint.sh = ds-deploy's pinned chart copy (--write to update)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
-uv run --no-sync scripts/check-crate-deps.py # poller-transit-schedule holds no database crate (and ds-store none of the server stack)
 ```
 
 `scripts/release-order.py labels` stamps each image's ordering labels in
@@ -127,7 +126,9 @@ and hot reload; see `docker-compose.yml`'s header).
 
 **Ingest (release B of ingest phase 5; the api has no `/private` routes).**
 Producers write Postgres directly or XADD to Redis streams; nothing posts to
-the api. poller-incidents, poller-stations, trust-consumer,
+the api. The `poller-*` services live in
+[Distant-Signal/ds-pollers](https://github.com/Distant-Signal/ds-pollers).
+poller-incidents, poller-stations, trust-consumer,
 trust-backlog-consumer, schedule-ingest and schedule-reference write
 Postgres. poller-tocs, poller-tfl, poller-ldbws, full-coverage-consumer and
 the island-of-Ireland pollers send snapshots on `ds:ingest:*` streams

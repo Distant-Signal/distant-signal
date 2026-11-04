@@ -5,15 +5,6 @@
 resolver = "3"
 members = [
     "crates/api",
-    "crates/poller-incidents",
-    "crates/poller-stations",
-    "crates/poller-tocs",
-    "crates/poller-ldbws",
-    "crates/poller-tfl",
-    "crates/poller-irish-rail-gtfs",
-    "crates/poller-irish-rail-live",
-    "crates/poller-nir-stations",
-    "crates/poller-transit-schedule",
     "crates/aggregator",
     "crates/enricher",
     "crates/trust-backlog-consumer",
@@ -68,7 +59,7 @@ license = "AGPL-3.0-or-later"
 # Deviation: the guide says "forbid", but forbid can't be relaxed per item.
 # Three places need unsafe: api's ticket-parse child sets rlimits through
 # libc before exec, the enricher's `malloc_trim` after a batch stage, and
-# the test-only allocator meters (poller-stations, enricher). Each carries
+# the enricher's test-only allocator meter. Each carries
 # `#[expect(unsafe_code, reason = "...")]` and a SAFETY comment; any other
 # unsafe still fails CI.
 unsafe_code = "deny"

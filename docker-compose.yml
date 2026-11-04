@@ -266,17 +266,14 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-incidents:
-    build:
-      context: .
-      dockerfile: docker/poller-incidents.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/poller-incidents:build.41801872738-4420d2cbf4cb97eb4f16dc17b774af7f30a8ef1c@sha256:2be4cec766d8dcedae2dde266ba93450b2de1a4e785e85428eae7d4cbf3b1c06
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/poller-incidents/src/config.rs: Config. GAP: no confirmed
+      # ds-pollers' crates/poller-incidents/src/config.rs: Config. GAP: no confirmed
       # RDM endpoint path for this product — RDM_INCIDENTS_BASE_URL is a
       # placeholder until real account data resolves it (see
       # local.env.example).
@@ -291,17 +288,14 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-stations:
-    build:
-      context: .
-      dockerfile: docker/poller-stations.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/poller-stations:build.41801872738-4420d2cbf4cb97eb4f16dc17b774af7f30a8ef1c@sha256:07838efc138dcfbd07240fadd1060a2cbe0daecef0fc2a685b19a2bae8033869
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/poller-stations/src/config.rs: Config. GAP: exact JSON
+      # ds-pollers' crates/poller-stations/src/config.rs: Config. GAP: exact JSON
       # field casing for this feed is unconfirmed (see schema.rs module
       # docs).
       # Writes Postgres; the writer's CORPUS crosswalk loop rebuilds
@@ -317,17 +311,14 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-tocs:
-    build:
-      context: .
-      dockerfile: docker/poller-tocs.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/poller-tocs:build.41801872738-4420d2cbf4cb97eb4f16dc17b774af7f30a8ef1c@sha256:fa11c837db8e630bc69abb35d46febe852726acb6dad4127f3e03a8a49242975
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/poller-tocs/src/config.rs: Config. GAP: no confirmed RDM
+      # ds-pollers' crates/poller-tocs/src/config.rs: Config. GAP: no confirmed RDM
       # endpoint path for this product — RDM_TOCS_BASE_URL is a
       # placeholder until real account data resolves it (see
       # local.env.example).
@@ -343,17 +334,14 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-ldbws:
-    build:
-      context: .
-      dockerfile: docker/poller-ldbws.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/poller-ldbws:build.41801872738-4420d2cbf4cb97eb4f16dc17b774af7f30a8ef1c@sha256:d442eb25bec46d5ee84af33f1fac6ef6c7909df8c081ce5b04181dcf0d1f2ac2
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/poller-ldbws/src/config.rs: Config. GAP: RDM product-slug
+      # ds-pollers' crates/poller-ldbws/src/config.rs: Config. GAP: RDM product-slug
       # segment is unconfirmed (two variants seen in research); GAP: this
       # feed's real rate limit is unconfirmed (see the implementation
       # plan's Global Constraints).
@@ -372,17 +360,14 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   poller-tfl:
-    build:
-      context: .
-      dockerfile: docker/poller-tfl.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/poller-tfl:build.41801872738-4420d2cbf4cb97eb4f16dc17b774af7f30a8ef1c@sha256:0e625eac1f96cbc42dd3dea244d6f171eb961c04a169ad23055cc69500ccd6f9
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/poller-tfl/src/config.rs: Config. No endpoint GAP here,
+      # ds-pollers' crates/poller-tfl/src/config.rs: Config. No endpoint GAP here,
       # unlike the four RDM pollers — TfL's Unified API is public and
       # documented, so the base URL has a real default.
       # XADDs to ds:ingest:tfl, applied by the writer.

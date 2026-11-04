@@ -57,14 +57,11 @@ ARCHIVE_PACKAGES = (
     "aggregator",
     "notifier",
     "schedule-reference",
-    "poller-stations",
-    "poller-incidents",
     "enricher",
     "movement-feed",
     "ingest-writer",
     "full-coverage-consumer",
     "trust-consumer",
-    "poller-ldbws",
     "schedule-ingest",
     "trust-backlog-consumer",
 )
@@ -184,8 +181,6 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
                 "aggregator",
                 "notifier",
                 "schedule-reference",
-                "poller-stations",
-                "poller-incidents",
             )
         ),
         Step(packages=("enricher",), skips=ENRICHER_SKIPS),
@@ -197,7 +192,6 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
             filters=("population_reload::db_tests",),
         ),
         Step(packages=("trust-consumer",), filters=("reads::",)),
-        Step(packages=("poller-ldbws",), filters=("sample_source::",)),
         Step(packages=("schedule-ingest",), filters=("sink::db_tests",)),
         # Against fake-gcs-server (FAKE_GCS_URL; the job starts it).
         Step(
@@ -230,11 +224,7 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
         per_service(
             "full-coverage-consumer", "full_coverage_ro", test_target="role_reads"
         ),
-        per_service("poller-ldbws", "ldbws_ro", test_target="role_reads"),
-        per_service("poller-incidents", "incidents"),
         per_service("ingest-writer", "incidents", bin_target="writer-maintenance"),
-        # Last: its narrow role cannot DELETE the stations it leaves behind.
-        per_service("poller-stations", "stations"),
     ),
     # test-postgres-roles.py --mode per-service --narrow
     # api,aggregator,enricher,notifier (release D).
