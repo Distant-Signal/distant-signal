@@ -87,6 +87,45 @@ describe('PrivacyPage assistant connection', () => {
   });
 });
 
+// DS-301: the move of public login to a login service of its own. The api
+// keeps the Discord account ID (users.discord_id) for account continuity,
+// so the notice has to say so before the ids are loaded.
+describe('PrivacyPage login service and Discord account ID', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function render() {
+    vi.stubEnv('LEGAL_PAGES_PREVIEW', 'true');
+    renderWithMantine(<PrivacyPage />);
+  }
+
+  it('lists the Discord account ID in the account data and says what it is for', () => {
+    render();
+    const text = retentionText('Your account');
+    expect(text).toMatch(/If you log in with Discord, also your Discord account ID/);
+    expect(text).toMatch(/not your Discord username/);
+    expect(text).toMatch(/only to recognise your account if our login service gives you a new ID/);
+  });
+
+  it('describes the login service and the copy of Discord account IDs from the previous one', () => {
+    render();
+    const text = retentionText('Logging in');
+    expect(text).toMatch(/used only for Distant Signal and runs on infrastructure we operate ourselves/);
+    expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
+    expect(text).toMatch(
+      /copied the Discord account ID of each existing account from the login service we used before/,
+    );
+  });
+
+  it('says deleting the account leaves the login service account, and how to have it deleted', () => {
+    render();
+    const text = retentionText('Your rights');
+    expect(text).toMatch(/does not delete your Discord account or your account on our login service/);
+    expect(text).toMatch(/To have your login service account deleted, email/);
+  });
+});
+
 describe('PrivacyPage external links', () => {
   afterEach(() => {
     vi.unstubAllEnvs();

@@ -32,7 +32,13 @@ import { withAbsoluteTitle } from '@/lib/pageMetadata';
 // no identifiers, legitimate interests) and the opt-in usage counts
 // (`usage_daily`, daily totals, 13 months, consent; GPC and DNT honoured).
 // Keep both rows in step with crates/api/src/usage_events.rs and
-// docs/personal-data-retention.md.
+// docs/personal-data-retention.md (both in Distant-Signal/ds-api).
+// Login service and Discord account ID (DS-301): public login moves to a
+// login service of its own (ds-sso, Ranma-Config
+// docs/specs/ds-public-auth-idp.md), and the api keeps `users.discord_id`
+// so an account survives the change of `sub` (ds-api docs/connected-apps.md,
+// "Account continuity"). The "Logging in" section is worded for after that
+// cut-over; this text has to be in place before the Discord ids are loaded.
 // ============================================================================
 
 // Reads the legal-pages flags per request (see lib/legal.ts).
@@ -71,8 +77,8 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
   return [
     {
       title: 'Your account',
-      what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in.',
-      why: 'To create and run your account.',
+      what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in. If you log in with Discord, also your Discord account ID: the number Discord gives your account, not your Discord username.',
+      why: 'To create and run your account. We use your Discord account ID only to recognise your account if our login service gives you a new ID, so you keep your journeys and settings.',
       basis: CONTRACT,
       retention:
         retention.inactiveAccountDays > 0
@@ -224,6 +230,20 @@ export default function PrivacyPage() {
         ))}
       </LegalSection>
 
+      <LegalSection title="Logging in">
+        <Text>
+          You log in through our own login service, which is used only for Distant Signal and runs on infrastructure we
+          operate ourselves. When you log in with Discord, Discord tells our login service your Discord account ID,
+          username and display name. Our login service keeps these, so it can recognise you the next time you log in,
+          and passes them to Distant Signal with an ID for your account. It also keeps the event logs described above.
+        </Text>
+        <Text>
+          When we moved logging in to this service, we copied the Discord account ID of each existing account from the
+          login service we used before. That lets your first login through the new service open your existing account,
+          with everything in it, rather than a new empty one.
+        </Text>
+      </LegalSection>
+
       <LegalSection title="The AI chat">
         <Text>
           The chat is optional. If you use it, you give it your own Anthropic API key, which is stored only in your
@@ -353,8 +373,9 @@ export default function PrivacyPage() {
           </ListItem>
           <ListItem>
             To delete your account and its data, use <strong>{ACCOUNT_DELETE_LABEL}</strong> on the same page. Deleting
-            your Distant Signal account does not delete your Discord account. You can remove Distant Signal&apos;s
-            access in Discord&apos;s settings.
+            your Distant Signal account does not delete your Discord account or your account on our login service. You
+            can remove Distant Signal&apos;s access in Discord&apos;s settings. To have your login service account
+            deleted, email <ContactEmail />.
           </ListItem>
           <ListItem>
             For anything else, or if you cannot log in, email <ContactEmail />. We reply within one month.
