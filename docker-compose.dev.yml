@@ -1,4 +1,4 @@
-# Dev override for docker-compose.yml — debug builds + frontend hot reload.
+# Dev override for docker-compose.yml: frontend hot reload.
 #
 # Not selected by hand: `dev.env` sets
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
@@ -9,42 +9,17 @@
 # service carries its own, unrelated `profiles: ["rail-mcp"]` tag for
 # opt-in service gating, not a mode switch -- see its comment there.
 #
-# Why a second file rather than `${CARGO_PROFILE:-release}` interpolation in
-# one file: interpolation would handle the build args fine, but Compose has
-# no way to attach a volume *conditionally*, and the `/app` bind mount that
+# Why a second file rather than interpolation in one file: Compose has no
+# way to attach a volume *conditionally*, and the `/app` bind mount that
 # makes hot reload work would break the prod image by shadowing its built
 # `.next` and `node_modules`. A separate override is the only way to keep
 # the mount out of the prod path.
 #
-# The Rust services get debug builds, not live reload in the `next dev`
-# sense — there's no way to hot-swap a compiled binary. Run
-#   docker compose --env-file dev.env watch
-# instead of `up` and the `develop.watch` blocks below rebuild+recreate the
-# affected service automatically on a source change (including a new
-# migration file — sqlx::migrate! embeds migrations at compile time, so
-# picking one up has always required a rebuild; `watch` just makes that
-# rebuild automatic instead of a manually-remembered `up --build`). Plain
-# `up --build` still works for a one-off manual rebuild.
+# The Rust services are their repositories' published images, pinned in
+# docker-compose.yml (Distant-Signal/ds-api, ds-pollers, ds-ingest and
+# ds-workers build them), so only the frontend has a dev override.
 
 services:
-  api:
-    build:
-      args:
-        CARGO_PROFILE: debug
-    develop:
-      watch:
-        - action: rebuild
-          path: ./crates/api
-        - action: rebuild
-          path: ./Cargo.toml
-        - action: rebuild
-          path: ./Cargo.lock
-
-  api-maintenance:
-    build:
-      args:
-        CARGO_PROFILE: debug
-
   frontend:
     build:
       # frontend/Dockerfile: skips `next build`, runs `next dev` as the

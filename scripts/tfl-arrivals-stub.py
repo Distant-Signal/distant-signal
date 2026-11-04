@@ -5,7 +5,7 @@
   scripts/tfl-arrivals-stub.py [--port 8099]
 
 The api fetches live arrivals for the /tfl/stops/{id} page from TfL's
-Unified API (crates/api/src/data/tfl_arrivals.rs). CI's frontend-e2e job
+Unified API (ds-api's crates/api/src/data/tfl_arrivals.rs). CI's frontend-e2e job
 points TFL_BASE_URL at this stub instead, so no test reaches TfL and every
 run sees the same board:
 

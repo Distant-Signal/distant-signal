@@ -121,35 +121,34 @@ details.
 
 ## Repositories
 
-The project is moving from this single repository into several, one at a
-time. Repositories marked *planned* don't exist yet; until then their code
-lives here.
+The project is split across these repositories (the repo split,
+`docs/specs/repo-split.md`):
 
 | Repository | Role |
 |---|---|
-| [`distant-signal`](https://github.com/Distant-Signal/distant-signal) (this one) | The frontend and the project's front page. Today it also holds every service except the pollers, the ingest services and the workers. It owns all issues. |
-| `ds-core` (planned) | The shared crates, the database schema and migrations, grants, the stream envelope and the line catalogue. |
-| `ds-api` (planned) | The api, the trip planner and the timetable services. |
+| [`distant-signal`](https://github.com/Distant-Signal/distant-signal) (this one) | The frontend, the project's front page, docs and dev stack. It owns all issues. |
+| [`ds-core`](https://github.com/Distant-Signal/ds-core) | The shared crates, the database schema and migrations, grants, the stream envelope and the line catalogue. |
+| [`ds-api`](https://github.com/Distant-Signal/ds-api) | The api, the trip planner and the timetable services, with the generated API types and changelog. |
 | [`ds-ingest`](https://github.com/Distant-Signal/ds-ingest) | `ingest-writer`, the Kafka relays and the TRUST movement consumers. |
 | [`ds-pollers`](https://github.com/Distant-Signal/ds-pollers) | The pollers. |
 | [`ds-workers`](https://github.com/Distant-Signal/ds-workers) | `aggregator`, `enricher` and `notifier`. |
-| `ds-deploy` (planned) | The Helm charts and the deploy tooling. |
-| `ci` (planned) | Shared workflows, actions and the Renovate preset. |
+| [`ds-deploy`](https://github.com/Distant-Signal/ds-deploy) | The Helm charts and the deploy tooling. |
+| [`ci`](https://github.com/Distant-Signal/ci) | Shared workflows, actions and the Renovate preset. |
 | [`.github`](https://github.com/Distant-Signal/.github) | The organisation profile, the security policy, the contributing guide and the issue forms. |
 | DS-MCP (hosted elsewhere) | An MCP server for Distant Signal. It consumes the public API. |
 
 ## Getting started
 
-The repository holds a Rust workspace (`crates/`), the Next.js frontend
-(`frontend/`), the Helm charts (`charts/`) and Python tooling (`scripts/`,
-managed with [uv](https://docs.astral.sh/uv/)). The shared core (the
-common crates, the database schema, grants and Redis ACL, and the line
-catalogue) is [Distant-Signal/ds-core](https://github.com/Distant-Signal/ds-core), a git dependency pinned by
-tag.
+The repository holds the Next.js frontend (`frontend/`), the docs, the
+dev stack and Python tooling (`scripts/`, managed with
+[uv](https://docs.astral.sh/uv/)). The frontend's API types come from the
+api image `frontend/api-image.txt` pins; the Rust services are in the
+repositories above.
 
 - **The whole stack, locally.** `docker-compose.yml` runs Postgres, Redis
-  and every service. Copy `local.env.example` (optimised builds) or
-  `dev.env.example` (debug builds and frontend hot reload) and run
+  and every service, the Rust ones from their published images. Copy
+  `local.env.example` (the frontend's production build) or
+  `dev.env.example` (frontend hot reload) and run
   `docker compose --env-file local.env up --build`. The header of
   `docker-compose.yml` explains both modes. The feed URLs in the examples
   are placeholders, so a local stack has no live data until you add your
@@ -195,9 +194,9 @@ says what it covers and what to expect.
 ## Licence
 
 AGPL-3.0-or-later: the GNU Affero General Public License, version 3 or (at
-your option) any later version. The full text is in `LICENSE`. Every Cargo
-crate, `frontend/package.json`, `pyproject.toml`, both charts and every
-image carry the same licence.
+your option) any later version. The full text is in `LICENSE`. Every
+repository, `frontend/package.json`, `pyproject.toml`, both charts and
+every image carry the same licence.
 
 Because the site is used over a network, AGPL §13 applies: every page's
 footer links this repository, and the api's `/public/version` (`/api/version`

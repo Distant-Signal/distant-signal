@@ -56,7 +56,7 @@ PyYAML is installed), finds every first-party image (an `image` map with a
      (one line) needs every image's core-version to be at least vA.B.C: no
      pinned image may still be built against a core whose code used what the
      migration drops. The migrations are --migrations: those of the
-     ds-core release the chart pins (scripts/core-checkout.py's checkout),
+     ds-core release the chart pins (a checkout of ds-core at that tag),
      which the pinned ds-migrate carries.
 
 Versions order within a scheme: `vX.Y.Z` by number, and `build.<run>-<sha>`
@@ -582,7 +582,7 @@ def main(argv: Sequence[str] | None = None, fetch: Fetch = http_fetch) -> int:
         type=Path,
         help="the migrations whose contract headers rule 3 reads (default: "
         "crates/ds-store/migrations; with ds-core as a git dependency, the "
-        "pinned ds-core checkout's, scripts/core-checkout.py)",
+        "pinned ds-core release's, from a checkout at its tag)",
     )
     args = parser.parse_args(argv)
     try:

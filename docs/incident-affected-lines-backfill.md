@@ -1,6 +1,6 @@
 # Backfilling `incidents.affected_lines`
 
-`crates/ds-store/migrations/20260917090000_incidents_affected_lines.sql` adds
+ds-core's `crates/ds-store/migrations/20260917090000_incidents_affected_lines.sql` adds
 `incidents.affected_lines`, the column the incident archive's Line filter
 (`GET /public/incidents?line=...`) now matches against. New and still-live
 incidents fill it automatically; **rows already in the table do not**, and
@@ -149,5 +149,5 @@ Any time `lines/*.toml` changes in a way that affects matching —
 `segment`. Live incidents pick the change up on the next poll on their own;
 archived ones only move when this runs.
 
-Implementation and reasoning: `crates/ds-store/src/incidents/line_backfill.rs`
+Implementation and reasoning: ds-core's `crates/ds-store/src/incidents/line_backfill.rs`
 (entry point ds-ingest's `crates/ingest-writer/src/bin/writer_maintenance.rs`).

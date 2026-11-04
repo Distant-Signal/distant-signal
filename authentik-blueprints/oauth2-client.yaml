@@ -3,7 +3,7 @@
 # "Blueprints: declarative first-boot configuration" research section.
 #
 # client_id/client_secret below are dev-only, known-in-advance, committed
-# values -- NOT real secrets. They must match crates/api's own SSO_CLIENT_ID
+# values -- NOT real secrets. They must match the api's own SSO_CLIENT_ID
 # / SSO_CLIENT_SECRET env vars exactly (see dev.env.example's OIDC section
 # and docker-compose.authentik.yml's header comment) and, once the Helm
 # path exists, the identical fixed values api-deployment.yaml computes when
@@ -43,7 +43,7 @@ entries:
       client_type: confidential
       client_id: distant-signal-dev
       client_secret: distant-signal-dev-local-only-not-a-real-secret
-      # Driven by the same SSO_REDIRECT_URL env var crates/api itself reads
+      # Driven by the same SSO_REDIRECT_URL env var ds-api's crates/api itself reads
       # (see routes/auth.rs's login handler), not a second, independently
       # hardcoded copy of it -- the two used to drift on purpose (this file
       # said "fixed", dev.env.example said "already matches, no change
@@ -70,7 +70,7 @@ entries:
       # "Invalid grant_type for provider" / "The request is otherwise
       # malformed" regardless of how correct redirect_uris/client_id were.
       # This app only ever does Authorization Code + PKCE (see
-      # crates/api/src/auth/oidc.rs), so that's the only grant type enabled
+      # ds-api's crates/api/src/auth/oidc.rs), so that's the only grant type enabled
       # -- not the full GrantType enum (which also has IMPLICIT, HYBRID,
       # REFRESH_TOKEN, CLIENT_CREDENTIALS, PASSWORD, DEVICE_CODE,
       # TOKEN_EXCHANGE), none of which this app's flow uses or should accept.

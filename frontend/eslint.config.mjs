@@ -332,7 +332,7 @@ const eslintConfig = defineConfig([
     'playwright-report/**',
     'test-results/**',
     // Generated from the api's Rust types (scripts/sync-api-types.py), and
-    // checked byte for byte against api-types/api.ts.
+    // checked byte for byte against the pinned api image's copy.
     'lib/api-types.ts',
   ]),
 ]);

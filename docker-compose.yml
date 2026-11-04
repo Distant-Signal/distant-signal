@@ -16,14 +16,13 @@
 #                                    # at the top of both example files
 #
 # Usage:
-#   docker compose --env-file local.env up --build   # optimized release
-#                                                    # builds, `next start`
-#   docker compose --env-file dev.env   up --build   # fast debug builds +
-#                                                    # frontend hot reload
+#   docker compose --env-file local.env up --build   # the frontend's
+#                                                    # production build
+#   docker compose --env-file dev.env   up --build   # frontend hot reload
 #
 # Each env file sets `COMPOSE_FILE` itself, so the two commands above are
 # all there is to it — `local.env` selects this file alone, `dev.env`
-# selects this file plus `docker-compose.dev.yml` (the thin debug/hot-reload
+# selects this file plus `docker-compose.dev.yml` (the thin hot-reload
 # override). Compose profiles are NOT used to switch between those two
 # modes (see docker-compose.dev.yml's own comment on why that split was
 # removed); a bare `docker compose up` with no `--env-file` will simply
@@ -45,22 +44,16 @@
 # (`-V` renews the anonymous volume) or the container keeps the stale deps.
 # See docker-compose.dev.yml for the details.
 #
-# Build caching: every Dockerfile here starts with
-# `# syntax=docker/dockerfile:1`. The Rust services built here (api,
-# aggregator, notifier, enricher, the five pollers, the four TRUST-pipeline
-# services, schedule-ingest and schedule-reference) build with cargo-chef
-# (scripts/gen-rust-dockerfiles.py generates their builder stages): each
-# service's dependencies are one image layer, so after a source-only change a
-# rebuild recompiles only the workspace crates; a Cargo.lock change rebuilds
-# them. That layer is per service (it holds exactly that binary's dependency
-# build), so a first build of every service compiles the shared dependencies
-# once per service, and each holds its own copy (prune old ones with
-# `docker builder prune`). The cargo registry/git downloads, npm's download
-# cache and Next's `.next/cache` are BuildKit cache mounts, shared across
-# builds. The `# syntax=` directive makes BuildKit pull the
-# `docker/dockerfile:1` frontend image, so the FIRST build on a machine needs
-# network access even if every base image is already local. Inspect the
-# caches with `docker buildx du`.
+# Images: every Rust service runs its repository's published image,
+# pinned by build tag and digest like ds-deploy's chart (api,
+# api-maintenance, schedule-ingest and schedule-reference from
+# Distant-Signal/ds-api; the pollers from ds-pollers; ingest-writer and the
+# TRUST pipeline from ds-ingest; aggregator, notifier and enricher from
+# ds-workers). Only the frontend builds here: its npm download cache and
+# Next's `.next/cache` are BuildKit cache mounts, shared across builds.
+# frontend/Dockerfile starts with `# syntax=docker/dockerfile:1`, so the
+# FIRST build on a machine needs network access even if every base image is
+# already local. Inspect the caches with `docker buildx du`.
 #
 # Nothing in this file or in the `*.env.example` templates is a real Rail
 # Data Marketplace endpoint or credential; see `local.env.example` for why
@@ -130,17 +123,14 @@ services:
       start_period: 5s
 
   api:
-    build:
-      context: .
-      dockerfile: docker/api.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/api:build.41847752805-a364d77302bb88e35cb0b90cea626d06246f40ec@sha256:16cef2b4562d2d5438c09edfe50a2f7cdf57d96d76879d1ed633920ce1e1f689
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      # crates/api/src/data/config.rs: ServiceArguments. No Redis: the api
+      # ds-api's crates/api/src/data/config.rs: ServiceArguments. No Redis: the api
       # has had no Redis client since ingest phase 5 (step 5.4).
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       BIND_URL: 0.0.0.0:8080
@@ -166,7 +156,7 @@ services:
       SSO_CLIENT_SECRET: ${SSO_CLIENT_SECRET:?SSO_CLIENT_SECRET must be set — see the OIDC section of local.env.example}
       SSO_REDIRECT_URL: ${SSO_REDIRECT_URL:?SSO_REDIRECT_URL must be set — the frontend origin plus /api/auth/callback}
       SSO_POST_LOGIN_REDIRECT_URL: ${SSO_POST_LOGIN_REDIRECT_URL:?SSO_POST_LOGIN_REDIRECT_URL must be set — the frontend root URL}
-      # Account continuity (docs/connected-apps.md): empty is off.
+      # Account continuity (ds-api's docs/connected-apps.md): empty is off.
       SSO_DISCORD_ID_CLAIM: ${SSO_DISCORD_ID_CLAIM:-}
       SSO_PRIMARY_SUB_CLAIM: ${SSO_PRIMARY_SUB_CLAIM:-}
       # Unlike the five above these HAVE Rust-side defaults
@@ -178,12 +168,12 @@ services:
       SESSION_EXTEND_THROTTLE_HOURS: ${SESSION_EXTEND_THROTTLE_HOURS:-24}
       # Must be kept equal to the aggregator service's own
       # HISTORY_RETENTION_DAYS below -- see
-      # crates/api/src/data/config.rs's history_retention_days doc comment.
+      # ds-api's crates/api/src/data/config.rs's history_retention_days doc comment.
       # Same variable, same default, read from the one env file.
       HISTORY_RETENTION_DAYS: ${HISTORY_RETENTION_DAYS:-7}
       # Must be kept equal to the aggregator service's own
       # DAILY_STATS_RETENTION_DAYS/HALF_HOURLY_STATS_RETENTION_HOURS -- see
-      # crates/api/src/data/config.rs's doc comments on these two fields.
+      # ds-api's crates/api/src/data/config.rs's doc comments on these two fields.
       DAILY_STATS_RETENTION_DAYS: ${DAILY_STATS_RETENTION_DAYS:-300}
       HALF_HOURLY_STATS_RETENTION_HOURS: ${HALF_HOURLY_STATS_RETENTION_HOURS:-840}
       # Public VAPID key served (unauthenticated) at
@@ -235,14 +225,10 @@ services:
   # Production's hourly api-maintenance CronJob
   # (templates/api-maintenance-cronjob.yaml), as a loop: one `maintenance`
   # pass at start, then one an hour. A failed pass is logged and retried an
-  # hour later, as the CronJob would. Same image as the api (the build is
-  # cached), same retention variables and defaults.
+  # hour later, as the CronJob would. Same pinned image as the api, same
+  # retention variables and defaults.
   api-maintenance:
-    build:
-      context: .
-      dockerfile: docker/api.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    image: ghcr.io/distant-signal/images/api:build.41847752805-a364d77302bb88e35cb0b90cea626d06246f40ec@sha256:16cef2b4562d2d5438c09edfe50a2f7cdf57d96d76879d1ed633920ce1e1f689
     restart: unless-stopped
     depends_on:
       # The api migrates at startup locally.
@@ -256,7 +242,7 @@ services:
           sleep "$${MAINTENANCE_INTERVAL_SECS}"
         done
     environment:
-      # crates/api/src/bin/maintenance.rs
+      # ds-api's crates/api/src/bin/maintenance.rs
       DATABASE_URL: *direct-database-url
       MAINTENANCE_INTERVAL_SECS: ${MAINTENANCE_INTERVAL_SECS:-3600}
       PAST_TRAVEL_RETENTION_DAYS: ${PAST_TRAVEL_RETENTION_DAYS:-548}
@@ -706,11 +692,8 @@ services:
       SCHEDULE_SFTP_LOADDATA_DIR: /tmp
 
   schedule-ingest:
-    build:
-      context: .
-      dockerfile: docker/schedule-ingest.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/schedule-ingest:build.41847752805-a364d77302bb88e35cb0b90cea626d06246f40ec@sha256:719f5af2acea21bb653c0ec025e351c7970fde26c526185dc6fb51bfebbf963e
     restart: unless-stopped
     depends_on:
       api:
@@ -727,7 +710,7 @@ services:
     group_add:
       - "1000"
     environment:
-      # crates/schedule-ingest/src/config.rs: Config
+      # ds-api's crates/schedule-ingest/src/config.rs: Config
       #
       # WATCH_DIR must resolve to DTD's account's landing folder.
       # CORRECTED 2026-09-01 (this task): SCHEDULE_FEED_DESTINATION_PATH is
@@ -754,7 +737,7 @@ services:
       STORAGE_DIR: /data/schedule-feed
       CHECK_TIMES: ${SCHEDULE_FEED_CHECK_TIMES:-22:00,22:30,23:00,23:30,00:00,00:30,01:00,01:30,16:00}
       # RETENTION_KEEP_DELIVERIES, not the old RETENTION_KEEP_SEQUENCES --
-      # crates/schedule-ingest/src/config.rs's `retention_keep_deliveries`
+      # ds-api's crates/schedule-ingest/src/config.rs's `retention_keep_deliveries`
       # field was renamed from `retention_keep_sequences` ("there is no
       # sequence number any more, just delivery timestamps" -- see that
       # field's own doc comment), which silently retired the OLD env var
@@ -768,7 +751,7 @@ services:
       RUST_LOG: ${RUST_LOG:-info}
       # ds_runtime::logging: json (default) or pretty (dev.env sets pretty).
       LOG_FORMAT: ${LOG_FORMAT:-json}
-      # Network Rail CORPUS loads (crates/schedule-ingest/src/corpus.rs),
+      # Network Rail CORPUS loads (ds-api's crates/schedule-ingest/src/corpus.rs),
       # off unless CORPUS_INGEST_ENABLED=true.
       CORPUS_INGEST_ENABLED: ${CORPUS_INGEST_ENABLED:-false}
     volumes:
@@ -780,18 +763,15 @@ services:
   # already verified and moved into storage_dir/<n>/, resolves a STANOX/CRS
   # table and the other timetable products from it, and writes them to
   # Postgres. See
-  # crates/schedule-reference/src/main.rs's own header comment and
+  # ds-api's crates/schedule-reference/src/main.rs's own header comment and
   # docs/superpowers/specs/2026-09-01-schedule-ingest-stanox-crs-table-design.md.
   # This service block was missing entirely from this file until now --
   # docker-compose.yml never got updated when schedule-reference was added
   # as a later sibling to schedule-ingest, so local dev had no way to run
   # it at all.
   schedule-reference:
-    build:
-      context: .
-      dockerfile: docker/schedule-reference.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/schedule-reference:build.41847752805-a364d77302bb88e35cb0b90cea626d06246f40ec@sha256:efea95e439b4709c124d0f0845e71ad6efe4657c3a3679088c92f2f994934652
     restart: unless-stopped
     depends_on:
       api:
@@ -802,7 +782,7 @@ services:
     # service only ever reads storage_dir/<n>/, the already-local sequence
     # directory schedule-ingest moves a verified-complete delivery into --
     # never WATCH_DIR, the raw incoming SFTP drop schedule-sftp receives
-    # (confirmed against crates/schedule-reference/src/main.rs's header
+    # (confirmed against ds-api's crates/schedule-reference/src/main.rs's header
     # comment: "Once schedule-ingest has moved a verified-complete
     # delivery into storage_dir/<n>/, reads that sequence's ... files
     # directly off the already-local, read-only-mounted PVC"). It still
@@ -814,7 +794,7 @@ services:
     # own comment) -- this container's mount below is read-only, so it
     # never needs to join that group.
     environment:
-      # crates/schedule-reference/src/config.rs: Config
+      # ds-api's crates/schedule-reference/src/config.rs: Config
       # Every product goes to Postgres directly.
       DATABASE_URL: *direct-database-url
       STORAGE_DIR: /data/schedule-feed
@@ -824,7 +804,7 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
     # READ-ONLY, unlike schedule-ingest's read-write mount above: this
     # container never writes to the shared volume (see
-    # crates/schedule-reference/src/config.rs's own header comment, "Never
+    # ds-api's crates/schedule-reference/src/config.rs's own header comment, "Never
     # writes to storage_dir") -- matches the Helm chart's `reference`
     # container volumeMount, which is likewise `readOnly: true`.
     volumes:

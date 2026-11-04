@@ -8,7 +8,7 @@ This recipe builds two Shortcuts with a Distant Signal **personal API token**:
 
 They work on iPhone, iPad, Mac and Apple Watch, and from the Home Screen or a
 widget. What the API can do is described in
-[personal-api-tokens.md](../personal-api-tokens.md), and its full contract
+[personal-api-tokens.md](https://github.com/Distant-Signal/ds-api/blob/main/docs/personal-api-tokens.md), and its full contract
 is the OpenAPI document at `https://ds-api.cursed.solutions/v1/openapi.json`.
 
 ## 1. Create a token

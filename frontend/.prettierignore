@@ -16,9 +16,9 @@ e2e-report/
 # Generated files.
 next-env.d.ts
 # The api's types (scripts/sync-api-types.py): a byte-for-byte copy of
-# api-types/api.ts, which ts-rs writes.
+# Distant-Signal/ds-api's api-types/api.ts, which ts-rs writes.
 lib/api-types.ts
-# The personal-token API's OpenAPI document, a copy of api-types/openapi/v1.json.
+# The personal-token API's OpenAPI document, a copy of ds-api's api-types/openapi/v1.json.
 lib/openapi-v1.json
 package-lock.json
 

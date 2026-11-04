@@ -1,8 +1,10 @@
 name: Containers
 
-# Build (and, on push to main/master, publish) every container image this
-# repo defines: the Rust service Dockerfiles under docker/ and
-# frontend/Dockerfile's `runtime-prod` target. This is the "main aim" CI/CD
+# Build (and, on push to main/master, publish) the one container image this
+# repo defines: frontend/Dockerfile's `runtime-prod` target. The Rust
+# services' images are built by their own repositories (repo split phases 6
+# to 9: Distant-Signal/ds-pollers, ds-ingest, ds-workers and ds-api), which
+# push to the same ghcr.io/<owner>/images/<service> packages. This is the "main aim" CI/CD
 # job per the repo owner's request. (The bundled Postgres's pgBackRest image
 # is no longer built here: the chart takes it from
 # postgresql.pgbackrest.image, see docs/postgres-pitr.md.)
@@ -66,11 +68,10 @@ on:
   # Weekly forced rebuild (Mondays 02:41 UTC, off the hour, before
   # prune-buildcache.yml's 04:17 run deletes the cache versions it untags).
   # Every leg rebuilds its runtime stage with no cache, so its `apt-get
-  # upgrade` and `apt-get install` (one RUN, see gen-rust-dockerfiles.py's
-  # APT_UPGRADE) pick up Debian's security updates, for the base image's
-  # own packages (libc and the like) as well as the installed ones; a
-  # cached build would keep the old layer forever. The Rust and Next builds
-  # still come from the cache. It then pushes, signs, attests, writes the
+  # upgrade` (frontend/Dockerfile) picks up Debian's security updates, for
+  # the base image's own packages (libc and the like) as well as the
+  # installed ones; a cached build would keep the old layer forever. The
+  # Next build still comes from the cache. It then pushes, signs, attests, writes the
   # cache exactly like a push to main.
   schedule:
     - cron: "41 2 * * 1"
@@ -91,9 +92,9 @@ env:
   SOURCE_DATE_EPOCH: "0"
 
 jobs:
-  # Each image's version labels, org.distant-signal.core-version and
-  # org.distant-signal.api-build (repo split spec §5.1, §5.3), from
-  # Cargo.lock: a JSON map of service -> `key=value` lines, the shape
+  # The frontend's version label, org.distant-signal.api-build (repo split
+  # spec §5.3): the build tag of the api image frontend/api-image.txt pins,
+  # as a JSON map of service -> `key=value` lines, the shape
   # image.yml's `labels` input takes. Static until a version changes, so
   # they don't cost an unchanged image its digest. scripts/release-order.py
   # documents the values; ds-deploy checks them before its chart ships.
@@ -129,24 +130,12 @@ jobs:
       max-parallel: 10
       matrix:
         include:
-          # No api, schedule-ingest or schedule-reference: Distant-Signal/ds-api
-          # builds and publishes them to the same packages (repo split
-          # phase 9). Their crates and Dockerfiles leave this repository in
-          # the deletion PR.
-          # No ds-migrate: Distant-Signal/ds-core's release.yml builds it
-          # (repo split spec §5.1), and values.yaml pins its release
-          # (migrate.image, bumped with core-version).
-          # No aggregator, enricher or notifier: Distant-Signal/ds-workers
-          # builds and publishes them to the same packages (repo split
-          # phase 8). Their crates and Dockerfiles leave this repository in
-          # the deletion PR.
-          # No poller-*: Distant-Signal/ds-pollers builds and publishes
-          # them to the same packages (repo split phase 6). Their crates
-          # and Dockerfiles leave this repository in the deletion PR.
-          # No ingest-writer, movement-relay, darwin-relay or the three TRUST
-          # consumers: Distant-Signal/ds-ingest builds and publishes them to
-          # the same packages (repo split phase 7). Their crates and
-          # Dockerfiles leave this repository in the deletion PR.
+          # The Rust services build in their own repositories (repo split
+          # phases 6 to 9): poller-* in Distant-Signal/ds-pollers; the ingest
+          # writer, relays and TRUST consumers in ds-ingest; aggregator,
+          # enricher and notifier in ds-workers; api, schedule-ingest and
+          # schedule-reference in ds-api; ds-migrate in ds-core's
+          # release.yml.
           # The only image needing an explicit target: frontend/Dockerfile's
           # last stage is `runtime-dev`; the image this repo wants published
           # is the earlier `runtime-prod` stage (optimized `next build` +
@@ -162,9 +151,7 @@ jobs:
     # Rekor conflict) and upload `<service>=<digest>` as the
     # image-digest-<service> artifact. Its header
     # comment has the tagging, cache and reproducibility details this file
-    # used to carry. The project URL in every Rust binary's outbound
-    # User-Agent (crates/ds-runtime's user_agent!) is this repository's, so it
-    # follows the owner too; the frontend's Dockerfile doesn't declare it.
+    # used to carry. The frontend's Dockerfile declares no DS_PROJECT_URL.
     # The second cache source is the cache from before the repository moved
     # to the organisation (repo split §5.9); a missing ref is skipped.
     # Signing identity: image.yml signs inside its own job, so the image

@@ -4,66 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Distant Signal (DS) is a personal UK rail companion: TfL-shaped line status,
 train and journey tracking, groups, trip planning and Delay Repay support.
-Rust workspace (`crates/`) and Next.js frontend (`frontend/`). The Helm
-chart, its checks and the deploy runbooks are Distant-Signal/ds-deploy.
-The shared core (common, ds-runtime, health-http, trust-schema,
-schedule-query, ingest-stream, ds-store with the migrations and grants,
-ds-migrate, ds-lines with the TOML line catalogue, the Redis ACL) is Distant-Signal/ds-core, a git dependency pinned by tag in
-Cargo.toml (`[workspace.dependencies]`, all on the tag in `core-version`).
-A core change is a ds-core PR and release, then a bump here; to try one
-first, patch a local checkout in: `cargo --config
-'patch."https://github.com/Distant-Signal/ds-core".common.path="../ds-core/crates/common"' ...`.
+This repository is the landing repository: the Next.js frontend
+(`frontend/`), the project's docs and the dev stack. The Rust services live
+in their own repositories since the repo split (docs/specs/repo-split.md):
+
+| Repository | What |
+|---|---|
+| [ds-api](https://github.com/Distant-Signal/ds-api) | the api, trip planner, schedule-ingest and schedule-reference; the generated API types and docs/api-changelog.md |
+| [ds-pollers](https://github.com/Distant-Signal/ds-pollers) | the `poller-*` feed pollers |
+| [ds-ingest](https://github.com/Distant-Signal/ds-ingest) | ingest-writer, the Kafka relays and the TRUST movement consumers |
+| [ds-workers](https://github.com/Distant-Signal/ds-workers) | aggregator, enricher and notifier |
+| [ds-core](https://github.com/Distant-Signal/ds-core) | the shared crates, migrations, grants, Redis ACL, ds-migrate and the TOML line catalogue |
+| [ds-deploy](https://github.com/Distant-Signal/ds-deploy) | the Helm chart, its checks, the pinned image digests and the deploy runbooks |
+
+The site credits come from the ds-core release `core-version` pins.
 README.md explains segments (junctions belong to the shared trunk), match
 scopes and the severity scale; DESIGN.md's "pollers POST to `/private/*`"
 picture is out of date (see Ingest below).
 
 ## Commands
-
-Copied from `.github/workflows/ci.yml`. Rust toolchain: MSRV 1.88 (edition
-2024); the rdkafka crates need cmake, libssl-dev, pkg-config, libsasl2-dev
-and libcurl4-openssl-dev.
-
-```sh
-cargo build --workspace
-cargo fmt --all --check
-cargo clippy --workspace --locked --all-targets --all-features -- -D warnings
-cargo clippy --workspace --locked --all-targets --no-default-features -- -D warnings
-cargo +1.88.0 check --workspace --locked --all-features --all-targets   # MSRV
-cargo deny --locked check bans licenses sources
-cargo test --workspace                       # unit tests; #[ignore] DB/Redis tests skipped
-cargo test -p api some_test_name             # one crate, tests matching a filter
-```
-
-DB/Redis-backed tests are `#[ignore]`d and need `DATABASE_URL` (a superuser,
-CI uses `postgres://postgres:postgres@localhost:5432/postgres`) and
-`REDIS_URL` (`redis://localhost:6379`), with the migrations applied:
-
-```sh
-core="$(uv run scripts/core-checkout.py)"   # the pinned ds-core (target/ds-core-<sha>)
-(cd "$core/crates/ds-store" && sqlx migrate run)   # sqlx-cli 0.8.6, postgres,rustls features
-cargo test -p api -p schedule-reference -- --ignored --test-threads=1
-cargo test -p api some_db_test -- --ignored --test-threads=1   # a single DB test
-uv sync --locked --group lint
-```
-
-CI builds those test binaries once (`rust-db-build`, a cargo-nextest
-archive) and runs its passes from it in three parallel jobs: as the
-superuser, as the app role (existing and new cluster), and as each
-service's own Postgres role. `scripts/db-tests.py` holds every pass's steps
-(each a former `cargo test` line; `list-passes` prints them); with
-cargo-nextest installed it runs a pass locally, building from source:
-
-```sh
-uv run scripts/db-tests.py list-passes
-uv run scripts/db-tests.py run superuser                 # DATABASE_URL, REDIS_URL, FAKE_GCS_URL
-uv run --no-sync scripts/test-postgres-roles.py --mode per-service --check-setup-job \
-  --observe api,aggregator,enricher,notifier -- \
-  uv run --no-sync scripts/db-tests.py run per-service   # DATABASE_URL_<ROLE> per step
-```
-
-An `#[ignore]`d benchmark must return early unless its env var is set
-(Distant-Signal/ci's `check-bench-gates.py`, in scripts-lint): the DB jobs run every
-ignored test, in debug.
 
 Frontend (run in `frontend/`, Node 22; `check-copy.py` runs from the repo root):
 
@@ -86,10 +45,13 @@ tracked `frontend/public/sw.js` with the build id. Discard it with
 E2E and visual suites run against a seeded stack, as CI's `frontend-e2e`
 job does (its `env:` block has every variable, including the `E2E_*` fixture
 ids, `TFL_BASE_URL: http://127.0.0.1:8099` and `API_TRANSIT_NETWORKS`):
-migrate, `psql -v ON_ERROR_STOP=1 "${DATABASE_URL}" -f frontend/e2e/fixtures/seed.sql`,
+pull the api image `frontend/api-image.txt` pins, migrate with
+`ghcr.io/distant-signal/images/ds-migrate:<its core-version label> run`
+(`MIGRATION_DATABASE_URL`), `psql -v ON_ERROR_STOP=1 "${DATABASE_URL}" -f frontend/e2e/fixtures/seed.sql`,
 start `python3 scripts/tfl-arrivals-stub.py --port 8099` (fixed TfL arrivals,
-so no test reaches TfL), `cargo build -p api && ./target/debug/api`, then in
-`frontend/` `npm run build && npm run start -- -p 3000`, and:
+so no test reaches TfL), run the api image with the job's env on the host
+network, then in `frontend/` `npm run build && npm run start -- -p 3000`,
+and:
 
 ```sh
 npx playwright install --with-deps chromium firefox
@@ -111,15 +73,16 @@ Scripts checks (repo root):
 uv sync --locked --group lint
 uv run --no-sync python ../ci/scripts/lint-scripts.py   # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes); ../ci: a Distant-Signal/ci checkout
 uv run --no-sync python -m unittest discover -s scripts/tests -v
-uv run scripts/sync-core.py --check          # frontend/lib/site-credits.json = the pinned ds-core release's signed asset; Cargo tags = core-version (rewrite without --check)
+uv run scripts/sync-core.py --check          # frontend/lib/site-credits.json = the pinned ds-core release's signed asset (rewrite without --check)
+uv run scripts/sync-api-types.py check       # frontend's api types and OpenAPI copy = the pinned api image's
 uv run scripts/check-sftp-entrypoint.py      # docker/schedule-sftp-entrypoint.sh = ds-deploy's pinned chart copy (--write to update)
-uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
 ```
 
-`scripts/release-order.py labels` stamps each image's ordering labels in
-containers.yml; ds-deploy checks them against its pinned values. Local stack:
-`docker compose --env-file local.env up --build` (`dev.env` for debug builds
-and hot reload; see `docker-compose.yml`'s header).
+`scripts/release-order.py labels` stamps the frontend image's `api-build`
+label (the pinned api's build tag) in containers.yml; ds-deploy checks it
+against its pinned api. Local stack: `docker compose --env-file local.env
+up --build` (the Rust services run their published images; see
+`docker-compose.yml`'s header).
 
 ## Architecture
 
@@ -139,7 +102,7 @@ read by three consumer groups (tracked trains, full-coverage delay stats,
 a backlog for late-tracked trains). These, darwin-relay and the shared
 movement-feed crate live in
 [Distant-Signal/ds-ingest](https://github.com/Distant-Signal/ds-ingest). The CIF timetable is pushed over SFTP;
-schedule-ingest detects and extracts each delivery, and schedule-reference
+schedule-ingest (in ds-api) detects and extracts each delivery, and schedule-reference
 (same pod, shared PVC; or a CronJob with `scheduleFeed.reference.mode:
 cronjob`, docs/scheduled-jobs.md) publishes the derived tables (STANOX/TIPLOC to CRS,
 line populations, departures and calling points) through ds-store's publish
@@ -151,16 +114,16 @@ schema gate; `ds-migrate` runs migrations (ds-deploy's chart's migrate hook Job)
 Docs: ds-ingest's docs/ingest-phase5-runbook.md, docs/ingest-stream-runtime.md,
 docs/superpowers/specs/2026-10-06-ingest-architecture-design.md.
 
-**api (axum).** TfL-shaped unprefixed routes (`/Line/...`, `/StopPoint/...`,
+**api (axum, in ds-api).** TfL-shaped unprefixed routes (`/Line/...`, `/StopPoint/...`,
 `/Train/...`, `/Journeys/...`, `/Trips/plan`) plus `/public/*`. Browser
 users authenticate by OIDC session cookie (`AuthenticatedUser`); cookie
 mutations get an Origin check. Delegated access (ds-mcp acting for a user)
 is accepted only on a separate in-cluster listener, only on
-`DELEGATED_ROUTES`, scoped by the grant (docs/connected-apps.md). The rate
+`DELEGATED_ROUTES`, scoped by the grant (ds-api's docs/connected-apps.md). The rate
 limiter keys on `X-Real-IP` (set by the frontend proxy) with tiers for
 login, `/Trips/plan`, `/Train/by-uid` plus TfL arrivals, and other public
 writes; the MCP service token gets its own budget and delegated calls
-per-user and per-client buckets (`crates/api/src/rate_limit.rs`). The trip
+per-user and per-client buckets (ds-api's `crates/api/src/rate_limit.rs`). The trip
 planner (`trip-planner`: CSA and RAPTOR) searches a day's connections array
 kept in a `GraphCache` invalidated by schedule publishes; the live overlay
 (`data/trip_plan_live.rs`) swaps in cancelled or late trains without copying
@@ -168,7 +131,7 @@ the array, including an in-search snapshot of every such train. Journeys own
 ordered `journey_legs`, each bound to a `train_subscriptions` row or an open
 time window; tracking a train is a one-leg journey. Journey breaks (at most
 one open per journey) and append-only revisions record mid-journey changes
-(docs/journey-breaks.md, docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md).
+(ds-api's docs/journey-breaks.md, docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md).
 "Today" is London's service date: use `london_now()`/`london_today()`.
 
 **notifier** (in ds-workers). Polls `line_status_history` and train movements by watermark
@@ -186,9 +149,10 @@ every public table, view, sequence and function and gives each service role
 from its pinned release. Its docs/postgres-app-role.md, docs/redis-acl.md
 and the chart README's "Per-service Postgres roles" explain them.
 
-**Chart and deploys.** `containers.yml` builds the images and pushes them
-to `ghcr.io/<owner>/images/<service>` (main builds also tagged
-`build.<run id>-<commit>`) only from `main`; every GHCR path and project
+**Chart and deploys.** `containers.yml` builds the frontend image and
+pushes it to `ghcr.io/<owner>/images/frontend` (main builds also tagged
+`build.<run id>-<commit>`) only from `main`; each service repository does
+the same for its images; every GHCR path and project
 URL derives from the repository's owner, so don't hardcode it. One chart
 for the whole stack lives in Distant-Signal/ds-deploy (its
 `charts/distant-signal/README.md`), which pins each image by build tag and
@@ -216,17 +180,18 @@ README index); code, ds-deploy's chart README and top-level docs/ are the truth.
 ## Conventions
 
 - **Migrations, grants, the Redis ACL and the line catalogue** live in
-  Distant-Signal/ds-core, with their rules in its CLAUDE.md. A service
-  that needs one opens a ds-core PR, waits for the release, then bumps
-  core here (Cargo.toml's tags and `core-version`, and
-  `uv run scripts/sync-core.py` for the site credits); ds-deploy bumps the
+  Distant-Signal/ds-core, with their rules in its CLAUDE.md. A change
+  that needs one opens a ds-core PR, waits for the release, then the
+  service repositories bump it; here, `core-version` and
+  `uv run scripts/sync-core.py` for the site credits. ds-deploy bumps the
   chart's `migrate.image` and access files.
-- **API changes** get an entry in docs/api-changelog.md (newest first, what a
-  client like DS-MCP needs to know). A changed response type the frontend
-  reads also means regenerating the TypeScript:
-  `UPDATE_API_TYPES=1 cargo test -p api api_types`, then
-  `uv run scripts/sync-api-types.py write` (CONTRIBUTING.md, "Generated API
-  types").
+- **API changes** land in Distant-Signal/ds-api first, additively, with a
+  docs/api-changelog.md entry there. The frontend then bumps its api pin in
+  the pull request that uses the change: `uv run scripts/sync-api-types.py
+  pin --latest` (or a build tag) rewrites `frontend/api-image.txt` and the
+  two copies (CONTRIBUTING.md, "Generated API types"). e2e runs against
+  that image, and ds-deploy requires the deployed api to be at least the
+  frontend's pin.
 - **Copy**: sentence case, "Couldn't <verb> <noun>." failures via
   `describeFailure`, no em dashes, ellipses or arrows, no internal
   vocabulary (ingest, TOC, CRS, "sign in"). `scripts/check-copy.py` holds the
@@ -244,7 +209,4 @@ README index); code, ds-deploy's chart README and top-level docs/ are the truth.
 - **Scripts** are typed stdlib Python (ruff, mypy) run with uv (`uv.lock`,
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
   one-liners. No pip or requirements files.
-- Rust: line data only from `lines/*.toml`, which `ds-lines` embeds in
-  the binaries (`--lines-dir` overrides it); no image copies `lines/`; tests in inline `mod tests`, DB
-  tests `#[ignore]`d; runtime `sqlx::query`, no `query!` macros.
 - Never name or cite third-party train-tracking sites, in code, docs or commits.

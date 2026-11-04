@@ -1,7 +1,8 @@
 name: CI
 
-# Lint, build and test the Rust workspace and the frontend. The Helm chart
-# and its checks are Distant-Signal/ds-deploy's (repo split phase 5).
+# Lint, build and test the frontend. The Rust services live in their own
+# repositories since the repo split (the api in Distant-Signal/ds-api), and
+# the Helm chart and its checks are Distant-Signal/ds-deploy's.
 #
 # Runs on every pull request targeting main/dev, and on every push to
 # main/master/dev. This is a superset of the "push validation" bullet in
@@ -13,8 +14,8 @@ name: CI
 # Most jobs call Distant-Signal/ci's reusable workflows (repo split spec
 # §5.5 and §8.3), pinned by SHA; Renovate bumps the pins. Each of their
 # checks shows as `<job> / <job inside the reusable workflow>`. What stays
-# here is Distant Signal's own: the DB test passes (.github/db-tests.toml),
-# the Playwright e2e job and the repository checks. `actionlint` calls
+# here is Distant Signal's own: the Playwright e2e job and the repository
+# checks. `actionlint` calls
 # FasterSpeeding/Piped's reusable lint-actions.yml.
 
 concurrency:
@@ -31,71 +32,12 @@ permissions:
   contents: read
 
 jobs:
-  # Distant-Signal/ci's rust-ci.yml: clippy in both feature sets
-  # (-D warnings), the MSRV check (Cargo.toml's rust-version = "1.88" is a
-  # promise, checked with exactly that toolchain), cargo-deny (bans,
-  # licences and sources block; advisories only warn, since
-  # dependency-scan.yml's OSV scan blocks on critical + fixable ones; see
-  # deny.toml), rustfmt, and cargo build & test (the tests that need no
-  # database). Every job but rustfmt and cargo-deny installs the system
-  # packages ds-ingest's docker/trust-consumer.Dockerfile documents for rdkafka's
-  # `cmake-build`/`ssl`/`sasl` features: cmake, libssl-dev and pkg-config to
-  # build vendored librdkafka, libsasl2-dev for the `sasl2-sys` build script
-  # (dynamically linked against a real libsasl2, matching production: this
-  # app does real SASL/SCRAM against a live Kafka broker, see
-  # trustConsumer.kafka.saslMechanism), and libcurl4-openssl-dev because
-  # librdkafka's vendored C source `#include`s <curl/curl.h>.
-  #
-  # The core crates are git dependencies on Distant-Signal/ds-core (repo
-  # split spec §5.2), whose own CI lints and tests them, and runs the line
-  # catalogue validator; cargo-deny's sources check allows exactly that git
-  # repository.
-  rust:
-    uses: Distant-Signal/ci/.github/workflows/rust-ci.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
-    with:
-      toolchain: 1.88.0
-      msrv: 1.88.0
-      apt-packages: cmake libssl-dev pkg-config libsasl2-dev libcurl4-openssl-dev
-
   # Reusable workflow_call from FasterSpeeding/Piped: runs actionlint over
   # this repo's own .github/workflows/*.yml via reviewdog. Self-contained
   # (checkout + one third-party action), no justfile dependency -- a clean
   # fit for validating the workflow files this change adds.
   actionlint:
     uses: FasterSpeeding/Piped/.github/workflows/lint-actions.yml@5bbddb5d32d5bde939b18f6c6bcfa0e36779412f # master @ 2026-09-01
-
-  # Distant-Signal/ci's rust-db-tests.yml: the DATABASE_URL/REDIS_URL-gated
-  # `#[ignore]`d tests, built once into an archive and run as parallel
-  # passes, each against its own Postgres and Redis. The archive command and
-  # the passes (the superuser, the app role, and each service's role) are in
-  # .github/db-tests.toml, which says what each covers. The images match
-  # ds-deploy's chart: `postgresql.image` and `redis.image` (Valkey; its
-  # `redis-cli` symlink serves the health check).
-  rust-db-tests:
-    uses: Distant-Signal/ci/.github/workflows/rust-db-tests.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
-    with:
-      toolchain: 1.88.0
-      # renovate: datasource=docker depName=postgres
-      postgres-image: postgres:18@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
-      # renovate: datasource=docker depName=valkey/valkey
-      redis-image: valkey/valkey:8.1.10-trixie@sha256:640c5e62cea04b6d6f2084232651d0cc70362d31f4f805e7be94dbed6855e8f2
-
-  # The old single job's check name, for anything that waits on it: green
-  # only when the archive built and every pass passed.
-  rust-db-test:
-    name: cargo test -- --ignored (DB/Redis-backed)
-    if: ${{ always() }}
-    needs: [rust-db-tests]
-    runs-on: ubuntu-26.04
-    steps:
-      - name: Every DB test job succeeded
-        env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          echo "results: ${RESULTS}"
-          for result in ${RESULTS}; do
-            [[ "${result}" == success ]] || exit 1
-          done
 
   # Distant-Signal/ci's node-ci.yml on frontend/: npm ci, ESLint (flat
   # config on eslint-config-next), the copy guardrails, the npm licence gate
@@ -129,30 +71,23 @@ jobs:
   # say was deliberately deferred until e2e specs existed; they now do.
   #
   # Needs a real, reachable `api` (Postgres + Redis behind it) to render
-  # anything beyond a skeleton/error state -- uses the DB test passes'
-  # `services:` pattern (same images, same health-check options) rather
-  # than `docker-compose.yml`: that file needs dummy values for ~20+
-  # unrelated service credentials (Kafka, RDM/TfL/LDBWS pollers, five
-  # services' worth of internal-OAuth pairs) just to resolve config, and its
-  # `api`/`frontend` images would rebuild from scratch in-container with no
-  # cache reuse, unlike this job's `Swatinem/rust-cache` and
-  # `actions/setup-node`'s npm cache. (That rust-cache entry is this job's
-  # own: rust-cache's default key includes the job id, so it is not shared
-  # with `rust / cargo build & test`'s, and it only holds `cargo build -p api`'s debug
-  # artifacts.)
+  # anything beyond a skeleton/error state: the api image
+  # frontend/api-image.txt pins, with Postgres and Redis as `services:`
+  # rather than `docker-compose.yml`, which needs dummy values for ~20+
+  # unrelated service credentials just to resolve config.
   #
   # The `INTERNAL_OAUTH_*`/`SSO_*` values below are dummy-but-syntactically-
   # valid, matching local dev's own `.devdata/api.env` pattern: `api` only
   # syntax-checks an issuer URL at startup (OIDC discovery is lazy -- see
-  # `crates/api/src/data/config.rs`'s own doc comments on `sso_issuer_url`),
+  # ds-api's `crates/api/src/data/config.rs` doc comments on `sso_issuer_url`),
   # never actually contacting it unless a real OAuth redirect happens,
   # which no spec here drives.
   frontend-e2e:
     name: Playwright e2e + accessibility
     runs-on: ubuntu-26.04
 
-    # The same two images and health-check options as the DB test passes
-    # (`rust-db-tests` above passes them to Distant-Signal/ci's
+    # The same two images and health-check options as Distant-Signal/ds-api's
+    # DB test passes (its ci.yml passes them to Distant-Signal/ci's
     # rust-db-tests.yml): keep the two in step.
     services:
       postgres:
@@ -192,7 +127,7 @@ jobs:
       SSO_CLIENT_SECRET: distant-signal-dummy-secret
       # 127.0.0.1, not localhost: the api takes the browser origin it
       # accepts cookie-authenticated mutations from out of SSO_REDIRECT_URL
-      # (crates/api/src/auth.rs, reject_cross_origin_cookie_mutation), and
+      # (ds-api's crates/api/src/auth.rs, reject_cross_origin_cookie_mutation), and
       # the specs drive the browser at E2E_BASE_URL below. With localhost
       # here, every logged-in PUT/POST/DELETE a page sends was a 403
       # "cross-origin request rejected".
@@ -242,32 +177,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: 1.88.0
-
-      # See rust-test's cache step for save-if.
-      - name: Cache cargo registry/target
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: cargo build -p api
-        run: cargo build -p api
-
-      - name: Install sqlx-cli
-        run: cargo install sqlx-cli --version 0.8.6 --no-default-features --features postgres,rustls --locked
-
-      # The migrations of the ds-core release Cargo.lock pins (the api
-      # embeds the same ones): scripts/core-checkout.py clones that tag and
-      # checks the commit.
-      - name: Run the migrations (the pinned ds-core's)
+      # The api the frontend is tested against is the image
+      # frontend/api-image.txt pins (repo split spec §5.3), the same pin
+      # the types and the OpenAPI copy come from: Distant-Signal/ds-api builds
+      # it. Its org.distant-signal.core-version label names the ds-core
+      # release it expects, so the database is migrated with that release's
+      # ds-migrate image.
+      - name: Pull the pinned api image
+        id: api
         run: |
           set -euo pipefail
-          core="$(python3 scripts/core-checkout.py)"
-          cd "${core}/crates/ds-store"
-          sqlx migrate run
+          ref="$(grep -v '^[[:space:]]*#' frontend/api-image.txt | grep -v '^[[:space:]]*$')"
+          docker pull --quiet "${ref}"
+          core="$(docker inspect --format '{{ index .Config.Labels "org.distant-signal.core-version" }}' "${ref}")"
+          [[ "${core}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "the api image has no core-version label"; exit 1; }
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+          echo "core=${core}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run the migrations (ds-migrate at the api's core-version)
+        env:
+          CORE: ${{ steps.api.outputs.core }}
+        run: |
+          docker run --rm --network host -e MIGRATION_DATABASE_URL="${DATABASE_URL}" \
+            "ghcr.io/distant-signal/images/ds-migrate:${CORE}" run
 
       - name: Seed e2e fixtures
         # ON_ERROR_STOP: plain psql reports a failing statement and carries on
@@ -288,9 +220,20 @@ jobs:
           cat tfl-stub.log
           exit 1
 
+      # The job's env, passed through by name (docker run -e NAME): the
+      # container shares the runner's network, so 127.0.0.1 is the services'.
       - name: Start api in the background
+        env:
+          REF: ${{ steps.api.outputs.ref }}
         run: |
-          nohup ./target/debug/api > api.log 2>&1 &
+          set -euo pipefail
+          names=(DATABASE_URL REDIS_URL BIND_URL RUST_LOG INTERNAL_OAUTH_ISSUER_URL
+            INTERNAL_OAUTH_CLIENT_ID SSO_ISSUER_URL SSO_CLIENT_ID SSO_CLIENT_SECRET
+            SSO_REDIRECT_URL SSO_POST_LOGIN_REDIRECT_URL VAPID_PUBLIC_KEY
+            API_TRANSIT_NETWORKS API_TRIP_PLAN_TRANSIT_NETWORKS TFL_BASE_URL)
+          args=()
+          for name in "${names[@]}"; do args+=(-e "${name}"); done
+          docker run -d --name api --network host "${args[@]}" "${REF}"
           for _ in $(seq 1 30); do
             if curl -sf http://127.0.0.1:8080/public/health > /dev/null; then
               echo "api is up"
@@ -299,7 +242,7 @@ jobs:
             sleep 1
           done
           echo "api did not become healthy in time"
-          cat api.log
+          docker logs api
           exit 1
 
       - name: Install Node.js
@@ -381,16 +324,6 @@ jobs:
             frontend/test-results/
           retention-days: 7
 
-  # A4 (DB review 2026-09-27): a migration added by this PR/push must have a
-  # version above every migration already on the base. sqlx applies a
-  # missing lower version late and silently, out of order. INF-16/DB2-35:
-  # the same script fails when a migration the base already had is
-  # modified, deleted or renamed, so it needs no lock-file upkeep;
-  # crates/ds-store/tests/migration_checksums.rs is the second line of defence.
-  # Ingest plan 1B.5: it also fails on destructive DDL (DROP, RENAME, a
-  # column type change, SET NOT NULL) without a `-- contract: ...` header,
-  # in migrations added since the base or newer than its cutoff.
-  # The job name is unchanged in case a branch-protection rule requires it.
   # Commit identity (repo split spec §5.10), Distant-Signal/ci's
   # identity.yml: no commit in the PR or push may use a retired
   # author/committer address or carry AI attribution (a Co-authored-by
@@ -420,27 +353,20 @@ jobs:
   #   - lint-containers.py: shellcheck, as for *.sh, over every Dockerfile
   #     RUN body and the docker-compose*.yml inline shell, and every image a
   #     Dockerfile or compose file pulls pinned by @sha256 digest;
-  # then scripts/tests (stdlib unittest) and the ignored-benchmark gate (the
-  # DB passes run every `#[ignore]`d test of their packages, in a debug
-  # build: an ignored benchmark must do nothing unless its env var is set;
-  # transit_planning_budget's took the DB job from ~30 to ~78 minutes on
-  # 2026-10-27). Every tool is pinned in pyproject.toml's `lint` dependency
+  # then scripts/tests (stdlib unittest). Every tool is pinned in pyproject.toml's `lint` dependency
   # group and, with the rest of the tree and its hashes, in uv.lock. Locally,
   # from the repository root, with a checkout of Distant-Signal/ci:
   #   uv run python <ci>/scripts/lint-scripts.py
   scripts-lint:
     uses: Distant-Signal/ci/.github/workflows/scripts-lint.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
-    with:
-      check-bench-gates: true
 
   # Distant Signal's own repository checks, run with the pinned script
-  # tools (pyproject.toml's `lint` group): the Rust Dockerfiles' generated
-  # builder stages and build-context allowlists, the vendored ds-core site
-  # credits, the api types, the OpenAPI document, the dev SFTP entrypoint
-  # copy and the crate dependency boundary. The chart's checks moved to
+  # tools (pyproject.toml's `lint` group): the vendored ds-core site
+  # credits, the api types and OpenAPI copy against the pinned api image,
+  # and the dev SFTP entrypoint copy. The chart's checks moved to
   # Distant-Signal/ds-deploy with the chart (repo split spec §8.3, phase 5).
   repo-checks:
-    name: repo checks (Dockerfile generator, ds-core files, api types, crate deps)
+    name: repo checks (ds-core files, api types, SFTP entrypoint)
     runs-on: ubuntu-26.04
     steps:
       - name: Checkout repository
@@ -458,19 +384,11 @@ jobs:
       - name: Install the pinned script tools
         run: uv sync --locked --group lint
 
-      # The Rust Dockerfiles' cargo-chef builder stages and every image's
-      # build-context allowlist (*.Dockerfile.dockerignore) are generated:
-      # an edit inside the markers, a Dockerfile without a SERVICES entry or
-      # a crate input outside the allowlist fails here.
-      - name: Rust Dockerfiles match scripts/gen-rust-dockerfiles.py
-        run: uv run --no-sync scripts/gen-rust-dockerfiles.py --check
-
       # frontend/lib/site-credits.json is the line catalogue validator's
       # site credits, a release asset of the ds-core release `core-version`
       # pins (repo split spec §5.1), verified against its Sigstore bundle
       # from ds-core's release.yml at the tag. Fails when the copy differs
-      # from the release, or when core-version and Cargo.toml's ds-core tags
-      # disagree. (ds-deploy vendors the chart's six access assets.)
+      # from the release. (ds-deploy vendors the chart's six access assets.)
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
@@ -484,26 +402,22 @@ jobs:
       - name: dev SFTP entrypoint matches ds-deploy's pinned chart copy
         run: uv run --no-sync scripts/check-sftp-entrypoint.py
 
-      # frontend/lib/api-types.ts and openapi-v1.json are copies of the api's generated
-      # api-types/api.ts and openapi/v1.json (repo split spec §5.3); `cargo test`'s
-      # api_types_are_current and openapi_document_is_current check those
-      # against the Rust types. Once api-types/ moves to Distant-Signal/ds-api,
-      # the same command reads them from the api image
-      # frontend/api-image.txt pins (--from auto).
-      - name: frontend's api types and OpenAPI copy match api-types/
+      # frontend/lib/api-types.ts and openapi-v1.json are copies of the
+      # api's generated api-types/api.ts and openapi/v1.json (repo split spec
+      # §5.3), read from the api image frontend/api-image.txt pins and
+      # verified byte for byte against its digests. Distant-Signal/ds-api's
+      # `cargo test` checks those files against the Rust types.
+      - name: frontend's api types and OpenAPI copy match the pinned api image
         run: uv run --no-sync scripts/sync-api-types.py check
 
-      # The personal-token API's OpenAPI document (api-types/openapi/v1.json,
-      # docs/specs/personal-api-tokens.md §12): `cargo test`'s
-      # openapi_document_is_current checks it against the Rust types; this
-      # fails on a breaking change since the base (oasdiff, pinned in
-      # Distant-Signal/ci). A breaking change needs a /v2 document instead.
-      # The frontend's copy is checked too: it is what stays here when the
-      # api moves to Distant-Signal/ds-api, so a pin bump that brings a
-      # breaking change fails in this repository as well.
+      # The frontend's copy of the personal-token API's OpenAPI document
+      # (ds-api's docs/specs/personal-api-tokens.md §12): fails on a breaking
+      # change since the base (oasdiff, pinned in Distant-Signal/ci), so a pin
+      # bump that brings one fails here as well as in Distant-Signal/ds-api.
+      # A breaking change needs a /v2 document instead.
       - name: no breaking change to the personal-token OpenAPI document
         uses: Distant-Signal/ci/actions/openapi-breaking@76c5c4cd3a3d38ea572c852071baf93cd4982b16 # main
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          specs: api-types/openapi/v1.json frontend/lib/openapi-v1.json
+          specs: frontend/lib/openapi-v1.json
 

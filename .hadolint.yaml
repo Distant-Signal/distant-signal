@@ -27,7 +27,7 @@
 #   still leave builds broken in the window before its PR merges.
 failure-threshold: style
 
-# Every FROM is a Docker Hub official image (rust, debian, node), pinned by
+# Every FROM is a Docker Hub official image (node), pinned by
 # tag and digest. A new registry (ghcr.io, quay.io, ...) fails DL3026 until
 # it is added here deliberately.
 trustedRegistries:
