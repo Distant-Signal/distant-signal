@@ -2,9 +2,9 @@
 
 Status: phase 1 done on 2026-11-02 (§9, "Phase 1 record"): the repository
 is transferred to `Distant-Signal/distant-signal` and its history is
-rewritten. Phases 4 (`ds-core`), 5 (`ds-deploy`), 6 (`ds-pollers`) and 8
-(`ds-workers`) are done too, with records in §9; the others are still
-plans.
+rewritten. Phases 4 (`ds-core`), 5 (`ds-deploy`), 6 (`ds-pollers`), 7
+(`ds-ingest`) and 8 (`ds-workers`) are done too, with records in §9; the
+others are still plans.
 Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
 the same day after two decisions by the user:
 
@@ -2227,6 +2227,9 @@ reach prod only through `ds-deploy` bumps.
 **Phase 8 done on 2026-11-04**, side by side with phase 7 up to the
 deletion PRs. Its record follows phase 6's.
 
+**Phase 7 done on 2026-11-04**, side by side with phase 8. Its record
+follows phase 8's.
+
 Every extraction follows the same recipe:
 
 1. Freeze the paths.
@@ -2322,6 +2325,36 @@ hand digest PR, the legs PR before the bump, the user's repository steps):
 - **The narrowed and observed role lists stay in this repository's
   db-tests.toml** (`api,aggregator,enricher,notifier`): the roles still
   exist, and the api's and the writer's suites here use them.
+
+#### Phase 7 record (2026-11-04)
+
+| What | Value |
+|---|---|
+| Freeze, landing `main` | `0eb2e923`; the one open PR (#192) touched no ds-ingest path |
+| Extract | `ds-ingest` `4d64b91c`, 208 commits (filter-repo of `0eb2e923`, 1779 to 207 commits, plus the set-up commit); 117 files, exactly the path list; identities clean; ds-core v0.1.0; Cargo.lock pruned (362 kept, 215 dropped, none added) |
+| Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 451 tests; DB passes superuser (99), app-role (53) and per-service (71); 6 images whose `--print-config-defaults` equal the deployed monorepo build `build.41730208148-eac5feac` |
+| Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26525803); Write on `images/ingest-writer`, `images/movement-relay`, `images/darwin-relay`, `images/trust-consumer`, `images/trust-backlog-consumer`, `images/full-coverage-consumer` and `images/buildcache` |
+| First build | CI run 41821852575 (14 jobs) and Containers run 41821859871 (dispatched: the push was made with Actions off); 6 images at `build.41821859871-4d64b91c…`, `org.opencontainers.image.source` ds-ingest, core-version v0.1.0, signed, with build provenance |
+| Ledger | `ext:ds-ingest` in `lucy/ds-migration-ledger` (`3408927`): 994 rows mapped, no new post-rewrite rows (the earlier extractions had added the ones it shares) |
+| Monorepo stops publishing | #202, merged as `20ba0466`: containers.yml without the ingest legs (rebuilt on `d0d8e46e` after phase 8's #203) |
+| Digest bump | ds-deploy#6 (`227ebbb9`): the six ingest tags and digests only (re-pinned on `24c08e6` after phase 8's #7) |
+| Deploy | 4qp8: chart build 7; the six ingest services rolled with no restarts, the relays' partitions assigned, the writer's stream consumers took over, no dead letters |
+| Delete PR | #206: the ingest crates and `movement-feed`, Dockerfiles, six docs (`darwin-pushport`, `full-coverage-consumer`, the two dead-letter docs, the phase 0 and phase 5 runbooks) and two scripts, naming `Distant-Signal/ds-ingest@4d64b91c` |
+| Path list | `paths/ds-ingest.txt` in `Distant-Signal/ci` |
+
+**Deviations from the plan**, beyond phase 6's (no `--path-rename`, the
+hand digest PR, the legs PR before the bump, the user's repository steps):
+
+- **Phases 7 and 8 ran in parallel** (phase 8's record has the overlap).
+  Phase 8's PRs landed first each time, so #202 was rebuilt by re-running
+  its edit, ds-deploy#6 re-pinned with `pin_services.py`, and #206 rebuilt
+  with `delete.py` on `f771338a`; none was merged by hand.
+- **The deletion PR's prose is a script** (`prose_ds_ingest.py` in the
+  split prep, beside `delete.py`), so a rebuild on a new `main` re-applies
+  it too.
+- **GitHub's Git Operations incident**: the push to the new repository
+  needed three tries over SSH (an auth failure, then a 500 that created
+  nothing); no other route was used.
 
 ### Phase 10: cleanup (about 1 day, 90 days after phase 9)
 
