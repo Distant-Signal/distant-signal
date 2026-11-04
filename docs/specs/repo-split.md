@@ -2143,6 +2143,8 @@ These are the prerequisites. Each one is deployable alone.
 
 ### Phase 5: extract `ds-deploy` (about 3 days)
 
+**Done on 2026-11-04.** The record is at the end of this phase.
+
 1. Freeze chart paths.
 2. Add the `Distant-Signal/ds-deploy` identity in Ranma-Config.
 3. Run `filter-repo` to create `ds-deploy`, with both charts, the alert
@@ -2161,6 +2163,55 @@ accepted, and the URL is the same, so no Ranma-Config URL change is needed.
 
 **Monorepo after this phase:** the services and the frontend. Image digests
 reach prod only through `ds-deploy` bumps.
+
+#### Phase 5 record (2026-11-04)
+
+| What | Value |
+|---|---|
+| Prerequisites | Distant-Signal/ci#4 (`image.yml` tags main builds `build.<run id>-<commit>`), ci#5 (`paths/ds-deploy.txt`); #191, merged as `eac5feac` (chart 0.5.1: `/public/version` reads an image's commit from its build tag; ci pins at `f68c7866`), deploy nyu7 |
+| Freeze, landing `main` | `eac5feac`; no open PR at all |
+| Extract | `ds-deploy` `a82591b6`, 413 commits (filter-repo of `eac5feac` plus the set-up commit); identities clean; 22 service images pinned at `build.41730208148-eac5feac…`, digests equal to the deployed chart's; ds-migrate at ds-core v0.1.0 |
+| Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, rulesets "Protect main" and "Sync bot: Renovate branches only"; Write on `charts/distant-signal` and `charts/ds-ingest-bucket` |
+| Sync App | `ds-deploy-sync` (app 5603060, bot user 352187955), Contents read and write; secrets `DS_DEPLOY_SYNC_APP_ID`, `DS_DEPLOY_SYNC_PRIVATE_KEY`; ds-deploy#1 names the bot in `gitIgnoredAuthors` |
+| First charts | `distant-signal:0.6.0_build.1.sha.d1c6969` and `ds-ingest-bucket:0.4.0_build.1.sha.d1c6969`, signed as `Distant-Signal/ds-deploy/.github/workflows/chart.yml@refs/heads/main`, public |
+| Ledger | `ext:ds-deploy` in `lucy/ds-migration-ledger` (`cea94d4`): 1905 rows mapped, 18 post-rewrite rows |
+| ds-core | ds-core#5: `tag.yml`'s `CHART_VALUES_URL` reads ds-deploy's pinned values |
+| Chart push stop | #193, merged as `1bcabb02` |
+| Deploy | 5cbj: chart 0.6.0 build 2 from ds-deploy; no pod restarted (identical digests), `/public/version` unchanged, `runbook_url`s under ds-deploy. Ranma-Config `8362d312` moved Renovate's `sourceUrl`, the compare links and the bump script to ds-deploy |
+| Delete PR | #194: the charts, chart checks, alert tests and deploy runbooks, naming `Distant-Signal/ds-deploy@a82591b6` |
+| Path list | `paths/ds-deploy.txt` in `Distant-Signal/ci` |
+
+**Deviations from the plan:**
+
+- **The landing repository keeps `core-version` and `sync-core.py`.**
+  Phase 4 made `site-credits.json` a seventh ds-core asset for the web
+  app's `/attribution` test, so the landing repository vendors that one
+  (and checks its Cargo tags against `core-version`) and ds-deploy the
+  other six.
+- **The dev SFTP entrypoint is a copy.** The dev stack's sftpgo container
+  mounted the chart's script; the landing repository now keeps
+  `docker/schedule-sftp-entrypoint.sh`, checked in CI against ds-deploy's
+  copy at a pinned commit (`scripts/check-sftp-entrypoint.py`).
+- **Merging needs the bypass.** The sync-bot ruleset restricts updates to
+  every branch but `renovate/**`, `main` included, so ds-deploy pull
+  requests merge with `gh pr merge --merge --admin` (its README,
+  "Merging"). The Renovate app is on the bypass list for its automerge.
+- **The user created the repository, the App and its secrets, and turned
+  Actions on**, as in phase 4; the agent's permission policy refuses
+  those steps. The App's installation is to be narrowed to ds-deploy
+  only.
+- **First CI run:** ci.yml's lint calls to ci's `helm-chart.yml` needed
+  `packages: write` granted (its job asks for it); ds-deploy#1 fixed it.
+- **Chart build numbers restart at 1** (`helm-chart.yml` uses the
+  workflow's run number). Safe: Renovate's chart versioning compares
+  `0.6.0` before the build, the bump script matches by commit, and
+  deploy-bringer's convention is the run number. Only images use the run
+  id, because a service moves repository with no version base to bump.
+- **Renovate is installed but has not run** in the organisation since
+  phase 1 (no Renovate PR or Dependency Dashboard in any repository).
+  Until it does, image and ds-core bumps in ds-deploy are hand PRs
+  (`pin_images.py --from-registry`; `core-version`, `migrate.image` and
+  `sync-core.py`), and step 6's "watch Renovate" check is open.
 
 ### Phases 6 to 9: extract the services, one repository at a time
 
