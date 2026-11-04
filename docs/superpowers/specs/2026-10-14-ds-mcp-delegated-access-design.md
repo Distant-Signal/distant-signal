@@ -124,7 +124,7 @@ section 8.
 | # | Question | Decision | Where |
 |---|---|---|---|
 | D-13 | Group reads (Phase 3) | Only group **owners and admins** can turn on `allow_assistant_reads` for a group. Other members' journey names are **replaced with generic labels** ("Journey 1", ...) before they reach ds-mcp, even in a group that opted in | §5.13 |
-| D-14 | Public ingress | Delegated tokens are **refused** when the api is reached through the public tunnel or ingress, and accepted only from the in-cluster ds-mcp. DS tells the two apart by the listener a request arrived on, never by a header. **Amended 2026-11-03** for read-only personal API tokens only: see [personal-api-tokens.md §4](../../specs/personal-api-tokens.md#4-decision-d-14-amended) | §5.7 |
+| D-14 | Public ingress | Delegated tokens are **refused** when the api is reached through the public tunnel or ingress, and accepted only from the in-cluster ds-mcp. DS tells the two apart by the listener a request arrived on, never by a header. **Amended 2026-11-03** for read-only personal API tokens only: see [personal-api-tokens.md §4](https://github.com/Distant-Signal/ds-api/blob/main/docs/specs/personal-api-tokens.md#4-decision-d-14-amended) | §5.7 |
 | D-15 | The web planner | `PlanTripFlow` moves to the atomic, idempotent `POST /Journeys/itinerary` in Phase 1 | §5.8, §7 |
 | D-16 | Privacy page | Updated by a separate agent, not as part of Phase 1b | §7 |
 | D-17 | Spec index | `docs/superpowers/README.md` is indexed by a separate agent | — |
