@@ -81,8 +81,13 @@ line-catalogue validator states its one website credit the same way, in
 its `crates/line-catalogue-validator/site-credits.json` (vendored here by
 `sync-core.py`).
 
-Not every route is covered yet: the trains, journeys and trip-plan
-responses are; the rest of `lib/types.ts` is still written by hand.
+Every request and response the frontend sends or reads is generated. What
+`lib/types.ts` still writes by hand is the app's own: field groups picked
+from the generated types (`UntrackedLegFields`, `ServiceModeFields`), the
+train page's view (`TrainJourneyState`), the search's additions to a
+`Suggestion`, and the chat's subset of DS-MCP's tool results, which no api
+route serves. A new hand-written interface that mirrors an api body needs
+the type exported from ds-api instead.
 
 ## Dependency and security scans
 

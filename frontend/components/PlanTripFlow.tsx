@@ -27,6 +27,7 @@ import { codeRouteLabel, codeStationLabel, isGroupCode } from '@/lib/stationLabe
 import { ProvisionalTimetableNote } from './ProvisionalTimetableNote';
 import type {
   CreateJourneyResponse,
+  ItineraryRequest,
   PlannerOperatorCatalogue,
   TrainSearchDates,
   TripPlanItinerary,
@@ -321,7 +322,9 @@ export function PlanTripFlow({
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey() },
         // The operator filter the plan applied (its response echo, §6.9 of
         // the operator filtering spec), so the journey's replans honour it.
-        body: JSON.stringify(operatorFilter ? { legs: legsToSave, operatorFilter } : { legs: legsToSave }),
+        body: JSON.stringify(
+          (operatorFilter ? { legs: legsToSave, operatorFilter } : { legs: legsToSave }) satisfies ItineraryRequest,
+        ),
       });
       // I1: `GET /Trips/plan` is deliberately unauthenticated, so an
       // anonymous visitor can plan a full route with no friction, but

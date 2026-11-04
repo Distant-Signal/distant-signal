@@ -13,7 +13,10 @@ type TimedLeg = TrainLeg | TripPlanTransitLeg;
 
 /** One leg of a `POST /Journeys/itinerary` body: a train leg, as before,
  * or (spec 2026-10-20 §2, follow-up) an untracked leg for a planner
- * transfer such as a cross-London Tube ride. */
+ * transfer such as a cross-London Tube ride. Narrower than the api's flat
+ * `ItineraryLegRequest`, which it must satisfy (`PlanTripFlow` checks the
+ * body): a train leg must leave out the untracked fields, so a body hashes
+ * as it did before untracked legs. */
 export type ItineraryLegBody =
   | { trainUid: string; serviceDate: string; originCrs?: string; destinationCrs?: string }
   | {

@@ -172,6 +172,8 @@ export type TrainHeadcodePage = Api.TrainHeadcodePage;
 export type TrainSearchOperator = Api.TrainSearchOperator;
 export type TrainSearchOperators = Api.TrainSearchOperators;
 export type TrainSearchDates = Api.TrainSearchDates;
+export type LegCandidate = Api.LegCandidate;
+export type LegCandidatesResponse = Api.LegCandidatesResponse;
 
 // Field groups the api flattens into many responses, as optional inputs:
 // the helpers that read them also take rows of routes not generated yet.
@@ -196,6 +198,7 @@ export type NewJourneyLegRequest = Api.NewJourneyLegRequest;
 export type UntrackedLegRequest = Extract<Api.NewJourneyLegRequest, { mode: 'untracked' }>;
 export type AddJourneyLegResponse = Api.AddJourneyLegResponse;
 export type CreateJourneyResponse = Api.CreateJourneyResponse;
+export type ItineraryRequest = Api.ItineraryRequest;
 export type TemplateLegRequest = Api.TemplateLegRequest;
 export type CreateJourneyTemplateRequest = Api.CreateJourneyTemplateRequest;
 export type PutJourneyTemplateRequest = Api.PutJourneyTemplateRequest;
@@ -285,51 +288,35 @@ export type Suggestion = Api.Suggestion & {
  * (`/transit/{network}/stops/{stopId}`). */
 export type StationPlace = { kind: 'tfl'; stop: TflStop } | { kind: 'transit'; network: string; stopId: string };
 
-/** The fields an untracked leg adds to a journey leg or list row, `null`
- * (or absent) on a train leg. Its place names are the leg's own
- * `originName`/`destinationName`. */
-export interface UntrackedLegFields {
-  kind?: JourneyLegKind;
-  transitMode?: TransitMode | null;
-  lineName?: string | null;
-  plannedDeparture?: string | null; // RFC3339
-  plannedArrival?: string | null; // RFC3339
-  untrackedStatus?: UntrackedStatus | null;
-  /** The TfL stops its places were picked from, `null` for free text. */
-  originStopId?: string | null;
-  destinationStopId?: string | null;
-  /** A timetabled leg's network ride (DS-237): its network (`tfl`,
-   * `metrolink`), its line's local id (`victoria`) and its headsign.
-   * `null` on other legs; absent from an older backend. */
-  transitNetwork?: string | null;
-  transitLineId?: string | null;
-  headsign?: string | null;
-}
-export type ScheduleCallingPointKind = 'Origin' | 'Intermediate' | 'Terminate';
-
-/** One calling point of a `schedule_matched` pin's matched service, as
- * snapshotted at match time (`crates/api/src/data/schedule_matching.rs`'s
- * `ScheduleCallingPointDto`) -- already camelCase on the wire, unlike the
- * Rust `schedule_query::CallingPoint` type it's derived from. */
-export interface ScheduleCallingPoint {
-  tiploc: string;
-  kind: ScheduleCallingPointKind;
-  bookedArrival: string | null; // "HH:MM:SS"
-  bookedDeparture: string | null;
-  isHalfMinuteArrival: boolean;
-  isHalfMinuteDeparture: boolean;
-  // CIF booked (timetabled) platform -- `null` when the CIF field is blank;
-  // absent on a row stored before the API started carrying it.
-  platform?: string | null;
-}
-
-export type JourneyStopKind = 'Origin' | 'Intermediate' | 'Terminate';
+/** The fields an untracked leg adds to a journey leg (DS-237's network
+ * ride included), as optional inputs: the helpers that read them also take
+ * list and group rows, which carry only some of them, `null` on a train
+ * leg. Its place names are the leg's own `originName`/`destinationName`. */
+export type UntrackedLegFields = Loose<
+  Pick<
+    Api.JourneyLegDetailResponse,
+    | 'kind'
+    | 'transitMode'
+    | 'lineName'
+    | 'plannedDeparture'
+    | 'plannedArrival'
+    | 'untrackedStatus'
+    | 'originStopId'
+    | 'destinationStopId'
+    | 'transitNetwork'
+    | 'transitLineId'
+    | 'headsign'
+  >
+>;
 
 /* Mid-journey changes (docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md
  * §7, §8, §17.6): breaks, suggestions and the plan's revisions. */
 
-/** What the planner was asked: `cause` of `GET .../alternatives`. */
-export type AlternativesCause = 'missed' | 'cancelled' | 'connection' | 'choice';
+/** What the planner was asked: `cause` of `GET .../alternatives` and of
+ * `POST .../replace`. */
+export type AlternativesCause = Api.AlternativesCause;
+export type ReplaceRequest = Api.ReplaceRequest;
+export type AcceptSuggestionRequest = Api.AcceptSuggestionRequest;
 
 // ---------------------------------------------------------------------------
 // Chat (embedded-chatbot-option-b-client-side-tokens plan) -- ChatPanel's

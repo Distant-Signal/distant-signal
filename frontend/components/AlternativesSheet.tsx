@@ -45,11 +45,13 @@ import {
   type SuggestionBadge,
 } from '@/lib/journeyBreak';
 import type {
+  AcceptSuggestionRequest,
   AlternativesCause,
   BreakCause,
   BreakResponse,
   ReplanResult,
   ReplanSuggestion,
+  ReplaceRequest,
   SuggestionSet,
   SuggestionStaleResponse,
 } from '@/lib/types';
@@ -349,7 +351,11 @@ function AlternativesSheetBody({
         ? fetch(`/api/Journeys/${journeyId}/replan/accept`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ breakId: breakInfo.id, suggestionId: suggestion.id, fingerprint: set.fingerprint }),
+            body: JSON.stringify({
+              breakId: breakInfo.id,
+              suggestionId: suggestion.id,
+              fingerprint: set.fingerprint,
+            } satisfies AcceptSuggestionRequest),
           })
         : fetch(`/api/Journeys/${journeyId}/legs/${set.fromLegId}/replace`, {
             method: 'POST',
@@ -358,7 +364,7 @@ function AlternativesSheetBody({
               cause: mode.kind === 'alternatives' ? mode.cause : 'missed',
               legs: suggestion.legs.map(suggestionLegBody),
               throughLegId: suggestion.throughLegId,
-            }),
+            } satisfies ReplaceRequest),
           });
     try {
       const response = await request;
