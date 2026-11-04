@@ -43,10 +43,10 @@ uv run --locked --no-default-groups scripts/db-tests.py archive --archive-file "
 # (1B.1) `run` against the migrated database; schedule-reference (2a.2), its
 # db sink's protocol and parity tests; ds_runtime::pg's pool
 # settings; the Redis stream and
-# ACL suites (phases 0c and 3a); the ingest-writer's loop runner (1B.6); the
-# phase 4 readers' db sources; schedule-ingest's direct sink (2d) and its
-# bucket source against fake-gcs-server; the TRUST consumers' direct sinks
-# (3b).
+# ACL suites (phases 0c and 3a); schedule-ingest's direct sink (2d) and its
+# bucket source against fake-gcs-server. (The ingest-writer's loop runner,
+# the phase 4 reader's db sources and the TRUST consumers' direct sinks run
+# in Distant-Signal/ds-ingest.)
 #
 # Ingest architecture phase 0b: every table, view, sequence and function the
 # migrations create must be classified in
@@ -121,28 +121,20 @@ uv run --no-sync python "${core}/scripts/test-postgres-roles.py" --mode existing
 # in phase 1A they are the api's moved tests; spec §6.5 runs them per
 # narrowed role later. Each DB service's tests/schema_gate.rs (plan 1B.2)
 # checks its own role's grants, so every service with one runs as its own
-# role, the writer included. schedule-reference's role is narrow (plan
+# role. schedule-reference's role is narrow (plan
 # 2a.6): its db sink's parity and protocol tests prove exactly its
 # db-grants.yaml grants. (The pollers' passes, poller-stations and
 # poller-incidents as their narrow roles, run in Distant-Signal/ds-pollers.)
-# The TRUST consumers (plan 3b) run as their narrow roles; their fixtures
-# (users, subscriptions) go through DATABASE_URL_API, and their tests delete
-# nothing they need. trust-consumer skips its reads:: tests here
-# (#[sqlx::test]: they create databases, which no narrow role may). The
-# phase 4 reader's read-only role (full_coverage_ro, plan 4.7; ldbws_ro's
-# test runs in ds-pollers) runs the crate's role_reads test: the schema gate
-# and every db-source query as the role. ingest-writer's line_status_rls test (plan 3c.3) runs
-# as the writer, reading DATABASE_URL_WRITER/_AGGREGATOR/_API itself.
+# (The writer's, the TRUST consumers' and full_coverage_ro's passes, and
+# writer-maintenance's as the incidents role, run in
+# Distant-Signal/ds-ingest.)
 # ds-store's schedule::publish tests run as schedule_reference (the other
 # suites seed schedule products as the owner, MIGRATION_DATABASE_URL;
 # ds_store::test_support::schedule_fixture_pool): since release B the app
 # role (and so the api role) no longer holds the *_publish_keys tables or
-# analyze_publish_keys (db-grants.yaml app_revokes). writer-maintenance's
-# backfill-incident-lines preflight runs as the incidents role, the role
-# that subcommand is run as (ingest phase 5, 5.4b; the writer run checks the
-# refusal).
+# analyze_publish_keys (db-grants.yaml app_revokes).
 #
-# Ingest phase 5 release D (docs/ingest-phase5-runbook.md §5.5, DS-118)
+# Ingest phase 5 release D (ds-ingest's docs/ingest-phase5-runbook.md §5.5, DS-118)
 # narrows the api, aggregator, enricher and notifier roles: no longer
 # members of the app role, exactly their own db-grants.yaml grants.
 # db-grants.yaml says so since 2026-10-28; --narrow keeps the narrowed step

@@ -144,7 +144,6 @@ class BuildInputsTests(unittest.TestCase):
         # The scan sees the known ones (so it is not silently empty).
         for known in (
             "crates/api/reference-data/station-groups.csv",
-            "crates/trust-consumer/reference-data/stanox-crs.csv",
             "scripts/rollback-tracked-trains-as-journeys.sql",
         ):
             self.assertIn(known, paths)

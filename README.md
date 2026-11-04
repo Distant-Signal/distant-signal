@@ -127,10 +127,10 @@ lives here.
 
 | Repository | Role |
 |---|---|
-| [`distant-signal`](https://github.com/Distant-Signal/distant-signal) (this one) | The frontend and the project's front page. Today it also holds every service except the pollers and the workers. It owns all issues. |
+| [`distant-signal`](https://github.com/Distant-Signal/distant-signal) (this one) | The frontend and the project's front page. Today it also holds every service except the pollers, the ingest services and the workers. It owns all issues. |
 | `ds-core` (planned) | The shared crates, the database schema and migrations, grants, the stream envelope and the line catalogue. |
 | `ds-api` (planned) | The api, the trip planner and the timetable services. |
-| `ds-ingest` (planned) | The train movement and timetable feeds and `ingest-writer`. |
+| [`ds-ingest`](https://github.com/Distant-Signal/ds-ingest) | `ingest-writer`, the Kafka relays and the TRUST movement consumers. |
 | [`ds-pollers`](https://github.com/Distant-Signal/ds-pollers) | The pollers. |
 | [`ds-workers`](https://github.com/Distant-Signal/ds-workers) | `aggregator`, `enricher` and `notifier`. |
 | `ds-deploy` (planned) | The Helm charts and the deploy tooling. |

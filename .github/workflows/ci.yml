@@ -38,7 +38,7 @@ jobs:
   # dependency-scan.yml's OSV scan blocks on critical + fixable ones; see
   # deny.toml), rustfmt, and cargo build & test (the tests that need no
   # database). Every job but rustfmt and cargo-deny installs the system
-  # packages docker/trust-consumer.Dockerfile documents for rdkafka's
+  # packages ds-ingest's docker/trust-consumer.Dockerfile documents for rdkafka's
   # `cmake-build`/`ssl`/`sasl` features: cmake, libssl-dev and pkg-config to
   # build vendored librdkafka, libsasl2-dev for the `sasl2-sys` build script
   # (dynamically linked against a real libsasl2, matching production: this
