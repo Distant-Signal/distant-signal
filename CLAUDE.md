@@ -41,8 +41,7 @@ CI uses `postgres://postgres:postgres@localhost:5432/postgres`) and
 ```sh
 core="$(uv run scripts/core-checkout.py)"   # the pinned ds-core (target/ds-core-<sha>)
 (cd "$core/crates/ds-store" && sqlx migrate run)   # sqlx-cli 0.8.6, postgres,rustls features
-cargo test -p api -p aggregator -p notifier -p schedule-reference -- --ignored --test-threads=1
-cargo test -p enricher -- --ignored --skip live_eval --skip replay_ --test-threads=1
+cargo test -p api -p schedule-reference -- --ignored --test-threads=1
 cargo test -p api some_db_test -- --ignored --test-threads=1   # a single DB test
 uv sync --locked --group lint
 ```
@@ -144,7 +143,8 @@ cronjob`, docs/scheduled-jobs.md) publishes the derived tables (STANOX/TIPLOC to
 line populations, departures and calling points) through ds-store's publish
 protocol. `aggregator` matches incidents to lines (`common::matcher`, the
 same matcher the ingest uses) and writes `line_status`; `enricher` sends
-changed incident text to an LLM. `ds-store` holds the shared SQL and the
+changed incident text to an LLM. Both, and `notifier`, live in
+[Distant-Signal/ds-workers](https://github.com/Distant-Signal/ds-workers). `ds-store` holds the shared SQL and the
 schema gate; `ds-migrate` runs migrations (ds-deploy's chart's migrate hook Job).
 Docs: docs/ingest-phase5-runbook.md, docs/ingest-stream-runtime.md,
 docs/superpowers/specs/2026-10-06-ingest-architecture-design.md.
@@ -169,8 +169,8 @@ one open per journey) and append-only revisions record mid-journey changes
 (docs/journey-breaks.md, docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md).
 "Today" is London's service date: use `london_now()`/`london_today()`.
 
-**notifier.** Polls `line_status_history` and train movements by watermark
-and sends Web Push. Rules in `crates/notifier/src/decision.rs`: ranks via
+**notifier** (in ds-workers). Polls `line_status_history` and train movements by watermark
+and sends Web Push. Rules in ds-workers' `crates/notifier/src/decision.rs`: ranks via
 `common::severity_rank` (never `Severity`'s `Ord`); lines notify on
 escalation, de-escalation after a cooldown, never twice for the same rank;
 trains and skipped stops notify on escalation only. One push per user per

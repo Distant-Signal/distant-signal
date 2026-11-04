@@ -54,10 +54,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # suites itself (repo split spec §9, phase 4).
 ARCHIVE_PACKAGES = (
     "api",
-    "aggregator",
-    "notifier",
     "schedule-reference",
-    "enricher",
     "movement-feed",
     "ingest-writer",
     "full-coverage-consumer",
@@ -79,9 +76,6 @@ SQLX_TEST_SKIPS = (
     "reads::db_tests",
     "users::sliding_session_db_tests",
 )
-# enricher: the LLM-gated live evals and the offline replay harness need
-# credentials or an exported history file CI does not have.
-ENRICHER_SKIPS = ("live_eval", "replay_")
 
 
 @dataclass(frozen=True)
@@ -178,12 +172,9 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
         Step(
             packages=(
                 "api",
-                "aggregator",
-                "notifier",
                 "schedule-reference",
             )
         ),
-        Step(packages=("enricher",), skips=ENRICHER_SKIPS),
         Step(packages=("movement-feed",)),
         Step(packages=("ingest-writer",)),
         # The phase 4 readers' db sources (#[sqlx::test]).
@@ -202,23 +193,19 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
     # test-postgres-roles.py --mode existing: DATABASE_URL is the app role.
     "existing": (
         Step(
-            packages=("api", "aggregator", "notifier"),
+            packages=("api",),
             skips=SQLX_TEST_SKIPS,
         ),
         Step(packages=("ingest-writer",)),
         Step(packages=("schedule-reference",)),
-        Step(packages=("enricher",), skips=ENRICHER_SKIPS),
     ),
     # test-postgres-roles.py --mode per-service (Stage 0b): each suite as
     # its own service's role. See the CI step's comment for each role.
     "per-service": (
         per_service("api", "api", skips=SQLX_TEST_SKIPS),
-        per_service("aggregator", "aggregator", skips=SQLX_TEST_SKIPS),
-        per_service("notifier", "notifier", skips=SQLX_TEST_SKIPS),
         per_service("ingest-writer", "writer"),
         per_service("schedule-ingest", "schedule_ingest", filters=("sink::db_tests",)),
         per_service("schedule-reference", "schedule_reference"),
-        per_service("enricher", "enricher", skips=ENRICHER_SKIPS),
         per_service("trust-backlog-consumer", "trust_backlog"),
         per_service("trust-consumer", "trust_consumer", skips=("reads::",)),
         per_service(
@@ -240,7 +227,6 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
             ),
             exact=True,
         ),
-        per_service("aggregator", "aggregator", filters=("archive::tests::",)),
     ),
 }
 

@@ -44,10 +44,5 @@ coverage/
 *.tsbuildinfo
 node_modules/
 
-# The enricher model-eval harness's local targets file (internal hostnames;
-# crates/enricher/eval/targets.example.toml is the committed template).
-# Reports go to target/enricher-eval/, already ignored above.
-/crates/enricher/eval/targets.toml
-
 # Core dumps from crashed test or bench processes (they can hold process memory).
 core.[0-9]*
