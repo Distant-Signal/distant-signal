@@ -2,7 +2,8 @@
 
 Status: phase 1 done on 2026-11-02 (§9, "Phase 1 record"): the repository
 is transferred to `Distant-Signal/distant-signal` and its history is
-rewritten. Phases 2 to 10 are still plans; no code has been extracted.
+rewritten. Phases 4 (`ds-core`), 5 (`ds-deploy`) and 6 (`ds-pollers`) are
+done too, with records in §9; phases 7 to 10 are still plans.
 Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
 the same day after two decisions by the user:
 
@@ -2215,6 +2216,8 @@ reach prod only through `ds-deploy` bumps.
 
 ### Phases 6 to 9: extract the services, one repository at a time
 
+**Phase 6 done on 2026-11-04.** The record is at the end of this section.
+
 Every extraction follows the same recipe:
 
 1. Freeze the paths.
@@ -2241,6 +2244,44 @@ the delete commit.
 | 7 | `ds-ingest` | about 2 to 3 days | rdkafka build deps, the TRUST consumers and the stream runtime docs. |
 | 8 | `ds-workers` | about 2 days | Aggregator's `lines/` work now goes through `ds-core` (§10.1, decision 8). |
 | 9 | `ds-api` | about 4 days | Last, because it is most coupled to the frontend. It needs §5.3's types and pin flow running. After it, the landing repository holds just the frontend, the docs and the dev stack. |
+
+#### Phase 6 record (2026-11-04)
+
+| What | Value |
+|---|---|
+| Prerequisites | Distant-Signal/ci#6 (config-driven `gen-rust-dockerfiles.py`) and ci#7 (`paths/ds-pollers.txt` and the other service path lists), ci `main` `076703ad`; #196 (`test_db_tests.py` decoupled from the moving crates) |
+| Freeze, landing `main` | `513ddc16`; the one open PR (#192) touched no ds-pollers path |
+| Extract | `ds-pollers` `4420d2cb`, 141 commits (filter-repo of `513ddc16`, 1773 to 140 commits, plus the set-up commit); 102 files, exactly the path list; identities clean; ds-core v0.1.0; Cargo.lock pruned (437 kept, 164 dropped, none added) |
+| Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 264 tests; DB passes superuser (9) and per-service (12); 9 images whose `--print-config-defaults` equal the deployed monorepo build `build.41730208148-eac5feac` |
+| Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26518153); Write on the nine `images/poller-*` packages and `images/buildcache` |
+| First build | CI run 41801866478 and Containers run 41801872738 (dispatched: the push was made with Actions off); 9 images at `build.41801872738-4420d2cb…`, `org.opencontainers.image.source` ds-pollers, core-version v0.1.0, signed, with build provenance |
+| Ledger | `ext:ds-pollers` in `lucy/ds-migration-ledger` (`cc72055`): 738 rows mapped, 12 post-rewrite rows |
+| Monorepo stops publishing | #197, merged as `eb79245b`: containers.yml without the poller legs |
+| Digest bump | ds-deploy#3: the nine poller tags and digests only |
+| Deploy | h48k: chart `0.6.0_build.3.sha.5ea9ffd`, only the poller digests changed |
+| Delete PR | #198: the poller crates, Dockerfiles, `docs/transit-networks.md` and `check-crate-deps.py`, naming `Distant-Signal/ds-pollers@4420d2cb` |
+| Path list | `paths/ds-pollers.txt` in `Distant-Signal/ci` |
+
+**Deviations from the plan:**
+
+- **No `--path-rename`** (§5.6 step 2): the paths were already `crates/`,
+  `docker/` and `docs/` in the monorepo. The set-up commit no longer
+  switches path dependencies (phase 4 did); it keeps the used
+  `[workspace.dependencies]` lines and prunes Cargo.lock.
+- **`check-crate-deps.py` moved to ds-pollers**: after phase 4 its only
+  remaining target in the monorepo was `poller-transit-schedule`.
+- **Step 5 was a hand PR**: Renovate still has not run, so ds-deploy#3
+  used `pin_services.py`, which pins one repository's services (each
+  repository now has its own build tags).
+- **The monorepo's poller legs went in their own PR (#197)** before the
+  digest bump, so two repositories never published to one package; the
+  deletion came after the deploy.
+- **The user created the repository, granted the packages and turned
+  Actions on**, as in phases 4 and 5; Ranma added ds-pollers to
+  task-bringer's `release.yaml` beforehand. Nothing on the cluster verifies
+  image signatures, so no Flux or policy change was needed.
+- **The images' build cache** is `images/buildcache:<service>`, which the
+  monorepo had filled; no old-owner cache source (§5.9).
 
 ### Phase 10: cleanup (about 1 day, 90 days after phase 9)
 
