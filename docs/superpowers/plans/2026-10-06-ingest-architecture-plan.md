@@ -1043,7 +1043,7 @@ step 4 plus 24 h of a clean `ACL LOG`. It also moves the phase 4
 internal reads (`internalReads.source: db`), so no caller of `/private`
 is left for release B.
 
-**Runbook: [docs/ingest-phase5-runbook.md](../../ingest-phase5-runbook.md)**
+**Runbook: [docs/ingest-phase5-runbook.md](https://github.com/Distant-Signal/ds-ingest/blob/main/docs/ingest-phase5-runbook.md)**
 (2026-10-08). It holds:
 
 - the route-by-route caller inventory, with production's 7-day counts;

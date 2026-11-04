@@ -177,7 +177,7 @@ export function OpenDataAttribution({ transitOn = false }: { transitOn?: boolean
           Data sources and licences
         </TextLink>
         {/* AGPL-3.0 §13: the source of what this site runs, on every
-            page (lib/sourceCode.ts). */}
+            page: the README's repository index (lib/sourceCode.ts). */}
         <TextLink href={SOURCE_CODE_URL} external size="sm" underline="always">
           Source code
         </TextLink>

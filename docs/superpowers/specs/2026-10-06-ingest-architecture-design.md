@@ -7,7 +7,7 @@
 Design, 2026-10-06. Status: **partly implemented** (2026-10-14): phases
 0–4 and phase 5's releases A and B are live, release C is built; 5.5's
 narrowing and the app-role drop remain
-([the phase 5 runbook](../../ingest-phase5-runbook.md)). Originally
+([the phase 5 runbook](https://github.com/Distant-Signal/ds-ingest/blob/main/docs/ingest-phase5-runbook.md)). Originally
 **accepted**; the user's decisions are in
 [§16, Decisions (2026-10-06)](#decisions-2026-10-06) and
 [(2026-10-07)](#decisions-2026-10-07). Phase 0 is being
