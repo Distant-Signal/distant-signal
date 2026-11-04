@@ -1,7 +1,7 @@
 name: Dependency vulnerability scan
 
-# Independent supply-chain vulnerability scan for Cargo.lock
-# (workspace-wide), frontend/package-lock.json and uv.lock (the scripts'
+# Independent supply-chain vulnerability scan for
+# frontend/package-lock.json and uv.lock (the scripts'
 # lint tools), distinct from what Renovate already does
 # (osvVulnerabilityAlerts/vulnerabilityAlerts only open a version-bump PR
 # when Renovate itself already knows to touch a dependency; see

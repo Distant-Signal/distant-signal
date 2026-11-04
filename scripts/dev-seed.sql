@@ -86,7 +86,7 @@ ON CONFLICT (crs) DO UPDATE SET
     name = EXCLUDED.name, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude;
 
 -- Only the 12 allowlisted top-level keys survive `filter_accessibility_fields`
--- (crates/api/src/data/reference.rs) -- anything else is stripped, so the
+-- (ds-api's crates/api/src/data/reference.rs) -- anything else is stripped, so the
 -- shape below has to use those exact camelCase names.
 UPDATE stations
 SET accessibility = '{
@@ -464,7 +464,7 @@ ON CONFLICT (crs) DO UPDATE SET polled_at = EXCLUDED.polled_at, departures = EXC
 -- row is minted directly.
 --
 -- `sessions.id` is the SHA-256 hex digest of the RAW cookie value, exactly as
--- `crates/api/src/auth.rs`'s `hash_session_token` computes it. The raw token
+-- ds-api's `crates/api/src/auth.rs`'s `hash_session_token` computes it. The raw token
 -- the browser must send is:
 --
 --   Cookie: distant_signal_session=preview-demo-session-token-for-demo-user

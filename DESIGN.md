@@ -40,16 +40,16 @@ This project fills that gap.
   operator-wide, etc.) and producing per-line statuses accordingly.
 - Emitting TfL-shaped JSON.
 - Train-level live tracking, implemented via TRUST movement events that
-  `crates/movement-relay` relays from RDM's Kafka feed into a Redis Stream
+  ds-ingest's `crates/movement-relay` relays from RDM's Kafka feed into a Redis Stream
   for `crates/trust-consumer` to read, not deferred TD/TRUST territory.
-- Authentication — OIDC SSO is implemented (`crates/api/src/auth/oidc.rs`).
+- Authentication — OIDC SSO is implemented (ds-api's `crates/api/src/auth/oidc.rs`).
 
 **Out of scope for v1.**
 - Predicting future disruption (we report current state).
 - Engineering-works calendars beyond what Knowledgebase already exposes.
 - Multi-tenant isolation (a deployment-time concern). Per-client-IP rate
   limiting of the expensive public routes did land in the api
-  (`crates/api/src/rate_limit.rs`).
+  (ds-api's `crates/api/src/rate_limit.rs`).
 
 ---
 
@@ -59,8 +59,8 @@ This project fills that gap.
 |---|---|---|
 | **Darwin Knowledgebase Incidents** | Human-curated disruption messages with operator and station tags | Primary signal for `reason` text and severity. Highest data quality. |
 | **OpenLDBWS** (or the new REST equivalent) | Live departure boards per station, including delay minutes, cancellations, and reason text | Sampling-based inference when no incident covers a line. Secondary signal. |
-| **CIF SCHEDULE feed** | Static + short-term timetable, pushed to us over SFTP | Implemented (`crates/schedule-ingest` + `crates/schedule-reference`): schedule matching for tracked trains, station timetables, the full-coverage population, and trip planning. Line attribution still comes from the hand-curated catalogue, not CIF service groups (see §9). |
-| **TRUST movement events** | Per-train movement and cancellation events, published by RDM on Kafka | Implemented and load-bearing: `crates/movement-relay` is the only Kafka client and relays every event into the `movement-events` Redis Stream, read by `crates/trust-consumer` (individual train tracking), `crates/full-coverage-consumer` (whole-line delay stats) and `crates/trust-backlog-consumer` (a short backlog for late-tracked trains). |
+| **CIF SCHEDULE feed** | Static + short-term timetable, pushed to us over SFTP | Implemented (ds-api's `crates/schedule-ingest` + `crates/schedule-reference`): schedule matching for tracked trains, station timetables, the full-coverage population, and trip planning. Line attribution still comes from the hand-curated catalogue, not CIF service groups (see §9). |
+| **TRUST movement events** | Per-train movement and cancellation events, published by RDM on Kafka | Implemented and load-bearing: ds-ingest's `crates/movement-relay` is the only Kafka client and relays every event into the `movement-events` Redis Stream, read by `crates/trust-consumer` (individual train tracking), `crates/full-coverage-consumer` (whole-line delay stats) and `crates/trust-backlog-consumer` (a short backlog for late-tracked trains). |
 | **RDM Stations and TOC reference feeds** | Station and operator reference data | Station/operator catalogues (`poller-stations`, `poller-tocs`). |
 | **TfL Unified API** | TfL's own line status | Shown as-is for TfL lines (`poller-tfl`, `dataQuality: tfl`). |
 | **Island of Ireland feeds** | Iarnród Éireann GTFS and realtime XML; OpenDataNI's NIR station lists | Irish station/line catalogue and departure samples (`poller-irish-rail-gtfs`, `poller-irish-rail-live`, `poller-nir-stations`). |
@@ -78,7 +78,8 @@ reference feeds and the TRUST Train Movements feed.
 
 ## 4. Architecture
 
-The system is a Rust workspace of small services around a shared Postgres
+The system is a set of small Rust services (one repository per concern,
+§7) around a shared Postgres
 database, plus a streaming pipeline (Kafka in, Redis Streams inside the
 cluster) for train-level tracking. Only `api`, `aggregator`, `enricher` and
 `notifier` talk to Postgres directly; every other service writes through
@@ -414,43 +415,34 @@ one.
 
 ## 7. Project layout
 
+Since the repo split (`docs/specs/repo-split.md`) the Rust workspace is
+spread over one repository per concern, each building its own images:
+
 ```
-distant-signal/
-├── README.md
-├── DESIGN.md                  (this document)
-├── lines/                     curatorial asset; well-reviewed, hand-edited
-│   ├── SCHEMA.md
-│   └── *.toml                 one file per line
-├── crates/                    Rust workspace (25 crates; see root Cargo.toml)
-│   ├── common/                 shared types, matcher, segments, config helpers
-│   ├── ds-lines/               the line catalogue, embedded at build time
-│   ├── ds-runtime/             domain-free runtime: logging, metrics, startup, args
-│   ├── api/                    axum HTTP service (read API, auth, ingest)
-│   ├── aggregator/             the core status decision logic
-│   ├── enricher/               LLM extraction from incident text
-│   ├── notifier/               Web Push notifications
-│   ├── poller-*/               eight pollers (RDM, TfL, island of Ireland)
-│   ├── movement-relay/         RDM TRUST Kafka → `movement-events` stream
-│   ├── trust-consumer/         movements for user-tracked trains
-│   ├── full-coverage-consumer/ TRUST-vs-schedule stats for whole lines
-│   ├── trust-backlog-consumer/ short TRUST backlog for late tracking
-│   ├── schedule-ingest/        CIF SCHEDULE delivery watcher
-│   ├── schedule-reference/     reference tables derived from the CIF delivery
-│   ├── schedule-query/         CIF parsing / STP resolution library
-│   ├── trip-planner/           CSA and RAPTOR journey search
-│   ├── trust-schema/           TRUST message parsing library
-│   ├── movement-feed/          shared movement-feed trait + Redis Stream client
-│   ├── health-http/            shared /healthz endpoint
-│   └── line-catalogue-validator/ checks lines/*.toml against reference data
-├── frontend/                  Next.js web client
-├── charts/distant-signal/     Helm chart for deploying the full stack
-├── reference-data/            core reference tables (e.g. crs-tiploc.csv); the
-│                              rest sit in crates/<crate>/reference-data/
-└── docker-compose.yml         local dev environment
+Distant-Signal/
+├── distant-signal/   this repository: frontend/ (Next.js), docs/, the dev
+│                     stack (docker-compose.yml) and scripts/
+├── ds-core/          lines/ (the curated catalogue, SCHEMA.md), and the
+│                     shared crates: common (types, matcher, segments),
+│                     ds-lines, ds-runtime, ds-store (SQL, migrations,
+│                     grants, the schema gate), ds-migrate, ingest-stream,
+│                     schedule-query, trust-schema, health-http,
+│                     line-catalogue-validator, reference-data/
+├── ds-api/           api (axum: read API, auth), trip-planner (CSA and
+│                     RAPTOR), schedule-ingest (CIF delivery watcher),
+│                     schedule-reference (tables derived from the CIF)
+├── ds-ingest/        ingest-writer, movement-relay, darwin-relay,
+│                     trust-consumer, full-coverage-consumer,
+│                     trust-backlog-consumer, movement-feed
+├── ds-pollers/       the poller-* crates (RDM, TfL, island of Ireland,
+│                     transit networks)
+├── ds-workers/       aggregator (status decisions), enricher (LLM
+│                     extraction), notifier (Web Push)
+└── ds-deploy/        charts/distant-signal, the Helm chart for the stack
 ```
 
 The old single-package Python implementation this document originally
-described has been superseded by the Rust workspace above; the domain
+described has been superseded by the Rust services above; the domain
 model and aggregation logic in §5 and §6 carried over largely unchanged.
 
 ---
@@ -461,8 +453,9 @@ For an implementer picking this up, the recommended order:
 
 **Stage 1 — make the existing code production-ready.** Done: the
 Knowledgebase and LDBWS pollers, scheduling, Postgres persistence, and the
-HTTP read API are all implemented (`crates/poller-incidents`,
-`crates/poller-ldbws`, ds-workers' `crates/aggregator`, `crates/api` — see §4). See
+HTTP read API are all implemented (ds-pollers' `crates/poller-incidents`
+and `crates/poller-ldbws`, ds-workers' `crates/aggregator`, ds-api's
+`crates/api`; see §4). See
 §10 for what's actually still open.
 
 **Stage 2 — broaden the line catalogue.** Largely done: `lines/` now
@@ -591,7 +584,7 @@ the inference fallback to Good Service.
 pipeline with synthetic inputs, verifying the rendered JSON matches
 expectations.
 
-`crates/common/src/matcher.rs`'s and ds-workers' `crates/aggregator/src/aggregation.rs`'s
+ds-core's `crates/common/src/matcher.rs`'s and ds-workers' `crates/aggregator/src/aggregation.rs`'s
 own `mod tests` cover the matcher and aggregator layers, loading the
 real `lines/` catalogue (`LineDefinition::from_dir`, or the embedded copy
 from `ds_lines::embedded`) rather than synthetic fixtures. Each new line should add at least one shared-trunk and
@@ -601,11 +594,11 @@ one exclusive-segment test case.
 
 ## 12. Conventions
 
-- Rust workspace, one crate per concern (`common`, `aggregator`, `api`,
-  `enricher`, the TRUST and schedule services, one `poller-*` crate per
-  feed — see §7).
+- One crate per concern (`common`, `aggregator`, `api`, `enricher`, the
+  TRUST and schedule services, one `poller-*` crate per feed), in the
+  repositories §7 lists.
 - Domain types are plain structs deriving `serde::{Serialize, Deserialize}`
-  in `crates/common` (e.g. `LineDefinition`), not separate wire-format
+  in ds-core's `crates/common` (e.g. `LineDefinition`), not separate wire-format
   wrapper types.
 - One concept per module. `common::matcher` matches incidents to lines,
   `common::segments` indexes shared/exclusive track, `aggregator`'s
@@ -619,7 +612,7 @@ one exclusive-segment test case.
   through `LineDefinition::from_dir`. Don't hardcode line data in Rust.
 - Tests live inline as `mod tests` next to the code they cover (see §11).
   The exceptions are crate-level integration tests under a crate's own
-  `tests/` (e.g. `crates/api/tests/` for migration checks), not a
+  `tests/` (e.g. ds-api's `crates/api/tests/`), not a
   separate top-level test tree.
 - Comments explain *why*, not *what*. The "junction belongs to the
   shared trunk" rule and the "drop operator-only when precise match

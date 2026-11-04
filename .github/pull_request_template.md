@@ -14,4 +14,4 @@ For changes a visitor can see:
 For everything:
 
 - [ ] Tests cover the change
-- [ ] `docs/api-changelog.md` updated for any API change
+- [ ] An API change the frontend needs landed in Distant-Signal/ds-api (with its `docs/api-changelog.md` entry), and `frontend/api-image.txt` pins a build with it

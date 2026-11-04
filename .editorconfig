@@ -26,7 +26,7 @@ binary_next_line = true
 trim_trailing_whitespace = false
 
 # Captured feed fixtures stay byte-for-byte (some are CRLF, as delivered).
-[{crates/*/tests/fixtures/**,frontend/test/fixtures/**,frontend/e2e/fixtures/**}]
+[{frontend/test/fixtures/**,frontend/e2e/fixtures/**}]
 end_of_line = unset
 insert_final_newline = unset
 trim_trailing_whitespace = unset

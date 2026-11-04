@@ -15,7 +15,7 @@ Distant-Signal/ds-deploy's, which vendors them with its own copy of this
 script (repo split phase 5).
 
 The version is the one line of `core-version` (Renovate's ds-core group
-bumps it, with the ds-migrate image). For each asset this downloads
+bumps it). For each asset this downloads
 `<asset>` and `<asset>.sigstore.json` (cosign sign-blob's bundle) from
 https://github.com/Distant-Signal/ds-core/releases/download/<version>/,
 verifies the bundle with `cosign verify-blob` against ds-core's release
@@ -23,9 +23,10 @@ workflow at that tag, and then writes the copy, or with --check writes
 nothing and exits 1 naming each copy that differs. --assets-dir DIR reads
 the assets from DIR instead of downloading them (still verified).
 
-The pins must agree: every ds-core `tag =` in Cargo.toml's
-[workspace.dependencies] is core-version. A disagreement is exit 1, with
-or without --check.
+Where a Cargo.toml exists (no longer here since repo split phase 9, which
+moved the last Rust crates out; the check stays for a repository that has
+one), every ds-core `tag =` in its [workspace.dependencies] must be
+core-version. A disagreement is exit 1, with or without --check.
 
 Exit 2 when an asset can't be fetched or doesn't verify. Stdlib only;
 needs cosign on PATH.

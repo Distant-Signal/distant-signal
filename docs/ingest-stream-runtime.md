@@ -1,4 +1,4 @@
-# The ingest stream runtime (`crates/ingest-stream`)
+# The ingest stream runtime (ds-core's `crates/ingest-stream`)
 
 The Redis Streams runtime of the ingest architecture
 ([spec §7](superpowers/specs/2026-10-06-ingest-architecture-design.md#7-stream-design),

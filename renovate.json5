@@ -35,36 +35,8 @@
       ],
     },
     {
-      // scripts/gen-rust-dockerfiles.py generates the Rust Dockerfiles'
-      // builder stages, and CI fails when a Dockerfile drifts from it. The
-      // dockerfile manager bumps the Dockerfiles' rust FROM; this bumps the
-      // same tag and digest in the generator, on the same (per-depName)
-      // branch, so the drift check stays green on Renovate's PR.
-      "customType": "regex",
-      "managerFilePatterns": ["/(^|/)scripts/gen-rust-dockerfiles\\.py$/"],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>docker) depName=(?<depName>\\S+)\\nRUST_TAG = \"(?<currentValue>[^\"]+)\"\\nRUST_DIGEST = \"(?<currentDigest>sha256:[0-9a-f]+)\"",
-      ],
-    },
-    {
-      // cargo-chef (the same generated builder stages): its pin in the
-      // generator and in every generated `cargo install` line, together.
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/(^|/)scripts/gen-rust-dockerfiles\\.py$/",
-        "/(^|/)docker/[^/]+\\.Dockerfile$/",
-      ],
-      "matchStrings": [
-        "CARGO_CHEF_VERSION = \"(?<currentValue>[^\"]+)\"",
-        "cargo install cargo-chef --locked --version (?<currentValue>\\S+)",
-      ],
-      "datasourceTemplate": "crate",
-      "depNameTemplate": "cargo-chef",
-    },
-    {
       // The ds-core release this repository builds against and vendors
-      // the site credits from (repo split spec §5.1): core-version, bumped
-      // with Cargo.toml's ds-core tags (the `ds-core` group below). The
+      // the site credits from (repo split spec §5.1): core-version. The
       // hosted app runs no post-upgrade commands, so the PR's CI fails
       // until someone runs `uv run scripts/sync-core.py` on its branch and
       // pushes the vendored file.
@@ -78,8 +50,8 @@
       // The api image the frontend takes its generated types and OpenAPI
       // copy from (repo split spec §5.3; scripts/sync-api-types.py): one
       // `<repository>:build.<run id>-<commit>@sha256:<digest>` line, ordered
-      // by run id as ds-deploy's ds-images are. Inert while the api builds
-      // here (api-types/ is read instead, and no pin exists). The hosted app
+      // by run id as ds-deploy's ds-images are; Distant-Signal/ds-api builds
+      // it. The hosted app
       // runs no post-upgrade commands, so the PR's CI fails until someone
       // runs `uv run scripts/sync-api-types.py write` on its branch and
       // pushes the two copies (or the frontend change that needs them).
@@ -111,31 +83,23 @@
   // (not assumed) before deciding no repo-specific packageRules/
   // matchManagers overrides were needed:
   //
-  //   cargo         - Cargo.toml / Cargo.lock (workspace root + all 10
-  //                   crates/*) are auto-detected; `crates/common` (a
-  //                   path-only dependency, no publishable version) is
-  //                   correctly left alone by the manager.
   //   npm           - frontend/package.json + frontend/package-lock.json
   //                   are auto-detected anywhere in the repo tree.
   //   dockerfile    - default pattern is
   //                   `/(^|/|\.)([Dd]ocker|[Cc]ontainer)file$/` -- the
   //                   `\.` alternative before `[Dd]ocker` means it matches
   //                   a file *ending* in ".Dockerfile" just as much as one
-  //                   *named* "Dockerfile", so docker/api.Dockerfile,
-  //                   docker/trust-consumer.Dockerfile, etc. (all 9
-  //                   service Dockerfiles) match already, alongside
-  //                   frontend/Dockerfile. Covers every `FROM` in this
-  //                   repo (rust:1.88-bookworm, debian:bookworm-slim,
-  //                   node:22-bookworm-slim) plus the
-  //                   `# syntax=docker/dockerfile:1` pragma.
+  //                   *named* "Dockerfile": frontend/Dockerfile's `FROM`s
+  //                   (node:24-bookworm-slim) and the
+  //                   `# syntax=docker/dockerfile:1` pragma. (The Rust
+  //                   service Dockerfiles moved with the services.)
   //   helm-values,  - nothing here: the chart and its values.yaml are
   //   helmv3          Distant-Signal/ds-deploy's (repo split phase 5).
   //   github-actions - every workflow is picked up with no extra config,
   //                   the SHA-pinned actions and the Distant-Signal/ci and
   //                   Piped reusable-workflow pins alike. Not the
-  //                   astral-sh/setup-uv `version:` (uv) inputs or the
-  //                   service images ci.yml passes to rust-db-tests.yml:
-  //                   the preset's custom managers cover those.
+  //                   astral-sh/setup-uv `version:` (uv) inputs: the
+  //                   preset's custom managers cover those.
   //                   Confirmed with `renovate --platform=local
   //                   --dry-run=extract` (44.126.1), as were the pep621 and
   //                   pyenv deps below.
@@ -165,17 +129,12 @@
   //                   and so does every Dockerfile's `# syntax=` pin.
   "packageRules": [
     {
-      // Every ds-core pin moves together, in one PR that merges before the
-      // image group (repo split spec §5.2, §5.4): the crates' git tags (and
-      // Cargo.lock) and core-version. (ds-deploy bumps the ds-migrate
-      // image with its own core-version.) Two at a time across the
-      // organisation.
+      // The ds-core pin, core-version (repo split spec §5.2, §5.4), in its
+      // own PR. (ds-deploy bumps the ds-migrate image with its own
+      // core-version.) Two at a time across the organisation.
       "groupName": "ds-core",
       "groupSlug": "ds-core",
-      "matchPackageNames": [
-        "Distant-Signal/ds-core",
-        "https://github.com/Distant-Signal/ds-core",
-      ],
+      "matchPackageNames": ["Distant-Signal/ds-core"],
       "prConcurrentLimit": 2,
     },
     {

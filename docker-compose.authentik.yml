@@ -104,7 +104,7 @@ services:
       # Read by authentik-worker (the container that applies blueprints) via
       # authentik-blueprints/oauth2-client.yaml's `!Env [SSO_REDIRECT_URL,
       # ...]` -- keeps the OAuth2Provider's registered redirect_uris in sync
-      # with the same value crates/api itself uses to build its own
+      # with the same value ds-api's crates/api itself uses to build its own
       # redirect_uri, rather than a second, independently hardcoded copy
       # that can (and did) drift the moment SSO_REDIRECT_URL was changed
       # for a real remote-access setup. authentik-server doesn't apply
