@@ -2,8 +2,9 @@
 
 Status: phase 1 done on 2026-11-02 (§9, "Phase 1 record"): the repository
 is transferred to `Distant-Signal/distant-signal` and its history is
-rewritten. Phases 4 (`ds-core`), 5 (`ds-deploy`) and 6 (`ds-pollers`) are
-done too, with records in §9; phases 7 to 10 are still plans.
+rewritten. Phases 4 (`ds-core`), 5 (`ds-deploy`), 6 (`ds-pollers`) and 8
+(`ds-workers`) are done too, with records in §9; the others are still
+plans.
 Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
 the same day after two decisions by the user:
 
@@ -2223,6 +2224,9 @@ reach prod only through `ds-deploy` bumps.
 
 **Phase 6 done on 2026-11-04.** The record is at the end of this section.
 
+**Phase 8 done on 2026-11-04**, side by side with phase 7 up to the
+deletion PRs. Its record follows phase 6's.
+
 Every extraction follows the same recipe:
 
 1. Freeze the paths.
@@ -2287,6 +2291,37 @@ the delete commit.
   image signatures, so no Flux or policy change was needed.
 - **The images' build cache** is `images/buildcache:<service>`, which the
   monorepo had filled; no old-owner cache source (§5.9).
+
+#### Phase 8 record (2026-11-04)
+
+| What | Value |
+|---|---|
+| Freeze, landing `main` | `0eb2e923`; the one open PR (#192) touched no ds-workers path |
+| Extract | `ds-workers` `4dd1c46b`, 276 commits (filter-repo of `0eb2e923`, 1779 to 275 commits, plus the set-up commit); 86 files, exactly the path list; identities clean; ds-core v0.1.0; Cargo.lock pruned (475 kept, 102 dropped, none added) |
+| Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 740 tests; DB passes superuser (163), app-role (163), per-service (163) and release D's narrow step (8), the enricher's LLM evals and replay skipped; 3 images whose `--print-config-defaults` equal the deployed monorepo build `build.41730208148-eac5feac` |
+| Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26525427); Write on `images/aggregator`, `images/enricher`, `images/notifier` and `images/buildcache` |
+| First build | CI run 41821846229 (14 jobs) and Containers run 41821852145 (dispatched: the push was made with Actions off); 3 images at `build.41821852145-4dd1c46b…`, `org.opencontainers.image.source` ds-workers, core-version v0.1.0, signed, with build provenance |
+| Ledger | `ext:ds-workers` in `lucy/ds-migration-ledger` (`8635b21`): 1404 rows mapped, 6 post-rewrite rows |
+| Monorepo stops publishing | #203, merged as `d0d8e46e`: containers.yml without the worker legs |
+| Digest bump | ds-deploy#7 (`24c08e6`): the three worker tags and digests only |
+| Deploy | h2aw: chart build 6, only the worker digests changed; aggregator, enricher and notifier rolled with no restarts |
+| Delete PR | #204: the worker crates, Dockerfiles, `docs/cold-archive.md`, the four `docs/enricher-*.md` and the two incident-history SQL scripts, naming `Distant-Signal/ds-workers@4dd1c46b` |
+| Path list | `paths/ds-workers.txt` in `Distant-Signal/ci` |
+
+**Deviations from the plan**, beyond phase 6's (no `--path-rename`, the
+hand digest PR, the legs PR before the bump, the user's repository steps):
+
+- **Phases 7 and 8 ran in parallel** up to their deletion PRs, which edit
+  the same lines of Cargo.toml, Cargo.lock, containers.yml, db-tests.py and
+  the Dockerfile generator. The legs PRs (#202, #203) and the digest PRs
+  (ds-deploy#6, #7) each changed only their own repository's lines; the
+  deletion PR that lands second is rebuilt with `delete.py` on the new
+  `main`, not merged by hand.
+- **The enricher's LLM evals never ran**: every DB pass skips `live_eval`
+  and `replay_`, as the monorepo's did.
+- **The narrowed and observed role lists stay in this repository's
+  db-tests.toml** (`api,aggregator,enricher,notifier`): the roles still
+  exist, and the api's and the writer's suites here use them.
 
 ### Phase 10: cleanup (about 1 day, 90 days after phase 9)
 
