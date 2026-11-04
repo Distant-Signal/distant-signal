@@ -29,8 +29,9 @@ export default async function AttributionPage() {
       <Title order={1}>Data sources and licences</Title>
       <OpenDataAttributionDetails transitNetworks={transit.map((network) => network.id)} />
       {/* AGPL-3.0 §13 (lib/sourceCode.ts): the footer links the source on
-          every page; this says what the licence is and where the exact
-          running commits are listed. */}
+          every page; this says what the licence is, that the source spans
+          several repositories, and where each running image's repository
+          and commit are listed. */}
       <Stack gap={4} component="section" aria-labelledby="source-code">
         <SectionTitle id="source-code">Source code</SectionTitle>
         <Text size="sm">
@@ -42,11 +43,11 @@ export default async function AttributionPage() {
           <TextLink href={SOURCE_CODE_URL} external inline underline="always">
             its source code
           </TextLink>
-          , and the{' '}
+          , which is split across several repositories, all listed there. The{' '}
           <TextLink href={VERSION_PATH} inline underline="always">
             list of running versions
           </TextLink>{' '}
-          names the exact code this site runs.
+          names the repository and exact commit behind each part of this site.
         </Text>
       </Stack>
     </Stack>
