@@ -144,33 +144,9 @@ jobs:
           - service: notifier
             dockerfile: docker/notifier.Dockerfile
             target: ""
-          - service: poller-incidents
-            dockerfile: docker/poller-incidents.Dockerfile
-            target: ""
-          - service: poller-stations
-            dockerfile: docker/poller-stations.Dockerfile
-            target: ""
-          - service: poller-tocs
-            dockerfile: docker/poller-tocs.Dockerfile
-            target: ""
-          - service: poller-ldbws
-            dockerfile: docker/poller-ldbws.Dockerfile
-            target: ""
-          - service: poller-tfl
-            dockerfile: docker/poller-tfl.Dockerfile
-            target: ""
-          - service: poller-irish-rail-gtfs
-            dockerfile: docker/poller-irish-rail-gtfs.Dockerfile
-            target: ""
-          - service: poller-irish-rail-live
-            dockerfile: docker/poller-irish-rail-live.Dockerfile
-            target: ""
-          - service: poller-nir-stations
-            dockerfile: docker/poller-nir-stations.Dockerfile
-            target: ""
-          - service: poller-transit-schedule
-            dockerfile: docker/poller-transit-schedule.Dockerfile
-            target: ""
+          # No poller-*: Distant-Signal/ds-pollers builds and publishes
+          # them to the same packages (repo split phase 6). Their crates
+          # and Dockerfiles leave this repository in the deletion PR.
           - service: trust-consumer
             dockerfile: docker/trust-consumer.Dockerfile
             target: ""
