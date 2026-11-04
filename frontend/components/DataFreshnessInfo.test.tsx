@@ -11,6 +11,9 @@ const freshness: DataFreshness = {
   tfl: '2026-08-22T03:00:00Z',
   schedule_feed: '2026-08-30T04:00:00Z',
   corpus: '2026-09-01T03:00:00Z',
+  irish_rail_timetable: null,
+  irish_rail_live: null,
+  northern_ireland_stations: null,
 };
 
 describe('DataFreshnessInfo', () => {
@@ -88,5 +91,59 @@ describe('DataFreshnessInfo', () => {
     fireEvent(button, pointerDown);
     fireEvent.mouseEnter(button);
     expect(await screen.findByText(/^Stations:/)).toBeInTheDocument();
+  });
+
+  it('leaves the Irish feeds and the group headings out when none has reported', async () => {
+    renderWithMantine(<DataFreshnessInfo freshness={freshness} />);
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Data freshness' }));
+    await screen.findByText(/^Stations:/);
+    expect(screen.queryByText('Ireland')).not.toBeInTheDocument();
+    expect(screen.queryByText('Great Britain')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Irish Rail/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^NI Railways/)).not.toBeInTheDocument();
+  });
+
+  it('leaves the Irish feeds out for an older api that does not send them', async () => {
+    const older = {
+      stations: freshness.stations,
+      tocs: freshness.tocs,
+      incidents: freshness.incidents,
+      tfl: freshness.tfl,
+      schedule_feed: freshness.schedule_feed,
+      corpus: freshness.corpus,
+    } as DataFreshness;
+    renderWithMantine(<DataFreshnessInfo freshness={older} />);
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Data freshness' }));
+    await screen.findByText(/^Stations:/);
+    expect(screen.queryByText('Ireland')).not.toBeInTheDocument();
+  });
+
+  it('groups the Irish feeds that have reported under an Ireland heading', async () => {
+    renderWithMantine(
+      <DataFreshnessInfo
+        freshness={{
+          ...freshness,
+          irish_rail_timetable: '2026-11-04T04:00:00Z',
+          irish_rail_live: '2026-11-04T09:00:00Z',
+          northern_ireland_stations: null,
+        }}
+      />,
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Data freshness' }));
+    expect(await screen.findByText('Ireland')).toBeInTheDocument();
+    expect(screen.getByText('Great Britain')).toBeInTheDocument();
+    expect(screen.getByText(/^Irish Rail timetable:/)).toBeInTheDocument();
+    expect(screen.getByText(/^Irish Rail live:/)).toBeInTheDocument();
+    // Never reported here: hidden, not "never fetched".
+    expect(screen.queryByText(/^NI Railways stations/)).not.toBeInTheDocument();
+  });
+
+  it('shows the NI Railways row once that feed has reported', async () => {
+    renderWithMantine(
+      <DataFreshnessInfo freshness={{ ...freshness, northern_ireland_stations: '2026-11-04T05:00:00Z' }} />,
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Data freshness' }));
+    expect(await screen.findByText(/^NI Railways stations:/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Irish Rail/)).not.toBeInTheDocument();
   });
 });
