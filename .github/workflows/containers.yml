@@ -135,15 +135,10 @@ jobs:
           # No ds-migrate: Distant-Signal/ds-core's release.yml builds it
           # (repo split spec §5.1), and values.yaml pins its release
           # (migrate.image, bumped with core-version).
-          - service: aggregator
-            dockerfile: docker/aggregator.Dockerfile
-            target: ""
-          - service: enricher
-            dockerfile: docker/enricher.Dockerfile
-            target: ""
-          - service: notifier
-            dockerfile: docker/notifier.Dockerfile
-            target: ""
+          # No aggregator, enricher or notifier: Distant-Signal/ds-workers
+          # builds and publishes them to the same packages (repo split
+          # phase 8). Their crates and Dockerfiles leave this repository in
+          # the deletion PR.
           # No poller-*: Distant-Signal/ds-pollers builds and publishes
           # them to the same packages (repo split phase 6). Their crates
           # and Dockerfiles leave this repository in the deletion PR.
