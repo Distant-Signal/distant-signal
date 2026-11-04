@@ -55,12 +55,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE_PACKAGES = (
     "api",
     "schedule-reference",
-    "movement-feed",
-    "ingest-writer",
-    "full-coverage-consumer",
-    "trust-consumer",
     "schedule-ingest",
-    "trust-backlog-consumer",
 )
 ARCHIVE_FEATURES = ("common/postgres", "ds-runtime/postgres")
 
@@ -175,20 +170,11 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
                 "schedule-reference",
             )
         ),
-        Step(packages=("movement-feed",)),
-        Step(packages=("ingest-writer",)),
-        # The phase 4 readers' db sources (#[sqlx::test]).
-        Step(
-            packages=("full-coverage-consumer",),
-            filters=("population_reload::db_tests",),
-        ),
-        Step(packages=("trust-consumer",), filters=("reads::",)),
         Step(packages=("schedule-ingest",), filters=("sink::db_tests",)),
         # Against fake-gcs-server (FAKE_GCS_URL; the job starts it).
         Step(
             packages=("schedule-ingest",), filters=("bucket_e2e_tests",), serial=False
         ),
-        Step(packages=("trust-backlog-consumer", "trust-consumer")),
     ),
     # test-postgres-roles.py --mode existing: DATABASE_URL is the app role.
     "existing": (
@@ -196,22 +182,14 @@ PASSES: Mapping[str, tuple[Step, ...]] = {
             packages=("api",),
             skips=SQLX_TEST_SKIPS,
         ),
-        Step(packages=("ingest-writer",)),
         Step(packages=("schedule-reference",)),
     ),
     # test-postgres-roles.py --mode per-service (Stage 0b): each suite as
     # its own service's role. See the CI step's comment for each role.
     "per-service": (
         per_service("api", "api", skips=SQLX_TEST_SKIPS),
-        per_service("ingest-writer", "writer"),
         per_service("schedule-ingest", "schedule_ingest", filters=("sink::db_tests",)),
         per_service("schedule-reference", "schedule_reference"),
-        per_service("trust-backlog-consumer", "trust_backlog"),
-        per_service("trust-consumer", "trust_consumer", skips=("reads::",)),
-        per_service(
-            "full-coverage-consumer", "full_coverage_ro", test_target="role_reads"
-        ),
-        per_service("ingest-writer", "incidents", bin_target="writer-maintenance"),
     ),
     # test-postgres-roles.py --mode per-service --narrow
     # api,aggregator,enricher,notifier (release D).

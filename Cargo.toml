@@ -5,16 +5,9 @@
 resolver = "3"
 members = [
     "crates/api",
-    "crates/trust-backlog-consumer",
-    "crates/trust-consumer",
     "crates/schedule-ingest",
     "crates/schedule-reference",
     "crates/trip-planner",
-    "crates/full-coverage-consumer",
-    "crates/movement-feed",
-    "crates/movement-relay",
-    "crates/darwin-relay",
-    "crates/ingest-writer",
 ]
 
 # The core crates, from Distant-Signal/ds-core (repo split spec §5.2): git

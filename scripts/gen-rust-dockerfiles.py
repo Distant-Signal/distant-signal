@@ -90,16 +90,8 @@ SERVICES: Mapping[str, Sequence[str]] = {
         "corpus_compare",
         "maintenance",
     ),
-    "full-coverage-consumer": ("full-coverage-consumer",),
-    # writer-maintenance: the one-off ingest repairs moved out of the api
-    # image (ingest phase 5 prep, Q2).
-    "ingest-writer": ("ingest-writer", "writer-maintenance"),
-    "darwin-relay": ("darwin-relay",),
-    "movement-relay": ("movement-relay",),
     "schedule-ingest": ("schedule-ingest",),
     "schedule-reference": ("schedule-reference",),
-    "trust-backlog-consumer": ("trust-backlog-consumer",),
-    "trust-consumer": ("trust-consumer",),
 }
 
 # Renovate bumps these in this file (renovate.json5's custom managers) on the

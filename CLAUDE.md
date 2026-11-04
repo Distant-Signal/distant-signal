@@ -136,7 +136,9 @@ the island-of-Ireland pollers send snapshots on `ds:ingest:*` streams
 the train-domain background loops. `movement-relay` is the only Kafka
 client: it copies RDM's TRUST movements into the `movement-events` stream,
 read by three consumer groups (tracked trains, full-coverage delay stats,
-a backlog for late-tracked trains). The CIF timetable is pushed over SFTP;
+a backlog for late-tracked trains). These, darwin-relay and the shared
+movement-feed crate live in
+[Distant-Signal/ds-ingest](https://github.com/Distant-Signal/ds-ingest). The CIF timetable is pushed over SFTP;
 schedule-ingest detects and extracts each delivery, and schedule-reference
 (same pod, shared PVC; or a CronJob with `scheduleFeed.reference.mode:
 cronjob`, docs/scheduled-jobs.md) publishes the derived tables (STANOX/TIPLOC to CRS,
@@ -146,7 +148,7 @@ same matcher the ingest uses) and writes `line_status`; `enricher` sends
 changed incident text to an LLM. Both, and `notifier`, live in
 [Distant-Signal/ds-workers](https://github.com/Distant-Signal/ds-workers). `ds-store` holds the shared SQL and the
 schema gate; `ds-migrate` runs migrations (ds-deploy's chart's migrate hook Job).
-Docs: docs/ingest-phase5-runbook.md, docs/ingest-stream-runtime.md,
+Docs: ds-ingest's docs/ingest-phase5-runbook.md, docs/ingest-stream-runtime.md,
 docs/superpowers/specs/2026-10-06-ingest-architecture-design.md.
 
 **api (axum).** TfL-shaped unprefixed routes (`/Line/...`, `/StopPoint/...`,

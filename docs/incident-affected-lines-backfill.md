@@ -49,7 +49,7 @@ updates.
 It runs as the **`incidents` role** (`distant_signal_incidents`,
 poller-incidents' own credentials), never the api's: it needs `UPDATE` on
 `incidents.affected_lines`, which the writer role does not hold, and since
-the ingest phase 5 prep (Q2 of `docs/ingest-phase5-runbook.md`) these
+the ingest phase 5 prep (Q2 of [ds-ingest's ingest-phase5-runbook.md](https://github.com/Distant-Signal/ds-ingest/blob/main/docs/ingest-phase5-runbook.md)) these
 one-offs never run with the api's credentials. It checks its grants before
 reading anything and refuses the api role. While `postgresql.roles.perService`
 is off, every service shares the app role, which also passes.
@@ -58,6 +58,7 @@ is off, every service shares the app role, which also passes.
 # From a checkout (the catalogue built into the binary; LINES_DIR=./lines
 # reads the directory instead)
 DATABASE_URL=postgres://<incidents role>@... \
+  # in a Distant-Signal/ds-ingest checkout
   cargo run -p ingest-writer --bin writer-maintenance -- backfill-incident-lines
 
 # From the ingest-writer container image (the catalogue built into it)
@@ -149,4 +150,4 @@ Any time `lines/*.toml` changes in a way that affects matching —
 archived ones only move when this runs.
 
 Implementation and reasoning: `crates/ds-store/src/incidents/line_backfill.rs`
-(entry point `crates/ingest-writer/src/bin/writer_maintenance.rs`).
+(entry point ds-ingest's `crates/ingest-writer/src/bin/writer_maintenance.rs`).

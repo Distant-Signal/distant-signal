@@ -170,7 +170,7 @@ consumer.run(&handler, shutdown_signal()).await;
   in the middle of a handler. `step()` runs one iteration, for tests or a
   writer that wants its own loop.
 
-### The writer's half (`crates/ingest-writer`, plan 3a.3)
+### The writer's half (ds-ingest's [`crates/ingest-writer`](https://github.com/Distant-Signal/ds-ingest/tree/main/crates/ingest-writer), plan 3a.3)
 
 - `stream`: `INGEST_WRITER_STREAMS` modes (`off`/`shadow`/`apply`, all
   `off` by default), one `StreamConsumer` task per stream not `off` with

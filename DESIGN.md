@@ -108,6 +108,8 @@ the api's internal-OAuth-protected `/private/*` ingest endpoints.
   scheduled train on full-coverage-enabled lines, for delay stats) and
   `trust-backlog-consumer` (a short backlog so a train tracked late can
   catch up).
+  These, `darwin-relay` and `ingest-writer` live in
+  [Distant-Signal/ds-ingest](https://github.com/Distant-Signal/ds-ingest).
 - `schedule-ingest` watches the directory the CIF SCHEDULE feed is pushed
   into over SFTP and forwards each new delivery to the api;
   `schedule-reference`, in the same Pod, reads the extracted delivery and

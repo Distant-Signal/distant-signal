@@ -206,16 +206,13 @@ services:
       retries: 10
       start_period: 5s
 
-  # The ingest-writer (crates/ingest-writer): the train-domain loops and
+  # The ingest-writer (ds-ingest's crates/ingest-writer): the train-domain loops and
   # the station-samples, full-coverage, tfl and reference streams, as the
   # chart's `ingestWriter` does in production (ingest phase 5, step 5.3b:
   # local dev mirrors production).
   ingest-writer:
-    build:
-      context: .
-      dockerfile: docker/ingest-writer.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/ingest-writer:build.41821859871-4d64b91c44b8119b6f835a95606e2c8c11b1a6ca@sha256:f38fa32f51f347fea7f30b1b5d215913c5c80759306c23d795e783302f344391
     restart: unless-stopped
     depends_on:
       # The api migrates at startup locally (there is no migrate Job); the
@@ -227,7 +224,7 @@ services:
     # No healthcheck: the image has no curl. /healthz and /livez are on
     # port 8090 inside the container.
     environment:
-      # crates/ingest-writer/src/config.rs
+      # ds-ingest's crates/ingest-writer/src/config.rs
       DATABASE_URL: *direct-database-url
       REDIS_URL: redis://redis:6379
       INGEST_WRITER_LOOPS: "true"
@@ -454,19 +451,16 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
 
   trust-consumer:
-    build:
-      context: .
-      dockerfile: docker/trust-consumer.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/trust-consumer:build.41821859871-4d64b91c44b8119b6f835a95606e2c8c11b1a6ca@sha256:39df6a90f448131ab213aff88ab500a398aeeb24d4fed574f42fb88c66304dd8
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/trust-consumer/src/config.rs: Config. No Kafka settings:
+      # ds-ingest's crates/trust-consumer/src/config.rs: Config. No Kafka settings:
       # movement-relay is the only Kafka client (Deploy C, PL-15a).
-      # Matches docker/trust-consumer.Dockerfile's COPY of the STANOX/CRS
+      # Matches ds-ingest's docker/trust-consumer.Dockerfile's COPY of the STANOX/CRS
       # table into the image.
       # Writes Postgres and reads its tracked trains and STANOX/CRS from
       # it; subscription changes go through the writer's
@@ -497,17 +491,14 @@ services:
   # trust-consumer reads above, as its own consumer group. See
   # docs/superpowers/plans/2026-09-04-option-b-live-consumer-plan.md.
   full-coverage-consumer:
-    build:
-      context: .
-      dockerfile: docker/full-coverage-consumer.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/full-coverage-consumer:build.41821859871-4d64b91c44b8119b6f835a95606e2c8c11b1a6ca@sha256:dc0fa681cc99488fcacc9a6112f35510e989e25aa24b2530fe759300d76eced7
     restart: unless-stopped
     depends_on:
       ingest-writer:
         condition: service_started
     environment:
-      # crates/full-coverage-consumer/src/config.rs: Config
+      # ds-ingest's crates/full-coverage-consumer/src/config.rs: Config
       # XADDs its stats to ds:ingest:full-coverage (applied by the
       # writer) and reads its populations and STANOX/CRS from Postgres.
       DATABASE_URL: *direct-database-url
@@ -533,11 +524,8 @@ services:
   # real TRUST calling-point events for late-tracking pins. See
   # docs/superpowers/plans/2026-09-05-trust-event-backlog-plan.md.
   trust-backlog-consumer:
-    build:
-      context: .
-      dockerfile: docker/trust-backlog-consumer.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/trust-backlog-consumer:build.41821859871-4d64b91c44b8119b6f835a95606e2c8c11b1a6ca@sha256:f0511fe80f90baa52d08bda06ad6fa73f3ecd96b720a85f44111af40e3d5cce0
     restart: unless-stopped
     depends_on:
       api:
@@ -546,7 +534,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      # crates/trust-backlog-consumer/src/config.rs: Config. No Kafka env
+      # ds-ingest's crates/trust-backlog-consumer/src/config.rs: Config. No Kafka env
       # vars at all -- unlike trust-consumer/full-coverage-consumer, this
       # crate only ever speaks Redis Streams.
       # Writes the backlog and reason codes to Postgres and reads
@@ -556,7 +544,7 @@ services:
       REDIS_AUTOCLAIM_MIN_IDLE_SECS: ${REDIS_AUTOCLAIM_MIN_IDLE_SECS_TRUST_BACKLOG:-30}
       REDIS_GAP_CHECK_SECS: ${REDIS_GAP_CHECK_SECS_TRUST_BACKLOG:-60}
       STANOX_CRS_RELOAD_SECS: ${STANOX_CRS_RELOAD_SECS_TRUST_BACKLOG:-3600}
-      # Matches docker/trust-backlog-consumer.Dockerfile's COPY of the
+      # Matches ds-ingest's docker/trust-backlog-consumer.Dockerfile's COPY of the
       # STANOX/CRS table into the image, same pattern as trust-consumer's
       # own identical default -- no override needed here.
       # STANOX_CRS_FILE: /app/reference-data/stanox-crs.csv (binary default)
@@ -578,21 +566,18 @@ services:
   # any depends_on above -- a developer who wants live events locally runs
   # `docker compose up movement-relay`.
   movement-relay:
-    build:
-      context: .
-      dockerfile: docker/movement-relay.Dockerfile
-      args:
-        CARGO_PROFILE: release
+    # Built in its own repository; pinned like the chart's.
+    image: ghcr.io/distant-signal/images/movement-relay:build.41821859871-4d64b91c44b8119b6f835a95606e2c8c11b1a6ca@sha256:6fecf08e9e0e4ebd18be585b94a14e835c63948b1dd7310fdcf23a4b3b319d7b
     restart: unless-stopped
     depends_on:
       redis:
         condition: service_started
     environment:
-      # crates/movement-relay/src/config.rs: Config. The only Kafka client
+      # ds-ingest's crates/movement-relay/src/config.rs: Config. The only Kafka client
       # (Deploy C, PL-15a); see local.env.example for the KAFKA_* values.
       # KAFKA_CONSUMER_GROUP has no safe fallback -- the real RDM-issued
       # group id has no sensible default, see
-      # crates/movement-relay/src/config.rs's own doc comment.
+      # ds-ingest's crates/movement-relay/src/config.rs's own doc comment.
       KAFKA_BROKERS: ${KAFKA_BROKERS}
       KAFKA_TOPIC: ${KAFKA_TOPIC}
       KAFKA_CONSUMER_GROUP: ${MOVEMENT_RELAY_KAFKA_CONSUMER_GROUP:?MOVEMENT_RELAY_KAFKA_CONSUMER_GROUP must be set -- the RDM-issued group id has no safe default}
