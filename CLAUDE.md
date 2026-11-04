@@ -78,9 +78,9 @@ uv run scripts/sync-api-types.py check       # frontend's api types and OpenAPI 
 uv run scripts/check-sftp-entrypoint.py      # docker/schedule-sftp-entrypoint.sh = ds-deploy's pinned chart copy (--write to update)
 ```
 
-`scripts/release-order.py labels` stamps the frontend image's `api-build`
-label (the pinned api's build tag) in containers.yml; ds-deploy checks it
-against its pinned api. Local stack: `docker compose --env-file local.env
+Distant-Signal/ci's `scripts/release-order.py labels` stamps the frontend
+image's `api-build` label (the pinned api's build tag) in containers.yml;
+ds-deploy checks it against its pinned api. Local stack: `docker compose --env-file local.env
 up --build` (the Rust services run their published images; see
 `docker-compose.yml`'s header).
 
@@ -104,14 +104,15 @@ movement-feed crate live in
 [Distant-Signal/ds-ingest](https://github.com/Distant-Signal/ds-ingest). The CIF timetable is pushed over SFTP;
 schedule-ingest (in ds-api) detects and extracts each delivery, and schedule-reference
 (same pod, shared PVC; or a CronJob with `scheduleFeed.reference.mode:
-cronjob`, docs/scheduled-jobs.md) publishes the derived tables (STANOX/TIPLOC to CRS,
+cronjob`, ds-deploy's docs/scheduled-jobs.md) publishes the derived tables (STANOX/TIPLOC to CRS,
 line populations, departures and calling points) through ds-store's publish
 protocol. `aggregator` matches incidents to lines (`common::matcher`, the
 same matcher the ingest uses) and writes `line_status`; `enricher` sends
 changed incident text to an LLM. Both, and `notifier`, live in
 [Distant-Signal/ds-workers](https://github.com/Distant-Signal/ds-workers). `ds-store` holds the shared SQL and the
 schema gate; `ds-migrate` runs migrations (ds-deploy's chart's migrate hook Job).
-Docs: ds-ingest's docs/ingest-phase5-runbook.md, docs/ingest-stream-runtime.md,
+Docs: ds-ingest's docs/ingest-phase5-runbook.md; here,
+docs/ingest-stream-runtime.md and
 docs/superpowers/specs/2026-10-06-ingest-architecture-design.md.
 
 **api (axum, in ds-api).** TfL-shaped unprefixed routes (`/Line/...`, `/StopPoint/...`,
@@ -131,7 +132,7 @@ the array, including an in-search snapshot of every such train. Journeys own
 ordered `journey_legs`, each bound to a `train_subscriptions` row or an open
 time window; tracking a train is a one-leg journey. Journey breaks (at most
 one open per journey) and append-only revisions record mid-journey changes
-(ds-api's docs/journey-breaks.md, docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md).
+(ds-api's docs/journey-breaks.md; here, docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md).
 "Today" is London's service date: use `london_now()`/`london_today()`.
 
 **notifier** (in ds-workers). Polls `line_status_history` and train movements by watermark
@@ -146,8 +147,8 @@ train: a journey-break notice replaces that train's plain push
 every public table, view, sequence and function and gives each service role
 (`planned`, `observed` or `narrow`) its grants; ds-core renders it into
 `postgres-grants.sql`; ds-deploy's chart vendors them, with the Redis ACL,
-from its pinned release. Its docs/postgres-app-role.md, docs/redis-acl.md
-and the chart README's "Per-service Postgres roles" explain them.
+from its pinned release. ds-deploy's docs/postgres-app-role.md,
+docs/redis-acl.md and the chart README's "Per-service Postgres roles" explain them.
 
 **Chart and deploys.** `containers.yml` builds the frontend image and
 pushes it to `ghcr.io/<owner>/images/frontend` (main builds also tagged

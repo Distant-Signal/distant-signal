@@ -129,6 +129,15 @@
   //                   and so does every Dockerfile's `# syntax=` pin.
   "packageRules": [
     {
+      // The api image pin (frontend/api-image.txt, the custom manager
+      // above). The shared preset disables every ghcr.io/distant-signal/**
+      // image; this turns the api back on here, for that pin only, so
+      // Renovate proposes the newest build like ds-deploy's ds-images.
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["ghcr.io/distant-signal/images/api"],
+      "enabled": true,
+    },
+    {
       // The ds-core pin, core-version (repo split spec §5.2, §5.4), in its
       // own PR. (ds-deploy bumps the ds-migrate image with its own
       // core-version.) Two at a time across the organisation.
