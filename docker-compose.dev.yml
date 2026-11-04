@@ -58,32 +58,6 @@ services:
       args:
         CARGO_PROFILE: debug
 
-  aggregator:
-    build:
-      args:
-        CARGO_PROFILE: debug
-    develop:
-      watch:
-        - action: rebuild
-          path: ./crates/aggregator
-        - action: rebuild
-          path: ./Cargo.toml
-        - action: rebuild
-          path: ./Cargo.lock
-
-  enricher:
-    build:
-      args:
-        CARGO_PROFILE: debug
-    develop:
-      watch:
-        - action: rebuild
-          path: ./crates/enricher
-        - action: rebuild
-          path: ./Cargo.toml
-        - action: rebuild
-          path: ./Cargo.lock
-
   frontend:
     build:
       # frontend/Dockerfile: skips `next build`, runs `next dev` as the

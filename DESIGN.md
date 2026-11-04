@@ -116,6 +116,8 @@ the api's internal-OAuth-protected `/private/*` ingest endpoints.
   points).
 - `notifier` polls `line_status_history` and train movement events and
   sends Web Push notifications for users' pinned lines and tracked trains.
+  `aggregator`, `enricher` and `notifier` live in
+  [Distant-Signal/ds-workers](https://github.com/Distant-Signal/ds-workers).
 - `frontend/` is a Next.js web client. Browsers only ever talk to it; its
   `/api/*` route proxies to the `api` service. In production, public
   traffic arrives through a Cloudflare tunnel (Cloudflare tunnel →
@@ -351,7 +353,7 @@ is_planned                              → PLANNED_CLOSURE (4) (checked first)
 otherwise                               → MINOR_DELAYS (9)
 ```
 
-(`severity_from_incident` in `crates/aggregator/src/aggregation.rs`. The
+(`severity_from_incident` in ds-workers' `crates/aggregator/src/aggregation.rs`. The
 RDM feed has no `severity_hint`, so the prototype's hint branches are
 gone.)
 
@@ -458,7 +460,7 @@ For an implementer picking this up, the recommended order:
 **Stage 1 — make the existing code production-ready.** Done: the
 Knowledgebase and LDBWS pollers, scheduling, Postgres persistence, and the
 HTTP read API are all implemented (`crates/poller-incidents`,
-`crates/poller-ldbws`, `crates/aggregator`, `crates/api` — see §4). See
+`crates/poller-ldbws`, ds-workers' `crates/aggregator`, `crates/api` — see §4). See
 §10 for what's actually still open.
 
 **Stage 2 — broaden the line catalogue.** Largely done: `lines/` now
@@ -521,7 +523,7 @@ cap.
 
 **The "drop operator-only matches when any precise match exists" rule.**
 Caught by `aggregator_isolates_exclusive_incident`
-(`crates/aggregator/src/aggregation.rs`) during development. Without it, an Alton-only incident also lights up SWML and
+(ds-workers' `crates/aggregator/src/aggregation.rs`) during development. Without it, an Alton-only incident also lights up SWML and
 Portsmouth Direct as operator-only matches. This is structural: when any
 line has precise evidence, the operator-only matches are noise from the
 same incident, not separate evidence.
@@ -587,7 +589,7 @@ the inference fallback to Good Service.
 pipeline with synthetic inputs, verifying the rendered JSON matches
 expectations.
 
-`crates/common/src/matcher.rs`'s and `crates/aggregator/src/aggregation.rs`'s
+`crates/common/src/matcher.rs`'s and ds-workers' `crates/aggregator/src/aggregation.rs`'s
 own `mod tests` cover the matcher and aggregator layers, loading the
 real `lines/` catalogue (`LineDefinition::from_dir`, or the embedded copy
 from `ds_lines::embedded`) rather than synthetic fixtures. Each new line should add at least one shared-trunk and

@@ -4,9 +4,7 @@
 #
 # The DATABASE_URL/REDIS_URL-gated `#[ignore]`d integration tests (every
 # `#[ignore = "..."]` reason in the workspace needs only a live Postgres,
-# Redis or fake-gcs-server, except the enricher's LLM-gated live evals and
-# replay harness, which stay excluded: there is no LLM_BASE_URL or
-# REPLAY_HISTORY_JSONL in CI). Build once, run many (2026-10-27): the suites
+# Redis or fake-gcs-server). Build once, run many (2026-10-27): the suites
 # run several times, as the superuser and as the role split's roles, and
 # each `cargo test -p` selection used to unify features differently and
 # recompile `common`, `ds-store`, the api and the rest. So the archive step
@@ -44,7 +42,7 @@ uv run --locked --no-default-groups scripts/db-tests.py archive --archive-file "
 # only here): ds-store, the api's data access (ingest plan 1A); ds-migrate
 # (1B.1) `run` against the migrated database; schedule-reference (2a.2), its
 # db sink's protocol and parity tests; ds_runtime::pg's pool
-# settings; the enricher (minus the LLM-gated evals); the Redis stream and
+# settings; the Redis stream and
 # ACL suites (phases 0c and 3a); the ingest-writer's loop runner (1B.6); the
 # phase 4 readers' db sources; schedule-ingest's direct sink (2d) and its
 # bucket source against fake-gcs-server; the TRUST consumers' direct sinks
@@ -157,7 +155,9 @@ uv run --no-sync python "${core}/scripts/test-postgres-roles.py" --mode existing
 # suites still seed most fixtures through the role's own pool, so the Stage
 # 0b pass runs the four `--observe`d (members of app again) until those
 # fixtures move to the owner pool (scripts/tests/test_postgres_roles_narrow.py
-# pins both lists).
+# pins both lists). The aggregator's, enricher's and notifier's own suites
+# run in Distant-Signal/ds-workers; the role lists still name their roles,
+# which the api's and the writer's tests here use.
 [[pass]]
 id = "per-service"
 name = "DB tests as each service's role (Stage 0b, release D)"

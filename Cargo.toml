@@ -5,14 +5,11 @@
 resolver = "3"
 members = [
     "crates/api",
-    "crates/aggregator",
-    "crates/enricher",
     "crates/trust-backlog-consumer",
     "crates/trust-consumer",
     "crates/schedule-ingest",
     "crates/schedule-reference",
     "crates/trip-planner",
-    "crates/notifier",
     "crates/full-coverage-consumer",
     "crates/movement-feed",
     "crates/movement-relay",
@@ -57,9 +54,9 @@ license = "AGPL-3.0-or-later"
 # local build. Opt out per item with `#[expect(lint, reason = "...")]`.
 [workspace.lints.rust]
 # Deviation: the guide says "forbid", but forbid can't be relaxed per item.
-# Three places need unsafe: api's ticket-parse child sets rlimits through
-# libc before exec, the enricher's `malloc_trim` after a batch stage, and
-# the enricher's test-only allocator meter. Each carries
+# api's ticket-parse child needs unsafe: it sets rlimits through libc
+# before exec (the enricher's two uses moved to Distant-Signal/ds-workers).
+# Each carries
 # `#[expect(unsafe_code, reason = "...")]` and a SAFETY comment; any other
 # unsafe still fails CI.
 unsafe_code = "deny"

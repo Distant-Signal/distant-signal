@@ -186,16 +186,5 @@
       "matchDepNames": ["ghcr.io/CHANGE-ME/distant-signal-mcp"],
       "enabled": false,
     },
-    {
-      // notifier's direct `http` dependency exists only to name the types
-      // web_push::request_builder takes and returns, and web-push (0.11.0,
-      // the latest) is on http 0.2. http 1 there can't compile (#32). Lift
-      // this once web-push moves to http 1.
-      "matchManagers": ["cargo"],
-      "matchFileNames": ["crates/notifier/Cargo.toml"],
-      "matchPackageNames": ["http"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false,
-    },
   ],
 }
