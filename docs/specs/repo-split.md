@@ -346,9 +346,9 @@ All repositories are public and licensed AGPL-3.0-or-later.
 
 | Repository | Contents | Images it builds | Why this boundary |
 |---|---|---|---|
-| `distant-signal` (landing; the transferred repository) | `frontend/`, the landing README, `CONTRIBUTING.md`, the dev-stack compose file (pulls every image), `docs/superpowers` (historical record), `check-copy.py`, `visual-tests.py`, `tfl-arrivals-stub.py` | frontend | Highest change rate (1,263 commits). It is what users see. It keeps the history, stars and redirects. |
+| `distant-signal` (landing; the transferred repository) | `frontend/`, the landing README, `CONTRIBUTING.md`, the dev-stack compose file (pulls every image), `docs/superpowers` (historical record), `docs/specs`, `check-copy.py`, `visual-tests.py`, `tfl-arrivals-stub.py`; as built, also `release-order.py` (the frontend's image labels), `sync-core.py` with `core-version`, `check-sftp-entrypoint.py` and `sync-api-types.py` | frontend | Highest change rate (1,263 commits). It is what users see. It keeps the history, stars and redirects. |
 | `ds-core` | `common`, `ds-runtime` (the domain-free half of `common`, §5.8), `health-http`, `trust-schema`, `schedule-query`, `ingest-stream`, `ds-store` with migrations and the checksum lock, `ds-migrate`, `line-catalogue-validator`, a new `ds-lines` crate that embeds `lines/`, core `reference-data/`, `db-grants.yaml`, the Redis ACL source, and the DB scripts (`gen-db-grants.py`, `render-redis-acl.py`, `test-postgres-roles.py`, `observe-role-usage.py`, `check-migration-order.py`, `check-crate-deps.py`) | ds-migrate | Everything with fan-in: `common` has 27 dependents, `ds-store` 14 and `ingest-stream` 10. It is the one owner of the schema, grants, stream envelope and line catalogue. |
-| `ds-api` | `api`, `trip-planner`, `schedule-ingest`, `schedule-reference`, `docs/api-changelog.md`, the api-only `reference-data` CSVs (station groups, TOC codes, operator names and groups, fixed-link operators) | api, schedule-ingest, schedule-reference | Since July, `trip-planner` changed with api in 38% of its commits, `schedule-reference` in 42% and `schedule-query` in 43%. `schedule-reference` links `trip-planner`. The two schedule crates share a pod and a PVC. Keeping planner and timetable with the api keeps those changes in one repository. |
+| `ds-api` | `api`, `trip-planner`, `schedule-ingest`, `schedule-reference`, `docs/api-changelog.md`, the api-only `reference-data` CSVs (station groups, TOC codes, operator names and groups, fixed-link operators); as built, also `docs/specs/personal-api-tokens.md`, `docs/personal-data-retention.md`, the other api docs and the remediation scripts (`remediate-*.sql` and their `test-remediate-*.sh`) | api, schedule-ingest, schedule-reference | Since July, `trip-planner` changed with api in 38% of its commits, `schedule-reference` in 42% and `schedule-query` in 43%. `schedule-reference` links `trip-planner`. The two schedule crates share a pod and a PVC. Keeping planner and timetable with the api keeps those changes in one repository. |
 | `ds-ingest` | `ingest-writer`, `movement-relay`, `darwin-relay`, `trust-consumer`, `trust-backlog-consumer`, `full-coverage-consumer`, `movement-feed` (only these consumers use it), `stanox-crs.csv` | 6 | The three TRUST consumers change together (32 to 61%). It holds the Kafka and stream runtime and the ingest runbooks. |
 | `ds-pollers` | the 8 `poller-*` crates, `poller-transit-schedule`, the transit `reference-data` | 9 | The quietest code (15 to 49 commits each). Six of the nine talk to the rest only through the golden-pinned `ingest-stream` envelope. |
 | `ds-workers` | `aggregator`, `enricher` (with `eval/`), `notifier` | 3 | Separate `ds-store` consumers at a moderate change rate. Aggregator's churn on `lines/` moves to `ds-core` bumps (§5.2). |
@@ -625,13 +625,17 @@ over HTTPS without auth.
    manager. Confirm tag tracking with `renovate --platform=local
    --dry-run=extract`. If it doesn't work, a regex custom manager on
    `tag = "v..."` with the `git-tags` datasource does. The PR's CI is the
-   compatibility test, and it automerges when green.
+   compatibility test, and it automerges when green. *As built:* Renovate
+   is installed but has not run yet, so until it does these bumps are hand
+   PRs.
 4. **Developing across repositories.** Use a local, uncommitted patch:
    `cargo --config 'patch."https://github.com/Distant-Signal/ds-core".common.path="../ds-core/crates/common"' test`.
-   A helper, `ci/scripts/core-patch.py --core ../ds-core`, writes all the
-   lines into `.cargo/config.toml`. That file is git-ignored in every
-   consumer. Open the `ds-core` PR, release, then open the consumer PR on
-   the new tag.
+   Open the `ds-core` PR, release, then open the consumer PR on the new
+   tag. *As built:* the planned helper, `ci/scripts/core-patch.py`, was not
+   written (decision D6, §10.2), so the `--config` lines are passed by
+   hand (each service README shows one). And `.cargo/config.toml` is not
+   git-ignored: it is tracked, holding the `DS_PROJECT_URL` default, and
+   each service repository and `ds-core` carries a copy.
 
 ### 5.3 Generated API types and cross-repo api and frontend changes
 
@@ -826,9 +830,9 @@ No extraction rewrites identity or messages again:
    old names. Examples are pre-rename crate directories and
    `charts/nr-status`. Write `paths/<repo>.txt` in `ci`, so the extraction
    is reviewable and repeatable.
-2. **Run** `git filter-repo --paths-from-file paths/ds-ingest.txt`, plus
-   `--path-rename` for the layout of the new repository's root: crates under
-   `crates/`, docs under `docs/`.
+2. **Run** `git filter-repo --paths-from-file paths/ds-ingest.txt`. *As
+   built:* no `--path-rename` was needed in any extraction: the paths were
+   already `crates/`, `docker/` and `docs/` in the monorepo.
 3. **Keep authorship as rewritten.** filter-repo keeps authors and dates,
    so the maintainer's commits stay `FasterSpeeding <lucy@cursed.solutions>`
    from the phase 1 rewrite, and outside contributors' commits keep their
@@ -842,8 +846,10 @@ No extraction rewrites identity or messages again:
    `append-extract.py` into the migration ledger (§5.11.9). That adds an
    `ext:<repo>` column and `post-rewrite` rows for landing commits made
    since phase 1. No map is committed to the extract.
-5. **Add a top commit** that adds `LICENSE`, the repository's README and CI,
-   and switches path dependencies to `ds-core` tags.
+5. **Add a top commit** that adds `LICENSE`, the repository's README and CI.
+   *As built:* it doesn't switch path dependencies to `ds-core` tags;
+   phase 4 (#186) already did that in the monorepo. It keeps the used
+   `[workspace.dependencies]` lines and prunes Cargo.lock.
 6. **Remove the extracted paths from the landing repository** in one commit
    that names the new repository and its first SHA. Do this only after the
    new repository's images have been deployed once (§9).
@@ -901,6 +907,9 @@ plan, and the user accepted it (§10.1, decision 8).
   `.../charts/ds-ingest-bucket`.
 - **Build cache:** `ghcr.io/distant-signal/images/buildcache:<service>`.
   For the first week, `cache-from` also lists the old fasterspeeding cache.
+  *As built:* only the landing repository's builds list it (today the
+  frontend's); the service repositories started on
+  `images/buildcache:<service>`, which the monorepo had already filled.
 
 The old `ghcr.io/fasterspeeding/...` packages stay for 90 days as the
 rollback target. After that, prune all but the last deployed chart and its
@@ -938,8 +947,10 @@ verifies images, use one organisation regex:
 `ds-core`'s access assets are verified in `sync-core.py` against
 `Distant-Signal/ds-core`'s `release.yml`.
 
-**Repository settings,** applied identically by a script
-(`ci/scripts/repo-settings.py`, through the GitHub API):
+**Repository settings,** applied identically to every repository.
+*As built:* there is no `ci/scripts/repo-settings.py`; the settings are
+`gh api` calls made at each extraction, as in phases 4 and 5, and the user,
+not the agent, creates each repository and turns its Actions on:
 
 - Issues on only in the landing repository;
 - squash and merge commits allowed, as today;
@@ -1836,7 +1847,7 @@ DS-specific parts. Piped is neutral and serves other projects.
 | Commit identity check | none | `identity.yml` | §5.10 |
 | npm licence gate | none | `ci/scripts/check-npm-licences.py` | §6 |
 | Renovate rules (MSRV toolchain, sqlx `<0.9`, Valkey and Postgres majors, cargo 0.x minors, TypeScript `<7`, grouping) | `renovate.json5` | `ci/renovate/default.json5` (`github>Distant-Signal/ci//renovate/default.json5`), which extends Piped's preset | It adds the `ds-core` and `ds-images` groups and `prConcurrentLimit`. Each repository keeps only local rules. |
-| `core-patch.py`, `repo-settings.py`, `paths/<repo>.txt` | none | `ci/scripts/` | §5.2, §5.9 and §5.6 |
+| `core-patch.py`, `repo-settings.py`, `paths/<repo>.txt` | none | `ci/scripts/` | §5.2, §5.9 and §5.6. *As built:* only `paths/<repo>.txt` exists (`ci/paths/`, all six); `core-patch.py` was not written (D6, §10.2), and the settings are `gh api` calls (§5.9). |
 | Chart checks (`check-*-chart.py`, alert-rules tests, `chart-values-doc.py`) | `scripts/` | `ds-deploy` | DS-chart specific: they name DS values paths, up to 34 times in one script. |
 | `common` runtime modules | `crates/common` | `ds-core/crates/ds-runtime` | §5.8. A neutral crate outside DS only on demand (§10.1, decision 9). |
 
@@ -2225,6 +2236,9 @@ reach prod only through `ds-deploy` bumps.
 
 ### Phases 6 to 9: extract the services, one repository at a time
 
+*As built:* one at a time except phases 7 and 8, which ran in parallel up
+to their deletion PRs; those landed one after the other.
+
 **Phase 6 done on 2026-11-04.** The record is at the end of this section.
 
 **Phase 8 done on 2026-11-04**, side by side with phase 7 up to the
@@ -2247,10 +2261,19 @@ Every extraction follows the same recipe:
    packages. Make sure the organisation's Actions allow-list covers every
    action its workflows, and the reusable workflows they call, use (§5.9).
 4. The first `main` build pushes to the **same** `images/<service>` paths.
-5. `ds-deploy`'s Renovate picks up the new digests. Only the source
-   repository behind them changed.
-6. Deploy once.
-7. Delete the paths from the monorepo.
+5. Drop the moved services' legs from the monorepo's `containers.yml`
+   before the new repository's first build is deployed (added in phase 6).
+   Otherwise both repositories publish to one package, and a later
+   monorepo build, with the higher run id, orders above the new
+   repository's. A monorepo build that lands between the new repository's
+   first build and this PR still publishes; supersede it with a fresh
+   build of the new repository (phase 8's record).
+6. A `ds-deploy` PR bumps the new digests. Only the source repository
+   behind them changed. The plan had Renovate pick them up; Renovate has
+   not run yet, so each was a hand PR (`pin_services.py` in the split
+   prep, which pins one repository's services).
+7. Deploy once.
+8. Delete the paths from the monorepo.
 
 **Rollback:** revert the `ds-deploy` digest bump. The last monorepo-built
 image is in the same package. If the paths were already deleted, also revert
@@ -2331,6 +2354,14 @@ hand digest PR, the legs PR before the bump, the user's repository steps):
 - **The narrowed and observed role lists stay in this repository's
   db-tests.toml** (`api,aggregator,enricher,notifier`): the roles still
   exist, and the api's and the writer's suites here use them.
+- **Two repositories did publish to one package.** Unlike phase 6, the
+  legs PR came too late: the monorepo's `b7306a97` (#201), merged before
+  #203, built aggregator, enricher and notifier in Containers run
+  41822999453 (started 11:41 UTC, its image jobs at 12:00), after
+  ds-workers' first build (run 41821852145, 11:33). Its tags,
+  `build.41822999453-…`, order above ds-workers' `build.41821852145-…`.
+  Nothing deployed it: ds-deploy#7 pins ds-workers' digests. A fresh
+  ds-workers build (run 41877159213) was dispatched to supersede it.
 
 #### Phase 7 record (2026-11-04)
 
@@ -2361,6 +2392,12 @@ hand digest PR, the legs PR before the bump, the user's repository steps):
 - **GitHub's Git Operations incident**: the push to the new repository
   needed three tries over SSH (an auth failure, then a 500 that created
   nothing); no other route was used.
+- **The monorepo also published the ingest images after ds-ingest's
+  first build** (run 41821859871): Containers runs 41822999453
+  (`b7306a97`), 41826208727 (`d0d8e46e`) and 41829674554 (`8d34bcfd`)
+  built all six before #202 dropped their legs. Nothing deployed them
+  (ds-deploy#6 pins ds-ingest's digests), and ds-ingest's own `main`
+  builds from run 41846930037 on order above them.
 
 #### Phase 9 record (2026-11-04)
 
@@ -2516,6 +2553,25 @@ Then, during phase 1:
 
 ### 10.2 Open questions
 
-None of the plan's decisions are open. One detail waits on Ranma: whether
-`isolation` needs a non-default value for this site, which the
-coordinator is confirming with them.
+The plan's decisions are made. These details, raised while running phases
+6 to 9 (the split prep's `phase6-9/RUNBOOK.md`), each need a decision:
+
+- **D1: where the ambiguous docs live.** `docs/ingest-stream-runtime.md`
+  and `docs/incident-affected-lines-backfill.md` stay in this repository
+  for now, though they describe crates that moved out of it. Needs a
+  decision.
+- **D6: `.cargo/config.toml`.** §5.2 planned a git-ignored file written by
+  `core-patch.py`; the file is tracked (the `DS_PROJECT_URL` default),
+  copied into each service repository, and `core-patch.py` doesn't exist.
+  Whether to write the helper, and where the patch lines should live,
+  needs a decision.
+- **D7: the Renovate preset.** `prConcurrentLimit`, and whether the
+  `docker/services.toml` custom managers each Rust service repository
+  carries move into `ci`'s preset. Needs a decision (and Renovate is not
+  running yet).
+- **D8: `DS_PROJECT_URL`.** The service repositories' image builds pass
+  the landing repository's URL (the one upstream providers know), unlike
+  the monorepo, which passed the building repository's. Needs a decision.
+
+One detail waits on Ranma: whether `isolation` needs a non-default value
+for this site, which the coordinator is confirming with them.
