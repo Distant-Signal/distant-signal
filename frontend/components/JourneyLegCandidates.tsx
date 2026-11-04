@@ -12,7 +12,7 @@ import { NO_TIME } from '@/lib/dateFormat';
 import { searchRowDetails, searchRowSummary, searchRowTime } from '@/lib/searchRow';
 import { serviceNoun } from '@/lib/serviceMode';
 import { dayOffsetMarker } from '@/lib/serviceStatus';
-import type { TrainSearchResult } from '@/lib/types';
+import type { LegCandidate, LegCandidatesResponse } from '@/lib/types';
 import { LoadingText } from '@/components/LoadingText';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { legSearchPickBody, legSearchQuery, type LegSearch } from '@/lib/legSearch';
@@ -29,9 +29,8 @@ import type { LegSearchFilters } from '@/lib/types';
 // visibly lagging the other.
 const FILTER_DEBOUNCE_MS = 250;
 
-/** Wire shape of `GET /Journeys/{id}/legs/{id}/candidates` -- the
- * envelope `GET /public/trains/search` returns
- * (`crates/api/src/render.rs::calling_point_departure_json`) PLUS the four
+/** One row of `GET /Journeys/{id}/legs/{id}/candidates` -- the shared
+ * calling-point row (`render::calling_point_departure_json`) PLUS the
  * leg-scoped fields `crates/api/src/routes/journeys.rs::leg_candidate_json`
  * adds on top of it (2026-09-22 UX review, C4).
  *
@@ -43,31 +42,8 @@ const FILTER_DEBOUNCE_MS = 250;
  * could not be made from it. `stationCrs`/`legOriginCrs`,
  * `legDestinationCrs` and `legDestinationArrival` describe the
  * TRAVELLER's leg: where they get on, where they get off, and when. */
-interface CandidateRow extends TrainSearchResult {
-  /** Echoed back by the backend; identical to `stationCrs`. */
-  legOriginCrs: string;
-  legDestinationCrs: string;
-  /** Arrival at the leg's own destination, `"HH:MM"`: the public time,
-   * else the working one (working only, from an older backend). `null` when the
-   * schedule records neither an arrival nor a booked departure there --
-   * the row then shows no arrival rather than a guessed one. */
-  legDestinationArrival: string | null;
-  /** How many days past the service date `legDestinationArrival` falls --
-   * `0` for the overwhelming majority, non-zero for an overnight leg. */
-  legDestinationArrivalDayOffset: number;
-  /** The PUBLIC (passenger timetable) arrival at the leg's destination,
-   * `"HH:MM"`, shown in place of `legDestinationArrival` when present (an
-   * older backend sent the working time there). Optional: absent from an
-   * older backend. The departure's public time is `publicDeparture`. */
-  legPublicDestinationArrival?: string | null;
-  /** The working-timetable arrival there; absent from an older backend. */
-  legWorkingDestinationArrival?: string | null;
-}
-
-interface CandidatesResponse {
-  results: CandidateRow[];
-  nextCursor: string | null;
-}
+type CandidateRow = LegCandidate;
+type CandidatesResponse = LegCandidatesResponse;
 
 /** Exactly one of three mutually-exclusive states, mirroring
  * `lib/trainSearch.ts`'s `TrainSearchResults` type for the same reason: `hasRows`
@@ -464,7 +440,6 @@ function CandidateRowView({
       train={train}
       date={serviceDate}
       timeOverride={time}
-      dayOffset={row.dayOffset}
       arrival={arrival}
       arrivalDayOffset={row.legDestinationArrivalDayOffset}
       details={details}

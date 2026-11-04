@@ -7,16 +7,26 @@
  * Live state, the station's day offset and the origin's name are optional
  * on the wire (a backend that predates them sends none): without them a
  * row reads "Scheduled", with no next-day marker, and names its origin by
- * code.
+ * code. The journey-leg candidates (`LegCandidate`) never carry them.
  */
 import { operatorLabel } from './displayLabels';
 import { trainIdentifiers } from './trainName';
 import type { LineTrainSummary, TrainSearchResult } from './types';
 
+/** The fields of a search row every adapter here reads; a journey-leg
+ * candidate has them too. */
+type SearchRowCore = Pick<
+  TrainSearchResult,
+  'uid' | 'operator' | 'serviceMode' | 'liveTracking' | 'originCrs' | 'destinationCrs' | 'destinationName'
+>;
+
 /** A search row as a line-summary row. `known` is the same train from a
  * line summary, whose live state, scope and direction fill in what the
  * search row lacks. */
-export function searchRowSummary(row: TrainSearchResult, known?: LineTrainSummary): LineTrainSummary {
+export function searchRowSummary(
+  row: SearchRowCore & Partial<Pick<TrainSearchResult, 'originName' | 'live'>>,
+  known?: LineTrainSummary,
+): LineTrainSummary {
   return {
     uid: row.uid,
     operator: row.operator ?? null,
@@ -43,7 +53,8 @@ export function searchRowTime(row: Pick<TrainSearchResult, 'publicDeparture' | '
  * here" when that is the searched station) and, given an ATOC code to
  * name lookup, its operator. `undefined` when there is neither. */
 export function searchRowDetails(
-  row: Pick<TrainSearchResult, 'originCrs' | 'originName' | 'stationCrs' | 'operator'>,
+  row: Pick<TrainSearchResult, 'originCrs' | 'stationCrs' | 'operator'> &
+    Partial<Pick<TrainSearchResult, 'originName'>>,
   operatorNames?: ReadonlyMap<string, string>,
 ): string | undefined {
   const parts: string[] = [];

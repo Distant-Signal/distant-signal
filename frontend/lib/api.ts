@@ -1316,7 +1316,7 @@ export async function getGroupJoinPreview(token: string): Promise<GroupJoinPrevi
  * call fails: the nav and `/lines` hide their transit links then. */
 export async function getTransitNetworks(init?: RequestInit): Promise<TransitNetwork[]> {
   try {
-    const body = await fetchJson<{ networks: TransitNetwork[] }>(`${baseUrl()}/public/transit/networks`, {
+    const body = await fetchJson<Api.TransitNetworksResponse>(`${baseUrl()}/public/transit/networks`, {
       ...init,
       next: { revalidate: 300 },
     });
@@ -1332,7 +1332,7 @@ export async function getTransitNetworks(init?: RequestInit): Promise<TransitNet
  * shows the links when it can and nothing otherwise. */
 export async function getTransitRailLinks(crs: string, init?: RequestInit): Promise<TransitStationLink[]> {
   try {
-    const body = await fetchJson<{ links: TransitStationLink[] }>(
+    const body = await fetchJson<Api.TransitRailLinksResponse>(
       `${baseUrl()}/public/transit/rail-links?${new URLSearchParams({ crs }).toString()}`,
       { ...init, next: { revalidate: 3600 } },
     );
@@ -1362,7 +1362,7 @@ export async function getTransitLine(network: string, line: string, date?: strin
 }
 
 export async function getTransitStops(network: string): Promise<TransitStop[]> {
-  const body = await fetchJson<{ stops: TransitStop[] }>(transitUrl(network, ['stops']), {
+  const body = await fetchJson<Api.TransitStopsResponse>(transitUrl(network, ['stops']), {
     next: { revalidate: 3600 },
   });
   return body.stops;
@@ -1404,7 +1404,7 @@ export async function getPreviewTransitNetwork(network: string): Promise<Transit
 /** `GET /public/transit/{network}/stops`, as an hour-long preview read:
  * the stop names on the disruption card. */
 export async function getPreviewTransitStops(network: string): Promise<TransitStop[]> {
-  const body = await previewJson<{ stops: TransitStop[] }>(transitUrl(network, ['stops']), 3600);
+  const body = await previewJson<Api.TransitStopsResponse>(transitUrl(network, ['stops']), 3600);
   return body.stops;
 }
 
@@ -1475,10 +1475,7 @@ export async function getAccountNotices(init?: Pick<RequestInit, 'signal'>): Pro
     const url = `${baseUrl()}/public/account/connected-apps-notice`;
     const response = await apiFetch(url, { cache: 'no-store', ...init, ...forward });
     if (!response.ok) return NO_NOTICES;
-    const body = (await response.json()) as {
-      notice: ConnectedAppGrant | null;
-      tokenNotice?: Api.PersonalTokenRow | null;
-    };
+    const body = (await response.json()) as Api.ConnectedAppNotice;
     return { app: body.notice, token: body.tokenNotice ?? null };
   } catch {
     return NO_NOTICES;
@@ -1508,7 +1505,7 @@ export async function getStationCodes(revalidate: number): Promise<string[]> {
 
 /** `GET /public/tfl/stops/ids`: every TfL Tube, DLR and tram stop id. */
 export async function getTflStopIds(revalidate: number): Promise<string[]> {
-  const body = await fetchJson<{ ids: string[] }>(`${baseUrl()}/public/tfl/stops/ids`, { next: { revalidate } });
+  const body = await fetchJson<Api.TflStopIds>(`${baseUrl()}/public/tfl/stops/ids`, { next: { revalidate } });
   return body.ids;
 }
 

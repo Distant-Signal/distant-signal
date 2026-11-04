@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type * as Api from './api-types';
 import type { Suggestion } from './types';
 
 /** One named station group `GET /Trips/plan` takes as `group:NAME` in
@@ -8,15 +9,7 @@ import type { Suggestion } from './types';
  * (`GET /Trips/station-groups`, docs/api-changelog.md, 2026-10-07). The
  * code helpers (`isGroupCode`, `parseGroupCode`) live in
  * `lib/stationLabel.ts`, which server components import too. */
-export interface StationGroup {
-  /** `LON` */
-  group: string;
-  /** What a request sends: `group:LON`. */
-  code: string;
-  /** `London Terminals` */
-  name: string;
-  members: { crs: string; name: string | null }[];
-}
+export type StationGroup = Api.StationGroup;
 
 /** How a picker offers a group: "Any of the London Terminals (18 stations)". */
 export function groupOptionLabel(group: Pick<StationGroup, 'name' | 'members'>): string {
@@ -46,7 +39,7 @@ export async function fetchStationGroups(signal?: AbortSignal): Promise<StationG
   try {
     const response = await fetch('/api/Trips/station-groups', signal ? { signal } : {});
     if (!response.ok) return [];
-    const body = (await response.json()) as { groups?: StationGroup[] };
+    const body = (await response.json()) as Partial<Api.StationGroupsResponse>;
     return Array.isArray(body.groups) ? body.groups : [];
   } catch {
     return [];
