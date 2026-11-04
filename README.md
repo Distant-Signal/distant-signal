@@ -156,7 +156,7 @@ tag.
   own Rail Data Marketplace credentials or load `scripts/dev-seed.sql`.
 - **Only the frontend.** In `frontend/`, `npm ci` then `npm run dev`, with
   `API_BASE_URL` pointing at a running api.
-- **Deploying.** [`charts/distant-signal/README.md`](charts/distant-signal/README.md)
+- **Deploying.** [`charts/distant-signal/README.md`](https://github.com/Distant-Signal/ds-deploy/blob/main/charts/distant-signal/README.md)
   documents the Helm chart.
 
 The dev stack: Rust (axum, sqlx, tokio), Postgres 18, Valkey (Redis)

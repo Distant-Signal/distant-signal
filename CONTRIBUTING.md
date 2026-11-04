@@ -20,14 +20,16 @@ uv run python ../ci/scripts/lint-scripts.py         # what CI's scripts-lint job
 uv run python ../ci/scripts/lint-scripts.py --fix   # apply shfmt/ruff fixes first
 uv run python -m unittest discover -s scripts/tests   # the scripts' tests
 uv run scripts/gen-rust-dockerfiles.py --check       # CI's repo-checks job (rewrite without --check)
-uv run scripts/sync-core.py --check                  # the chart's files from the pinned ds-core release
+uv run scripts/sync-core.py --check                  # the site credits from the pinned ds-core release
+uv run scripts/check-sftp-entrypoint.py              # the dev SFTP entrypoint vs ds-deploy's pinned copy
 ```
 
 Migrations, grants, the Redis ACL and the line catalogue live in
 [Distant-Signal/ds-core](https://github.com/Distant-Signal/ds-core): a
 change to one is a ds-core pull request and release, then a bump here
-(Cargo.toml's ds-core tags, `core-version`, `migrate.image`, and
-`uv run scripts/sync-core.py`). To build against a local ds-core checkout
+(Cargo.toml's ds-core tags, `core-version`, and
+`uv run scripts/sync-core.py`; Distant-Signal/ds-deploy bumps the chart's
+`migrate.image` and access files). To build against a local ds-core checkout
 first, patch it in without committing it:
 
 ```sh

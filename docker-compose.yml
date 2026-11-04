@@ -692,8 +692,11 @@ services:
     volumes:
       - schedule_feed_data:/data/schedule-feed
       - ./schedule-sftp-host-keys:/srv/sftpgo/host_keys:ro
-      # The same script the Helm chart embeds (its one copy).
-      - ./charts/distant-signal/files/schedule-sftp-entrypoint.sh:/docker-entrypoint.d/schedule-sftp-entrypoint.sh:ro
+      # A copy of ds-deploy's charts/distant-signal/files/schedule-sftp-entrypoint.sh,
+      # the script the Helm chart embeds, at the commit
+      # docker/schedule-sftp-entrypoint.ds-deploy pins; CI fails on drift
+      # (scripts/check-sftp-entrypoint.py).
+      - ./docker/schedule-sftp-entrypoint.sh:/docker-entrypoint.d/schedule-sftp-entrypoint.sh:ro
     # Overrides the image's own `CMD ["sftpgo", "serve"]` (no ENTRYPOINT is
     # set, so `command:` replaces it outright, matching Compose's default
     # override semantics). The script provisions the real SFTP-login
@@ -723,7 +726,7 @@ services:
       # not found: sql: no rows in result set"): those env vars bootstrap
       # SFTPGo's web-UI/REST-API *admin* account, never an SFTP-login
       # *user* (confirmed against SFTPGo's own Go source -- see
-      # charts/distant-signal/files/schedule-sftp-entrypoint.sh's header comment for the exact
+      # docker/schedule-sftp-entrypoint.sh's header comment for the exact
       # source references). SCHEDULE_SFTP_USERNAME/PASSWORD below now feed
       # that script directly (via SFTPGo's real --loaddata-from mechanism)
       # instead of a nonfunctional SFTPGO_DEFAULT_ADMIN_* pair.
@@ -767,7 +770,7 @@ services:
       # no longer "relative to that account's SFTP home directory" -- the
       # schedule-sftp service's account now has this exact path
       # (/data/schedule-feed/${SCHEDULE_FEED_DESTINATION_PATH}) AS its
-      # home_dir/chroot root (see charts/distant-signal/files/schedule-sftp-entrypoint.sh), so
+      # home_dir/chroot root (see docker/schedule-sftp-entrypoint.sh), so
       # DTD's push client sees itself uploading to "/" once connected, and
       # those uploads land here, at WATCH_DIR, directly -- the same
       # concept as the Helm chart's

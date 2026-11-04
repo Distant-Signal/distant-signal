@@ -5,22 +5,14 @@
   uv run scripts/sync-core.py [--check] [--assets-dir DIR]
 
 Repo split spec §5.1. Every ds-core tag vX.Y.Z publishes signed GitHub
-release assets; the chart reads five of them through `.Files.Get` (Helm
-can't read outside the chart), the phase 0 chart check renders the Redis
-ACL with ds-core's renderer, and the web app's tests check /attribution
-against the line catalogue validator's site credits:
+release assets. The web app's tests check /attribution against the line
+catalogue validator's site credits, one of them:
 
-  db-grants.yaml          -> charts/distant-signal/files/db-grants.yaml
-  postgres-grants.sql     -> charts/distant-signal/files/postgres-grants.sql
-  postgres-roles.sql      -> charts/distant-signal/files/postgres-roles.sql
-  postgres-roles-setup.sh -> charts/distant-signal/files/postgres-roles-setup.sh
-  redis-users.acl.tpl     -> charts/distant-signal/files/redis-users.acl.tpl
-  render-redis-acl.py     -> scripts/render-redis-acl.py
   site-credits.json       -> frontend/lib/site-credits.json
 
-The roles Job's entrypoint (postgres-roles-setup.sh) is ds-core's too:
-its role tests run it (test-postgres-roles.py --check-setup-job), so the
-script they prove is the one the chart runs.
+The other six (the chart's access files and the Redis ACL renderer) are
+Distant-Signal/ds-deploy's, which vendors them with its own copy of this
+script (repo split phase 5).
 
 The version is the one line of `core-version` (Renovate's ds-core group
 bumps it, with the ds-migrate image). For each asset this downloads
@@ -31,17 +23,15 @@ workflow at that tag, and then writes the copy, or with --check writes
 nothing and exits 1 naming each copy that differs. --assets-dir DIR reads
 the assets from DIR instead of downloading them (still verified).
 
-The pins must agree: the chart's `migrate.image.tag` (the ds-migrate
-release) is core-version, and so is every ds-core `tag =` in Cargo.toml's
-[workspace.dependencies] where there is a Cargo.toml (a repository that
-builds Rust). A disagreement is exit 1, with or without --check.
+The pins must agree: every ds-core `tag =` in Cargo.toml's
+[workspace.dependencies] is core-version. A disagreement is exit 1, with
+or without --check.
 
 Exit 2 when an asset can't be fetched or doesn't verify. Stdlib only;
 needs cosign on PATH.
 """
 
 import argparse
-import re
 import shutil
 import subprocess
 import sys
@@ -56,24 +46,10 @@ VERSION_FILE = Path("core-version")
 REPOSITORY = "Distant-Signal/ds-core"
 RELEASES = f"https://github.com/{REPOSITORY}/releases/download"
 ISSUER = "https://token.actions.githubusercontent.com"
-FILES = Path("charts/distant-signal/files")
-VALUES = Path("charts/distant-signal/values.yaml")
 CORE_GIT = f"https://github.com/{REPOSITORY}"
-# values.yaml's top-level `migrate:` block, up to its image's tag line.
-MIGRATE_TAG = re.compile(
-    r"^migrate:\n(?:(?:[ #].*|)\n)*?    tag: (?P<tag>\S+)$", re.MULTILINE
-)
 
 # (release asset, vendored copy relative to the repository root)
-ASSETS = (
-    ("db-grants.yaml", FILES / "db-grants.yaml"),
-    ("postgres-grants.sql", FILES / "postgres-grants.sql"),
-    ("postgres-roles.sql", FILES / "postgres-roles.sql"),
-    ("postgres-roles-setup.sh", FILES / "postgres-roles-setup.sh"),
-    ("redis-users.acl.tpl", FILES / "redis-users.acl.tpl"),
-    ("render-redis-acl.py", Path("scripts/render-redis-acl.py")),
-    ("site-credits.json", Path("frontend/lib/site-credits.json")),
-)
+ASSETS = (("site-credits.json", Path("frontend/lib/site-credits.json")),)
 
 
 class AssetError(Exception):
@@ -98,16 +74,8 @@ def read_version(root: Path) -> str:
 
 
 def pin_problems(root: Path, version: str) -> list[str]:
-    """Return where Cargo.toml or the chart pins a ds-core other than VERSION."""
+    """Return where Cargo.toml pins a ds-core other than VERSION."""
     problems: list[str] = []
-    values = root / VALUES
-    if values.is_file():
-        match = MIGRATE_TAG.search(values.read_text(encoding="utf-8"))
-        found = match.group("tag").strip("\"'") if match else None
-        if found != version:
-            problems.append(
-                f"{VALUES}: migrate.image.tag is {found!r}, {VERSION_FILE} {version}"
-            )
     cargo = root / "Cargo.toml"
     if cargo.is_file():
         deps = tomllib.loads(cargo.read_text(encoding="utf-8"))

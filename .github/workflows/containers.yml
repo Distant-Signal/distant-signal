@@ -198,7 +198,7 @@ jobs:
           # The only image needing an explicit target: frontend/Dockerfile's
           # last stage is `runtime-dev`; the image this repo wants published
           # is the earlier `runtime-prod` stage (optimized `next build` +
-          # `next start`), same as charts/distant-signal/README.md's manual
+          # `next start`), same as ds-deploy's chart README's manual
           # `docker build --target runtime-prod` example.
           - service: frontend
             dockerfile: frontend/Dockerfile
