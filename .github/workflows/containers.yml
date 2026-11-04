@@ -129,9 +129,10 @@ jobs:
       max-parallel: 10
       matrix:
         include:
-          - service: api
-            dockerfile: docker/api.Dockerfile
-            target: ""
+          # No api, schedule-ingest or schedule-reference: Distant-Signal/ds-api
+          # builds and publishes them to the same packages (repo split
+          # phase 9). Their crates and Dockerfiles leave this repository in
+          # the deletion PR.
           # No ds-migrate: Distant-Signal/ds-core's release.yml builds it
           # (repo split spec §5.1), and values.yaml pins its release
           # (migrate.image, bumped with core-version).
@@ -146,12 +147,6 @@ jobs:
           # consumers: Distant-Signal/ds-ingest builds and publishes them to
           # the same packages (repo split phase 7). Their crates and
           # Dockerfiles leave this repository in the deletion PR.
-          - service: schedule-ingest
-            dockerfile: docker/schedule-ingest.Dockerfile
-            target: ""
-          - service: schedule-reference
-            dockerfile: docker/schedule-reference.Dockerfile
-            target: ""
           # The only image needing an explicit target: frontend/Dockerfile's
           # last stage is `runtime-dev`; the image this repo wants published
           # is the earlier `runtime-prod` stage (optimized `next build` +
