@@ -218,6 +218,15 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
     '/transit/metrolink/lines/blue/timetable',
     '/transit/metrolink/lines/blue/timetable?date=2026-09-17&direction=outbound&from=07:00',
   ],
+  // The seed's island of Ireland pages: a live board, a station with
+  // none, a NI Railways station and a corridor id with a slash.
+  ['/island-of-ireland', '/island-of-ireland'],
+  ['/island-of-ireland/iarnrod-eireann', '/island-of-ireland/iarnrod-eireann'],
+  ['/island-of-ireland/ni-railways', '/island-of-ireland/ni-railways'],
+  ['/island-of-ireland/iarnrod-eireann/lines/DUB-DRO%2FDUN', '/island-of-ireland/iarnrod-eireann/lines/DUB-DRO%2FDUN'],
+  ['/island-of-ireland/iarnrod-eireann/stations/8220IR0007', '/island-of-ireland/iarnrod-eireann/stations/8220IR0007'],
+  ['/island-of-ireland/iarnrod-eireann/stations/7020IR2162', '/island-of-ireland/iarnrod-eireann/stations/7020IR2162'],
+  ['/island-of-ireland/ni-railways/stations/nir-bangor', '/island-of-ireland/ni-railways/stations/nir-bangor'],
   ['/incidents', '/incidents'],
   [`/incidents/${REAL_INCIDENT_ID}`, `/incidents/${REAL_INCIDENT_ID}`],
   ['/trains', '/trains'],

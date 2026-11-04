@@ -388,6 +388,23 @@ describe('/api/[...path] proxy', () => {
       expect(res.headers.get('x-generated-at')).toBe('2026-09-28T13:40:05Z');
     });
 
+    it('passes X-Polled-At and Last-Modified through (an Irish live board)', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response('[]', {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Polled-At': '2026-11-04T09:05:03Z',
+            'Last-Modified': 'Wed, 04 Nov 2026 09:05:03 GMT',
+          },
+        }),
+      );
+      const path = ['island-of-ireland', 'stations', '8220IR0132', 'departures'];
+      const res = await GET(makeRequest(`/api/${path.join('/')}`), { params: Promise.resolve({ path }) });
+      expect(res.headers.get('x-polled-at')).toBe('2026-11-04T09:05:03Z');
+      expect(res.headers.get('last-modified')).toBe('Wed, 04 Nov 2026 09:05:03 GMT');
+    });
+
     it('relays an Atom feed with its ETag, and a conditional GET as a 304', async () => {
       vi.mocked(fetch).mockResolvedValueOnce(
         new Response('<feed/>', {

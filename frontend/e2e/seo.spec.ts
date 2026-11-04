@@ -18,6 +18,10 @@ test('/sitemap.xml lists public pages and none of the short-lived ones', async (
   expect(body).toMatch(new RegExp(`<loc>[^<]*/stations/${CRS}</loc>`));
   expect(body).toMatch(/<loc>[^<]*\/lines<\/loc>/);
   expect(body).toMatch(/<loc>[^<]*\/trains<\/loc>/);
+  // The seed's island of Ireland pages, a corridor id's slash encoded.
+  expect(body).toMatch(/<loc>[^<]*\/island-of-ireland<\/loc>/);
+  expect(body).toMatch(/<loc>[^<]*\/island-of-ireland\/ni-railways\/stations\/nir-bangor<\/loc>/);
+  expect(body).toMatch(/<loc>[^<]*\/island-of-ireland\/iarnrod-eireann\/lines\/DUB-DRO%2FDUN<\/loc>/);
   expect(body).not.toMatch(/<loc>[^<]*\/trains\?/);
   expect(body).not.toMatch(/<loc>[^<]*\/train\//);
   expect(body).not.toMatch(/<loc>[^<]*\/incidents\/[^<]/);

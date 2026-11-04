@@ -1,4 +1,14 @@
 import type { MetadataRoute } from 'next';
+import {
+  IRELAND_ID,
+  IRELAND_PATH,
+  irelandLineHref,
+  irelandNetworkHref,
+  irelandStationHref,
+  type IrelandLine,
+  type IrelandStation,
+  networkInfo,
+} from './ireland';
 import type { LineSummary } from './types';
 
 /** How long the sitemap's lists stay in Next's data cache: six hours.
@@ -12,8 +22,8 @@ export const SITEMAP_URL_LIMIT = 50_000;
 
 /** The public pages that need no list: the home page, the indexes, the
  * planner and the Trains section (its bare page: a search's query string
- * is never listed, `isExcludedPath`). `/transit` and the legal pages are
- * added only while they are served (`buildSitemap`). */
+ * is never listed, `isExcludedPath`). `/transit`, `/island-of-ireland` and the legal
+ * pages are added only while they are served (`buildSitemap`). */
 export const STATIC_PATHS: readonly string[] = [
   '/',
   '/trains',
@@ -61,7 +71,35 @@ export interface SitemapSources {
   tflStopIds: string[];
   lines: LineSummary[];
   transit: TransitSitemapNetwork[];
+  /** The island of Ireland catalogue (`[]` while its feeds are off). */
+  ireland?: { stations: IrelandStation[]; lines: IrelandLine[] };
   legalPublished: boolean;
+}
+
+/** The island of Ireland pages: the overview, each network with any
+ * stations, and its lines and stations. None without stations. */
+export function irelandSitemapPaths({
+  stations,
+  lines,
+}: {
+  stations: IrelandStation[];
+  lines: IrelandLine[];
+}): string[] {
+  const paths: string[] = [];
+  const networks = new Set<string>();
+  for (const station of stations) {
+    const info = networkInfo(station.network);
+    if (!info || !IRELAND_ID.test(station.id)) continue;
+    networks.add(info.slug);
+    paths.push(irelandStationHref(info.slug, station.id));
+  }
+  if (networks.size === 0) return [];
+  for (const line of lines) {
+    const info = networkInfo(line.network);
+    if (!info || !networks.has(info.slug) || !IRELAND_ID.test(line.id)) continue;
+    paths.push(irelandLineHref(info.slug, line.id));
+  }
+  return [IRELAND_PATH, ...[...networks].map(irelandNetworkHref), ...paths];
 }
 
 const seg = encodeURIComponent;
@@ -72,6 +110,7 @@ export function sitemapPaths({
   tflStopIds,
   lines,
   transit,
+  ireland,
   legalPublished,
 }: Omit<SitemapSources, 'origin'>): string[] {
   const paths: string[] = [...STATIC_PATHS];
@@ -95,6 +134,7 @@ export function sitemapPaths({
     }
     for (const stop of network.stopIds) paths.push(`${base}/stops/${seg(stop)}`);
   }
+  if (ireland) paths.push(...irelandSitemapPaths(ireland));
   return [...new Set(paths)].filter((path) => !isExcludedPath(path));
 }
 

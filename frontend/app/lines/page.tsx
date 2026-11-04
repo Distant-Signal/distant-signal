@@ -7,9 +7,11 @@ import {
   getPreferences,
   getSessionOrLoggedOut,
   getTransitNetworks,
+  getIrelandStationsOrNone,
 } from '@/lib/api';
 import { withStaleFallback } from '@/lib/liveDataCache';
 import { DISPLAYED_MODES_PARAM } from '@/lib/modes';
+import { IRELAND_LABEL, IRELAND_PATH } from '@/lib/ireland';
 import { isSeverityGroup } from '@/lib/severity';
 import type { Preferences } from '@/lib/types';
 import { TextLink } from '@/components/TextLink';
@@ -102,7 +104,7 @@ export default async function AllLinesPage({
   const initialQuery = Array.isArray(q) ? q[0] : q;
   const initialOperators = operator === undefined ? [] : Array.isArray(operator) ? operator : [operator];
 
-  const [lines, preferences, reports, tocs, viewerIsAnonymous, transitNetworks] = await Promise.all([
+  const [lines, preferences, reports, tocs, viewerIsAnonymous, transitNetworks, irelandOn] = await Promise.all([
     withStaleFallback('allLines', () => getAllLines()),
     // Per-user, so it fails closed to "nothing pinned" (the shape a 401
     // already returns) rather than being stale-served -- design spec
@@ -127,6 +129,9 @@ export default async function AllLinesPage({
     // The tram networks we show ([] by default, and on failure): linked
     // here because the inline nav bar has no room for them.
     getTransitNetworks(),
+    // The Irish networks' pages, while they have any stations (hour-cached;
+    // none, and no link, on failure).
+    getIrelandStationsOrNone().then((stations) => stations.length > 0),
   ]);
 
   return (
@@ -142,6 +147,7 @@ export default async function AllLinesPage({
                 {network.name}
               </TextLink>
             ))}
+            {irelandOn && <TextLink href={IRELAND_PATH}>{IRELAND_LABEL}</TextLink>}
           </Group>
         </Group>
         <AllLinesTable

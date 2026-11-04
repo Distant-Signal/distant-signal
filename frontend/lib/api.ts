@@ -74,6 +74,7 @@ import type {
   TflStopDetail,
 } from './types';
 import type * as Api from './api-types';
+import type { IrelandBoard, IrelandDeparture, IrelandLine, IrelandStation } from './ireland';
 import { createLogger } from './logger';
 import { lineTimetableQuery } from './lineTrains';
 import { LIVE_PREVIEW_REVALIDATE_SECONDS } from './livePreview';
@@ -1523,4 +1524,51 @@ export async function getTflStopArrivals(id: string): Promise<TflStopArrivals> {
   return fetchJson<TflStopArrivals>(`${baseUrl()}/public/tfl/stops/${encodeURIComponent(id)}/arrivals`, {
     cache: 'no-store',
   });
+}
+
+// --- Island of Ireland (`/public/island-of-ireland`): Iarnród Éireann and
+// NI Railways. Both lists are `[]` while the feeds are off (the default),
+// and the pages then 404 (docs/superpowers/specs/2026-11-04-island-of-ireland-pages-design.md §6).
+
+/** Every station on both networks, by name. Hour-cached, as the api caches
+ * it. */
+export async function getIrelandStations(): Promise<IrelandStation[]> {
+  return fetchJson<IrelandStation[]>(`${baseUrl()}/public/island-of-ireland/stations`, {
+    next: { revalidate: 3600 },
+  });
+}
+
+/** Every line on both networks, by name. Hour-cached. */
+export async function getIrelandLines(): Promise<IrelandLine[]> {
+  return fetchJson<IrelandLine[]>(`${baseUrl()}/public/island-of-ireland/lines`, { next: { revalidate: 3600 } });
+}
+
+/** `getIrelandStations()`, or `[]` on failure: for the links to the
+ * section (`/lines`, the sitemap), which are extras, never a reason to
+ * fail a page. */
+export async function getIrelandStationsOrNone(): Promise<IrelandStation[]> {
+  try {
+    return await getIrelandStations();
+  } catch (err) {
+    log.warn('island of Ireland stations lookup failed; hiding its links', { error: err });
+    return [];
+  }
+}
+
+/** A station's live board, asked for by its catalogue id, which the api
+ * resolves to the board's code, with when it was polled (`X-Polled-At`,
+ * RFC 3339; `null` from an api that doesn't send it); `null` when the
+ * station has no board (404). Never cached: the board is re-polled
+ * continuously. */
+export async function getIrelandDepartures(stationId: string): Promise<IrelandBoard | null> {
+  const url = `${baseUrl()}/public/island-of-ireland/stations/${encodeURIComponent(stationId)}/departures`;
+  const response = await apiFetch(url, { cache: 'no-store' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  const body: unknown = await response.json();
+  const polledAt = response.headers.get('X-Polled-At');
+  return {
+    departures: Array.isArray(body) ? (body as IrelandDeparture[]) : [],
+    polledAt: polledAt && !Number.isNaN(Date.parse(polledAt)) ? polledAt : null,
+  };
 }
