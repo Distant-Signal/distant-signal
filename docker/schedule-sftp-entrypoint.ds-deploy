@@ -1,0 +1,9 @@
+# The Distant-Signal/ds-deploy commit whose
+# charts/distant-signal/files/schedule-sftp-entrypoint.sh
+# docker/schedule-sftp-entrypoint.sh copies, for the dev stack's sftpgo
+# container (docker-compose.yml). CI's repo-checks job fails when the copy
+# differs (scripts/check-sftp-entrypoint.py). Renovate moves the commit to
+# ds-deploy's main; update the copy in the same PR when the check fails:
+#   uv run scripts/check-sftp-entrypoint.py --write
+# renovate: datasource=git-refs depName=https://github.com/Distant-Signal/ds-deploy currentValue=main
+f28853fbc9e41983042e7191912f501ed0cf56ab

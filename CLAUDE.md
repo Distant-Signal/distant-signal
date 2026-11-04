@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Distant Signal (DS) is a personal UK rail companion: TfL-shaped line status,
 train and journey tracking, groups, trip planning and Delay Repay support.
-Rust workspace (`crates/`), Next.js frontend (`frontend/`), Helm chart
-(`charts/distant-signal/`). The shared core (common, ds-runtime,
-health-http, trust-schema, schedule-query, ingest-stream, ds-store with the
-migrations and grants, ds-migrate, ds-lines with the TOML line catalogue,
-the Redis ACL) is Distant-Signal/ds-core, a git dependency pinned by tag in
+Rust workspace (`crates/`) and Next.js frontend (`frontend/`). The Helm
+chart, its checks and the deploy runbooks are Distant-Signal/ds-deploy.
+The shared core (common, ds-runtime, health-http, trust-schema,
+schedule-query, ingest-stream, ds-store with the migrations and grants,
+ds-migrate, ds-lines with the TOML line catalogue, the Redis ACL) is Distant-Signal/ds-core, a git dependency pinned by tag in
 Cargo.toml (`[workspace.dependencies]`, all on the tag in `core-version`).
 A core change is a ds-core PR and release, then a bump here; to try one
 first, patch a local checkout in: `cargo --config
@@ -106,25 +106,20 @@ image matching the locked `@playwright/test` (docker or podman). Baselines
 regenerate them outside it, and review every changed image (docs/style-guide.md,
 "Visual regression").
 
-Scripts, chart and migration checks (repo root):
+Scripts checks (repo root):
 
 ```sh
 uv sync --locked --group lint
 uv run --no-sync python ../ci/scripts/lint-scripts.py   # shellcheck, shfmt, ruff, mypy, actionlint, hadolint... (--fix: shfmt, ruff fixes); ../ci: a Distant-Signal/ci checkout
 uv run --no-sync python -m unittest discover -s scripts/tests -v
-uv run --no-sync scripts/chart-values-doc.py check   # chart README values table vs values.yaml
-uv run scripts/sync-core.py --check          # chart files/ = the pinned ds-core release's signed access assets (rewrite without --check)
+uv run scripts/sync-core.py --check          # frontend/lib/site-credits.json = the pinned ds-core release's signed asset; Cargo tags = core-version (rewrite without --check)
+uv run scripts/check-sftp-entrypoint.py      # docker/schedule-sftp-entrypoint.sh = ds-deploy's pinned chart copy (--write to update)
 uv run scripts/gen-rust-dockerfiles.py --check   # rewrite without --check
 uv run --no-sync scripts/check-crate-deps.py # poller-transit-schedule holds no database crate (and ds-store none of the server stack)
-uv run --no-sync scripts/release-order.py check --values charts/distant-signal/values.yaml --source \
-  --migrations "$(uv run scripts/core-checkout.py)/crates/ds-store/migrations"   # image labels vs the chart's ordering rules
-helm lint --strict charts/distant-signal
-helm lint --strict charts/distant-signal -f charts/distant-signal/values-example.yaml
-helm lint --strict charts/ds-ingest-bucket
 ```
 
-CI's `helm-lint` job also asserts on many `helm template --set` renders, and
-`scripts-lint` runs the other `scripts/check-*-chart.py`. Local stack:
+`scripts/release-order.py labels` stamps each image's ordering labels in
+containers.yml; ds-deploy checks them against its pinned values. Local stack:
 `docker compose --env-file local.env up --build` (`dev.env` for debug builds
 and hot reload; see `docker-compose.yml`'s header).
 
@@ -149,7 +144,7 @@ line populations, departures and calling points) through ds-store's publish
 protocol. `aggregator` matches incidents to lines (`common::matcher`, the
 same matcher the ingest uses) and writes `line_status`; `enricher` sends
 changed incident text to an LLM. `ds-store` holds the shared SQL and the
-schema gate; `ds-migrate` runs migrations (the chart's migrate hook Job).
+schema gate; `ds-migrate` runs migrations (ds-deploy's chart's migrate hook Job).
 Docs: docs/ingest-phase5-runbook.md, docs/ingest-stream-runtime.md,
 docs/superpowers/specs/2026-10-06-ingest-architecture-design.md.
 
@@ -184,21 +179,20 @@ train: a journey-break notice replaces that train's plain push
 **Postgres roles.** ds-core's `crates/ds-store/db-grants.yaml` classifies
 every public table, view, sequence and function and gives each service role
 (`planned`, `observed` or `narrow`) its grants; ds-core renders it into
-`postgres-grants.sql`. The chart's `files/db-grants.yaml`, `files/postgres-*`
-and `files/redis-users.acl.tpl` are the pinned release's signed assets,
-vendored by `scripts/sync-core.py` (CI fails on drift).
-docs/postgres-app-role.md and the chart README's "Per-service Postgres
-roles"; the Redis ACL, docs/redis-acl.md.
+`postgres-grants.sql`; ds-deploy's chart vendors them, with the Redis ACL,
+from its pinned release. Its docs/postgres-app-role.md, docs/redis-acl.md
+and the chart README's "Per-service Postgres roles" explain them.
 
-**Chart and deploys.** One chart for the whole stack, documented in
-`charts/distant-signal/README.md` (keep its values reference in step,
-`chart-values-doc.py`). `containers.yml` builds the images and pushes them
+**Chart and deploys.** `containers.yml` builds the images and pushes them
 to `ghcr.io/<owner>/images/<service>` (main builds also tagged
 `build.<run id>-<commit>`) only from `main`; every GHCR path and project
-URL derives from the repository's owner, so don't hardcode it. The
-chart itself is packaged and pushed by Distant-Signal/ds-deploy, which
-pins each image by build tag and digest; this copy of `charts/` is
-frozen and goes away (repo split phase 5). Production
+URL derives from the repository's owner, so don't hardcode it. One chart
+for the whole stack lives in Distant-Signal/ds-deploy (its
+`charts/distant-signal/README.md`), which pins each image by build tag and
+digest and packages and pushes the chart. A change that needs a new value
+or template is a ds-deploy PR, after the image that reads it. The dev
+stack's SFTP entrypoint is a copy of the chart's (`docker/schedule-sftp-entrypoint.sh`,
+checked by `scripts/check-sftp-entrypoint.py`). Production
 values live in Ranma-Config and Flux applies them. Renovate opens a PR per
 chart build, but DS releases are filed deliberately as deploy-bringer
 requests (with deploy notes: migrations, grants, flags, post-deploy checks)
@@ -214,15 +208,16 @@ design change are in docs/frontend-design-guide.md. PR template: screenshots at 
 light and dark; page title and meta description; `aria-label` on icon buttons.
 
 docs/superpowers/specs and plans are dated historical records (status in their
-README index); code, the chart README and top-level docs/ are the truth.
+README index); code, ds-deploy's chart README and top-level docs/ are the truth.
 
 ## Conventions
 
 - **Migrations, grants, the Redis ACL and the line catalogue** live in
   Distant-Signal/ds-core, with their rules in its CLAUDE.md. A service
   that needs one opens a ds-core PR, waits for the release, then bumps
-  core here (Cargo.toml's tags, `core-version`, `migrate.image`, and
-  `uv run scripts/sync-core.py` for the chart's files).
+  core here (Cargo.toml's tags and `core-version`, and
+  `uv run scripts/sync-core.py` for the site credits); ds-deploy bumps the
+  chart's `migrate.image` and access files.
 - **API changes** get an entry in docs/api-changelog.md (newest first, what a
   client like DS-MCP needs to know). A changed response type the frontend
   reads also means regenerating the TypeScript:

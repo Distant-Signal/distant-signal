@@ -24,6 +24,17 @@
 
   "customManagers": [
     {
+      // docker/schedule-sftp-entrypoint.ds-deploy pins the ds-deploy commit
+      // whose chart SFTP entrypoint the dev stack's copy matches
+      // (scripts/check-sftp-entrypoint.py). Moving it to ds-deploy's main
+      // fails CI's drift check until the copy is updated in the same PR.
+      "customType": "regex",
+      "managerFilePatterns": ["/^docker/schedule-sftp-entrypoint\\.ds-deploy$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>git-refs) depName=(?<depName>\\S+) currentValue=(?<currentValue>\\S+)\\n(?<currentDigest>[0-9a-f]{40})\\n",
+      ],
+    },
+    {
       // scripts/gen-rust-dockerfiles.py generates the Rust Dockerfiles'
       // builder stages, and CI fails when a Dockerfile drifts from it. The
       // dockerfile manager bumps the Dockerfiles' rust FROM; this bumps the
@@ -51,12 +62,12 @@
       "depNameTemplate": "cargo-chef",
     },
     {
-      // The ds-core release the chart vendors (repo split spec §5.1):
-      // core-version, bumped with Cargo.toml's ds-core tags and
-      // migrate.image (the `ds-core` group below). The hosted app runs no
-      // post-upgrade commands, so the PR's CI fails until someone runs
-      // `uv run scripts/sync-core.py` on its branch and pushes the vendored
-      // files.
+      // The ds-core release this repository builds against and vendors
+      // the site credits from (repo split spec §5.1): core-version, bumped
+      // with Cargo.toml's ds-core tags (the `ds-core` group below). The
+      // hosted app runs no post-upgrade commands, so the PR's CI fails
+      // until someone runs `uv run scripts/sync-core.py` on its branch and
+      // pushes the vendored file.
       "customType": "regex",
       "managerFilePatterns": ["/^core-version$/"],
       "matchStrings": ["^(?<currentValue>v\\d+\\.\\d+\\.\\d+)\\s*$"],
@@ -100,22 +111,8 @@
   //                   repo (rust:1.88-bookworm, debian:bookworm-slim,
   //                   node:22-bookworm-slim) plus the
   //                   `# syntax=docker/dockerfile:1` pragma.
-  //   helm-values   - default pattern `/(^|/)values\.ya?ml$/` matches
-  //                   charts/distant-signal/values.yaml (any subdirectory
-  //                   counts), which covers every upstream image this repo
-  //                   does not build itself: postgres:18 and 16-alpine (the
-  //                   bundled postgresql and devAuthentik's dedicated
-  //                   one), valkey/valkey, ghcr.io/goauthentik/server:2026.8.0.
-  //                   charts/distant-signal/values-example.yaml is NOT
-  //                   matched (it isn't named values.yaml) -- correctly
-  //                   so, its image refs are illustrative placeholders
-  //                   ("registry.example.com/...") the file's own header
-  //                   comment says to replace before real use, not real
-  //                   pinned versions to track.
-  //   (helmv3)      - charts/distant-signal/Chart.yaml deliberately has no
-  //                   `dependencies:` block (bundles its own Postgres
-  //                   instead of a subchart, see the chart's own top-of-
-  //                   file comment) -- nothing for this manager to do.
+  //   helm-values,  - nothing here: the chart and its values.yaml are
+  //   helmv3          Distant-Signal/ds-deploy's (repo split phase 5).
   //   github-actions - every workflow is picked up with no extra config,
   //                   the SHA-pinned actions and the Distant-Signal/ci and
   //                   Piped reusable-workflow pins alike. Not the
@@ -153,14 +150,14 @@
     {
       // Every ds-core pin moves together, in one PR that merges before the
       // image group (repo split spec §5.2, §5.4): the crates' git tags (and
-      // Cargo.lock), core-version, and the ds-migrate image the chart's
-      // migrate Job runs. Two at a time across the organisation.
+      // Cargo.lock) and core-version. (ds-deploy bumps the ds-migrate
+      // image with its own core-version.) Two at a time across the
+      // organisation.
       "groupName": "ds-core",
       "groupSlug": "ds-core",
       "matchPackageNames": [
         "Distant-Signal/ds-core",
         "https://github.com/Distant-Signal/ds-core",
-        "ghcr.io/distant-signal/images/ds-migrate",
       ],
       "prConcurrentLimit": 2,
     },

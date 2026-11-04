@@ -144,7 +144,7 @@ Observability:
   the benign ones.
 - Alert `DistantSignalIncidentRemovalStalled`: over 2h, no snapshot applied
   and at least one skipped as `incomplete`/`empty`/`shrink`. See
-  [alerts.md](../../alerts.md#distantsignalincidentremovalstalled). There is
+  [alerts.md](https://github.com/Distant-Signal/ds-deploy/blob/main/docs/alerts.md#distantsignalincidentremovalstalled). There is
   no mass-removal alert: the shrink guard already stops the mass-removal
   failure mode, and the first deploy legitimately marks ~400 rows at once.
 

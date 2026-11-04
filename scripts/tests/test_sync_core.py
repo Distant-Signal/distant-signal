@@ -51,8 +51,7 @@ class SyncCoreTest(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
         self.root = self.tmp / "root"
-        (self.root / "charts/distant-signal/files").mkdir(parents=True)
-        (self.root / "scripts").mkdir()
+        (self.root / "frontend/lib").mkdir(parents=True)
         (self.root / "core-version").write_text("v0.1.0\n", encoding="utf-8")
         self.assets = self.tmp / "assets"
         self.assets.mkdir()
@@ -94,24 +93,22 @@ class SyncCoreTest(unittest.TestCase):
     def test_check_names_stale_copies(self) -> None:
         """--check fails, names the stale copy and writes nothing."""
         self.run_main()
-        stale = self.root / "charts/distant-signal/files/postgres-grants.sql"
+        stale = self.root / "frontend/lib/site-credits.json"
         stale.write_text("edited\n", encoding="utf-8")
         code, out = self.run_main("--check")
         self.assertEqual(code, 1)
-        self.assertIn("charts/distant-signal/files/postgres-grants.sql", out)
+        self.assertIn("frontend/lib/site-credits.json", out)
         self.assertEqual(stale.read_text(encoding="utf-8"), "edited\n")
 
     def test_unverified_asset_writes_nothing(self) -> None:
         """A bundle that doesn't verify is exit 2, and no copy is written."""
-        (self.assets / "redis-users.acl.tpl.sigstore.json").write_text(
+        (self.assets / "site-credits.json.sigstore.json").write_text(
             "forged\n", encoding="utf-8"
         )
         code, out = self.run_main()
         self.assertEqual(code, 2)
-        self.assertIn("redis-users.acl.tpl", out)
-        self.assertFalse(
-            (self.root / "charts/distant-signal/files/db-grants.yaml").exists()
-        )
+        self.assertIn("site-credits.json", out)
+        self.assertFalse((self.root / "frontend/lib/site-credits.json").exists())
 
     def test_identity_is_the_release_workflow_at_the_tag(self) -> None:
         """Assets verify against ds-core's release.yml at core-version's tag."""
@@ -124,11 +121,11 @@ class SyncCoreTest(unittest.TestCase):
 
     def test_missing_asset(self) -> None:
         """A missing asset is exit 2."""
-        (self.assets / "postgres-roles.sql").unlink()
+        (self.assets / "site-credits.json").unlink()
         self.assertEqual(self.run_main()[0], 2)
 
     def test_pins_must_agree(self) -> None:
-        """Cargo.toml's ds-core tags and migrate.image.tag are core-version."""
+        """Cargo.toml's ds-core tags are core-version."""
         (self.root / "Cargo.toml").write_text(
             "[workspace.dependencies]\n"
             f'common = {{ git = "{sc.CORE_GIT}", tag = "v0.1.0" }}\n'
@@ -136,23 +133,11 @@ class SyncCoreTest(unittest.TestCase):
             'serde = "1"\n',
             encoding="utf-8",
         )
-        values = self.root / "charts/distant-signal/values.yaml"
-        values.write_text(
-            "api:\n  image:\n    tag: v9\nmigrate:\n  # The migrator.\n  image:\n"
-            "    repository: ghcr.io/distant-signal/images/ds-migrate\n"
-            "    tag: v0.1.0\n",
-            encoding="utf-8",
-        )
         code, out = self.run_main()
         self.assertEqual(code, 1)
         self.assertIn("ds-store is on 'v0.0.9'", out)
         self.assertNotIn("common is on", out)
-        self.assertNotIn("migrate.image.tag", out)
-        values.write_text(
-            values.read_text(encoding="utf-8").replace("tag: v0.1.0", 'tag: "v0.2.0"'),
-            encoding="utf-8",
-        )
-        self.assertIn("migrate.image.tag is 'v0.2.0'", self.run_main("--check")[1])
+        self.assertEqual(self.run_main("--check")[0], 1)
 
     def test_bad_version(self) -> None:
         """core-version must be one vX.Y.Z."""

@@ -156,12 +156,6 @@ class PinnedImagesTest(unittest.TestCase):
         with self.assertRaises(ro.InputError):
             images["aggregator"].reference("")
 
-    def test_the_chart_pins_every_built_image(self) -> None:
-        """The real values pin each image built here, and ds-core's ds-migrate."""
-        values = ro.read_values(REPO / "charts" / "distant-signal" / "values.yaml")
-        services = sorted(image.service for image in ro.pinned_images(values))
-        self.assertEqual(services, sorted([*ro.image_labels(REPO), "ds-migrate"]))
-
 
 class LabelsTest(unittest.TestCase):
     """The labels each image is built with."""
@@ -494,17 +488,6 @@ class MainTest(unittest.TestCase):
         self.assertEqual(json.loads(written.removeprefix("labels=")), json.loads(out))
         self.assertIn("api", json.loads(out))
         self.assertNotIn("ds-migrate", json.loads(out))
-
-    def test_check_source_passes_on_this_repository(self) -> None:
-        """The pull request check: one commit, so it passes trivially."""
-        status, out = self.main(
-            "check",
-            "--values",
-            str(REPO / "charts" / "distant-signal" / "values.yaml"),
-            "--source",
-        )
-        self.assertEqual(status, 0, out)
-        self.assertIn("release ordering holds", out)
 
     def test_check_registry_fails_on_a_violation(self) -> None:
         """The pre-push check, against a registry whose service is too new."""

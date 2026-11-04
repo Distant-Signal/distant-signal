@@ -98,7 +98,7 @@ sketch, and why:
 - `expectedKeys` now includes `NLC*.xml.gz`.
 
 The remaining switch-on steps are in
-[docs/schedule-feed-bucket.md](../../schedule-feed-bucket.md#switching-it-on).
+[docs/schedule-feed-bucket.md](https://github.com/Distant-Signal/ds-deploy/blob/main/docs/schedule-feed-bucket.md#switching-it-on).
 
 ## Summary
 
@@ -159,7 +159,7 @@ separately: SFTP only, bucket only, or both at once.
 From the "Cloud Bucket Ingest Costs" artifact, DTD's destination
 instructions (received 2026-10-02), the Open Rail Data wiki and the
 2026-10-01 SFTP evidence in
-[schedule-feed-sftp.md](../../schedule-feed-sftp.md).
+[schedule-feed-sftp.md](https://github.com/Distant-Signal/ds-deploy/blob/main/docs/schedule-feed-sftp.md).
 
 ### Confirmed
 
