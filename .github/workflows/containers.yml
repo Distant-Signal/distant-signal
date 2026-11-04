@@ -158,7 +158,7 @@ jobs:
     # signatures' certificate identity is Distant-Signal/ci's image.yml,
     # not this file. Only the chart's signature is verified (by Flux), and
     # ds-deploy signs the chart.
-    uses: Distant-Signal/ci/.github/workflows/image.yml@f68c7866d1119c89d4faf647a49f5c431ad63c45 # main
+    uses: Distant-Signal/ci/.github/workflows/image.yml@f405ba7d7d51df62ad597f8fc1e56070abafca64 # main
     with:
       service: ${{ matrix.service }}
       dockerfile: ${{ matrix.dockerfile }}
