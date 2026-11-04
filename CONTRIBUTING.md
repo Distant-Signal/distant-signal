@@ -66,8 +66,18 @@ CI fails when either file is stale: the `api_types_are_current` test in
 type derives `ts_rs::TS` beside its `Serialize` (in `common` and `ds-store`,
 under their `ts` feature) and is listed in `api_types::visit_roots` unless a
 listed type already reaches it. A `String` field with a fixed set of values
-gets a `#[ts(as = "...")]` enum from `crates/api/src/ts_values.rs`. The api
-image carries the file at `/usr/share/distant-signal/api-types.ts`.
+gets a `#[ts(as = "...")]` enum from `crates/api/src/ts_values.rs`.
+
+The api image carries both files, at `/usr/share/distant-signal/api-types.ts`
+and `/usr/share/distant-signal/openapi-v1.json`. Once the api moves to
+`Distant-Signal/ds-api` (repo-split spec §5.3, phase 9), `api-types/` goes
+with it, and `write` and `check` read the files from the api image that
+`frontend/api-image.txt` pins instead, checking the tag, manifest and
+layer digests against the pin. `sync-api-types.py pin --latest` (or a
+`build.<run>-<commit>` tag) bumps the pin and rewrites both copies;
+`verify-pin` checks that the pinned image's files are its commit's
+`api-types/`. Renovate bumps the pin too (renovate.json5); it runs no
+commands, so run `write` on its branch. CI also fails on a breaking change to either OpenAPI copy.
 
 The file also exports, as `as const` objects, values the web app keeps its
 own copy of: `ATTRIBUTION_SOURCES` and `NON_AFFILIATION` (the personal-token

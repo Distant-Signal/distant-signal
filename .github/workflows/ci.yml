@@ -487,7 +487,9 @@ jobs:
       # frontend/lib/api-types.ts and openapi-v1.json are copies of the api's generated
       # api-types/api.ts and openapi/v1.json (repo split spec §5.3); `cargo test`'s
       # api_types_are_current and openapi_document_is_current check those
-      # against the Rust types.
+      # against the Rust types. Once api-types/ moves to Distant-Signal/ds-api,
+      # the same command reads them from the api image
+      # frontend/api-image.txt pins (--from auto).
       - name: frontend's api types and OpenAPI copy match api-types/
         run: uv run --no-sync scripts/sync-api-types.py check
 
@@ -496,9 +498,12 @@ jobs:
       # openapi_document_is_current checks it against the Rust types; this
       # fails on a breaking change since the base (oasdiff, pinned in
       # Distant-Signal/ci). A breaking change needs a /v2 document instead.
+      # The frontend's copy is checked too: it is what stays here when the
+      # api moves to Distant-Signal/ds-api, so a pin bump that brings a
+      # breaking change fails in this repository as well.
       - name: no breaking change to the personal-token OpenAPI document
         uses: Distant-Signal/ci/actions/openapi-breaking@76c5c4cd3a3d38ea572c852071baf93cd4982b16 # main
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          specs: api-types/openapi/v1.json
+          specs: api-types/openapi/v1.json frontend/lib/openapi-v1.json
 
