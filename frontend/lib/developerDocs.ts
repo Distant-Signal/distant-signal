@@ -2,15 +2,15 @@
  * they link to. The recipes are Markdown in the repository
  * (docs/recipes/), linked on GitHub rather than copied here, so there is
  * one copy to keep right. */
-import { SOURCE_CODE_URL } from './sourceCode';
+import { LANDING_REPOSITORY_URL } from './sourceCode';
 
 export const DEVELOPERS_PATH = '/developers';
 export const API_REFERENCE_PATH = '/developers/api';
 export const CONNECTED_APPS_PATH = '/account/connected-apps';
 
-/** A file in the repository's default branch, on GitHub. */
+/** A file in the landing repository's default branch, on GitHub. */
 export function repositoryFileUrl(path: string): string {
-  return `${SOURCE_CODE_URL}/blob/main/${path}`;
+  return `${LANDING_REPOSITORY_URL}/blob/main/${path}`;
 }
 
 export interface Recipe {
