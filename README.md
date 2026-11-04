@@ -199,8 +199,10 @@ repository, `frontend/package.json`, `pyproject.toml`, both charts and
 every image carry the same licence.
 
 Because the site is used over a network, AGPL §13 applies: every page's
-footer links this repository, and the api's `/public/version` (`/api/version`
-on the site) lists each running image with the commit it was built from.
+footer links this repository, whose [Repositories](#repositories) table
+lists the rest, and the api's `/public/version` (`/api/version` on the
+site) lists each running image with the repository and commit it was built
+from.
 
 The line catalogue (ds-core's `lines/`) is under the same licence. Some
 reference data files (in a `reference-data/` directory beside the crate

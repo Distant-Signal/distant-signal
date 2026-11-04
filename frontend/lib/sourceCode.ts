@@ -1,9 +1,11 @@
-/** Where Distant Signal's source code is: the repository index. Distant
- * Signal is licensed AGPL-3.0-or-later, and §13 of that licence asks a
- * network service to offer its users the source of what it runs, so the
- * footer links here on every page and `/attribution` says so (repo split
- * spec §6). `/api/version` (the api's `/public/version`) lists the exact
- * commit each running image was built from. */
+/** Where Distant Signal's source code is: the landing repository, whose
+ * README lists every repository the code is split across (the frontend
+ * here; the api, pollers, ingest, workers and core each in their own).
+ * Distant Signal is licensed AGPL-3.0-or-later, and §13 of that licence
+ * asks a network service to offer its users the source of what it runs, so
+ * the footer links here on every page and `/attribution` says so (repo
+ * split spec §6). `/api/version` (the api's `/public/version`) lists each
+ * running image with the repository and exact commit it was built from. */
 export const SOURCE_CODE_URL = 'https://github.com/Distant-Signal/distant-signal';
 
 /** The licence, by its SPDX name and the GNU page for it. */
