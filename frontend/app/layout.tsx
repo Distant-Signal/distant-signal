@@ -180,6 +180,9 @@ const UNAVAILABLE_FRESHNESS: DataFreshness = {
   tfl: null,
   schedule_feed: null,
   corpus: null,
+  irish_rail_timetable: null,
+  irish_rail_live: null,
+  northern_ireland_stations: null,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
