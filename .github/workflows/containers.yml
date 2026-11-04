@@ -142,29 +142,15 @@ jobs:
           # No poller-*: Distant-Signal/ds-pollers builds and publishes
           # them to the same packages (repo split phase 6). Their crates
           # and Dockerfiles leave this repository in the deletion PR.
-          - service: trust-consumer
-            dockerfile: docker/trust-consumer.Dockerfile
-            target: ""
-          - service: full-coverage-consumer
-            dockerfile: docker/full-coverage-consumer.Dockerfile
-            target: ""
-          - service: trust-backlog-consumer
-            dockerfile: docker/trust-backlog-consumer.Dockerfile
-            target: ""
-          - service: movement-relay
-            dockerfile: docker/movement-relay.Dockerfile
-            target: ""
-          - service: darwin-relay
-            dockerfile: docker/darwin-relay.Dockerfile
-            target: ""
+          # No ingest-writer, movement-relay, darwin-relay or the three TRUST
+          # consumers: Distant-Signal/ds-ingest builds and publishes them to
+          # the same packages (repo split phase 7). Their crates and
+          # Dockerfiles leave this repository in the deletion PR.
           - service: schedule-ingest
             dockerfile: docker/schedule-ingest.Dockerfile
             target: ""
           - service: schedule-reference
             dockerfile: docker/schedule-reference.Dockerfile
-            target: ""
-          - service: ingest-writer
-            dockerfile: docker/ingest-writer.Dockerfile
             target: ""
           # The only image needing an explicit target: frontend/Dockerfile's
           # last stage is `runtime-dev`; the image this repo wants published
