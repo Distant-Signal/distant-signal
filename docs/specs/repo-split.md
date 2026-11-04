@@ -1,10 +1,13 @@
 # Splitting the monorepo into the Distant-Signal organisation
 
-Status: phase 1 done on 2026-11-02 (§9, "Phase 1 record"): the repository
-is transferred to `Distant-Signal/distant-signal` and its history is
-rewritten. Phases 4 (`ds-core`), 5 (`ds-deploy`), 6 (`ds-pollers`), 7
-(`ds-ingest`) and 8 (`ds-workers`) are done too, with records in §9; the
-others are still plans.
+Status: **the repo split is complete** (phases 1 to 9, 2026-11-02 to
+2026-11-04). Phase 1 transferred the repository to
+`Distant-Signal/distant-signal` and rewrote its history (§9, "Phase 1
+record"); phases 4 (`ds-core`), 5 (`ds-deploy`), 6 (`ds-pollers`), 7
+(`ds-ingest`), 8 (`ds-workers`) and 9 (`ds-api`) extracted the rest, with
+records in §9. This repository now holds the frontend, the docs and the
+dev stack. Only phase 10, the cleanup, remains: about 90 days after phase
+9, so from early February 2027.
 Task DS-261. Written 2026-11-02 against `main` at `01f5a7f2`. Revised
 the same day after two decisions by the user:
 
@@ -2230,6 +2233,9 @@ deletion PRs. Its record follows phase 6's.
 **Phase 7 done on 2026-11-04**, side by side with phase 8. Its record
 follows phase 8's.
 
+**Phase 9 done on 2026-11-04**, the last extraction. Its record follows
+phase 7's.
+
 Every extraction follows the same recipe:
 
 1. Freeze the paths.
@@ -2356,7 +2362,50 @@ hand digest PR, the legs PR before the bump, the user's repository steps):
   needed three tries over SSH (an auth failure, then a 500 that created
   nothing); no other route was used.
 
+#### Phase 9 record (2026-11-04)
+
+| What | Value |
+|---|---|
+| Prerequisites | #200 (the api image carries `api-types.ts` and `openapi-v1.json`; `sync-api-types.py` reads them from the pin `frontend/api-image.txt`), #201 (the frontend's `api-build` is the pin's build tag), ds-deploy#5 (release ordering rule 2 compares that tag with the pinned api's), ci#8 (`paths/ds-api.txt`); phases 7 and 8 deleted |
+| Freeze, landing `main` | `621d467e`; extracted first on `20ba0466`, redone after #204 and #206 edited three ds-api docs' and a Dockerfile's comments; no open PR touched a ds-api path |
+| Extract | `ds-api` `a364d773`, 692 commits (filter-repo of `621d467e`, 1797 to 691 commits, plus the set-up commit); 281 files, exactly the path list; identities clean; ds-core v0.1.1; Cargo.lock pruned (470 kept, none added) |
+| Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 1861 tests; DB passes superuser (855 + 3 + 7, with fake-gcs-server), app-role (838 + 7), per-service (838 + 3 + 7) and narrow (1); 3 images whose `--print-config-defaults` equal the deployed builds (the api's `8d34bcfd`, the schedule services' `eac5feac`); `api-types/` byte-equal and openapi-breaking green |
+| Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26537311); Write on `images/api`, `images/schedule-ingest`, `images/schedule-reference` and `images/buildcache` |
+| First build | CI run 41847744489 (14 jobs, openapi-breaking included) and Containers run 41847752805 (dispatched: the push was made with Actions off); 3 images at `build.41847752805-a364d773…`, `org.opencontainers.image.source` ds-api, core-version v0.1.1, signed, with build provenance; the api image's two files verified against the pin (`sync-api-types.py check --from image`, `verify-pin`) |
+| Ledger | `ext:ds-api` in `lucy/ds-migration-ledger` (`ee7bafb`): 2918 rows mapped, 18 post-rewrite rows |
+| Monorepo stops publishing | #208, merged as `9bddf80b`: containers.yml builds only the frontend |
+| Digest bump | ds-deploy#18 (`a9ed57f2`): the three tags and digests only |
+| Deploy | zcy6: chart build 9; api and schedulefeed rolled (schedulefeed-sftp untouched), the schema gate passed, the last delivery recognised, `/api/version` shows `a364d773` for all three |
+| Delete PR | #209: the four crates, `api-types/`, Dockerfiles, eleven docs and the remediation scripts, and the whole Rust workspace and its tooling (`delete_api.py`); the first `frontend/api-image.txt` pin, e2e on the pinned image, naming `Distant-Signal/ds-api@a364d773` |
+| Path list | `paths/ds-api.txt` in `Distant-Signal/ci` |
+| Package access after the split | the user removed distant-signal's Write on every moved package (the three ds-api images, the pollers', ingest's and workers' images) and on both chart packages; distant-signal keeps Write on `images/frontend` and `images/buildcache`, because the frontend's image build still reads and writes its cache (`images/buildcache:frontend`) |
+
+**Deviations from the plan**, beyond phase 6's (no `--path-rename`, the
+hand digest PR, the legs PR before the bump, the user's repository steps):
+
+- **§5.3's types travel in the api image**, not a release asset or a
+  generated commit (decision DS-317): ds-api has no releases, and the
+  image is what ds-deploy deploys. The pin's digest makes the copies
+  verifiable byte for byte. The pin was added in the deletion PR, after
+  the deploy, so the frontend's `api-build` never ran ahead of the
+  deployed api.
+- **The deletion PR removes the whole Rust workspace**, not members:
+  Cargo files, the cargo config, the DB passes, the Dockerfile generator
+  (and the librdkafka build packages with it), `core-checkout.py`; e2e
+  migrates with the ds-migrate image at the api image's core-version.
+- **The schedule services' first new build was a ds-core bump** for
+  them (v0.1.0 to v0.1.1, already live with the api); their crates were
+  unchanged and their config defaults identical.
+- **Main moved twice during the checks** (phase 8's and phase 7's deletions
+  edited prose in three ds-api docs and a Dockerfile comment): the
+  extract was redone each time; the build, test, DB and image results
+  stood, since `crates/`, Cargo.lock and the Dockerfiles' instructions
+  were byte-identical.
+
 ### Phase 10: cleanup (about 1 day, 90 days after phase 9)
+
+Due from about 2027-02-02 (phase 9 finished on 2026-11-04).
+
 
 - Narrow the Flux subject regex to `ds-deploy`'s workflow only.
 - Prune the `fasterspeeding` packages.
