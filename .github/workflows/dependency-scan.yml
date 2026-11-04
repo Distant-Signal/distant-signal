@@ -16,9 +16,9 @@ name: Dependency vulnerability scan
 #   finding with a fix available, or an inconclusive scan; every other
 #   HIGH/CRITICAL finding is a warning annotation plus the neutral
 #   "security findings (non-blocking)" check run.
-# - schedule (daily): the same scan against main, never failing on
-#   findings; its report-findings job opens, updates or closes the single
-#   tracking issue labelled `dependency-vulnerability`.
+#
+# The daily scan, of this repository and every other Distant Signal
+# repository, is dependency-scan-all.yml.
 
 concurrency:
   group: dependency-scan-${{ github.ref }}
@@ -29,22 +29,18 @@ on:
     branches: [main, dev]
   push:
     branches: [main]
-  schedule:
-    # Daily: newly disclosed CVEs in already-merged dependencies are this
-    # trigger's reason to exist, and a same-day catch beats a week's
-    # exposure. 05:23 UTC is an arbitrary off-peak slot, off the hour.
-    - cron: "23 5 * * *"
 
 # INF-14: read-only by default. The reusable workflow's jobs each ask for
-# only what they need: the scan job checks: write (its neutral check run),
-# the schedule-only report-findings job issues: write, so pull request and
-# push runs never hold issues: write.
+# only what they need: the scan job checks: write (its neutral check run).
+# Its report-findings job asks for issues: write, which the caller has to
+# grant for the call to start, but it only runs on a schedule, which this
+# workflow doesn't have.
 permissions:
   contents: read
 
 jobs:
   dependency-scan:
-    uses: Distant-Signal/ci/.github/workflows/dependency-scan.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
+    uses: Distant-Signal/ci/.github/workflows/dependency-scan.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
     permissions:
       contents: read
       checks: write

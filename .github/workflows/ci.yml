@@ -57,7 +57,7 @@ jobs:
   # The Playwright e2e tests need a live api, Postgres and Redis: see
   # frontend-e2e.
   frontend:
-    uses: Distant-Signal/ci/.github/workflows/node-ci.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
+    uses: Distant-Signal/ci/.github/workflows/node-ci.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
     with:
       working-directory: frontend
       repo-check-name: Copy guardrails (scripts/check-copy.py)
@@ -305,7 +305,7 @@ jobs:
       # push, an unfetchable base), so the check is never skipped wrongly.
       - name: Did this change touch frontend/?
         id: frontend-paths
-        uses: Distant-Signal/ci/actions/paths-changed@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
+        uses: Distant-Signal/ci/actions/paths-changed@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           paths: frontend/
@@ -331,13 +331,13 @@ jobs:
   # "Generated with Claude Code" footer). Other identities pass, outside
   # contributors included.
   commit-identity:
-    uses: Distant-Signal/ci/.github/workflows/identity.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
+    uses: Distant-Signal/ci/.github/workflows/identity.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
 
   # Every LICENSE in the repository is the canonical GNU AGPL
   # v3 text, byte for byte: the licence text is never distributed modified.
   # Distant-Signal/ci's licence.yml compares against a pinned SHA-256.
   licence:
-    uses: Distant-Signal/ci/.github/workflows/licence.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
+    uses: Distant-Signal/ci/.github/workflows/licence.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
 
   # Distant-Signal/ci's scripts-lint.yml, strict by default:
   #   - every tracked *.sh: shellcheck with every optional check at style
@@ -358,7 +358,7 @@ jobs:
   # from the repository root, with a checkout of Distant-Signal/ci:
   #   uv run python <ci>/scripts/lint-scripts.py
   scripts-lint:
-    uses: Distant-Signal/ci/.github/workflows/scripts-lint.yml@34cb92770c8fc1e81f3719f1fbf8069bc8afbbe1 # main
+    uses: Distant-Signal/ci/.github/workflows/scripts-lint.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
 
   # Distant Signal's own repository checks, run with the pinned script
   # tools (pyproject.toml's `lint` group): the vendored ds-core site
@@ -416,7 +416,7 @@ jobs:
       # bump that brings one fails here as well as in Distant-Signal/ds-api.
       # A breaking change needs a /v2 document instead.
       - name: no breaking change to the personal-token OpenAPI document
-        uses: Distant-Signal/ci/actions/openapi-breaking@76c5c4cd3a3d38ea572c852071baf93cd4982b16 # main
+        uses: Distant-Signal/ci/actions/openapi-breaking@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           specs: frontend/lib/openapi-v1.json

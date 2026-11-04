@@ -66,7 +66,8 @@ on:
   push:
     branches: [main, master]
   # Weekly forced rebuild (Mondays 02:41 UTC, off the hour, before
-  # prune-buildcache.yml's 04:17 run deletes the cache versions it untags).
+  # Distant-Signal/ci's prune-buildcache.yml's 04:17 run deletes the cache
+  # versions it untags).
   # Every leg rebuilds its runtime stage with no cache, so its `apt-get
   # upgrade` (frontend/Dockerfile) picks up Debian's security updates, for
   # the base image's own packages (libc and the like) as well as the
@@ -96,7 +97,8 @@ jobs:
   # spec §5.3): the build tag of the api image frontend/api-image.txt pins,
   # as a JSON map of service -> `key=value` lines, the shape
   # image.yml's `labels` input takes. Static until a version changes, so
-  # they don't cost an unchanged image its digest. scripts/release-order.py
+  # they don't cost an unchanged image its digest. Distant-Signal/ci's
+  # scripts/release-order.py (at the same commit as image.yml below)
   # documents the values; ds-deploy checks them before its chart ships.
   image-labels:
     name: image labels
@@ -107,9 +109,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Checkout Distant-Signal/ci (the reusable workflows' commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Distant-Signal/ci
+          ref: d734bc69e3127d208304c9d6a5a04b9e5645fc76
+          path: .ds-ci
+          persist-credentials: false
+
       - name: Each image's version labels
         id: labels
-        run: python3 scripts/release-order.py labels --github-output
+        run: python3 .ds-ci/scripts/release-order.py labels --github-output
 
   build-and-push:
     name: ${{ matrix.service }}
@@ -158,7 +168,7 @@ jobs:
     # signatures' certificate identity is Distant-Signal/ci's image.yml,
     # not this file. Only the chart's signature is verified (by Flux), and
     # ds-deploy signs the chart.
-    uses: Distant-Signal/ci/.github/workflows/image.yml@f68c7866d1119c89d4faf647a49f5c431ad63c45 # main
+    uses: Distant-Signal/ci/.github/workflows/image.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
     with:
       service: ${{ matrix.service }}
       dockerfile: ${{ matrix.dockerfile }}

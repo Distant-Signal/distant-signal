@@ -1,0 +1,63 @@
+name: Dependency vulnerability scan (all repositories)
+
+# The daily OSV-Scanner scan of every Distant Signal repository's
+# lockfiles (Cargo.lock, uv.lock, package-lock.json), reported here.
+# Distant-Signal/ci's reusable dependency-scan.yml does the work (its
+# header explains the pinned scanner and the CVSS thresholds), once per
+# repository: `repository` checks that repository's default branch out
+# and scans it with its own osv-scanner.toml exceptions, and `report`
+# takes the scheduled path, so findings never fail the run and the
+# report-findings job opens, updates or closes one tracking issue per
+# repository in this repository, labelled
+# `dependency-vulnerability/<repository>` and titled with its name.
+#
+# Why here: the other repositories have Issues off (repo split spec §4.2),
+# so their own scheduled scan had nowhere to report; this repository has
+# Issues on. Every repository is public, so this run's GITHUB_TOKEN can
+# check them out, and the issues it files are in this repository: no other
+# token is needed. Each repository still scans its own pull requests and
+# pushes to main (its dependency-scan.yml, except ci's, whose ci.yml calls
+# the workflow). Add a repository with lockfiles to the matrix when it is
+# created; Distant-Signal/.github has none.
+#
+# Daily: newly disclosed CVEs in already-merged dependencies are the reason
+# for the schedule, and a same-day catch beats a week's exposure. 05:23 UTC
+# is an arbitrary off-peak slot, off the hour.
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: dependency-scan-all
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-scan:
+    name: ${{ matrix.repository }}
+    strategy:
+      fail-fast: false
+      matrix:
+        repository:
+          - distant-signal
+          - ci
+          - ds-core
+          - ds-deploy
+          - ds-pollers
+          - ds-ingest
+          - ds-workers
+          - ds-api
+    uses: Distant-Signal/ci/.github/workflows/dependency-scan.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
+    with:
+      repository: ${{ github.repository_owner }}/${{ matrix.repository }}
+      report: true
+      issue-label: dependency-vulnerability/${{ matrix.repository }}
+      artifact-name: osv-scanner-results-${{ matrix.repository }}
+    permissions:
+      contents: read
+      checks: write # the scan job asks for it; unused with report: true
+      issues: write # one tracking issue per repository, filed here
