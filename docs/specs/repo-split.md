@@ -643,16 +643,21 @@ honours `#[serde(rename_all = "camelCase")]`, `Option` and enums.
 registry requires a token even for public packages, and npmjs would need an
 organisation and a secret.
 
-- The frontend keeps one pin, `frontend/e2e/api-image.txt`, holding
+- The frontend keeps one pin, `frontend/api-image.txt`, holding
   `ghcr.io/distant-signal/images/api:<tag>@sha256:...`. Renovate bumps it.
-- `scripts/sync-api-types.py` extracts the types file from that exact image
-  into `frontend/lib/api-types.ts`, and CI checks the two match.
+- The api image carries the types and the personal-token API's OpenAPI
+  document (`/usr/share/distant-signal/api-types.ts` and
+  `openapi-v1.json`). `scripts/sync-api-types.py` copies both out of that
+  exact image, checking the tag, manifest and layer digests against the
+  pin, into `frontend/lib/api-types.ts` and `openapi-v1.json`, and CI
+  checks the copies match and that the OpenAPI copy has no breaking
+  change. `sync-api-types.py pin --latest` is the hand bump.
 - `lib/api.ts` keeps its fetch helpers but imports every request and
   response type. The hand-mirrored interfaces go.
 - e2e runs the same pinned image, migrated with the `ds-migrate` version
   from the image's `core-version` label, and then `seed.sql`.
-- DS-MCP can fetch the same file from the public image, or from the
-  `ds-api` release asset.
+- DS-MCP can fetch the same files from the public image (service
+  repositories make no releases).
 
 **The process for a change across api and frontend.** This applies to the
 39 to 43% of changes that touched both (§2.1).

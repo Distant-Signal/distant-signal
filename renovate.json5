@@ -74,6 +74,23 @@
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "Distant-Signal/ds-core",
     },
+    {
+      // The api image the frontend takes its generated types and OpenAPI
+      // copy from (repo split spec §5.3; scripts/sync-api-types.py): one
+      // `<repository>:build.<run id>-<commit>@sha256:<digest>` line, ordered
+      // by run id as ds-deploy's ds-images are. Inert while the api builds
+      // here (api-types/ is read instead, and no pin exists). The hosted app
+      // runs no post-upgrade commands, so the PR's CI fails until someone
+      // runs `uv run scripts/sync-api-types.py write` on its branch and
+      // pushes the two copies (or the frontend change that needs them).
+      "customType": "regex",
+      "managerFilePatterns": ["/^frontend/api-image\\.txt$/"],
+      "matchStrings": [
+        "(?<depName>ghcr\\.io/distant-signal/images/api):(?<currentValue>build\\.\\d+-[0-9a-f]{40})@(?<currentDigest>sha256:[0-9a-f]{64})",
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^build\\.(?<major>\\d+)-[0-9a-f]{40}$",
+    },
   ],
 
   // --- What did NOT get carried over from Aurora-Fauxy, and why --------
