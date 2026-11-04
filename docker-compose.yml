@@ -166,6 +166,9 @@ services:
       SSO_CLIENT_SECRET: ${SSO_CLIENT_SECRET:?SSO_CLIENT_SECRET must be set — see the OIDC section of local.env.example}
       SSO_REDIRECT_URL: ${SSO_REDIRECT_URL:?SSO_REDIRECT_URL must be set — the frontend origin plus /api/auth/callback}
       SSO_POST_LOGIN_REDIRECT_URL: ${SSO_POST_LOGIN_REDIRECT_URL:?SSO_POST_LOGIN_REDIRECT_URL must be set — the frontend root URL}
+      # Account continuity (docs/connected-apps.md): empty is off.
+      SSO_DISCORD_ID_CLAIM: ${SSO_DISCORD_ID_CLAIM:-}
+      SSO_PRIMARY_SUB_CLAIM: ${SSO_PRIMARY_SUB_CLAIM:-}
       # Unlike the five above these HAVE Rust-side defaults
       # (default_value_t), but a default only applies when the env var is
       # absent — a bare ${SESSION_TTL_DAYS} would hand clap an empty
