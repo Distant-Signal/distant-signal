@@ -133,15 +133,15 @@ class StepTests(unittest.TestCase):
 
     def test_describe_matches_the_old_commands(self) -> None:
         """describe() gives back the `cargo test` line a step replaced."""
-        narrow = db.PASSES["narrow"]
+        step = db.per_service("aggregator", "aggregator", filters=("archive::tests::",))
         self.assertEqual(
-            narrow[-1].describe(),
+            step.describe(),
             'DATABASE_URL="$DATABASE_URL_AGGREGATOR" cargo test -p aggregator '
             "archive::tests:: -- --ignored --test-threads=1",
         )
-        superuser = db.PASSES["superuser"]
+        step = db.Step(packages=("enricher",), skips=("live_eval", "replay_"))
         self.assertEqual(
-            superuser[1].describe(),
+            step.describe(),
             "cargo test -p enricher -- --ignored --test-threads=1 "
             "--skip live_eval --skip replay_",
         )
@@ -194,7 +194,12 @@ class PassTests(unittest.TestCase):
                 self.assertIsNone(step.role, step.describe())
 
     def test_the_stations_role_runs_last(self) -> None:
-        """poller-stations' narrow role leaves rows it cannot delete."""
+        """poller-stations' narrow role leaves rows it cannot delete.
+
+        Only while poller-stations is tested here (it moves to ds-pollers).
+        """
+        if "poller-stations" not in db.ARCHIVE_PACKAGES:
+            self.skipTest("poller-stations is not in this repository")
         self.assertEqual(db.PASSES["per-service"][-1].packages, ("poller-stations",))
 
 
@@ -232,10 +237,10 @@ class RunTests(unittest.TestCase):
 
     def test_extracts_once_then_runs_each_step_with_its_role(self) -> None:
         """One extraction, then every step in order, as its role."""
+        roles = [step.role or "" for step in db.PASSES["narrow"]]
         env = {
             **self.env,
-            "DATABASE_URL_API": "postgres://api",
-            "DATABASE_URL_AGGREGATOR": "postgres://aggregator",
+            **{f"DATABASE_URL_{role.upper()}": f"postgres://{role}" for role in roles},
         }
         status, out = self.run_pass("narrow", env)
         self.assertEqual(status, 0, out)
@@ -246,7 +251,7 @@ class RunTests(unittest.TestCase):
         self.assertIn("--extract-to", extract)
         self.assertEqual(
             [c["database_url"] for c in calls[1:]],
-            ["postgres://api", "postgres://aggregator"],
+            [f"postgres://{role}" for role in roles],
         )
         self.assertEqual({c["narrowed"] for c in calls}, {"api,aggregator"})
         for call in calls[1:]:
@@ -297,7 +302,8 @@ class RunTests(unittest.TestCase):
             status = db.main(["run", "superuser", "--archive-file", "a", "--dry-run"])
         self.assertEqual(status, 0)
         self.assertFalse(self.log.exists())
-        self.assertIn("cargo test -p movement-feed -- --ignored", out.getvalue())
+        for step in db.PASSES["superuser"]:
+            self.assertIn(step.describe(), out.getvalue())
 
 
 if __name__ == "__main__":
