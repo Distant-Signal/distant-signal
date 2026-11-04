@@ -1,2 +1,0 @@
-common v0.1.0 (/repo/crates/common)
-anyhow v1.0.104

@@ -193,15 +193,6 @@ class PassTests(unittest.TestCase):
             for step in db.PASSES[name]:
                 self.assertIsNone(step.role, step.describe())
 
-    def test_the_stations_role_runs_last(self) -> None:
-        """poller-stations' narrow role leaves rows it cannot delete.
-
-        Only while poller-stations is tested here (it moves to ds-pollers).
-        """
-        if "poller-stations" not in db.ARCHIVE_PACKAGES:
-            self.skipTest("poller-stations is not in this repository")
-        self.assertEqual(db.PASSES["per-service"][-1].packages, ("poller-stations",))
-
 
 class RunTests(unittest.TestCase):
     """run_pass against a fake cargo-nextest."""

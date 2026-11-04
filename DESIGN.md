@@ -88,6 +88,7 @@ the api's internal-OAuth-protected `/private/*` ingest endpoints.
   `poller-stations`, `poller-tocs`, `poller-tfl`, and the island-of-Ireland
   `poller-irish-rail-gtfs`, `poller-irish-rail-live`, `poller-nir-stations`)
   each pull one upstream source on a schedule and POST it to the api.
+  They live in [Distant-Signal/ds-pollers](https://github.com/Distant-Signal/ds-pollers).
 - `api` is a Rust/axum HTTP service — the ingest, read and auth layer. It
   serves the TfL-shaped line-status endpoints and the accounts, train
   tracking, journeys, groups and trip-planning endpoints, backed by
