@@ -7,6 +7,7 @@ import { SearchableList } from '@/components/SearchableList';
 import { severityRank } from '@/lib/severity';
 import type { OperatorSummary, Preferences } from '@/lib/types';
 import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
 
@@ -96,6 +97,7 @@ export default async function OperatorsPage({
           }))}
         />
       )}
+      <DataCredits credits={['national-rail', 'network-rail', 'tfl']} />
     </Stack>
   );
 }

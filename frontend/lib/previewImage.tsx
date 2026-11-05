@@ -197,8 +197,14 @@ const SINGLE_LINE = {
  * the state as a coloured band with the words on it and its time, then the
  * brand template's wordmark, the title, a lead line, line chips and the
  * other facts. The mapper leaves out what it has nothing to say for, so
- * nothing is drawn blank. */
-export function renderStatusPreviewImage(card: StatusPreviewCard, init: ResponseInit = {}): ImageResponse {
+ * nothing is drawn blank. `credit` is the data's credit as plain text
+ * (`lib/creditText.ts`), drawn small under the facts, wrapped, never cut short: the
+ * image shows the data, so it carries the credit, as the page does. */
+export function renderStatusPreviewImage(
+  card: StatusPreviewCard,
+  credit: string,
+  init: ResponseInit = {},
+): ImageResponse {
   const band = STATUS_BAND_COLORS[card.band.tone];
   const chips = fitLineChips(card.chips.names, card.chips.more);
   return new ImageResponse(
@@ -233,7 +239,10 @@ export function renderStatusPreviewImage(card: StatusPreviewCard, init: Response
           flexDirection: 'column',
           justifyContent: 'space-between',
           flexGrow: 1,
-          padding: '36px 64px 40px',
+          // The facts give way, not the credit below: it is drawn outside.
+          flexShrink: 1,
+          overflow: 'hidden',
+          padding: '36px 64px 16px',
           gap: 24,
         }}
       >
@@ -287,6 +296,13 @@ export function renderStatusPreviewImage(card: StatusPreviewCard, init: Response
             </div>
           ))}
         </div>
+      </div>
+      {/* Its own block, below the facts and never clipped by them; it wraps
+          rather than ending in an ellipsis, since licence text is never cut. */}
+      <div
+        style={{ display: 'block', flexShrink: 0, padding: '0 64px 28px', fontSize: 18, lineHeight: 1.3, opacity: 0.8 }}
+      >
+        {credit}
       </div>
     </div>,
     { ...PREVIEW_IMAGE_SIZE, ...init },

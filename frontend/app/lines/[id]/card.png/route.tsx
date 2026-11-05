@@ -4,6 +4,7 @@ import { linePreviewCard } from '@/lib/linePreview';
 import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 import type { LineStatusReport } from '@/lib/types';
+import { plainCredits } from '@/lib/creditText';
 
 // A line's link-preview image, listed by the page's `generateMetadata` as
 // `/lines/{id}/card.png?v={digest}` (`lib/livePreview.ts`, and the incident
@@ -45,5 +46,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
   const tocs = await getPreviewTocs().catch(() => []);
   const card = linePreviewCard(name ?? id, report, operators, tocNameLookup(tocs));
-  return renderStatusPreviewImage(card, { headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
+  return renderStatusPreviewImage(
+    card,
+    plainCredits(id.startsWith('tfl-') ? ['tfl'] : ['national-rail', 'network-rail']),
+    {
+      headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
+    },
+  );
 }

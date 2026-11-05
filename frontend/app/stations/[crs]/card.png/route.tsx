@@ -2,6 +2,7 @@ import { ApiNotFoundError, getPreviewStationName, getPreviewStopPointDisruption 
 import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 import { type StationDisruptionState, stationPreviewCard } from '@/lib/stationPreview';
+import { plainCredits } from '@/lib/creditText';
 
 // A station's link-preview image, listed by the page's `generateMetadata`
 // as `/stations/{CRS}/card.png?v={digest}` (`lib/livePreview.ts`, and the
@@ -36,5 +37,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ crs
     state = { coverage: 'none' };
   }
   const card = stationPreviewCard(`${name} (${crs})`, state, Date.now());
-  return renderStatusPreviewImage(card, { headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
+  const lineIds = state.coverage === 'covered' ? state.reports.map((report) => report.id) : [];
+  // Station information is Knowledgebase Stations'; a National Rail line's
+  // status is worked out from Darwin and TRUST, a TfL line's is TfL's.
+  const credit = plainCredits([
+    'national-rail',
+    ...(lineIds.some((lineId) => !lineId.startsWith('tfl-')) ? (['network-rail'] as const) : []),
+    ...(lineIds.some((lineId) => lineId.startsWith('tfl-')) ? (['tfl'] as const) : []),
+  ]);
+  return renderStatusPreviewImage(card, credit, { headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
 }

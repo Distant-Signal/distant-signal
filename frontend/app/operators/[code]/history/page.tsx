@@ -12,6 +12,7 @@ import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { feedTarget, operatorFeedPath } from '@/lib/feeds';
 import { FeedLink } from '@/components/FeedLink';
+import { DataCredits } from '@/components/DataCredits';
 
 const log = createLogger('app/operators/history');
 
@@ -145,6 +146,7 @@ export default async function OperatorHistoryPage({
       >
         <OperatorTrendsResults code={code} from={range.from} to={range.to} granularity={granularity} />
       </Suspense>
+      <DataCredits credits={['national-rail', 'network-rail']} />
     </Stack>
   );
 }

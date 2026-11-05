@@ -40,6 +40,7 @@ import { groupRoleLabel, memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/me
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import type { GroupCustomLine, GroupJourney, GroupMember, GroupTrain, LineStatusReport } from '@/lib/types';
 import type { Metadata } from 'next';
+import { DataCredits, lineCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 export const revalidate = 0;
 
@@ -314,6 +315,13 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           ))
         )}
       </Stack>
+
+      <DataCredits
+        credits={[
+          ...(trains.length > 0 || journeys.length > 0 ? TRAIN_CREDITS : []),
+          ...lineCredits(customLines.map((line) => line.lineId)),
+        ]}
+      />
 
       {/* "Danger zone" (review §3.2.1, design decision) -- the demoted
           home for "Delete group", now a subtle red text button rather than

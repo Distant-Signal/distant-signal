@@ -9,6 +9,7 @@ import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
 import { JOURNEY_FROM_TFL_STOP_PARAM, TFL_STOP_ID } from '@/lib/tflStops';
 import { parsePlanSearchParams } from '@/lib/tripPlanUrl';
 import type { TransitMode } from '@/lib/types';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 /** `/plan`, "Plan a journey": where every journey starts. Reached from the
  * button at the top of the Journeys page and of the home page's "Upcoming
@@ -106,6 +107,7 @@ export default async function PlanPage({
         planOperators={operators}
         untrackedOrigin={untrackedOrigin}
       />
+      <DataCredits credits={[...TRAIN_CREDITS, 'tfl']} />
     </Stack>
   );
 }

@@ -2,6 +2,7 @@ import { Stack, Title, Text } from '@mantine/core';
 import type { Metadata } from 'next';
 import { TrackTrainForm } from '@/components/TrackTrainForm';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 /** Per-page Open Graph/Twitter/`<title>` metadata, in the same four-field
  * shape every detail page in this app already emits (see
@@ -159,6 +160,7 @@ export default async function TrackPage({
         initialArriveAfter={validTimeParam(arriveAfterParam)}
         initialArriveBefore={validTimeParam(arriveBeforeParam)}
       />
+      <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );
 }

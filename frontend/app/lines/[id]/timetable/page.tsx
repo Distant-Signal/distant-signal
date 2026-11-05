@@ -26,6 +26,7 @@ import classes from '../LineTrains.module.css';
 import { TimetableMore, type TimetableQuery } from './TimetableMore';
 import { describeFailure } from '@/lib/failure';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 const log = createLogger('app/lines/timetable');
 
@@ -354,6 +355,7 @@ export default async function LineTimetablePage({
           </>
         )}
       </Stack>
+      <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );
 }

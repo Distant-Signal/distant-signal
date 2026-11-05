@@ -256,7 +256,7 @@ used, rather than as a literal in a component.
   (default) for positional links; `underline="always"` plus `inline` for a
   link in running text. Hrefs with a URL scheme (`https:`, `mailto:`)
   render a plain `<a>` instead of `next/link`. `tone="inherit"` is only for
-  credit and licence links inside dimmed or statement text (footer credits,
+  credit and licence links inside dimmed or statement text (`DataCredits`,
   `NationalRailCredit`, `/attribution`): the link keeps the surrounding
   colour and is marked by its underline alone. Don't hand-roll
   `<a style={{ color: 'inherit' }}>`. `external` opens a new tab and marks
@@ -639,8 +639,17 @@ used, rather than as a literal in a component.
   of timetable ("Timetable: towards Upminster"), and each branch's
   timetable sits in a closed "Timetables by branch" panel. Stations too few
   trips call at to be a branch are named in a sentence after the strip.
-- **Footer credits** (`OpenDataAttribution.tsx`): credit wording is licence
-  text; copy it exactly, including "NationalRail" as one word.
+- **Data credits** (`DataCredits.tsx`): credit wording is licence text;
+  copy it exactly, including "NationalRail" as one word. Each provider is
+  credited beside its data, not in the footer: a page that shows a
+  provider's data renders `<DataCredits credits={[...]} />` at the foot of
+  that data (`lineCredits`, `journeyCredits` and `TRAIN_CREDITS` pick the
+  ids), with the Irish and tram pages' own notes built the same way.
+  `app/dataCredits.test.ts` fails for a page that renders none and isn't
+  listed as showing no third-party data. The footer keeps only its links
+  ("Data sources and licences", "Source code", "Developers") and the
+  non-affiliation note. A live link preview draws its credit as plain text
+  (`lib/creditText.ts`).
 - **Pride mode** (`PrideMode.tsx`): decorative, off by default. Each
   flag's stripes are one `--ds-pride-<flag>` variable in `globals.css`,
   read by the page bar, nav bar, site name and the picker's swatch. The nav

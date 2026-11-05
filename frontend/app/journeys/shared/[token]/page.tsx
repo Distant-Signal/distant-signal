@@ -10,6 +10,7 @@ import { journeyDefaultName, journeyNameInputFromLegs } from '@/lib/journeyName'
 import { journeyDetailSummary, type JourneySummaryGroup } from '@/lib/journeyStatus';
 import type { JourneyDetail, JourneyLegDetail } from '@/lib/types';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits, journeyCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
 
@@ -245,6 +246,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
         />
       )}
       <JourneyDetailView journey={journey} fetchedAt={fetchedAt} origin={origin} />
+      <DataCredits credits={journeyCredits(journey.legs)} />
     </Stack>
   );
 }

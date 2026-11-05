@@ -17,6 +17,7 @@ import type { Preferences } from '@/lib/types';
 import { TextLink } from '@/components/TextLink';
 import { AllLinesTable } from './AllLinesTable';
 import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits, lineCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
 
@@ -160,6 +161,7 @@ export default async function AllLinesPage({
           initialQuery={initialQuery}
           initialOperators={initialOperators}
         />
+        <DataCredits credits={lineCredits(lines.map((line) => line.id))} />
       </Stack>
     </Stack>
   );

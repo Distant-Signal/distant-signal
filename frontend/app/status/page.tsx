@@ -25,6 +25,7 @@ import { FeedLink } from '@/components/FeedLink';
 import { StatusBadge } from '@/components/StatusBadge';
 import { StatusCard } from '@/components/StatusCard';
 import { StatusTile } from '@/components/StatusTile';
+import { DataCredits, lineCredits } from '@/components/DataCredits';
 
 // Same rationale as every other dynamic route in this app (see
 // app/lines/page.tsx's own comment): without this, `next build` treats the
@@ -149,6 +150,7 @@ export default async function NetworkStatusPage() {
           </SimpleGrid>
         </Stack>
       )}
+      <DataCredits credits={lineCredits(allReports.map((report) => report.id))} />
     </Stack>
   );
 }

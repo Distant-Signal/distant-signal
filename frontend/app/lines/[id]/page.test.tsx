@@ -186,6 +186,19 @@ describe('LineDetailPage Edit/Delete visibility', () => {
     await screen.findByText('Not enough sampled data yet for this line.');
   });
 
+  // The footer carries no credits: a National Rail line's status is worked
+  // out from Darwin samples and TRUST, so both are credited on the page.
+  it("credits Darwin and TRUST under a National Rail line's status", async () => {
+    vi.mocked(api.getCustomLine).mockRejectedValue(new ApiNotFoundError('not found'));
+    await renderPage();
+    await screen.findByText('Not enough sampled data yet for this line.');
+    const credits = [...document.querySelectorAll('[data-data-credits] [data-credit]')].map((node) =>
+      node.getAttribute('data-credit'),
+    );
+    expect(credits).toEqual(expect.arrayContaining(['national-rail', 'network-rail']));
+    expect(credits).not.toContain('tfl');
+  });
+
   it('a custom line the caller OWNS (isOwner: true) shows Edit/Delete', async () => {
     vi.mocked(api.getCustomLine).mockResolvedValue(customLine({ isOwner: true }));
     await renderPage();

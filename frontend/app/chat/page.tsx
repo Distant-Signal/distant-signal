@@ -9,6 +9,7 @@ import { AddMcpServerLinks } from '@/components/AddMcpServerLinks';
 import { runtimeRailMcpPublicUrl } from '@/lib/csp';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 // Same reasoning as app/page.tsx's own `revalidate = 0` (and
 // journeys/page.tsx's identical comment): no dynamic segment, so without
@@ -78,6 +79,8 @@ export default async function ChatPage() {
         </Text>
       </Stack>
       <ChatPanel mcpServerUrl={mcpServerUrl} />
+      {/* The answers retell this site's data: lines, trains, timetables. */}
+      <DataCredits credits={[...TRAIN_CREDITS, 'tfl']} />
       <AddMcpServerLinks mcpPublicUrl={mcpServerUrl} />
     </Stack>
   );

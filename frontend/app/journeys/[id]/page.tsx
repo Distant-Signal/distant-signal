@@ -8,6 +8,7 @@ import { FollowJourneyButton } from '@/components/FollowJourneyButton';
 import { followedFromLabel } from '@/lib/followedFrom';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import type { Metadata } from 'next';
+import { DataCredits, journeyCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
 
@@ -121,6 +122,7 @@ export default async function JourneyDetailPage({
         openBreakOnLoad={journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)}
         fromPush={query.src === 'push'}
       />
+      <DataCredits credits={journeyCredits(journey.legs)} />
     </Stack>
   );
 }

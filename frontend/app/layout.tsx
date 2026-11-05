@@ -290,7 +290,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   It also means the anonymous rendering is not a special
                   case that only real anonymous visitors exercise -- every
                   page load renders it, so it cannot quietly rot. */}
-                {/* `transitOn` is already known here (the footer's fetch
+                {/* `transitOn` is already known here (the transit fetch
                   above), so the fallback carries "Trams and metros" too and
                   the inline links don't shift when the session lands. */}
                 <Suspense
@@ -362,7 +362,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   )}
                   {children}
                 </Container>
-                <OpenDataAttribution transitOn={transitOn} />
+                <OpenDataAttribution />
               </ConnectivityMonitor>
             </GroupSummariesProvider>
           </LoginConsentProvider>

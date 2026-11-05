@@ -5,6 +5,7 @@ import { parseStopFilterParams } from '@/lib/trainStopFilters';
 import { getAllTocs, getTrainSearchDates, getTrainSearchOperators } from '@/lib/api';
 import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
 import { trainsViewFor } from '@/lib/trainSearch';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 /** Per-page Open Graph/Twitter/`<title>` metadata, in the same four-field
  * shape every detail page in this app already emits (see
@@ -128,6 +129,7 @@ export default async function TrainsPage({ searchParams }: { searchParams: Promi
           searchDates,
         }}
       />
+      <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );
 }

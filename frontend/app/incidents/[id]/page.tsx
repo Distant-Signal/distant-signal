@@ -20,6 +20,7 @@ import {
   incidentPreviewImage,
 } from '@/lib/incidentPreview';
 import { StateBadge } from '@/components/StateBadge';
+import { DataCredits } from '@/components/DataCredits';
 
 // Same rationale as every dynamic `[param]` route in this app: without
 // this, `next build` may try to prerender against a database that only
@@ -299,6 +300,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           {TIMES_IN_UK_LOCAL_TIME}
         </Text>
       </Stack>
+      <DataCredits credits={['knowledgebase-incidents']} />
     </Stack>
   );
 }

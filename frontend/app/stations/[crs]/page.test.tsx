@@ -291,6 +291,21 @@ describe('StationDisruptionPage -- sample stats by operator', () => {
     expect(credit?.querySelector('a')).toHaveAttribute('href', 'https://www.nationalrail.co.uk');
   });
 
+  // Knowledgebase Stations: its wording sits under the station's
+  // information, since the footer carries no credits.
+  it('credits Knowledgebase Stations under the station information, even without sampled stats', async () => {
+    vi.mocked(api.getStationSampleStats).mockRejectedValue(new ApiNotFoundError('no sample data'));
+    vi.mocked(api.getAllTocs).mockResolvedValue([]);
+    vi.mocked(api.getTransitRailLinks).mockResolvedValue([]);
+
+    await renderPage();
+
+    const credit = document.querySelector('[data-data-credits] [data-credit="national-rail"]');
+    expect(credit).not.toBeNull();
+    expect(visibleText(credit as Element)).toBe('powered by NationalRail (Train Information Services Ltd)');
+    expect(document.querySelector('#accessibility ~ [data-data-credits]')).not.toBeNull();
+  });
+
   it('renders one row per operator in the order returned, resolving names via tocs with a bare-code fallback', async () => {
     const operatorStats: StationOperatorSampleStats[] = [
       {
