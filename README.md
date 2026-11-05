@@ -46,9 +46,9 @@ The screenshots come from the e2e test fixtures, not real users' data (see
 
 ## Features
 
-- **Line status** for National Rail, TfL and the island of Ireland, in the
-  style of TfL's Unified API. Disruption on a shared stretch of track shows
-  on every line that uses it, and nowhere else.
+- **Line status** for National Rail and TfL, in the style of TfL's Unified
+  API. Disruption on a shared stretch of track shows on every line that
+  uses it, and nowhere else.
 - **Train tracking** from live movement data: each calling point's
   scheduled, expected and actual times, platforms, cancellations and the
   reason for a delay.
@@ -57,6 +57,9 @@ The screenshots come from the e2e test fixtures, not real users' data (see
   changes.
 - **Trip planning** over the timetable, including Metrolink trams.
 - **Stations and departure boards**, with nearby stations.
+- **Ireland and Northern Ireland**: Iarnród Éireann and NI Railways
+  stations and lines, with live departures at Iarnród Éireann stations.
+  There's no line status for either network.
 - **Groups**, to share trains and journeys with the people you travel with.
 - **Tickets and Delay Repay estimates**, from the recorded times of the
   trains you took, and a record of how reliable your journeys have been.
