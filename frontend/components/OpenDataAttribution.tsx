@@ -4,20 +4,56 @@ import type { ReactNode } from 'react';
 import { TextLink } from './TextLink';
 import { PREFERENCES_DESTINATION } from '@/lib/navLinks';
 import { LEGAL_LINKS, legalPagesVisible } from '@/lib/legal';
-import { NATIONAL_RAIL_URL } from './NationalRailCredit';
-import { TFL_STOPS_ATTRIBUTION } from '@/lib/tflAttribution';
 import { SOURCE_CODE_URL } from '@/lib/sourceCode';
 import { DEVELOPERS_PATH } from '@/lib/developerDocs';
+import { CREDITS, ExternalLink, OGL_V3_URL, CC_BY_4_URL, NRIL_LICENCE_URL, NRIL_STATEMENT } from './DataCredits';
 
+// Re-exported so existing imports keep working: they live in
+// `DataCredits.tsx`, which client components render too.
+export { OGL_V3_URL, CC_BY_4_URL, NRIL_LICENCE_URL, NRIL_STATEMENT };
 // Re-exported so existing imports keep working; it lives in its own module
 // because client components render it too.
 export { NationalRailCredit } from './NationalRailCredit';
 
-/** Attribution for the third-party open data this app republishes: the
- * short site footer (`OpenDataAttribution`, on every page) and the full
- * `/attribution` page (`OpenDataAttributionDetails`). A single attribution
- * page is allowed where there are several providers, so the footer keeps
- * only the short lines and links to it (UK legal audit 2026-09-27, LEG-19).
+/** Attribution for the third-party open data this app republishes. Each
+ * provider's credit sits beside its data, in the wording its licence
+ * requires (`DataCredits`, `NationalRailCredit`, `IrelandAttributionNote`,
+ * `TransitAttributionNote`, and the stop statements under the untracked-leg
+ * form), and the full record is the `/attribution` page
+ * (`OpenDataAttributionDetails`), linked from every credit and from the
+ * site footer (`OpenDataAttribution`, on every page).
+ *
+ * The footer used to carry short credit lines too (UK legal audit
+ * 2026-09-27, LEG-19: a single attribution page is allowed where there are
+ * several providers, so the footer kept the short lines and linked to it).
+ * Since 2026-11-05 (DS-367) it carries only its links: "Data sources and
+ * licences", "Source code" (AGPL-3.0 §13) and "Developers", with the
+ * one-line non-affiliation note. That still meets every licence below,
+ * because no licence's requirement rested on the footer alone:
+ *   - TfL and Darwin/Knowledgebase Stations want their wording wherever, or
+ *     alongside where, their data is shown, which the in-place credits now
+ *     give on every page that shows it;
+ *   - NRIL's statement and "Source: RSP" have no placement rule in this
+ *     app's record, and sit beside TRUST and timetable data anyway;
+ *   - OGL v3.0 (OpenDataNI, the delay attribution glossary, CORPUS, BODS,
+ *     NaPTAN, the Traveline National Dataset) and CC BY 4.0 (the NTA) both
+ *     accept a link to a page carrying the statements, which `/attribution`
+ *     is, and the Irish and tram pages carry theirs in place as well;
+ *   - Knowledgebase incidents and TOC data need credit by name "in any
+ *     reasonable manner", which `/attribution` gives (and the incident
+ *     pages repeat).
+ * `app/dataCredits.test.ts` fails for a page that shows no credit and isn't
+ * listed as showing no third-party data.
+ *
+ * Decisions of 2026-11-05 (the operator, on DS-367): NRIL's statement and
+ * "Source: RSP" stay beside the data; OGL v3.0 and CC BY 4.0 are met by the
+ * in-place notes plus `/attribution`; the two NationalRail strings stay on
+ * one joined line; the footer keeps "Independent and unofficial."; the
+ * live link previews of a train, a National Rail line or a station, whose
+ * data is TRUST-derived, write NRIL's statement with the licence's address
+ * spelled out (`lib/creditText.ts`), since an image can't link it; and a
+ * page showing a TfL-picked place carries TfL's stop statements (journey
+ * templates can't hold one: they keep train legs between CRS stations).
  *
  * TfL publishes its Unified API data under a modified Open Government
  * Licence v2.0 whose attribution clause is a condition of use, not a
@@ -29,10 +65,10 @@ export { NationalRailCredit } from './NationalRailCredit';
  * data — StopPoint coordinates, maps, route geometry. Since the TfL stop
  * lookup (docs/superpowers/specs/2026-10-20-tfl-stop-lookup-design.md) this
  * app ingests StopPoint names and coordinates, so both statements
- * (`lib/tflAttribution.ts`) sit with the TfL credit on `/attribution` and
- * under the untracked-leg form's stop fields, where the stop data is shown
- * (`UntrackedLegFields`). The footer keeps the short credit only, as it
- * keeps every other source's details for `/attribution`. No TfL roundel,
+ * (`lib/tflAttribution.ts`) sit with the TfL credit on `/attribution`,
+ * under the untracked-leg form's stop fields (`UntrackedLegFields`) and on
+ * a TfL stop's page, where the stop data is shown. Line status and arrivals
+ * get the short credit (`CREDITS.tfl`). No TfL roundel,
  * logo or brand styling is used, as TfL's terms require.
  *
  * The four RDM feeds this app consumes are NOT one shared licence family --
@@ -57,7 +93,10 @@ export { NationalRailCredit } from './NationalRailCredit';
  *     Delivery Group, NOT National Rail Enquiries. Credited by name on the
  *     attribution page under the general "any reasonable manner" clause.
  *   - Knowledgebase TOC data: Schedule 1 blank. Same as Incidents.
- * The two required strings ARE concatenated onto one line: they share the
+ * Both NationalRail strings appear beside the data they cover: Darwin's
+ * under live departures and on National Rail line status (worked out from
+ * Darwin samples), Knowledgebase Stations' on station pages and the
+ * station search. The two required strings ARE concatenated onto one line: they share the
  * word "NationalRail", so "powered by NationalRail (Train Information
  * Services Ltd)" contains BOTH required strings intact and complete.
  * Neither string is altered. Only "powered by NationalRail" is linked.
@@ -67,12 +106,14 @@ export { NationalRailCredit } from './NationalRailCredit';
  * NRIL data feeds licence prescribes the statement "Contains Information of
  * Network Rail Infrastructure Limited licensed under the following
  * licence", hyperlinked to the licence (LEG-19). It is rendered verbatim
- * below with that link. Network Rail also forbids its brand or logo and any
+ * with that link, beside train and journey data and National Rail line
+ * status (full-coverage status uses TRUST). Network Rail also forbids its brand or logo and any
  * claim to be "official", so the line stays unbranded.
  *
  * The timetable (CIF, from the DTD/RSP feed) needs "Source: RSP" or a link
- * to the Rail Delivery Group (LEG-22); both are given on the attribution
- * page.
+ * to the Rail Delivery Group (LEG-22); both are given beside timetable
+ * data (train, journey, timetable, search and planner pages) and on the
+ * attribution page.
  *
  * Operating basis (decision of 2026-09-27): the operator treats the current
  * and planned use of the Rail Data Marketplace feeds as permitted under the
@@ -103,35 +144,14 @@ export { NationalRailCredit } from './NationalRailCredit';
  * v3.0, whose default statement is used. The Irish Rail realtime API has no
  * published licence, so it gets a courtesy credit only.
  *
- * A plain Server Component with no interactivity, rendered once by the root
- * layout so it is on every page. */
+ * The footer is a plain Server Component with no interactivity, rendered
+ * once by the root layout so it is on every page. */
 
-export const OGL_V3_URL = 'https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/';
-export const CC_BY_4_URL = 'https://creativecommons.org/licenses/by/4.0/';
-export const NRIL_LICENCE_URL =
-  'https://www.networkrail.co.uk/who-we-are/transparency-and-ethics/transparency/open-data-feeds/network-rail-infrastructure-limited-data-feeds-licence/';
 export const TFL_TERMS_URL = 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service';
-
-/** The exact prescribed NRIL statement. The whole phrase is the link text. */
-export const NRIL_STATEMENT =
-  'Contains Information of Network Rail Infrastructure Limited licensed under the following licence';
 
 /** Non-affiliation statement (LEG-25). Also used by `/terms`. */
 export const NON_AFFILIATION_STATEMENT =
   'Distant Signal is an independent, unofficial service and is not affiliated with or endorsed by National Rail, Network Rail, Rail Delivery Group, TfL, the National Transport Authority, Iarnród Éireann, Translink or any train operator.';
-
-/** A credit or licence link. `tone="inherit"`: it sits in dimmed (footer)
- * or statement text whose wording is licence text, so it keeps that
- * colour and is marked by its underline (docs/style-guide.md "TextLink").
- * `external`: it opens a new tab, so it carries the `ExternalLinkIcon` and
- * "(opens in a new tab)" -- after the link text, which stays verbatim. */
-function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <TextLink href={href} external underline="always" inline tone="inherit">
-      {children}
-    </TextLink>
-  );
-}
 
 /** The legal links are decided at render time. Routes Next prerenders at
  * build time (`○` in the `next build` route list: today `/stations`,
@@ -140,37 +160,15 @@ function ExternalLink({ href, children }: { href: string; children: ReactNode })
  * show the legal links if the flag was set for the image build. Every
  * per-request route, including the legal pages and `/attribution`, reads
  * the runtime value. */
-export function OpenDataAttribution({ transitOn = false }: { transitOn?: boolean }) {
+export function OpenDataAttribution() {
   const legalLinks = legalPagesVisible() ? LEGAL_LINKS : [];
   return (
     <Box component="footer" p="md" className="siteFooter">
+      {/* No credit lines: each source is credited beside its data
+          (`DataCredits`), with the full credits on `/attribution`, the
+          first link below. The non-affiliation note stays (LEG-25). */}
       <Text size="xs" c="dimmed">
-        Powered by TfL Open Data
-      </Text>
-      {/* Only while a tram network is shown (transit spec §12.3): its
-          timetables, disruptions and stop names are OGL v3.0. */}
-      {transitOn && (
-        <Text size="sm" c="dimmed">
-          Contains public sector information licensed under the{' '}
-          <ExternalLink href={OGL_V3_URL}>Open Government Licence v3.0</ExternalLink>
-        </Text>
-      )}
-      {/* `size="sm"`, not `xs`: review §2.16 ("auth controls are
-          inconsistently sized") named this line specifically as "a 12px
-          underlined link with a ~16px hit height", and `sm` (14px) is the
-          size the chrome's other text-link-styled controls converge on
-          (see `AuthStatus.tsx`). The other linked lines below follow it for
-          the same reason; plain-text lines stay `xs`. */}
-      <Text size="sm" c="dimmed">
-        <ExternalLink href={NATIONAL_RAIL_URL}>powered by NationalRail</ExternalLink>
-        {' (Train Information Services Ltd)'}
-      </Text>
-      <Text size="sm" c="dimmed">
-        <ExternalLink href={NRIL_LICENCE_URL}>{NRIL_STATEMENT}</ExternalLink>
-      </Text>
-      <Text size="xs" c="dimmed">
-        Also uses data from RSP, the National Transport Authority (Ireland), Iarnród Éireann and Translink via
-        OpenDataNI. Independent and unofficial.
+        Independent and unofficial.
       </Text>
       <Group component="nav" aria-label="Site information" gap="md" mt={4}>
         <TextLink href="/attribution" size="sm" underline="always">
@@ -218,19 +216,14 @@ export const DATA_SOURCES: readonly DataSource[] = [
     id: 'national-rail',
     title: 'National Rail (Darwin live departures and Knowledgebase)',
     use: 'Live departure boards, station information, incidents and train operator details, provided through the Rail Data Marketplace. Knowledgebase incidents and operator data are published by Rail Delivery Group.',
-    statement: (
-      <>
-        <ExternalLink href={NATIONAL_RAIL_URL}>powered by NationalRail</ExternalLink>
-        {' (Train Information Services Ltd)'}
-      </>
-    ),
+    statement: CREDITS['national-rail'],
     licence: 'Rail Data Marketplace data sharing agreements (adapted Open Government Licence v3.0).',
   },
   {
     id: 'network-rail',
     title: 'Network Rail (TRUST train movements)',
     use: 'Live train movements for individual train tracking.',
-    statement: <ExternalLink href={NRIL_LICENCE_URL}>{NRIL_STATEMENT}</ExternalLink>,
+    statement: CREDITS['network-rail'],
     licence: (
       <>
         <ExternalLink href={NRIL_LICENCE_URL}>Network Rail Infrastructure Limited data feeds licence</ExternalLink>.
@@ -253,18 +246,14 @@ export const DATA_SOURCES: readonly DataSource[] = [
     id: 'rsp-timetable',
     title: 'Timetable (CIF)',
     use: 'Scheduled services and calling points from the rail industry timetable feed.',
-    statement: (
-      <>
-        Source: RSP (<ExternalLink href="https://www.raildeliverygroup.com">Rail Delivery Group</ExternalLink>)
-      </>
-    ),
+    statement: CREDITS['rsp-timetable'],
     licence: 'Rail Settlement Plan timetable data licence.',
   },
   {
     id: 'tfl',
     title: 'Transport for London',
     use: 'Transport for London line status, live arrivals at Tube, DLR and tram stops, and the stops offered when you add a leg we do not track.',
-    statement: TFL_STOPS_ATTRIBUTION,
+    statement: CREDITS['tfl-stops'],
     licence: (
       <>
         <ExternalLink href={TFL_TERMS_URL}>TfL transport data service terms</ExternalLink> (based on the Open Government
@@ -276,14 +265,7 @@ export const DATA_SOURCES: readonly DataSource[] = [
     id: 'nta-gtfs',
     title: 'Irish Rail timetable (GTFS)',
     use: 'Scheduled Irish Rail services.',
-    statement: (
-      <>
-        Irish Rail timetable data ©{' '}
-        <ExternalLink href="https://www.nationaltransport.ie">National Transport Authority</ExternalLink>, licensed
-        under <ExternalLink href={CC_BY_4_URL}>CC BY 4.0</ExternalLink>. The GTFS data is provided &quot;as is&quot;,
-        without warranty of any kind.
-      </>
-    ),
+    statement: CREDITS['nta-gtfs'],
     licence: (
       <>
         <ExternalLink href={CC_BY_4_URL}>Creative Commons Attribution 4.0 International</ExternalLink>, under the{' '}
@@ -295,25 +277,14 @@ export const DATA_SOURCES: readonly DataSource[] = [
     id: 'irish-rail-realtime',
     title: 'Iarnród Éireann realtime',
     use: 'Live Irish Rail running information.',
-    statement: (
-      <>
-        Live Irish Rail data from <ExternalLink href="https://api.irishrail.ie/realtime/">Iarnród Éireann</ExternalLink>
-        , provided &quot;as is&quot;.
-      </>
-    ),
+    statement: CREDITS['irish-rail-realtime'],
     licence: 'No published licence; provided by Iarnród Éireann "as is".',
   },
   {
     id: 'opendatani',
     title: 'Translink (Northern Ireland Railways) via OpenDataNI',
     use: 'Northern Ireland stations and halts.',
-    statement: (
-      <>
-        Contains public sector information licensed under the{' '}
-        <ExternalLink href={OGL_V3_URL}>Open Government Licence v3.0</ExternalLink>. Translink data from{' '}
-        <ExternalLink href="https://www.opendatani.gov.uk">OpenDataNI</ExternalLink>.
-      </>
-    ),
+    statement: CREDITS.opendatani,
     licence: <ExternalLink href={OGL_V3_URL}>Open Government Licence v3.0</ExternalLink>,
   },
   {

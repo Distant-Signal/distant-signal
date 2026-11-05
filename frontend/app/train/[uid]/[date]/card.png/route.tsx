@@ -2,6 +2,7 @@ import { ApiNotFoundError, getPreviewTrain } from '@/lib/api';
 import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 import { trainPreviewCard } from '@/lib/trainPreview';
+import { plainCredits } from '@/lib/creditText';
 
 // A train's link-preview image, listed by the page's `generateMetadata` as
 // `/train/{uid}/{date}/card.png?v={digest}` (`lib/livePreview.ts`, and the
@@ -40,7 +41,11 @@ export async function GET(
     if (err instanceof ApiNotFoundError) return notFound();
     throw err;
   }
-  return renderStatusPreviewImage(trainPreviewCard(train, Date.now()), {
-    headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
-  });
+  return renderStatusPreviewImage(
+    trainPreviewCard(train, Date.now()),
+    plainCredits(['national-rail', 'network-rail', 'rsp-timetable']),
+    {
+      headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
+    },
+  );
 }

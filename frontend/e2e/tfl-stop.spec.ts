@@ -27,9 +27,9 @@ test.describe('TfL stop page', () => {
       'href',
       '/lines/tfl-victoria',
     );
-    // TfL's credit: the site footer's, not a second copy on the page.
-    await expect(page.getByRole('main').getByText(/Powered by TfL Open Data/)).toHaveCount(0);
-    await expect(page.getByRole('contentinfo').getByText(/Powered by TfL Open Data/)).toBeVisible();
+    // TfL's credit: on the page, beside its data, and not in the footer.
+    await expect(page.getByRole('main').getByText(/Powered by TfL Open Data/)).toBeVisible();
+    await expect(page.getByRole('contentinfo').getByText(/Powered by TfL Open Data/)).toHaveCount(0);
   });
 
   test("shows the stop's timetable from the TfL network (the frontend-e2e job serves tfl)", async ({ page }) => {

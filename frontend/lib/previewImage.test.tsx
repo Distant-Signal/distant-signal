@@ -28,6 +28,7 @@ import {
 } from '@/test/trainPreviewFixtures';
 import type { IncidentDetail, LineStatus, LineStatusReport, SampleStats } from './types';
 import { INCIDENT_TIMING_DEFAULTS } from '@/test/apiDefaults';
+import { plainCredits } from '@/lib/creditText';
 
 describe('previewTitleFromMetadata', () => {
   it('takes a plain or absolute title, and nothing else', () => {
@@ -335,12 +336,19 @@ const PREVIEW_CARDS: [name: string, card: StatusPreviewCard][] = [
   ['train-not-yet-running', trainPreviewCard(PLANNED_TRAIN, TRAIN_PREVIEW_NOW)],
 ];
 const PREVIEW_FIXTURES = 'test/fixtures/preview-cards';
+/** Each kind of card's credit, as its route passes it. */
+const PREVIEW_CREDITS: Record<string, string> = {
+  incident: plainCredits(['knowledgebase-incidents']),
+  line: plainCredits(['national-rail', 'network-rail']),
+  station: plainCredits(['national-rail', 'network-rail']),
+  train: plainCredits(['national-rail', 'network-rail', 'rsp-timetable']),
+};
 
 describe('renderStatusPreviewImage', () => {
   it.each(PREVIEW_CARDS)(
     'renders %s as a 1200x630 PNG under its coloured band',
     async (name, card) => {
-      const response = renderStatusPreviewImage(card, {
+      const response = renderStatusPreviewImage(card, PREVIEW_CREDITS[name.split('-')[0]!]!, {
         headers: { 'Cache-Control': 'public, max-age=60' },
       });
       expect(response.headers.get('content-type')).toBe('image/png');

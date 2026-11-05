@@ -1,7 +1,8 @@
 /** TfL's attribution, in the wording its transport data terms require
  * (modified Open Government Licence v2.0). Its own module so a client
- * component (the untracked-leg stop picker) and the server-rendered
- * footer and `/attribution` page share one copy. Do not paraphrase. */
+ * component (the untracked-leg stop picker), the in-place credits
+ * (`components/DataCredits.tsx`) and the `/attribution` page share one
+ * copy. Do not paraphrase. */
 
 /** Wherever TfL open data is presented. */
 export const TFL_CREDIT = 'Powered by TfL Open Data';

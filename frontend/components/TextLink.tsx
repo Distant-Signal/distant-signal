@@ -37,7 +37,7 @@ import { ExternalLinkIcon } from './ExternalLinkIcon';
  * transition to, and the styling hooks are the same either way.
  *
  * `tone="inherit"` is for credit and licence links sitting inside dimmed
- * or otherwise coloured text (the footer's data credits, `/attribution`'s
+ * or otherwise coloured text (the in-place data credits, `/attribution`'s
  * licence statements): the link takes its parent's colour and font instead
  * of the anchor grape, and relies on `underline="always"` alone as its cue.
  * Everywhere else, leave the default `'anchor'`. docs/style-guide.md
@@ -76,7 +76,7 @@ export function TextLink({
   // `'sm'` (14px) -- the size the shared chrome's other text-link-styled
   // controls converge on (review §2.16 "auth controls are inconsistently
   // sized"): `sm` is Mantine's own font-size floor before `xs` (12px, which
-  // review §2.16 also flags as too small on the footer's own NationalRail
+  // review §2.16 also flagged as too small on the footer's old NationalRail
   // link), and it is already the size Mantine's `Menu.Item` renders "Log
   // out" at by default (`node_modules/@mantine/core/styles/Menu.css`'s
   // `--mantine-font-size-sm` on `.mantine-Menu-item`) -- so `sm` is not a

@@ -5,10 +5,11 @@ export const NATIONAL_RAIL_URL = 'https://www.nationalrail.co.uk';
 
 /** LEG-23: the National Rail credit, placed directly under a block whose
  * data comes predominantly from Darwin/LDBWS (the live departure boards).
- * NRE's developer guidelines ask for the credit "alongside" such data, not
- * only in the site-wide footer.
+ * NRE's developer guidelines ask for the credit "alongside" such data.
+ * Elsewhere (line status, station information) `DataCredits` carries the
+ * same strings.
  *
- * The wording is the footer's: the Darwin Schedule 1 string "powered by
+ * The wording is the same as `DataCredits`: the Darwin Schedule 1 string "powered by
  * NationalRail" (linked) followed by the Knowledgebase Stations string
  * "NationalRail (Train Information Services Ltd)". See
  * `OpenDataAttribution.tsx` for why the two are joined. Text only: the NRE

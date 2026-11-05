@@ -31,6 +31,7 @@ import { linePreviewImage } from '@/lib/linePreview';
 import { ButtonLink } from '@/components/ButtonLink';
 import { tflTimetableHref } from '@/lib/transit';
 import { StateBadge } from '@/components/StateBadge';
+import { DataCredits, lineCredits } from '@/components/DataCredits';
 
 /** `Suspense` fallback for both "Recent trends" boundaries below (review
  * §2.11). Sized to the *empty* state both `HalfHourlyTrendsResults` and
@@ -650,6 +651,7 @@ export default async function LineDetailPage({
           <HalfHourlyCoverageTrendsResults id={id} from={trendsRange.from} to={trendsRange.to} />
         </Suspense>
       </Stack>
+      <DataCredits credits={[...lineCredits([id]), showTrainsPanel && 'rsp-timetable']} />
     </Stack>
   );
 }

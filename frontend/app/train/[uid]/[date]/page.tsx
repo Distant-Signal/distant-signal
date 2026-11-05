@@ -18,6 +18,7 @@ import type { PublicTrainState, TrainJourneyState, TrackedTrainListItem } from '
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
 import { serviceDateLabel, trainPreviewCard, trainPreviewImage } from '@/lib/trainPreview';
 import { trainIdentifiers, trainName } from '@/lib/trainName';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -389,6 +390,7 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
         </TextLink>
         .
       </Text>
+      <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );
 }

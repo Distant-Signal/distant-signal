@@ -5,7 +5,7 @@ import { NationalRailCredit, NATIONAL_RAIL_URL } from './NationalRailCredit';
 import { visibleText } from '@/test/routeText';
 
 describe('NationalRailCredit (LEG-23)', () => {
-  it('carries both Schedule 1 strings verbatim, matching the footer line', () => {
+  it('carries both Schedule 1 strings verbatim, matching the DataCredits line', () => {
     const { container } = renderWithMantine(<NationalRailCredit />);
     const credit = container.querySelector('[data-nre-credit]');
     expect(visibleText(credit as Element)).toMatch(

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { StationSearchForm } from './StationSearchForm';
 import { TextLink } from '@/components/TextLink';
 import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits } from '@/components/DataCredits';
 
 /** Per-page Open Graph/Twitter/`<title>` metadata, in the same four-field
  * shape every detail page in this app already emits (see
@@ -75,6 +76,8 @@ export default function StationSearchPage() {
           ))}
         </Group>
       </Stack>
+      {/* Station names and codes come from the Knowledgebase Stations feed. */}
+      <DataCredits credits={['national-rail']} />
     </Stack>
   );
 }

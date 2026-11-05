@@ -20,7 +20,8 @@ export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPT
 
 /** `/attribution`: always public (unlike the draft legal pages), because the
  * licences below require the attribution now. Content lives in
- * `components/OpenDataAttribution.tsx` beside the footer's short version. */
+ * `components/OpenDataAttribution.tsx`; every in-place credit
+ * (`components/DataCredits.tsx`) and the footer link here. */
 export default async function AttributionPage() {
   // The tram networks shown ([] by default): their sources are credited too.
   const transit = await getTransitNetworks();

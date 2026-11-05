@@ -7,6 +7,7 @@ import { LineStatusCard } from '@/components/LineStatusCard';
 import { LinkSentence } from '@/components/LinkSentence';
 import { SectionTitle } from '@/components/SectionTitle';
 import { TflArrivalsBoard } from '@/components/TflArrivalsBoard';
+import { DataCredits } from '@/components/DataCredits';
 import { TflStopTimetable } from '@/components/TflStopTimetable';
 import {
   ApiNotFoundError,
@@ -229,6 +230,9 @@ export default async function TflStopPage({ params, searchParams }: Params & Sea
           />
         </Stack>
       )}
+      {/* TfL's stop, arrivals and line status: its credit with the mapping
+          statements its stop locations need. */}
+      <DataCredits credits={['tfl-stops']} />
     </Stack>
   );
 }

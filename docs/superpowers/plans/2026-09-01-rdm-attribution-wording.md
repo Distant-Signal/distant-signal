@@ -48,6 +48,25 @@ specific wording, and which of two similarly-named Stations products this
 app's subscription actually is. Those are unrelated to this finding and
 still require real human sign-off.
 
+## Since 2026-11-05 (DS-367): credited beside the data, not in the footer
+
+The two Schedule 1 strings are unchanged and still joined on one line
+("powered by NationalRail (Train Information Services Ltd)", as the
+2026-09-27 audit settled), but the site footer no longer carries them.
+They sit beside the data instead (`frontend/components/DataCredits.tsx`):
+Darwin's under live departures and on National Rail line status, which is
+worked out from Darwin samples; Knowledgebase Stations' on station pages
+and the station search. Knowledgebase Incidents and TOC data keep their
+by-name credit on `/attribution`, and the incident pages repeat it.
+`frontend/components/OpenDataAttribution.tsx`'s header comment has the
+per-licence reasoning.
+
+Decided by the operator on 2026-11-05: the joined line stays (it matches
+the 2026-09-27 audit), NRIL's statement and "Source: RSP" stay beside the
+data, and the live link-preview images of a train, a National Rail line or
+a station carry the joined line and NRIL's statement as plain text, with
+the NRIL licence's address written out because an image can't link it.
+
 **Goal:** `frontend/components/OpenDataAttribution.tsx` currently renders a
 single line — "Powered by National Rail Enquiries" — and its doc comment
 claims this satisfies attribution for all four Rail Data Marketplace (RDM)

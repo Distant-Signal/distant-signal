@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getAllLines, getAllTocs } from '@/lib/api';
 import { IncidentSearchForm } from '@/components/IncidentSearchForm';
 import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
 
@@ -100,6 +101,7 @@ export default async function IncidentsPage({
         initialPriorityMin={priorityMinParam}
         initialPriorityMax={priorityMaxParam}
       />
+      <DataCredits credits={['knowledgebase-incidents']} />
     </Stack>
   );
 }

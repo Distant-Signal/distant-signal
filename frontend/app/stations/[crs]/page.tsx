@@ -24,6 +24,7 @@ import { StationAccessibilitySection } from '@/components/StationAccessibilitySe
 import { TextLink } from '@/components/TextLink';
 import { StationTramLinks } from '@/components/TransitRailLinks';
 import { NationalRailCredit } from '@/components/NationalRailCredit';
+import { DataCredits, lineCredits } from '@/components/DataCredits';
 import { RecentlyCleared } from '@/components/RecentlyCleared';
 import { worstStatus, severityRank } from '@/lib/severity';
 import { dedupeStationIssues } from '@/lib/stationIssues';
@@ -402,6 +403,10 @@ export default async function StationDisruptionPage({ params }: { params: Promis
       <div id="accessibility">
         <StationAccessibilitySection result={accessibilityResult} />
       </div>
+      {/* The station's information is Knowledgebase Stations' and its
+          lines' status is worked out from Darwin and TRUST (or is TfL's):
+          the credits sit under the last of it. */}
+      <DataCredits credits={['national-rail', ...lineCredits(orderedReports.map((report) => report.id))]} />
     </Stack>
   );
 }

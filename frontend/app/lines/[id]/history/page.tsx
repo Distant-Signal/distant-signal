@@ -25,6 +25,7 @@ import { TrendsResults } from './TrendsResults';
 import { CoverageTrendsResults } from './CoverageTrendsResults';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits, lineCredits } from '@/components/DataCredits';
 
 const log = createLogger('app/lines/history');
 
@@ -272,6 +273,7 @@ export default async function LineHistoryPage({
           </Stack>
         </TabsPanel>
       </Tabs>
+      <DataCredits credits={lineCredits([id])} />
     </Stack>
   );
 }

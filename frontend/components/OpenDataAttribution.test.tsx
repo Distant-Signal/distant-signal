@@ -31,101 +31,31 @@ afterEach(() => {
 });
 
 describe('OpenDataAttribution', () => {
-  it('adds the OGL line only while a tram network is shown', () => {
-    renderWithMantine(<OpenDataAttribution />);
-    expect(screen.queryByText(/Contains public sector information licensed under the/)).toBeNull();
-    cleanup();
-    renderWithMantine(<OpenDataAttribution transitOn />);
-    expect(screen.getByText(/Contains public sector information licensed under the/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open Government Licence v3.0 (opens in a new tab)' })).toHaveAttribute(
-      'href',
-      'https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/',
-    );
-  });
-
-  it("carries TfL's required attribution verbatim", () => {
-    // Not decoration: TfL's modified OGL v2.0 requires this exact phrase
-    // wherever its open data is presented. Reworded, it stops being
-    // attribution.
-    renderWithMantine(<OpenDataAttribution />);
-    expect(screen.getByText('Powered by TfL Open Data')).toBeInTheDocument();
-  });
-
-  it("carries the Darwin (LDBWS) feed's required attribution verbatim, linked to nationalrail.co.uk", () => {
-    // Not decoration: the Darwin Real Time Train Information (Push)
-    // Data Sharing Agreement's Schedule 1 §8 fixes this exact string --
-    // lowercase "powered", one word "NationalRail" -- see
-    // docs/superpowers/plans/2026-09-01-rdm-attribution-wording.md.
-    // This wording is specific to the Darwin/LDBWS feed, not an umbrella
-    // NRE claim covering every RDM feed this app consumes. Only this
-    // phrase is linked -- the Knowledgebase Stations text appended right
-    // after it (see below) carries no link requirement of its own.
-    renderWithMantine(<OpenDataAttribution />);
-    const link = screen.getByRole('link', { name: 'powered by NationalRail (opens in a new tab)' });
-    expect(link).toHaveAttribute('href', 'https://www.nationalrail.co.uk');
-  });
-
-  it('renders credit links as TextLinks that keep the dimmed credit colour, underlined (docs/style-guide.md "TextLink")', () => {
-    renderWithMantine(<OpenDataAttribution />);
-    for (const name of ['powered by NationalRail (opens in a new tab)', `${NRIL_STATEMENT} (opens in a new tab)`]) {
-      const link = screen.getByRole('link', { name });
-      expect(link).toHaveAttribute('data-text-link', 'always');
-      expect(link).toHaveAttribute('data-text-link-tone', 'inherit');
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-      // Says it opens a new tab without touching the licence wording itself.
-      expect(visibleText(link)).toBe(name.replace(' (opens in a new tab)', ''));
-      expect(link.querySelector('svg[data-icon="external-link"]')).toHaveAttribute('aria-hidden', 'true');
+  it('carries no data credit lines: each source is credited beside its data (DataCredits)', () => {
+    const { container } = renderWithMantine(<OpenDataAttribution />);
+    const footer = container.querySelector('footer') as HTMLElement;
+    for (const credit of [
+      'Powered by TfL Open Data',
+      'powered by NationalRail',
+      'Train Information Services Ltd',
+      NRIL_STATEMENT,
+      'Contains public sector information',
+      'RSP',
+      'National Transport Authority',
+      'OpenDataNI',
+    ]) {
+      expect(visibleText(footer)).not.toContain(credit);
     }
   });
 
-  it("carries the Knowledgebase Stations feed's required attribution verbatim, concatenated onto the Darwin line", () => {
-    // NationalRail Knowledgebase Stations (JSON)'s Schedule 1 §8 fixes
-    // this exact string. Revised 2026-09-02: appended directly after the
-    // Darwin line's "powered by NationalRail" rather than its own
-    // separate line -- the two required strings share the word
-    // "NationalRail", so concatenating them keeps BOTH verbatim strings
-    // intact and complete within the rendered text (see
-    // OpenDataAttribution.tsx's own comment for the exact substring
-    // argument). Asserting on the wrapping element's full text content,
-    // not a `getByText` exact match, since the required phrase now spans
-    // the linked node plus a trailing plain-text node. The 2026-09-27
-    // legal audit (LEG-23) confirmed production uses the KB Stations JSON
-    // product, so this wording applies, and the operator's 2026-09-27
-    // decision treats the RDM terms as permitting current use: final.
+  it('keeps the non-affiliation note (LEG-25)', () => {
     renderWithMantine(<OpenDataAttribution />);
-    const link = screen.getByRole('link', { name: 'powered by NationalRail (opens in a new tab)' });
-    expect(visibleText(link.parentElement as Element)).toMatch(
-      'powered by NationalRail (Train Information Services Ltd)',
-    );
+    expect(screen.getByText('Independent and unofficial.')).toBeInTheDocument();
   });
 
   it('is a landmark, so it is reachable rather than just visible', () => {
     const { container } = renderWithMantine(<OpenDataAttribution />);
     expect(container.querySelector('footer')).not.toBeNull();
-  });
-
-  // Review §2.16 "auth controls are inconsistently sized" named this line
-  // specifically: "a 12px underlined link with a ~16px hit height". Bumped
-  // to `sm` (14px), the size the chrome's other text-link-styled controls
-  // (AuthStatus's "Log in") converge on -- its two plain-text sibling lines
-  // stay at `xs`, since they carry no link of their own.
-  it('renders the NationalRail attribution line (the one with a link) at sm, not the xs plain-text lines use', () => {
-    renderWithMantine(<OpenDataAttribution />);
-    const link = screen.getByRole('link', { name: 'powered by NationalRail (opens in a new tab)' });
-    expect(link.parentElement).toHaveStyle({ '--text-fz': 'var(--mantine-font-size-sm)' });
-    expect(screen.getByText('Powered by TfL Open Data')).not.toHaveStyle({
-      '--text-fz': 'var(--mantine-font-size-sm)',
-    });
-  });
-
-  it("carries Network Rail's prescribed NRIL statement verbatim, linked to the licence (LEG-19)", () => {
-    renderWithMantine(<OpenDataAttribution />);
-    const link = screen.getByRole('link', { name: `${NRIL_STATEMENT} (opens in a new tab)` });
-    expect(link).toHaveAttribute('href', NRIL_LICENCE_URL);
-    expect(NRIL_STATEMENT).toBe(
-      'Contains Information of Network Rail Infrastructure Limited licensed under the following licence',
-    );
   });
 
   it('links to the /attribution page from a labelled footer nav', () => {

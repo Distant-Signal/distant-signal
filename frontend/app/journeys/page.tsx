@@ -31,6 +31,7 @@ import { journeysPageSections, type JourneysPageEntry } from '@/lib/journeyHisto
 import { journeyDisplayName, journeyListItemNameInput, journeyPreviewLine } from '@/lib/journeyName';
 import type { TrackedTrainListItem, TicketListItem, JourneyListItem } from '@/lib/types';
 import type { Metadata } from 'next';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 // See app/page.tsx's own `revalidate = 0` comment for the rationale: this
 // route has no dynamic segment, so without this Next.js treats it as
@@ -285,6 +286,7 @@ export default async function JourneysPage() {
               </Stack>
             </Stack>
           )}
+          <DataCredits credits={TRAIN_CREDITS} />
         </>
       )}
     </Stack>

@@ -45,6 +45,7 @@ import { JsonLd, structuredDataOrigin } from '@/components/JsonLd';
 import { CurrentJourneySection, UpcomingJourneysSection, UpcomingJourneysTeaser } from './HomeJourneys';
 import { notGoodServiceSummary, RightNowModule } from './RightNowModule';
 import { SharedCustomLineSummaryRow } from './SharedCustomLineSummaryRow';
+import { DataCredits, lineCredits, TRAIN_CREDITS, type CreditId } from '@/components/DataCredits';
 
 // See app/lines/[id]/page.tsx-adjacent history page and this repo's other
 // dynamic routes for the same `revalidate = 0` rationale: without it,
@@ -285,6 +286,7 @@ export default async function DashboardPage() {
               refinement. */}
           <LoginControl underline="always">Log in to pin your lines, stations and operators</LoginControl>
         </Group>
+        <DataCredits credits={lineCredits(allReports.map((report) => report.id))} />
       </Stack>
     );
   }
@@ -654,6 +656,16 @@ export default async function DashboardPage() {
           narrower case where Lines is empty but Stations or Operators is
           not. */}
       {!allPinnedSectionsEmpty && pinnedLineCount === 0 && <RightNowModule summary={rightNow} />}
+      {/* Every line's status can show here (pins, stations, operators, the
+          "Right now" summary), so every line source is credited, plus the
+          trains under the journeys and any pinned tram line's network. */}
+      <DataCredits
+        credits={[
+          ...(current !== null || upcoming.length > 0 || sharedWithYou.length > 0 ? TRAIN_CREDITS : []),
+          ...lineCredits(allReports.map((report) => report.id)),
+          ...pinnedTramLines.map((pinned): CreditId => (pinned.network === 'tfl' ? 'tfl' : 'ogl')),
+        ]}
+      />
     </Stack>
   );
 }

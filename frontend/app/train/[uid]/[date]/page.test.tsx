@@ -160,6 +160,17 @@ describe('TrackedTrainByUidPage success path', () => {
     expect(screen.queryByText('Timetable may change')).not.toBeInTheDocument();
   });
 
+  // The footer carries no credits: the train's sources are credited on the
+  // page (CIF, TRUST and Darwin samples).
+  it("credits the train's timetable, movements and live samples on the page", async () => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    await renderPage();
+    const credits = [...document.querySelectorAll('[data-data-credits] [data-credit]')].map((node) =>
+      node.getAttribute('data-credit'),
+    );
+    expect(credits).toEqual(['national-rail', 'network-rail', 'rsp-timetable']);
+  });
+
   it('renders the shared train journey from the public response', async () => {
     vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
     await renderPage();

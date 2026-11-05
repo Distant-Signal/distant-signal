@@ -10,6 +10,7 @@ import { HistoryRangePicker } from '@/app/lines/[id]/history/HistoryRangePicker'
 import { NetworkTrendsResults } from './NetworkTrendsResults';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { DataCredits } from '@/components/DataCredits';
 
 const log = createLogger('app/network/history');
 
@@ -98,6 +99,7 @@ export default async function NetworkHistoryPage({
       >
         <NetworkTrendsResults from={range.from} to={range.to} granularity={granularity} />
       </Suspense>
+      <DataCredits credits={['national-rail', 'network-rail', 'tfl']} />
     </Stack>
   );
 }

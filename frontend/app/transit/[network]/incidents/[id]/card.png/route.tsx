@@ -47,5 +47,7 @@ export async function GET(
     stopNames: new Map(stops.map((stop) => [stop.id, stop.name])),
     now: Date.now(),
   });
-  return renderStatusPreviewImage(card, { headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
+  return renderStatusPreviewImage(card, detail.attribution.text, {
+    headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
+  });
 }

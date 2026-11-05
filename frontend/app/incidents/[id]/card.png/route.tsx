@@ -3,6 +3,7 @@ import { tocNameLookup } from '@/lib/displayLabels';
 import { incidentPreviewCard, incidentStatusCard, MAX_PREVIEW_STATIONS } from '@/lib/incidentPreview';
 import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
+import { plainCredits } from '@/lib/creditText';
 
 // An incident's link-preview image, listed by the page's `generateMetadata`
 // as `/incidents/{id}/card.png?v={digest}` (`lib/livePreview.ts`). Not an
@@ -44,7 +45,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     stationNames: new Map(stationCodes.map((crs, i) => [crs, stationNames[i] ?? null])),
     now: Date.now(),
   });
-  return renderStatusPreviewImage(incidentStatusCard(card), {
+  return renderStatusPreviewImage(incidentStatusCard(card), plainCredits(['knowledgebase-incidents']), {
     headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
   });
 }

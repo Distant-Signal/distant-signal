@@ -11,6 +11,7 @@ import { REFRESH_INTERVAL_MS } from '@/lib/refresh';
 import { TIMES_IN_UK_LOCAL_TIME } from '@/lib/dateFormat';
 import type { Metadata } from 'next';
 import { trainIdentifiers, trainName } from '@/lib/trainName';
+import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 export const metadata: Metadata = { title: 'Tracked train', robots: { index: false } };
 
@@ -118,6 +119,7 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
         </Text>
       </Group>
       <TicketPanel trackingId={state.id} />
+      <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );
 }
