@@ -1,8 +1,12 @@
+import { formatDate } from './dateFormat';
 import type {
   IslandOfIrelandDepartureResponse,
   IslandOfIrelandLineResponse,
   IslandOfIrelandNetwork,
   IslandOfIrelandStationResponse,
+  IslandOfIrelandTrainCall,
+  IslandOfIrelandTrainResponse,
+  LastLocation,
 } from './irelandTypes';
 import type { LineDiagram } from './transitLineDiagram';
 
@@ -13,6 +17,7 @@ import type { LineDiagram } from './transitLineDiagram';
 export type IrelandStation = IslandOfIrelandStationResponse;
 export type IrelandLine = IslandOfIrelandLineResponse;
 export type IrelandDeparture = IslandOfIrelandDepartureResponse;
+export type IrelandTrain = IslandOfIrelandTrainResponse;
 export type { IslandOfIrelandNetwork };
 
 /** The section's address, and its h1, title and link text. "Ireland" alone
@@ -63,6 +68,19 @@ export function irelandLineHref(slug: string, lineId: string): string {
 export function irelandStationHref(slug: string, stationId: string): string {
   return `${IRELAND_PATH}/${slug}/stations/${encodeURIComponent(stationId)}`;
 }
+
+/** An Iarnród Éireann train's page: its code and the day it started
+ * (docs/superpowers/specs/2026-11-05-irish-rail-train-tracking-design.md
+ * §9). Only Iarnród Éireann has live boards, so only it has train pages. */
+export function irelandTrainHref(slug: string, trainCode: string, serviceDate: string): string {
+  return `${IRELAND_PATH}/${slug}/trains/${encodeURIComponent(trainCode)}/${serviceDate}`;
+}
+
+/** A train code as the api takes it (`A120`, `E101`). */
+export const IRELAND_TRAIN_CODE = /^[A-Za-z0-9]{1,8}$/;
+
+/** A service date in a URL, `YYYY-MM-DD`. */
+export const IRELAND_SERVICE_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A station's page, by its api `network`; `null` for an unknown network. */
 export function stationHref(station: Pick<IrelandStation, 'id' | 'network'>): string | null {
@@ -138,19 +156,41 @@ export interface DepartureRow {
   destination: string;
   origin: string;
   trainCode: string;
-  lateMinutes: number;
+  /** Minutes late, or `null` when the train isn't reporting: the feed's
+   * `Late` is 0 then, which doesn't mean on time ({@link reportedLateMinutes}). */
+  lateMinutes: number | null;
+  /** The train's page, when the board says which day it started. */
+  href: string | null;
 }
 
 const CLOCK = /^\d{2}:\d{2}$/;
 
+/** The feed's status word for a train that is reporting. */
+const EN_ROUTE = 'en route';
+
+/** A board row's delay, only when the feed vouches for it: the train is
+ * "En Route" or has a last location, as the api's `train_state` reads it.
+ * "No Information" comes with `Late` 0, which is no report, not on time. */
+export function reportedLateMinutes(
+  departure: Pick<IrelandDeparture, 'status' | 'lastLocation' | 'lateMinutes'>,
+): number | null {
+  const reporting = departure.status.trim().toLowerCase() === EN_ROUTE || Boolean(departure.lastLocation?.trim());
+  return reporting && Number.isFinite(departure.lateMinutes) ? departure.lateMinutes : null;
+}
+
 /** A live board's departures, in the api's order (soonest first). A train
- * with no departure time ends its run here, so it is left out. */
+ * with no departure time ends its run here, so it is left out. A row links
+ * to its train's page when the board gives the day it started. */
 export function departureRows(departures: readonly IrelandDeparture[]): DepartureRow[] {
+  const slug = networkInfo('republic-of-ireland')?.slug ?? null;
   return departures.flatMap((departure, index) => {
     const scheduled = departure.scheduledDeparture?.trim() ?? '';
     const expected = departure.expectedDeparture?.trim() ?? '';
     const time = CLOCK.test(expected) ? expected : scheduled;
     if (!CLOCK.test(time)) return [];
+    const trainCode = departure.trainCode.trim();
+    const trainDate = departure.trainDate ?? null;
+    const linkable = slug && trainDate && IRELAND_SERVICE_DATE.test(trainDate) && IRELAND_TRAIN_CODE.test(trainCode);
     return [
       {
         key: `${departure.trainCode}-${index}`,
@@ -158,8 +198,72 @@ export function departureRows(departures: readonly IrelandDeparture[]): Departur
         scheduled: CLOCK.test(scheduled) && scheduled !== time ? scheduled : null,
         destination: departure.destination.trim(),
         origin: departure.origin.trim(),
-        trainCode: departure.trainCode.trim(),
-        lateMinutes: Number.isFinite(departure.lateMinutes) ? departure.lateMinutes : 0,
+        trainCode,
+        lateMinutes: reportedLateMinutes(departure),
+        href: linkable ? irelandTrainHref(slug, trainCode, trainDate) : null,
+      },
+    ];
+  });
+}
+
+/** How we name an Irish train, as a GB one: "15:50 Dublin Connolly to
+ * Belfast", or the route alone when the boards didn't give its start
+ * time. */
+export function irelandTrainName(train: Pick<IrelandTrain, 'originTime' | 'origin' | 'destination'>): string {
+  const route = `${train.origin.trim()} to ${train.destination.trim()}`;
+  const start = train.originTime?.trim() ?? '';
+  return CLOCK.test(start) ? `${start} ${route}` : route;
+}
+
+/** The dimmed line under the name: "Train code A120 · 5 Nov 2026". */
+export function irelandTrainIdentifiers(train: Pick<IrelandTrain, 'trainCode' | 'serviceDate'>): string {
+  return `Train code ${train.trainCode} · ${formatDate(`${train.serviceDate}T12:00:00Z`)}`;
+}
+
+/** The feed's last report in our words: "Left Dundalk", "At Dundalk". */
+export function lastLocationText(location: LastLocation | null): string | null {
+  if (!location) return null;
+  return location.event === 'departed' ? `Left ${location.place}` : `At ${location.place}`;
+}
+
+/** One calling point on the train page. */
+export interface TrainCallRow {
+  key: string;
+  /** The expected time there, else the timetabled one; `HH:MM`. */
+  time: string | null;
+  /** The timetabled time, when it differs from `time`. */
+  scheduled: string | null;
+  /** The train ends its run here (the board gave only an arrival). */
+  arrivalOnly: boolean;
+  name: string;
+  /** The station's page, when it is in the catalogue. */
+  href: string | null;
+}
+
+function clock(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  return CLOCK.test(trimmed) ? trimmed : null;
+}
+
+/** The train's calling points, in the api's running order. A station
+ * neither the catalogue nor the live list names is left out (never shown
+ * as a raw code). */
+export function trainCallRows(train: Pick<IrelandTrain, 'calls'>, slug: string): TrainCallRow[] {
+  return train.calls.flatMap((call: IslandOfIrelandTrainCall) => {
+    const name = call.name?.trim();
+    if (!name) return [];
+    const departs = clock(call.expectedDeparture) ?? clock(call.scheduledDeparture);
+    const arrives = clock(call.expectedArrival) ?? clock(call.scheduledArrival);
+    const time = departs ?? arrives;
+    const scheduledHere = departs ? clock(call.scheduledDeparture) : clock(call.scheduledArrival);
+    return [
+      {
+        key: call.stationCode,
+        time,
+        scheduled: scheduledHere && scheduledHere !== time ? scheduledHere : null,
+        arrivalOnly: departs === null && arrives !== null,
+        name,
+        href: call.stationId && IRELAND_ID.test(call.stationId) ? irelandStationHref(slug, call.stationId) : null,
       },
     ];
   });

@@ -126,6 +126,10 @@ const PAGES: [name: string, path: string][] = [
   // stays put.
   // Dated, so its timetable's board doesn't follow the server's clock.
   ['tfl-stop', '/tfl/stops/940GZZLUKSX?date=2026-09-17'],
+  // An Iarnród Éireann train from the board history (the seed's A101):
+  // its delay, last report and calling points (2026-11-05 train tracking
+  // design, §9).
+  ['ireland-train', '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17'],
 ];
 
 /** The pages shot with the seed's session cookie (E2E_SESSION_COOKIE). */

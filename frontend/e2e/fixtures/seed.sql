@@ -1135,9 +1135,46 @@ VALUES (
   NOW(),
   '[{"train_code": "A101", "origin": "Dublin Connolly", "destination": "Belfast Grand Central",
      "scheduled_departure": "08:00", "expected_departure": "08:05", "late_minutes": 5,
-     "status": "En Route", "due_in_minutes": 12},
+     "status": "En Route", "due_in_minutes": 12, "train_date": "2026-09-17",
+     "origin_time": "08:00", "destination_time": "10:10"},
     {"train_code": "D802", "origin": "Dublin Connolly", "destination": "Drogheda",
      "scheduled_departure": "08:10", "expected_departure": "08:10", "late_minutes": 0,
-     "status": "No Information", "due_in_minutes": 22}]'
+     "status": "No Information", "due_in_minutes": 22, "train_date": "2026-09-17",
+     "origin_time": "08:10", "destination_time": "08:55"}]'
 )
 ON CONFLICT (station_id) DO UPDATE SET polled_at = EXCLUDED.polled_at, departures = EXCLUDED.departures;
+
+-- The board history by train (the train pages,
+-- docs/superpowers/specs/2026-11-05-irish-rail-train-tracking-design.md
+-- §9): A101 is reporting, 5 min late, seen at Connolly, Drogheda and
+-- Belfast (a live code the catalogue's Belfast Grand Central doesn't carry,
+-- so that call is named from the live station list and not linked); D802
+-- has no report yet. Seen NOW(), so neither reads as "not seen recently".
+INSERT INTO island_of_ireland_live_stations (code, name, latitude, longitude, fetched_at)
+VALUES
+  ('CNLLY', 'Dublin Connolly', 53.3531, -6.2461, NOW()),
+  ('DGHDA', 'Drogheda', 53.7123, -6.3355, NOW()),
+  ('BFSTC', 'Belfast', 54.6123, -5.91744, NOW())
+ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, fetched_at = EXCLUDED.fetched_at;
+
+INSERT INTO island_of_ireland_trains
+  (network, train_code, train_date, origin, destination, origin_time, destination_time, status,
+   late_minutes, last_location, first_seen_at, last_seen_at, changed_at)
+VALUES
+  ('republic-of-ireland', 'A101', '2026-09-17', 'Dublin Connolly', 'Belfast Grand Central', '08:00', '10:10',
+   'En Route', 5, 'Departed Dublin Connolly', NOW() - INTERVAL '90 minutes', NOW(), NOW()),
+  ('republic-of-ireland', 'D802', '2026-09-17', 'Dublin Connolly', 'Drogheda', '08:10', '08:55',
+   'No Information', 0, NULL, NOW() - INTERVAL '60 minutes', NOW(), NOW())
+ON CONFLICT (network, train_code, train_date) DO UPDATE SET
+  status = EXCLUDED.status, late_minutes = EXCLUDED.late_minutes, last_location = EXCLUDED.last_location,
+  last_seen_at = EXCLUDED.last_seen_at, changed_at = EXCLUDED.changed_at;
+
+INSERT INTO island_of_ireland_train_calls
+  (network, train_code, train_date, station_code, scheduled_arrival, scheduled_departure, expected_arrival,
+   expected_departure, late_minutes, first_seen_at, changed_at)
+VALUES
+  ('republic-of-ireland', 'A101', '2026-09-17', 'CNLLY', NULL, '08:00', NULL, '08:05', 5, NOW(), NOW()),
+  ('republic-of-ireland', 'A101', '2026-09-17', 'DGHDA', '08:30', '08:31', '08:35', '08:36', 5, NOW(), NOW()),
+  ('republic-of-ireland', 'A101', '2026-09-17', 'BFSTC', '10:10', NULL, '10:15', NULL, 5, NOW(), NOW()),
+  ('republic-of-ireland', 'D802', '2026-09-17', 'CNLLY', NULL, '08:10', NULL, '08:10', 0, NOW(), NOW())
+ON CONFLICT (network, train_code, train_date, station_code) DO UPDATE SET changed_at = EXCLUDED.changed_at;

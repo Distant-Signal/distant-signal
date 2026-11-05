@@ -13,11 +13,23 @@ describe('IrelandDepartureBoard', () => {
     expect(rows[0]!.textContent).toContain('to Belfast Grand Central');
     expect(rows[0]!.textContent).toContain('5 min late');
     expect(rows[0]!.textContent).toContain('Timetabled 08:00 · From Dublin Connolly · Train code A101');
-    expect(rows[1]!.textContent).toContain('On time');
+    // "No Information" with Late 0 is no report, never "On time".
+    expect(rows[1]!.textContent).toContain('No report yet');
+    expect(rows[1]!.textContent).not.toContain('On time');
     expect(rows[1]!.textContent).not.toContain('Timetabled');
     expect(screen.queryByText(/En Route|No Information/)).toBeNull();
-    // No train page exists for an Irish train.
-    expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it("links each row to its train's page when the board gives the train's date", () => {
+    renderWithMantine(
+      <IrelandDepartureBoard
+        board={{ departures: [DEPARTURES[0]!, { ...DEPARTURES[1]!, trainDate: null }], polledAt: null }}
+      />,
+    );
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(links[0]!.getAttribute('href')).toBe('/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17');
+    expect(links[0]!.textContent).toContain('to Belfast Grand Central');
   });
 
   it('says when the board was polled, once', () => {
