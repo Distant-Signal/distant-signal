@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  A101_TRAIN,
   BANGOR,
   BELFAST,
   CONNOLLY,
@@ -14,6 +15,12 @@ import {
 import {
   departureRows,
   IRELAND_ID,
+  irelandTrainHref,
+  irelandTrainIdentifiers,
+  irelandTrainName,
+  lastLocationText,
+  reportedLateMinutes,
+  trainCallRows,
   irelandLineDiagram,
   irelandLineHref,
   irelandStationHref,
@@ -128,6 +135,7 @@ describe('live boards', () => {
         origin: 'Dublin Connolly',
         trainCode: 'A101',
         lateMinutes: 5,
+        href: '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
       },
       {
         key: 'D802-1',
@@ -136,9 +144,18 @@ describe('live boards', () => {
         destination: 'Drogheda',
         origin: 'Dublin Connolly',
         trainCode: 'D802',
-        lateMinutes: 0,
+        // "No Information": the feed's 0 is no report, not on time.
+        lateMinutes: null,
+        href: '/island-of-ireland/iarnrod-eireann/trains/D802/2026-09-17',
       },
     ]);
+  });
+
+  it('links a row only when the board gives the day the train started', () => {
+    const [row] = departureRows([{ ...DEPARTURES[0]!, trainDate: null }]);
+    expect(row?.href).toBeNull();
+    const [odd] = departureRows([{ ...DEPARTURES[0]!, trainDate: '17 Sep 2026' }]);
+    expect(odd?.href).toBeNull();
   });
 
   it('falls back to the timetabled time when the expected one is missing or malformed', () => {
@@ -176,5 +193,55 @@ describe('matchingStations', () => {
       { station: BANGOR, href: '/island-of-ireland/ni-railways/stations/nir-bangor', networkName: 'NI Railways' },
     ]);
     expect(matchingStations(STATIONS, '', searchKey)).toEqual([]);
+  });
+});
+
+describe('reportedLateMinutes', () => {
+  it('trusts the delay only while the train reports', () => {
+    expect(reportedLateMinutes({ status: 'En Route', lastLocation: null, lateMinutes: 4 })).toBe(4);
+    expect(reportedLateMinutes({ status: 'En Route', lastLocation: null, lateMinutes: -2 })).toBe(-2);
+    expect(reportedLateMinutes({ status: 'No Information', lastLocation: null, lateMinutes: 0 })).toBeNull();
+    expect(reportedLateMinutes({ status: 'Something new', lastLocation: 'Departed Bray', lateMinutes: 3 })).toBe(3);
+    expect(reportedLateMinutes({ status: 'Something new', lastLocation: ' ', lateMinutes: 3 })).toBeNull();
+  });
+});
+
+describe('train page helpers', () => {
+  it('names a train by its start time and route, as a GB one', () => {
+    expect(irelandTrainName(A101_TRAIN)).toBe('08:00 Dublin Connolly to Belfast Grand Central');
+    expect(irelandTrainName({ ...A101_TRAIN, originTime: null })).toBe('Dublin Connolly to Belfast Grand Central');
+    expect(irelandTrainIdentifiers(A101_TRAIN)).toBe('Train code A101 · 17 Sep 2026');
+    expect(irelandTrainHref('iarnrod-eireann', 'A101', '2026-09-17')).toBe(
+      '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
+    );
+  });
+
+  it('words the last report as we would', () => {
+    expect(lastLocationText({ event: 'departed', place: 'Dundalk' })).toBe('Left Dundalk');
+    expect(lastLocationText({ event: 'arrived', place: 'Dundalk' })).toBe('At Dundalk');
+    expect(lastLocationText(null)).toBeNull();
+  });
+
+  it('lists the calling points with their expected times, linking catalogue stations', () => {
+    expect(trainCallRows(A101_TRAIN, 'iarnrod-eireann')).toEqual([
+      {
+        key: 'CNLLY',
+        time: '08:05',
+        scheduled: '08:00',
+        arrivalOnly: false,
+        name: 'Dublin Connolly',
+        href: '/island-of-ireland/iarnrod-eireann/stations/8220IR0007',
+      },
+      {
+        key: 'DGHDA',
+        time: '08:36',
+        scheduled: '08:31',
+        arrivalOnly: false,
+        name: 'Drogheda',
+        href: '/island-of-ireland/iarnrod-eireann/stations/8300IR0074',
+      },
+      // ZZZZZ has no name anywhere, so it is left out, never shown raw.
+      { key: 'BFSTC', time: '10:15', scheduled: '10:10', arrivalOnly: true, name: 'Belfast', href: null },
+    ]);
   });
 });

@@ -1,4 +1,4 @@
-import type { IrelandDeparture, IrelandLine, IrelandStation } from '@/lib/ireland';
+import type { IrelandDeparture, IrelandLine, IrelandStation, IrelandTrain } from '@/lib/ireland';
 
 /** A small island of Ireland catalogue, in the api's shape after DS-359
  * (`liveCode`, `rawName`, `color`). */
@@ -95,6 +95,10 @@ export const DEPARTURES: IrelandDeparture[] = [
     lateMinutes: 5,
     status: 'En Route',
     dueInMinutes: 12,
+    trainDate: '2026-09-17',
+    originTime: '08:00',
+    destinationTime: '10:10',
+    lastLocation: null,
   },
   {
     trainCode: 'D802',
@@ -107,6 +111,10 @@ export const DEPARTURES: IrelandDeparture[] = [
     lateMinutes: 0,
     status: 'No Information',
     dueInMinutes: 22,
+    trainDate: '2026-09-17',
+    originTime: '08:10',
+    destinationTime: '08:55',
+    lastLocation: null,
   },
   {
     trainCode: 'E999',
@@ -119,5 +127,67 @@ export const DEPARTURES: IrelandDeparture[] = [
     lateMinutes: 0,
     status: 'En Route',
     dueInMinutes: 27,
+    trainDate: null,
+    originTime: null,
+    destinationTime: null,
+    lastLocation: 'Departed Sandymount',
   },
 ];
+
+/** The board history of `DEPARTURES[0]`'s A101 (`GET
+ * /public/island-of-ireland/trains/A101/2026-09-17`). */
+export const A101_TRAIN: IrelandTrain = {
+  network: 'republic-of-ireland',
+  trainCode: 'A101',
+  serviceDate: '2026-09-17',
+  origin: 'Dublin Connolly',
+  destination: 'Belfast Grand Central',
+  originTime: '08:00',
+  destinationTime: '10:10',
+  live: {
+    state: 'running',
+    lateMinutes: 5,
+    lastLocation: { event: 'departed', place: 'Dublin Connolly' },
+    observedAt: '2026-09-17T07:58:00Z',
+  },
+  calls: [
+    {
+      stationCode: 'CNLLY',
+      stationId: CONNOLLY.id,
+      name: 'Dublin Connolly',
+      scheduledArrival: null,
+      scheduledDeparture: '08:00',
+      expectedArrival: null,
+      expectedDeparture: '08:05',
+    },
+    {
+      stationCode: 'DGHDA',
+      stationId: DROGHEDA.id,
+      name: 'Drogheda',
+      scheduledArrival: '08:30',
+      scheduledDeparture: '08:31',
+      expectedArrival: '08:35',
+      expectedDeparture: '08:36',
+    },
+    {
+      stationCode: 'ZZZZZ',
+      stationId: null,
+      name: null,
+      scheduledArrival: '09:00',
+      scheduledDeparture: '09:01',
+      expectedArrival: '09:05',
+      expectedDeparture: '09:06',
+    },
+    {
+      stationCode: 'BFSTC',
+      stationId: null,
+      name: 'Belfast',
+      scheduledArrival: '10:10',
+      scheduledDeparture: null,
+      expectedArrival: '10:15',
+      expectedDeparture: null,
+    },
+  ],
+  firstSeenAt: '2026-09-17T06:35:00Z',
+  lastSeenAt: '2026-09-17T07:58:00Z',
+};

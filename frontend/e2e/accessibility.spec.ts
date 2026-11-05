@@ -227,6 +227,10 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
   ['/island-of-ireland/iarnrod-eireann/stations/8220IR0007', '/island-of-ireland/iarnrod-eireann/stations/8220IR0007'],
   ['/island-of-ireland/iarnrod-eireann/stations/7020IR2162', '/island-of-ireland/iarnrod-eireann/stations/7020IR2162'],
   ['/island-of-ireland/ni-railways/stations/nir-bangor', '/island-of-ireland/ni-railways/stations/nir-bangor'],
+  [
+    '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
+    '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
+  ],
   ['/incidents', '/incidents'],
   [`/incidents/${REAL_INCIDENT_ID}`, `/incidents/${REAL_INCIDENT_ID}`],
   ['/trains', '/trains'],

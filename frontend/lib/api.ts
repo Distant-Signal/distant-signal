@@ -74,7 +74,7 @@ import type {
   TflStopDetail,
 } from './types';
 import type * as Api from './api-types';
-import type { IrelandBoard, IrelandDeparture, IrelandLine, IrelandStation } from './ireland';
+import type { IrelandBoard, IrelandDeparture, IrelandLine, IrelandStation, IrelandTrain } from './ireland';
 import { createLogger } from './logger';
 import { lineTimetableQuery } from './lineTrains';
 import { LIVE_PREVIEW_REVALIDATE_SECONDS } from './livePreview';
@@ -1553,6 +1553,17 @@ export async function getIrelandStationsOrNone(): Promise<IrelandStation[]> {
     log.warn('island of Ireland stations lookup failed; hiding its links', { error: err });
     return [];
   }
+}
+
+/** An Iarnród Éireann train's history from the departure boards
+ * (`GET /public/island-of-ireland/trains/{code}/{date}`); `null` when no
+ * board has shown it (404). Never cached: it changes every poll. */
+export async function getIrelandTrain(trainCode: string, serviceDate: string): Promise<IrelandTrain | null> {
+  const url = `${baseUrl()}/public/island-of-ireland/trains/${encodeURIComponent(trainCode)}/${encodeURIComponent(serviceDate)}`;
+  const response = await apiFetch(url, { cache: 'no-store' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return (await response.json()) as IrelandTrain;
 }
 
 /** A station's live board, asked for by its catalogue id, which the api

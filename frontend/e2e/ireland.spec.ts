@@ -31,6 +31,37 @@ test.describe('island of Ireland pages', () => {
     await expect(page.getByText('Live Irish Rail data from', { exact: false })).toBeVisible();
   });
 
+  test("a board row opens its train's page, with its delay and calling points", async ({ page }) => {
+    await page.goto('/island-of-ireland/iarnrod-eireann/stations/8220IR0007');
+    const board = page.getByRole('list', { name: 'Live departures' });
+    // "No Information": no report yet, never "On time".
+    await expect(board.getByRole('listitem').nth(1)).toContainText('No report yet');
+    await board.getByRole('link', { name: /to Belfast Grand Central/ }).click();
+
+    await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17$/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: '08:00 Dublin Connolly to Belfast Grand Central' }),
+    ).toBeVisible();
+    await expect(page.getByText('5 min late')).toBeVisible();
+    await expect(page.getByText('Left Dublin Connolly')).toBeVisible();
+    const calls = page.getByRole('list', { name: 'Calling points' }).getByRole('listitem');
+    await expect(calls).toHaveCount(3);
+    await expect(calls.nth(2)).toContainText('Belfast');
+    await expect(calls.nth(2)).toContainText('Arrives');
+    await calls.nth(1).getByRole('link').click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Drogheda' })).toBeVisible();
+  });
+
+  test('a train with no report says so, and an unseen train is not found', async ({ page }) => {
+    await page.goto('/island-of-ireland/iarnrod-eireann/trains/D802/2026-09-17');
+    await expect(page.getByText('No live report yet.')).toBeVisible();
+    await expect(page.getByText('On time')).toHaveCount(0);
+
+    const response = await page.goto('/island-of-ireland/iarnrod-eireann/trains/Z999/2026-09-17');
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1, name: "We haven't seen this train" })).toBeVisible();
+  });
+
   test('a line page draws its stations, including a corridor id with a slash', async ({ page }) => {
     await page.goto('/island-of-ireland/iarnrod-eireann');
     await page.getByRole('link', { name: 'Dublin - Drogheda/Dundalk' }).click();
@@ -65,6 +96,7 @@ test.describe('island of Ireland pages', () => {
       '/island-of-ireland/republic-of-ireland',
       '/island-of-ireland/ni-railways/lines/DUB-BFT',
       '/island-of-ireland/ni-railways/stations/nope',
+      '/island-of-ireland/ni-railways/trains/A101/2026-09-17',
     ]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);

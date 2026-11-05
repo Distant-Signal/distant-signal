@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import * as api from '@/lib/api';
-import { BANGOR, BELFAST, CONNOLLY, DEPARTURES, LINES, STATIONS } from '@/test/irelandFixtures';
+import { A101_TRAIN, BANGOR, BELFAST, CONNOLLY, DEPARTURES, LINES, STATIONS } from '@/test/irelandFixtures';
 import IrelandPage, { metadata } from './page';
 import IrelandNetworkPage, { generateMetadata as networkMetadata } from './[network]/page';
 import IrelandLinePage, { generateMetadata as lineMetadata } from './[network]/lines/[line]/page';
 import IrelandStationPage, { generateMetadata as stationMetadata } from './[network]/stations/[station]/page';
+import IrelandTrainPage, { generateMetadata as trainMetadata } from './[network]/trains/[train]/[date]/page';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -15,6 +16,7 @@ vi.mock('@/lib/api', async () => {
     getIrelandStations: vi.fn(),
     getIrelandLines: vi.fn(),
     getIrelandDepartures: vi.fn(),
+    getIrelandTrain: vi.fn(),
   };
 });
 
@@ -30,12 +32,16 @@ vi.mock('next/navigation', () => ({
 const network = (slug: string) => ({ params: Promise.resolve({ network: slug }) });
 const line = (slug: string, id: string) => ({ params: Promise.resolve({ network: slug, line: id }) });
 const station = (slug: string, id: string) => ({ params: Promise.resolve({ network: slug, station: id }) });
+const train = (slug: string, code: string, date: string) => ({
+  params: Promise.resolve({ network: slug, train: code, date }),
+});
 
 beforeEach(() => {
   cleanup();
   vi.mocked(api.getIrelandStations).mockResolvedValue(STATIONS);
   vi.mocked(api.getIrelandLines).mockResolvedValue(LINES);
   vi.mocked(api.getIrelandDepartures).mockResolvedValue({ departures: DEPARTURES, polledAt: '2026-11-04T09:05:03Z' });
+  vi.mocked(api.getIrelandTrain).mockResolvedValue(A101_TRAIN);
 });
 
 describe('/island-of-ireland', () => {
@@ -183,5 +189,83 @@ describe('/island-of-ireland/[network]/stations/[station]', () => {
 
   it("is not found for another network's station", async () => {
     await expect(IrelandStationPage(station('ni-railways', CONNOLLY.id))).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+});
+
+describe('/island-of-ireland/[network]/trains/[train]/[date]', () => {
+  it('names the train, shows its delay in words and its calling points', async () => {
+    renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'a101', '2026-09-17')));
+    expect(api.getIrelandTrain).toHaveBeenCalledWith('A101', '2026-09-17');
+    expect(
+      screen.getByRole('heading', { level: 1, name: '08:00 Dublin Connolly to Belfast Grand Central' }),
+    ).toBeTruthy();
+    expect(screen.getByText('Train code A101 · 17 Sep 2026')).toBeTruthy();
+    expect(screen.getByText('5 min late')).toBeTruthy();
+    expect(screen.getByText('Left Dublin Connolly')).toBeTruthy();
+    const calls = within(screen.getByRole('list', { name: 'Calling points' })).getAllByRole('listitem');
+    expect(calls.map((call) => call.getAttribute('data-station-code'))).toEqual(['CNLLY', 'DGHDA', 'BFSTC']);
+    expect(within(calls[0]!).getByRole('link').getAttribute('href')).toBe(
+      '/island-of-ireland/iarnrod-eireann/stations/8220IR0007',
+    );
+    expect(within(calls[2]!).queryByRole('link')).toBeNull();
+    expect(calls[2]!.textContent).toContain('Arrives · Timetabled 10:10');
+    expect(screen.getByText(/^Updated /)).toBeTruthy();
+    expect(document.querySelector('[data-credit="irish-rail-realtime"]')).not.toBeNull();
+    const meta = await trainMetadata(train('iarnrod-eireann', 'A101', '2026-09-17'));
+    expect(meta.title).toBe('08:00 Dublin Connolly to Belfast Grand Central');
+    expect(meta.robots).toBeTruthy();
+  });
+
+  it('says a train with no report has no report, not that it is on time', async () => {
+    vi.mocked(api.getIrelandTrain).mockResolvedValue({
+      ...A101_TRAIN,
+      live: { state: 'noReport', lateMinutes: null, lastLocation: null, observedAt: A101_TRAIN.lastSeenAt },
+    });
+    renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
+    expect(screen.getByText('No live report yet.')).toBeTruthy();
+    expect(screen.queryByText('On time')).toBeNull();
+    expect(document.querySelector('[data-delay-badge]')).toBeNull();
+  });
+
+  it('says when we last saw a train that dropped off the boards', async () => {
+    vi.mocked(api.getIrelandTrain).mockResolvedValue({
+      ...A101_TRAIN,
+      live: { ...A101_TRAIN.live, state: 'notSeenRecently' },
+    });
+    renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
+    expect(screen.getByText(/^We last saw this train at \d{2}:\d{2}\.$/)).toBeTruthy();
+    expect(document.querySelector('[data-delay-badge]')).toBeNull();
+  });
+
+  it('says an arrival at the destination', async () => {
+    vi.mocked(api.getIrelandTrain).mockResolvedValue({
+      ...A101_TRAIN,
+      live: {
+        ...A101_TRAIN.live,
+        state: 'arrived',
+        lastLocation: { event: 'arrived', place: 'Belfast Grand Central' },
+      },
+    });
+    renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
+    expect(screen.getByText('Arrived at Belfast Grand Central')).toBeTruthy();
+  });
+
+  it('keeps a heading when the train fails to load', async () => {
+    vi.mocked(api.getIrelandTrain).mockRejectedValue(new Error('500'));
+    renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
+    expect(screen.getByRole('heading', { level: 1, name: 'Train A101' })).toBeTruthy();
+    expect(screen.getByText("Couldn't load this train. Try again.")).toBeTruthy();
+  });
+
+  it('is not found for a train no board has shown, another network or a malformed address', async () => {
+    vi.mocked(api.getIrelandTrain).mockResolvedValue(null);
+    await expect(IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17'))).rejects.toThrow('NEXT_NOT_FOUND');
+    vi.mocked(api.getIrelandTrain).mockClear();
+    await expect(IrelandTrainPage(train('ni-railways', 'A101', '2026-09-17'))).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(IrelandTrainPage(train('iarnrod-eireann', 'ie%3AA101', '2026-09-17'))).rejects.toThrow(
+      'NEXT_NOT_FOUND',
+    );
+    await expect(IrelandTrainPage(train('iarnrod-eireann', 'A101', '17-09-2026'))).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(api.getIrelandTrain).not.toHaveBeenCalled();
   });
 });
