@@ -28,14 +28,21 @@ export const NO_REPORT_LABEL = 'No report yet';
  * `board` is `null` when the station has no live board, and `'failed'`
  * when it couldn't be loaded. A board says when it was polled, once,
  * above its rows. */
-export function IrelandDepartureBoard({ board }: { board: IrelandBoard | null | 'failed' }) {
+export function IrelandDepartureBoard({
+  board,
+  fromStation = null,
+}: {
+  board: IrelandBoard | null | 'failed';
+  /** This board's live station code, carried to each train's page. */
+  fromStation?: string | null;
+}) {
   if (board === 'failed') {
     return <ServiceListNotice>{describeFailure('load', 'departures')}</ServiceListNotice>;
   }
   if (board === null) {
     return <ServiceListNotice>We don&apos;t have live departures for this station.</ServiceListNotice>;
   }
-  const rows = departureRows(board.departures);
+  const rows = departureRows(board.departures, fromStation);
   const updated = board.polledAt ? <LastUpdated timestamp={board.polledAt} /> : null;
   if (rows.length === 0) {
     return (

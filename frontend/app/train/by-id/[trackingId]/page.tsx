@@ -11,6 +11,7 @@ import { REFRESH_INTERVAL_MS } from '@/lib/refresh';
 import { TIMES_IN_UK_LOCAL_TIME } from '@/lib/dateFormat';
 import type { Metadata } from 'next';
 import { trainIdentifiers, trainName } from '@/lib/trainName';
+import { irishTrainHref } from '@/lib/ireland';
 import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 export const metadata: Metadata = { title: 'Tracked train', robots: { index: false } };
@@ -65,6 +66,11 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
   // `TrackedTrainState`. Unresolved trains (no `trainUid` yet) fall through
   // to the local render below unchanged: there is no canonical URL to send
   // them to yet.
+  // An Iarnród Éireann train's page is its code and service date
+  // (`irishTrain`); it overlays the same owner controls.
+  if (state.irishTrain) {
+    redirect(irishTrainHref(state.irishTrain));
+  }
   if (state.resolutionStatus === 'resolved' && state.trainUid) {
     // encodeURIComponent, matching `getPublicTrainByUidAndDate` (lib/api.ts),
     // which encodes this identical (uid, date) pair before building its own

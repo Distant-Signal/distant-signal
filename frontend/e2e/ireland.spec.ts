@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type BrowserContext } from '@playwright/test';
 
 // The island of Ireland pages against the live api and the seed's Irish
 // stations, lines and Dublin Connolly's live board
@@ -38,7 +38,8 @@ test.describe('island of Ireland pages', () => {
     await expect(board.getByRole('listitem').nth(1)).toContainText('No report yet');
     await board.getByRole('link', { name: /to Belfast Grand Central/ }).click();
 
-    await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17$/);
+    // The board's station rides along, for "Track this train".
+    await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17\?from=CNLLY$/);
     await expect(
       page.getByRole('heading', { level: 1, name: '08:00 Dublin Connolly to Belfast Grand Central' }),
     ).toBeVisible();
@@ -109,5 +110,90 @@ test.describe('island of Ireland pages', () => {
     await page.getByRole('option', { name: /Holywood/ }).click();
     await page.getByRole('button', { name: 'Look up' }).click();
     await expect(page).toHaveURL(/\/island-of-ireland\/ni-railways\/stations\/nir-holywood$/);
+  });
+});
+
+// Tracking (2b) and sharing (4) an Iarnród Éireann train, logged in as
+// the seed's fixture-owner. Serial, and the train tracked here is untracked
+// again: other specs and the visual screenshots read the same rows.
+const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE;
+const GROUP_ID = process.env.E2E_GROUP_ID ?? 'fixture-group-1';
+
+async function logIn(context: BrowserContext) {
+  const base = new URL(process.env.E2E_BASE_URL ?? 'http://localhost:3000');
+  await context.addCookies([
+    {
+      name: 'distant_signal_session',
+      value: SESSION_COOKIE ?? '',
+      domain: base.hostname,
+      path: '/',
+      expires: -1,
+      httpOnly: true,
+      secure: base.protocol === 'https:',
+      sameSite: 'Lax',
+    },
+  ]);
+}
+
+/** Dublin's date now, as the seed dates A102. */
+function dublinToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Dublin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+test.describe('tracking an Iarnród Éireann train', () => {
+  test.describe.configure({ mode: 'serial' });
+  test.skip(!SESSION_COOKIE, 'needs E2E_SESSION_COOKIE');
+
+  test('a train running today is tracked from its page, then untracked', async ({ page, context }) => {
+    await logIn(context);
+    const date = dublinToday();
+    await page.goto(`/island-of-ireland/iarnrod-eireann/trains/A102/${date}?from=CNLLY`);
+    await expect(page.getByRole('heading', { level: 1, name: '09:00 Dublin Connolly to Drogheda' })).toBeVisible();
+    await page.getByRole('button', { name: 'Track this train' }).click();
+    // fixture-owner has a group, so the picker asks where to: Personal.
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirm' }).click();
+
+    await expect(page).toHaveURL(/\/journeys\/\d+$/);
+    await expect(page.getByRole('heading', { level: 1, name: /Dublin Connolly to Drogheda/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Train A102' }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/island-of-ireland/iarnrod-eireann/trains/A102/${date}$`));
+    await expect(page.getByRole('button', { name: 'Track this train' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Open journey' })).toBeVisible();
+
+    // Stop tracking it, from the same page: the button comes back.
+    await page.getByRole('button', { name: /stop tracking/i }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /stop tracking/i })
+      .click();
+    await expect(page.getByRole('button', { name: 'Track this train' })).toBeVisible();
+  });
+
+  test('a shared Irish train and journey are named by their boards and link to the train', async ({
+    page,
+    context,
+  }) => {
+    await logIn(context);
+    await page.goto(`/groups/${GROUP_ID}`);
+    // The shared journey, named by its ends (no codes), opens to its leg.
+    const journey = page.getByRole('link', {
+      name: 'Dublin Connolly to Belfast Grand Central, 17 Sep 2026',
+      exact: true,
+    });
+    await expect(journey).toHaveAttribute('href', '/journeys/900121');
+    // The shared train links straight to its Irish page.
+    const train = page.getByRole('link', { name: /^Dublin Connolly to Belfast Grand Central, 17 Sep 2026 · / });
+    await train.click();
+    await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17$/);
+
+    await page.goto('/journeys/900121');
+    await page.getByRole('link', { name: 'Train A101' }).click();
+    await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17$/);
   });
 });

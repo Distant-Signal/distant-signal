@@ -1,8 +1,10 @@
 # Iarnród Éireann train tracking
 
 Design, 2026-11-05. Status: **accepted 2026-11-05, with phase 2 split
-into 2a and 2b** (DS-369; §11). It covers phases 1 to 4 of bringing
-Iarnród Éireann trains toward what GB train tracking does. "§"
+into 2a and 2b** (DS-369; §11). Phases 2b to 4 were built on ds-core
+v0.4.1 with one accepted deviation from §5.3 (the note there). It
+covers phases 1 to 4 of bringing Iarnród Éireann trains toward what GB
+train tracking does. "§"
 alone means a section of this document. "Pages §n" means
 [the island of Ireland pages design](2026-11-04-island-of-ireland-pages-design.md),
 and "support §n" means
@@ -480,6 +482,14 @@ It skips `enrich_shared_train`, the CIF match and the backlog match. It
 also derives the first `train_current_state` from the stored history, so
 the new journey shows the train's current state without waiting for the
 next poll.
+
+> **As built (accepted 2026-11-06):** the api's role may only read
+> `train_current_state` and `notifier_forward_queue` (security review L3),
+> and that stays so. The route writes no state. Instead, while a tracked
+> `ie:` train has no state row, the reads (`data::irish_trains::attach`)
+> derive the same state from the stored history that the writer would, and
+> the writer's row takes over at the next board that shows the train. A
+> train the boards no longer show gets no state row, and wakes no push.
 
 This is a dedicated route rather than a new `POST /Journeys` leg mode. That
 keeps `validate_train_uid` and the knownTrain checks GB-only and leaves the

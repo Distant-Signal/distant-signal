@@ -34,6 +34,7 @@ import { groupJourneyRowStatus, trackedTrainRowStatus } from '@/lib/trackedRowSt
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { trackedTrainDisplayName } from '@/lib/trackingName';
+import { irishTrainHref } from '@/lib/ireland';
 import { groupJourneyNameInput, journeyDisplayName, journeyPreviewLine } from '@/lib/journeyName';
 import { worstStatus } from '@/lib/severity';
 import { groupRoleLabel, memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/memberLabel';
@@ -434,10 +435,22 @@ function SharedTrainRow({
     serviceDate: train.serviceDate,
     pinScheduledDeparture: train.pinScheduledDeparture,
   });
-  return (
-    <Card withBorder>
+  // An Iarnród Éireann train's page is public: link it, the whole card as
+  // on a journey row. A GB train's row stays unlinked (its by-id page is
+  // the sharer's own).
+  const irishHref = train.irishTrain ? irishTrainHref(train.irishTrain) : null;
+  const content = (
+    <>
       <StatusRow
-        title={displayName}
+        title={
+          irishHref ? (
+            <Text fw={500}>
+              <CardTitleLink href={irishHref}>{displayName}</CardTitleLink>
+            </Text>
+          ) : (
+            displayName
+          )
+        }
         subtitle={
           <Text size="sm" c="dimmed">
             {/* Same helper as `MemberRow`'s own `label` above, so the
@@ -465,8 +478,9 @@ function SharedTrainRow({
         <TrackedRowStatusBadge status={trackedTrainRowStatus(train, londonDayKey(new Date()))} />
         {canRemove && <RemoveGroupTrainButton groupId={groupId} trainSubscriptionId={train.trainSubscriptionId} />}
       </Group>
-    </Card>
+    </>
   );
+  return irishHref ? <ClickableCard>{content}</ClickableCard> : <Card withBorder>{content}</Card>;
 }
 
 /** One journey shared into this group -- mirrors `SharedTrainRow` exactly,

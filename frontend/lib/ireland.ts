@@ -69,11 +69,43 @@ export function irelandStationHref(slug: string, stationId: string): string {
   return `${IRELAND_PATH}/${slug}/stations/${encodeURIComponent(stationId)}`;
 }
 
+/** A live station code (`CNLLY`), as the track route takes it. */
+export const IRELAND_STATION_CODE = /^[A-Za-z0-9]{1,12}$/;
+
 /** An Iarnród Éireann train's page: its code and the day it started
  * (docs/superpowers/specs/2026-11-05-irish-rail-train-tracking-design.md
- * §9). Only Iarnród Éireann has live boards, so only it has train pages. */
-export function irelandTrainHref(slug: string, trainCode: string, serviceDate: string): string {
-  return `${IRELAND_PATH}/${slug}/trains/${encodeURIComponent(trainCode)}/${serviceDate}`;
+ * §9). Only Iarnród Éireann has live boards, so only it has train pages.
+ * `from`, the live code of the board the visitor came from, rides along
+ * as `?from=` so "Track this train" can say where they board. */
+export function irelandTrainHref(slug: string, trainCode: string, serviceDate: string, from?: string | null): string {
+  const path = `${IRELAND_PATH}/${slug}/trains/${encodeURIComponent(trainCode)}/${serviceDate}`;
+  const code = from?.trim() ?? '';
+  return IRELAND_STATION_CODE.test(code) ? `${path}?from=${encodeURIComponent(code.toUpperCase())}` : path;
+}
+
+/** The page of a tracked Irish train, from an api row's `irishTrain`. */
+export function irishTrainHref(train: { trainCode: string; serviceDate: string }): string {
+  return irelandTrainHref('iarnrod-eireann', train.trainCode, train.serviceDate);
+}
+
+/** Dublin's date at `now`, `YYYY-MM-DD`: Irish trains' service dates are
+ * Dublin's. */
+export function dublinToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Dublin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+/** Whether a train of `serviceDate` can be tracked at `now`: the api takes
+ * Dublin's today or yesterday (a train seen on a board, still running or
+ * just run). */
+export function isTrackableIrishDate(serviceDate: string, now: Date = new Date()): boolean {
+  const today = dublinToday(now);
+  const yesterday = dublinToday(new Date(Date.parse(`${today}T12:00:00Z`) - 24 * 60 * 60 * 1000));
+  return serviceDate === today || serviceDate === yesterday;
 }
 
 /** A train code as the api takes it (`A120`, `E101`). */
@@ -180,8 +212,12 @@ export function reportedLateMinutes(
 
 /** A live board's departures, in the api's order (soonest first). A train
  * with no departure time ends its run here, so it is left out. A row links
- * to its train's page when the board gives the day it started. */
-export function departureRows(departures: readonly IrelandDeparture[]): DepartureRow[] {
+ * to its train's page when the board gives the day it started, carrying
+ * `fromStation` (this board's live code) along. */
+export function departureRows(
+  departures: readonly IrelandDeparture[],
+  fromStation: string | null = null,
+): DepartureRow[] {
   const slug = networkInfo('republic-of-ireland')?.slug ?? null;
   return departures.flatMap((departure, index) => {
     const scheduled = departure.scheduledDeparture?.trim() ?? '';
@@ -200,7 +236,7 @@ export function departureRows(departures: readonly IrelandDeparture[]): Departur
         origin: departure.origin.trim(),
         trainCode,
         lateMinutes: reportedLateMinutes(departure),
-        href: linkable ? irelandTrainHref(slug, trainCode, trainDate) : null,
+        href: linkable ? irelandTrainHref(slug, trainCode, trainDate, fromStation) : null,
       },
     ];
   });

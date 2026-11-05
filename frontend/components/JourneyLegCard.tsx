@@ -17,6 +17,7 @@ import { formatDate } from '@/lib/dateFormat';
 import { routeLabel, stationLabel } from '@/lib/stationLabel';
 import { legSearchPrefill, type LegSearch } from '@/lib/legSearch';
 import type { JourneyLegDetail } from '@/lib/types';
+import { irishTrainHref } from '@/lib/ireland';
 
 /** Decorative "needs attention" glyph for the open-leg card (review
  * §2.3/I15). `@tabler/icons-react` isn't a project dependency (see
@@ -328,10 +329,18 @@ export function JourneyLegCard({
                 stay out of public metadata; a per-leg link to an
                 already-public train page is a different, unrelated
                 concern). */}
-            {state.trainUid && (
-              <TextLink href={`/train/${encodeURIComponent(state.trainUid)}/${leg.serviceDate}`} size="xs">
-                Train {state.trainUid}
+            {state.irishTrain ? (
+              // An Iarnród Éireann train's own page (its code, not the
+              // internal `ie:` uid).
+              <TextLink href={irishTrainHref(state.irishTrain)} size="xs">
+                Train {state.irishTrain.trainCode}
               </TextLink>
+            ) : (
+              state.trainUid && (
+                <TextLink href={`/train/${encodeURIComponent(state.trainUid)}/${leg.serviceDate}`} size="xs">
+                  Train {state.trainUid}
+                </TextLink>
+              )
             )}
           </Stack>
           {/* `isOwner` is Phase 4's sharing gate -- a shared-group viewer

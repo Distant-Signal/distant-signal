@@ -56,6 +56,8 @@ export function toJourneyState(train: PublicTrainState): TrainJourneyState {
     pinDestinationCrs: train.destinationCrs,
     pinDestinationName: train.destinationName,
     pinScheduledDeparture: train.scheduledDeparture,
+    // `GET /Train/by-uid` is GB-only.
+    irishTrain: null,
     resolutionStatus: train.trainId ? 'resolved' : train.originCrs ? 'schedule_matched' : 'pending',
     trainUid: train.trainUid,
     trainId: train.trainId,

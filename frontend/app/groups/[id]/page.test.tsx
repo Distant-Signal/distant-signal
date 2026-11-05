@@ -159,6 +159,56 @@ describe('GroupDetailPage', () => {
     expect(screen.queryByText('en_route')).not.toBeInTheDocument();
   });
 
+  it('links a shared Iarnród Éireann train to its page, named by its boards', async () => {
+    vi.mocked(getGroup).mockResolvedValue({
+      id: 'grp-1',
+      name: 'Family',
+      ownerId: 'user-1',
+      ownerName: 'Alex',
+      ownerTag: null,
+      memberCount: 2,
+      role: 'member',
+      inviteLink: null,
+    });
+    vi.mocked(getGroupMembers).mockResolvedValue([]);
+    vi.mocked(getGroupTrains).mockResolvedValue([
+      {
+        ...GROUP_TRAIN_DEFAULTS,
+        trainSubscriptionId: 42,
+        pinOriginCrs: null,
+        pinDestinationCrs: null,
+        pinOriginName: 'Dublin Connolly',
+        pinDestinationName: 'Belfast',
+        pinScheduledDeparture: '2026-11-05T15:50:00Z',
+        serviceDate: '2026-11-05',
+        resolutionStatus: 'resolved',
+        trainUid: 'ie:A120',
+        status: 'en_route',
+        delayMinutes: 2,
+        customName: null,
+        addedBy: 'user-2',
+        addedByName: 'Sam',
+        addedByTag: null,
+        irishTrain: { trainCode: 'A120', serviceDate: '2026-11-05' },
+      },
+    ]);
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
+      authenticated: true,
+      id: 'user-1',
+      username: null,
+      name: 'Alex',
+      groups: [],
+      personalTokensEnabled: false,
+      analyticsOptIn: false,
+    });
+
+    renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
+
+    const link = screen.getByRole('link', { name: /Dublin Connolly to Belfast/ });
+    expect(link.getAttribute('href')).toBe('/island-of-ireland/iarnrod-eireann/trains/A120/2026-11-05');
+    expect(screen.queryByText(/ie:A120/)).not.toBeInTheDocument();
+  });
+
   it("a shared train's badge uses the owner's tracking phase and mode", async () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',

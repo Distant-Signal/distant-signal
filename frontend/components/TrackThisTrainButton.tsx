@@ -9,6 +9,7 @@ import { TrackDestinationModal } from './TrackDestinationModal';
 import { useGroupSummaries } from '@/lib/useGroupSummaries';
 import { shareTrackedTrainToGroup } from '@/lib/shareTrackedTrain';
 import type { CreateJourneyResponse } from '@/lib/types';
+import type { TrackIrishTrainRequest, TrackIrishTrainResponse } from '@/lib/api-types';
 import { ButtonSpinner } from '@/components/LoadingText';
 
 /** The "Track this train" action for a train whose real CIF identity is
@@ -70,17 +71,31 @@ import { ButtonSpinner } from '@/components/LoadingText';
  * tracking succeeds, sharing into the chosen group
  * (`shareTrackedTrainToGroup`) is a second best-effort follow-up, same
  * swallow-every-failure posture as the `attachTicketId` block right below
- * it -- see that helper's own doc comment. */
+ * it -- see that helper's own doc comment.
+ *
+ * An Iarnród Éireann train (`irish`, from its page) has no CIF identity:
+ * it is tracked by its code and service date through
+ * `POST /Journeys/irish-train`, which answers the same `journeyId` and
+ * `trackingId`
+ * (docs/superpowers/specs/2026-11-05-irish-rail-train-tracking-design.md
+ * §9). The group picker and the redirect are the same. */
 export function TrackThisTrainButton({
   uid,
   date,
+  irish,
   attachTicketId,
   size = 'sm',
   variant = 'filled',
   noun = 'train',
-}: {
-  uid: string;
-  date: string;
+}: (
+  | { uid: string; date: string; irish?: undefined }
+  | {
+      uid?: undefined;
+      date?: undefined;
+      /** The Irish train to track, and the board it was opened from. */
+      irish: TrackIrishTrainRequest;
+    }
+) & {
   attachTicketId?: number | undefined;
   size?: 'xs' | 'sm' | 'md';
   /** `light` where tracking is a secondary action on the page (a train's
@@ -104,16 +119,22 @@ export function TrackThisTrainButton({
     needsLoginState.reset();
     setError(null);
     try {
-      const response = await fetch('/api/Journeys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leg: { mode: 'knownTrain', trainUid: uid, serviceDate: date },
-        }),
-      });
+      const response = irish
+        ? await fetch('/api/Journeys/irish-train', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(irish),
+          })
+        : await fetch('/api/Journeys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              leg: { mode: 'knownTrain', trainUid: uid, serviceDate: date },
+            }),
+          });
 
       if (response.ok) {
-        const result = (await response.json()) as CreateJourneyResponse;
+        const result = (await response.json()) as CreateJourneyResponse | TrackIrishTrainResponse;
         if (attachTicketId !== undefined) {
           // Best-effort, exactly as before -- tracking has already
           // succeeded above. Still keyed on `trackingId`, not the new
@@ -139,6 +160,10 @@ export function TrackThisTrainButton({
       }
       if (response.status === 401) {
         needsLoginState.markNeedsLogin();
+        return;
+      }
+      if (irish && response.status === 404) {
+        setError("We haven't seen this train on a departure board.");
         return;
       }
       setError("Couldn't track this train. Try again.");

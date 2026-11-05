@@ -14,7 +14,10 @@ import {
 } from '@/test/irelandFixtures';
 import {
   departureRows,
+  dublinToday,
   IRELAND_ID,
+  irishTrainHref,
+  isTrackableIrishDate,
   irelandTrainHref,
   irelandTrainIdentifiers,
   irelandTrainName,
@@ -158,6 +161,13 @@ describe('live boards', () => {
     expect(odd?.href).toBeNull();
   });
 
+  it("carries the board's station to the train's page, for tracking from it", () => {
+    const [row] = departureRows(DEPARTURES, 'cnlly');
+    expect(row?.href).toMatch(/\/trains\/[A-Z0-9]+\/\d{4}-\d{2}-\d{2}\?from=CNLLY$/);
+    const [plain] = departureRows(DEPARTURES, 'not a code');
+    expect(plain?.href).not.toContain('?from=');
+  });
+
   it('falls back to the timetabled time when the expected one is missing or malformed', () => {
     const [row] = departureRows([{ ...DEPARTURES[0]!, expectedDeparture: '00:0' }]);
     expect(row?.time).toBe('08:00');
@@ -243,5 +253,28 @@ describe('train page helpers', () => {
       // ZZZZZ has no name anywhere, so it is left out, never shown raw.
       { key: 'BFSTC', time: '10:15', scheduled: '10:10', arrivalOnly: true, name: 'Belfast', href: null },
     ]);
+  });
+});
+
+describe('tracking an Irish train', () => {
+  it("links an api row's irishTrain to the train's page", () => {
+    expect(irishTrainHref({ trainCode: 'A120', serviceDate: '2026-11-05' })).toBe(
+      '/island-of-ireland/iarnrod-eireann/trains/A120/2026-11-05',
+    );
+    expect(irelandTrainHref('iarnrod-eireann', 'A120', '2026-11-05', 'bfstc')).toBe(
+      '/island-of-ireland/iarnrod-eireann/trains/A120/2026-11-05?from=BFSTC',
+    );
+  });
+
+  it("dates by Dublin's calendar, and takes today and yesterday only", () => {
+    // 00:30 on 6 November in Dublin (UTC+0 in winter).
+    const now = new Date('2026-11-06T00:30:00Z');
+    expect(dublinToday(now)).toBe('2026-11-06');
+    expect(isTrackableIrishDate('2026-11-06', now)).toBe(true);
+    expect(isTrackableIrishDate('2026-11-05', now)).toBe(true);
+    expect(isTrackableIrishDate('2026-11-04', now)).toBe(false);
+    expect(isTrackableIrishDate('2026-11-07', now)).toBe(false);
+    // 23:30 UTC on 30 June is already 1 July in Irish summer time.
+    expect(dublinToday(new Date('2026-06-30T23:30:00Z'))).toBe('2026-07-01');
   });
 });

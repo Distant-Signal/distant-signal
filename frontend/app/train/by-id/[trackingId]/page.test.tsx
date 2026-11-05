@@ -214,4 +214,20 @@ describe('TrackedTrainByIdPage success path', () => {
     await expect(renderPage('42')).rejects.toThrow('NEXT_REDIRECT:/train/W12%2045/2026-09-08');
     expect(redirectMock).toHaveBeenCalledWith('/train/W12%2045/2026-09-08');
   });
+
+  // An Iarnród Éireann train's page is its code and service date
+  // (`irishTrain`), never the internal `ie:` uid.
+  it('redirects an Irish train to its Iarnród Éireann page', async () => {
+    vi.mocked(api.getTrackedTrainById).mockResolvedValue(
+      trackedTrainState({
+        resolutionStatus: 'resolved',
+        trainUid: 'ie:A120',
+        serviceDate: '2026-11-05',
+        irishTrain: { trainCode: 'A120', serviceDate: '2026-11-05' },
+      }),
+    );
+    await expect(renderPage('42')).rejects.toThrow(
+      'NEXT_REDIRECT:/island-of-ireland/iarnrod-eireann/trains/A120/2026-11-05',
+    );
+  });
 });

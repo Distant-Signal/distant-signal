@@ -22,7 +22,7 @@ import { StatusRow } from '@/components/StatusRow';
 import { TrackedTrainRowMenu } from '@/components/TrackedTrainRowMenu';
 import { TrackedRowStatusBadge } from '@/components/TrackedRowStatusBadge';
 import { formatDate, formatTime, londonDayKey } from '@/lib/dateFormat';
-import { trackedTrainDisplayName, trackedTrainHref, trackedTrainRouteLabel } from '@/lib/trackingName';
+import { publicTrainHref, trackedTrainDisplayName, trackedTrainHref, trackedTrainRouteLabel } from '@/lib/trackingName';
 import { mergeSharedTrains, type MergedSharedTrain } from '@/lib/sharedTrains';
 import { splitJourneyTrains } from '@/lib/journeyTrains';
 import { memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/memberLabel';
@@ -561,7 +561,7 @@ function SharedTrainListRow({ row, status }: { row: MergedSharedTrain; status: T
   const when = train.pinScheduledDeparture
     ? `${formatDate(train.serviceDate)} · ${formatTime(train.pinScheduledDeparture)}`
     : formatDate(train.serviceDate);
-  const href = train.trainUid ? `/train/${train.trainUid}/${train.serviceDate}` : null;
+  const href = publicTrainHref(train);
   const heading = (
     <Text fw={500} lineClamp={2} miw={0}>
       {href ? <CardTitleLink href={href}>{displayName}</CardTitleLink> : displayName}

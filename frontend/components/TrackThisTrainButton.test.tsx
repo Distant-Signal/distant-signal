@@ -302,3 +302,53 @@ describe('TrackThisTrainButton', () => {
     });
   });
 });
+
+/** An Iarnród Éireann train, from its page: tracked by code and date
+ * through `POST /api/Journeys/irish-train`, then the same redirect. */
+describe('TrackThisTrainButton for an Irish train', () => {
+  beforeEach(() => {
+    pushMock.mockClear();
+  });
+
+  function irishFetch(response: () => Response) {
+    return vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/api/Journeys/irish-train')) return Promise.resolve(response());
+      throw new Error(`unexpected fetch for ${url}`);
+    });
+  }
+
+  it('posts the code, date and boarding station, then opens the journey', async () => {
+    const fetchMock = irishFetch(
+      () => new Response(JSON.stringify({ journeyId: 812, trackingId: 4411 }), { status: 201 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithGroups(
+      <TrackThisTrainButton irish={{ trainCode: 'A120', serviceDate: '2026-11-05', fromStation: 'CNLLY' }} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/812'));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/Journeys/irish-train',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ trainCode: 'A120', serviceDate: '2026-11-05', fromStation: 'CNLLY' }),
+      }),
+    );
+  });
+
+  it('says so when no board has shown the train', async () => {
+    vi.stubGlobal(
+      'fetch',
+      irishFetch(() => new Response("We haven't seen this train on a departure board.", { status: 404 })),
+    );
+    renderWithGroups(<TrackThisTrainButton irish={{ trainCode: 'A120', serviceDate: '2026-11-05' }} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
+
+    expect(await screen.findByText("We haven't seen this train on a departure board.")).toBeTruthy();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+});
