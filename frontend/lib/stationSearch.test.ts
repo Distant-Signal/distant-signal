@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { rankStationResults, searchKey, searchStationsAndStops } from './stationSearch';
+import { __resetIrelandStationsForTests, rankStationResults, searchKey, searchStationsAndStops } from './stationSearch';
 import type { Suggestion } from './types';
 
 function json(body: unknown, status = 200): Response {
@@ -41,6 +41,39 @@ describe('rankStationResults', () => {
 describe('searchStationsAndStops', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    __resetIrelandStationsForTests();
+  });
+
+  it('adds Irish stations, named by network and leading to their pages, fetched once', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith('/api/stations')) return json([{ code: 'BNG', name: 'Bangor (Gwynedd)' }]);
+      if (url === '/api/island-of-ireland/stations')
+        return json([
+          { id: 'nir-bangor', name: 'Bangor', network: 'northern-ireland', latitude: null, longitude: null },
+          { id: 'nir-bangor-west', name: 'Bangor West', network: 'northern-ireland', latitude: null, longitude: null },
+          {
+            id: '8220IR0007',
+            name: 'Dublin Connolly',
+            network: 'republic-of-ireland',
+            latitude: null,
+            longitude: null,
+          },
+          { id: 'x', name: 'Bangor Mars', network: 'mars' },
+        ]);
+      return json({ networks: [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await searchStationsAndStops('bangor');
+    expect(results.map((s) => [s.code, s.name, s.detail])).toEqual([
+      ['ireland:nir-bangor', 'Bangor', 'NI Railways station'],
+      ['BNG', 'Bangor (Gwynedd)', undefined],
+      ['ireland:nir-bangor-west', 'Bangor West', 'NI Railways station'],
+    ]);
+    expect(results[0]?.place).toEqual({ kind: 'ireland', href: '/island-of-ireland/ni-railways/stations/nir-bangor' });
+
+    await searchStationsAndStops('connolly');
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/island-of-ireland/stations')).toHaveLength(1);
   });
 
   it('returns nothing for a blank query without fetching', async () => {

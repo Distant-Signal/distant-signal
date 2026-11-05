@@ -1091,3 +1091,53 @@ ON CONFLICT (journey_id, leg_order) DO NOTHING;
 INSERT INTO unlisted_links (token_hash, resource_type, resource_id, created_by, created_at, expires_at)
 VALUES (encode(sha256(convert_to('fixture-leg-progress-token-12345', 'UTF8')), 'hex'), 'journey', '900002', 'fixture-member', NOW(), NOW() + INTERVAL '30 days')
 ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Island of Ireland: a few Iarnród Éireann and NI Railways stations and
+-- lines, and one live board (the /island-of-ireland pages,
+-- docs/superpowers/specs/2026-11-04-island-of-ireland-pages-design.md;
+-- e2e/ireland.spec.ts). Names are the display names the api serves (NI
+-- Railways' tidied, the source's spelling in raw_name). Dublin Connolly has
+-- the live code CNLLY, and its board is keyed by that code, as the poller
+-- keys it; the departures route resolves the catalogue id through it.
+-- Belfast Grand Central has no live code, so its page says it has no
+-- board. The departures are stored as the poller writes them (snake_case);
+-- their times are fixed, the page shows them as given.
+-- ---------------------------------------------------------------------
+INSERT INTO island_of_ireland_stations (id, name, network, latitude, longitude, live_code, raw_name)
+VALUES
+  ('8220IR0007', 'Dublin Connolly', 'republic-of-ireland', 53.3531, -6.2461, 'CNLLY', NULL),
+  ('8300IR0074', 'Drogheda', 'republic-of-ireland', 53.7123, -6.3355, 'DGHDA', NULL),
+  ('7020IR2162', 'Belfast Grand Central', 'republic-of-ireland', 54.5953, -5.9395, NULL, NULL),
+  ('nir-belfast-central', 'Lanyon Place', 'northern-ireland', 54.5954, -5.9178, NULL, 'BELFAST - CENTRAL RAIL STATION'),
+  ('nir-holywood', 'Holywood', 'northern-ireland', 54.6378, -5.8391, NULL, 'HOLLYWOOD RAIL HALT'),
+  ('nir-bangor', 'Bangor', 'northern-ireland', 54.6600, -5.6697, NULL, 'BANGOR RAIL STATION'),
+  ('nir-l-derry', 'Derry~Londonderry', 'northern-ireland', 54.9939, -7.3132, NULL, 'L''DERRY RAIL STATION')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, network = EXCLUDED.network, live_code = EXCLUDED.live_code, raw_name = EXCLUDED.raw_name;
+
+INSERT INTO island_of_ireland_lines (id, name, short_name, network, agency, color, text_color, stations)
+VALUES
+  ('DUB-BFT', 'Dublin - Belfast', NULL, 'republic-of-ireland', 'Iarnród Éireann / Irish Rail', '#00843D', '#FFFFFF',
+   '["8220IR0007", "8300IR0074", "7020IR2162"]'),
+  ('DUB-DRO/DUN', 'Dublin - Drogheda/Dundalk', NULL, 'republic-of-ireland', 'Iarnród Éireann / Irish Rail', NULL, NULL,
+   '["8220IR0007", "8300IR0074"]'),
+  ('nir-bangor-line', 'Bangor Line', NULL, 'northern-ireland', 'NI Railways', NULL, NULL,
+   '["nir-belfast-central", "nir-holywood", "nir-bangor"]')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, agency = EXCLUDED.agency, color = EXCLUDED.color, text_color = EXCLUDED.text_color,
+  stations = EXCLUDED.stations;
+
+INSERT INTO island_of_ireland_station_samples (station_id, network, polled_at, departures)
+VALUES (
+  'CNLLY',
+  'republic-of-ireland',
+  NOW(),
+  '[{"train_code": "A101", "origin": "Dublin Connolly", "destination": "Belfast Grand Central",
+     "scheduled_departure": "08:00", "expected_departure": "08:05", "late_minutes": 5,
+     "status": "En Route", "due_in_minutes": 12},
+    {"train_code": "D802", "origin": "Dublin Connolly", "destination": "Drogheda",
+     "scheduled_departure": "08:10", "expected_departure": "08:10", "late_minutes": 0,
+     "status": "No Information", "due_in_minutes": 22}]'
+)
+ON CONFLICT (station_id) DO UPDATE SET polled_at = EXCLUDED.polled_at, departures = EXCLUDED.departures;

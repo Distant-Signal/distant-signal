@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { buildSitemap, isExcludedPath, LEGAL_PATHS, SITEMAP_URL_LIMIT, sitemapPaths, STATIC_PATHS } from './sitemap';
+import {
+  buildSitemap,
+  irelandSitemapPaths,
+  isExcludedPath,
+  LEGAL_PATHS,
+  SITEMAP_URL_LIMIT,
+  sitemapPaths,
+  STATIC_PATHS,
+} from './sitemap';
+import { LINES, STATIONS, CONNOLLY, ENTERPRISE, BANGOR_LINE } from '@/test/irelandFixtures';
 import type { LineSummary } from './types';
 
 const line = (id: string, source: LineSummary['source']): LineSummary => ({
@@ -17,6 +26,32 @@ const SOURCES = {
   transit: [{ id: 'metrolink', lineIds: ['blue'], stopIds: ['9400ZZMAPIC'] }],
   legalPublished: true,
 };
+
+describe('irelandSitemapPaths', () => {
+  it('lists the overview, each network with stations, and its lines and stations', () => {
+    const paths = irelandSitemapPaths({ stations: STATIONS, lines: LINES });
+    expect(paths.slice(0, 3)).toEqual([
+      '/island-of-ireland',
+      '/island-of-ireland/ni-railways',
+      '/island-of-ireland/iarnrod-eireann',
+    ]);
+    expect(paths).toContain('/island-of-ireland/iarnrod-eireann/stations/8220IR0007');
+    expect(paths).toContain('/island-of-ireland/iarnrod-eireann/lines/DUB-DRO%2FDUN');
+    expect(paths).toContain('/island-of-ireland/ni-railways/lines/nir-bangor-line');
+  });
+
+  it('lists nothing while the feeds are off, and no line of a network without stations', () => {
+    expect(irelandSitemapPaths({ stations: [], lines: LINES })).toEqual([]);
+    const paths = irelandSitemapPaths({ stations: [CONNOLLY], lines: [ENTERPRISE, BANGOR_LINE] });
+    expect(paths).not.toContain('/island-of-ireland/ni-railways/lines/nir-bangor-line');
+    expect(paths).not.toContain('/island-of-ireland/ni-railways');
+  });
+
+  it('is part of the sitemap when given', () => {
+    expect(sitemapPaths({ ...SOURCES, ireland: { stations: STATIONS, lines: LINES } })).toContain('/island-of-ireland');
+    expect(sitemapPaths(SOURCES)).not.toContain('/island-of-ireland');
+  });
+});
 
 describe('sitemapPaths', () => {
   const paths = sitemapPaths(SOURCES);

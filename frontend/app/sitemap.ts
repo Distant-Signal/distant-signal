@@ -2,6 +2,8 @@ import type { MetadataRoute } from 'next';
 import { connection } from 'next/server';
 import {
   getPublicLines,
+  getIrelandLines,
+  getIrelandStations,
   getStationCodes,
   getTflStopIds,
   getTransitNetwork,
@@ -53,12 +55,14 @@ async function transitNetworks(): Promise<TransitSitemapNetwork[]> {
  * the api nothing between refreshes. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
-  const [origin, stationCodes, tflStopIds, lines, transit] = await Promise.all([
+  const [origin, stationCodes, tflStopIds, lines, transit, irelandStations, irelandLines] = await Promise.all([
     getSiteOrigin(),
     orEmpty('stations', () => getStationCodes(SITEMAP_REVALIDATE_SECONDS)),
     orEmpty('tfl stops', () => getTflStopIds(SITEMAP_REVALIDATE_SECONDS)),
     orEmpty('lines', () => getPublicLines(SITEMAP_REVALIDATE_SECONDS)),
     orEmpty('transit', transitNetworks),
+    orEmpty('island of Ireland stations', getIrelandStations),
+    orEmpty('island of Ireland lines', getIrelandLines),
   ]);
   const entries = buildSitemap({
     origin,
@@ -66,6 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     tflStopIds,
     lines,
     transit,
+    ireland: { stations: irelandStations, lines: irelandLines },
     legalPublished: legalPagesPublished(),
   });
   if (entries.length >= SITEMAP_URL_LIMIT) {

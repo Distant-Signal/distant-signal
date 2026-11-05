@@ -78,14 +78,19 @@ export function StationSearchForm() {
   }
 
   /** Where a search result leads: a station's page, a TfL stop's page
-   * (`/tfl/stops/[id]`, live arrivals and line status) or a tram stop's
-   * page. */
+   * (`/tfl/stops/[id]`, live arrivals and line status), a tram stop's
+   * page or an Irish station's. */
   function open(suggestion: Suggestion) {
     const place = suggestion.place;
     if (!place) {
       goToStation(suggestion.code);
     } else if (place.kind === 'tfl') {
       const href = tflStopHref(place.stop.id);
+      startTransition(() => {
+        router.push(href);
+      });
+    } else if (place.kind === 'ireland') {
+      const href = place.href;
       startTransition(() => {
         router.push(href);
       });

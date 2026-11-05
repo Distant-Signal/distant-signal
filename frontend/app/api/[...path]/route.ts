@@ -443,10 +443,20 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // link) and nothing caches a copy of someone's personal data.
   // `X-Generated-At` is when a live departure board was polled
   // (`GET /public/stations/{crs}/departures`); its body is a bare array.
+  // `X-Polled-At` and `Last-Modified` say the same of an Irish live board
+  // (`GET /public/island-of-ireland/stations/{id}/departures`).
   // `Retry-After` comes with api's 503 (a dependency is unavailable, see
   // docs/api-changelog.md 2026-10-06) and 429, so a client can wait it out.
   // `ETag` comes with the Atom feeds, for the conditional GET above.
-  for (const name of ['Content-Disposition', 'Cache-Control', 'X-Generated-At', 'Retry-After', 'ETag']) {
+  for (const name of [
+    'Content-Disposition',
+    'Cache-Control',
+    'X-Generated-At',
+    'X-Polled-At',
+    'Last-Modified',
+    'Retry-After',
+    'ETag',
+  ]) {
     const value = response.headers.get(name);
     if (value) {
       responseHeaders.set(name, value);

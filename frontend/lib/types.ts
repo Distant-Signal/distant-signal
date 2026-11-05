@@ -284,9 +284,13 @@ export type Suggestion = Api.Suggestion & {
 };
 
 /** A non-National Rail stop in `/stations`' search: a TfL Tube, DLR or tram
- * stop (no page of its own yet), or a served transit network's stop
- * (`/transit/{network}/stops/{stopId}`). */
-export type StationPlace = { kind: 'tfl'; stop: TflStop } | { kind: 'transit'; network: string; stopId: string };
+ * stop (no page of its own yet), a served transit network's stop
+ * (`/transit/{network}/stops/{stopId}`) or an Irish station. */
+export type StationPlace =
+  | { kind: 'tfl'; stop: TflStop }
+  | { kind: 'transit'; network: string; stopId: string }
+  /** An Iarnród Éireann or NI Railways station, and its page. */
+  | { kind: 'ireland'; href: string };
 
 /** The fields an untracked leg adds to a journey leg (DS-237's network
  * ride included), as optional inputs: the helpers that read them also take

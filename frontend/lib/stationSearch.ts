@@ -1,3 +1,4 @@
+import { type IrelandStation, matchingStations } from './ireland';
 import { searchStations, tflStopDetail } from './suggestions';
 import { TRANSIT_ID, TRANSIT_STOP_ID } from './transitIds';
 import type { Suggestion, TflStop, TransitNetwork, TransitStop } from './types';
@@ -13,17 +14,20 @@ export const STATION_SEARCH_LIMIT = 20;
  * turns up. Each extra row carries its `place`, so the dropdown names its
  * mode and the form knows where it leads. Merged by match quality (exact
  * name, prefix, word prefix, substring), National Rail first within a
- * tier. Only `/stations` uses this: every other picker hands its code to a
+ * tier. Irish stations (`GET /public/island-of-ireland/stations`, none
+ * while those feeds are off) come last, leading to their own pages.
+ * Only `/stations` uses this: every other picker hands its code to a
  * station board or the planner, which a Tube-only stop has none of. A
  * failed TfL or transit lookup is no extra rows, never a failed search. */
 export async function searchStationsAndStops(q: string, signal?: AbortSignal): Promise<Suggestion[]> {
   if (!q.trim()) return [];
-  const [rail, tfl, transit] = await Promise.all([
+  const [rail, tfl, transit, ireland] = await Promise.all([
     searchStations(q, signal),
     searchTflStopPlaces(q, signal).catch(rethrowAbort),
     searchTransitStopPlaces(q, signal).catch(rethrowAbort),
+    searchIrelandStationPlaces(q, signal).catch(rethrowAbort),
   ]);
-  return rankStationResults(q, [...rail, ...tfl, ...transit]).slice(0, STATION_SEARCH_LIMIT);
+  return rankStationResults(q, [...rail, ...tfl, ...transit, ...ireland]).slice(0, STATION_SEARCH_LIMIT);
 }
 
 function rethrowAbort(err: unknown): Suggestion[] {
@@ -51,6 +55,42 @@ async function searchTransitStopPlaces(q: string, signal?: AbortSignal): Promise
     name: stop.name,
     detail: transitDetail(network),
     place: { kind: 'transit', network: network.id, stopId: stop.id },
+  }));
+}
+
+/** Both Irish networks' stations, fetched once per page load: the list is
+ * small and hour-cached, and every keystroke searches it. A failed fetch
+ * is forgotten, so the next search tries again. */
+let irelandStations: Promise<IrelandStation[]> | null = null;
+
+function loadIrelandStations(signal?: AbortSignal): Promise<IrelandStation[]> {
+  irelandStations ??= fetch('/api/island-of-ireland/stations', signal ? { signal } : {})
+    .then(async (response) => {
+      if (!response.ok) return [];
+      const body: unknown = await response.json();
+      return arrayOf(body).filter((station): station is IrelandStation => hasStrings(station, 'id', 'name', 'network'));
+    })
+    .catch((err: unknown) => {
+      irelandStations = null;
+      throw err;
+    });
+  return irelandStations;
+}
+
+/** For tests: forget the fetched Irish stations. */
+export function __resetIrelandStationsForTests(): void {
+  irelandStations = null;
+}
+
+async function searchIrelandStationPlaces(q: string, signal?: AbortSignal): Promise<Suggestion[]> {
+  const needle = searchKey(q);
+  if (!needle) return [];
+  const stations = await loadIrelandStations(signal);
+  return matchingStations(stations, needle, searchKey).map(({ station, href, networkName }) => ({
+    code: `ireland:${station.id}`,
+    name: station.name,
+    detail: `${networkName} station`,
+    place: { kind: 'ireland', href },
   }));
 }
 

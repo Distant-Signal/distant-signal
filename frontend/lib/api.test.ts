@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  getIrelandDepartures,
   getLineStatusForMode,
   getLineStatus,
   getStopPointDisruption,
@@ -1858,5 +1859,39 @@ describe('api client preview reads', () => {
       vi.fn(async () => new Response('{}', { status: 404 })),
     );
     await expect(getPreviewIncident('nope')).rejects.toBeInstanceOf(ApiNotFoundError);
+  });
+});
+
+describe('getIrelandDepartures', () => {
+  beforeEach(() => {
+    vi.stubEnv('API_BASE_URL', 'http://test-api:8080');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  function answer(response: Response) {
+    const fetchMock = vi.fn(async () => response);
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  it('reads the board by catalogue id, with its poll time, uncached', async () => {
+    const fetchMock = answer(new Response('[]', { status: 200, headers: { 'X-Polled-At': '2026-11-04T09:05:03Z' } }));
+    expect(await getIrelandDepartures('8220IR0132')).toEqual({ departures: [], polledAt: '2026-11-04T09:05:03Z' });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://test-api:8080/public/island-of-ireland/stations/8220IR0132/departures');
+    expect(init.cache).toBe('no-store');
+  });
+
+  it('has no poll time without a valid header, and no board on a 404', async () => {
+    answer(new Response('[]', { status: 200, headers: { 'X-Polled-At': 'soon' } }));
+    expect((await getIrelandDepartures('X'))?.polledAt).toBeNull();
+    answer(new Response('nope', { status: 404 }));
+    expect(await getIrelandDepartures('X')).toBeNull();
+    answer(new Response('down', { status: 500 }));
+    await expect(getIrelandDepartures('X')).rejects.toThrow();
   });
 });

@@ -17,12 +17,17 @@ import classes from './TransitLineDiagram.module.css';
  * Stations only a few trips call at, too few to draw, are listed after it. */
 export function TransitLineDiagram({
   network,
+  stopHref,
   diagram,
   colour,
   label,
   idPrefix,
 }: {
-  network: string;
+  /** The transit network whose stop pages the stops link to. */
+  network?: string;
+  /** A stop's page, for a line that isn't a transit network's (an island
+   * of Ireland line); overrides `network`. */
+  stopHref?: (id: string) => string;
   diagram: LineDiagram;
   /** The line's colour, for the strip. */
   colour: string;
@@ -31,27 +36,28 @@ export function TransitLineDiagram({
   /** Unique on the page: the branch labels' ids start with it. */
   idPrefix: string;
 }) {
+  const hrefOf = stopHref ?? ((id: string) => transitStopHref(network ?? '', id));
   return (
     <Stack gap="sm" __vars={{ '--line-colour': colour }}>
-      <Strip network={network} stops={diagram.stops} label={label} idPath={idPrefix} />
+      <Strip hrefOf={hrefOf} stops={diagram.stops} label={label} idPath={idPrefix} />
       {diagram.separate.map((spur, index) => (
-        <Spur key={index} network={network} spur={spur} idPath={`${idPrefix}-s${index}`} />
+        <Spur key={index} hrefOf={hrefOf} spur={spur} idPath={`${idPrefix}-s${index}`} />
       ))}
       <LinkSentence
         lead="Some trips also call at "
-        links={diagram.others.map((station) => ({ href: transitStopHref(network, station.id), label: station.name }))}
+        links={diagram.others.map((station) => ({ href: hrefOf(station.id), label: station.name }))}
       />
     </Stack>
   );
 }
 
 function Strip({
-  network,
+  hrefOf,
   stops,
   label,
   idPath,
 }: {
-  network: string;
+  hrefOf: (id: string) => string;
   stops: readonly DiagramStop[];
   label?: string;
   idPath: string;
@@ -61,7 +67,7 @@ function Strip({
       {stops.map((stop, index) => (
         // A loop line passes a stop twice: the index keeps the keys apart.
         <li key={`${stop.station.id}-${index}`} className={classes.stop} data-terminus={stop.terminus || undefined}>
-          <TextLink href={transitStopHref(network, stop.station.id)}>
+          <TextLink href={hrefOf(stop.station.id)}>
             {stop.terminus ? (
               <Text span fw={600} inherit>
                 {stop.station.name}
@@ -71,7 +77,7 @@ function Strip({
             )}
           </TextLink>
           {stop.spurs.map((spur, spurIndex) => (
-            <Spur key={spurIndex} network={network} spur={spur} idPath={`${idPath}-${index}-${spurIndex}`} />
+            <Spur key={spurIndex} hrefOf={hrefOf} spur={spur} idPath={`${idPath}-${index}-${spurIndex}`} />
           ))}
         </li>
       ))}
@@ -79,14 +85,14 @@ function Strip({
   );
 }
 
-function Spur({ network, spur, idPath }: { network: string; spur: DiagramSpur; idPath: string }) {
+function Spur({ hrefOf, spur, idPath }: { hrefOf: (id: string) => string; spur: DiagramSpur; idPath: string }) {
   const labelId = `${idPath}-label`;
   return (
     <div className={classes.spur} role="group" aria-labelledby={labelId} data-spur={spur.kind}>
       <Text id={labelId} size="sm" c="dimmed" fs="italic" className={classes.spurLabel}>
         {spurLabel(spur)}
       </Text>
-      <Strip network={network} stops={spur.stops} idPath={idPath} />
+      <Strip hrefOf={hrefOf} stops={spur.stops} idPath={idPath} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ vi.mock('@/lib/api', async () => {
     getPreferences: vi.fn(),
     getLineStatusForMode: vi.fn(),
     getAllTocs: vi.fn(),
+    getIrelandStationsOrNone: vi.fn(),
   };
 });
 // `withStaleFallback` (lib/liveDataCache.ts) reads the session cookie via
@@ -68,6 +69,30 @@ describe('AllLinesPage', () => {
     vi.mocked(api.getPreferences).mockResolvedValue(preferences);
     vi.mocked(api.getLineStatusForMode).mockResolvedValue(reports);
     vi.mocked(api.getAllTocs).mockResolvedValue(tocs);
+    vi.mocked(api.getIrelandStationsOrNone).mockResolvedValue([]);
+  });
+
+  it('links the island of Ireland pages only while they have stations', async () => {
+    await renderPage();
+    expect(screen.queryByRole('link', { name: 'Ireland and Northern Ireland' })).not.toBeInTheDocument();
+    cleanup();
+
+    vi.mocked(api.getIrelandStationsOrNone).mockResolvedValue([
+      {
+        id: 'nir-bangor',
+        name: 'Bangor',
+        network: 'northern-ireland',
+        latitude: null,
+        longitude: null,
+        liveCode: null,
+        rawName: null,
+      },
+    ]);
+    await renderPage();
+    expect(screen.getByRole('link', { name: 'Ireland and Northern Ireland' })).toHaveAttribute(
+      'href',
+      '/island-of-ireland',
+    );
   });
 
   it('renders "Incident Archive" and "New custom line" links, sharing a row with the page title', async () => {
