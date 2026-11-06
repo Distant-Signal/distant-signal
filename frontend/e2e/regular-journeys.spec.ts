@@ -192,4 +192,27 @@ test.describe('regular journeys', () => {
     const axe = await new AxeBuilder({ page }).include('main').analyze();
     expect(axe.violations).toEqual([]);
   });
+
+  test("shows the day's suggested train and tracks it", async ({ page, context }) => {
+    await logIn(context);
+    // Answered here, so the seed's journey keeps its suggestion for the
+    // visual spec (the accept replaces its legs for real).
+    let accepted: unknown = null;
+    await page.route('**/api/Journeys/900203/regular-plan/accept', async (route) => {
+      accepted = route.request().postDataJSON();
+      await route.fulfill({
+        json: { journeyId: 900203, revisionNo: 1, newLegIds: [1], undoRevisionNo: null },
+      });
+    });
+    await page.goto('/journeys/900203');
+    const card = page.getByRole('region', { name: 'Your usual train: 09:00 London Kings Cross to London Euston' });
+    await expect(card).toBeVisible();
+    await expect(card.getByRole('heading', { level: 3, name: 'Other trains' })).toBeVisible();
+    await expect(card.getByText('Arrives 11:40, 1 change')).toBeVisible();
+    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    expect(axe.violations).toEqual([]);
+
+    await card.getByRole('button', { name: 'Track this train, the 09:15 London Kings Cross to London Euston' }).click();
+    await expect.poll(() => accepted).toEqual({ index: 1, plannedAt: '2026-09-01T18:00:00Z' });
+  });
 });

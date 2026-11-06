@@ -769,5 +769,50 @@ describe('JourneyDetailPage following', () => {
       );
       expect(api.getJourneyTemplate).toHaveBeenCalledWith(5);
     });
+
+    it("shows the day's suggested train until one is tracked", async () => {
+      const departure = '2099-01-05T08:12:00Z';
+      const arrival = '2099-01-05T08:45:00Z';
+      const suggested: JourneyDetail['regularPlan'] = {
+        status: 'suggested',
+        plannedAt: '2099-01-04T18:00:00Z',
+        reason: 'usual',
+        choice: {
+          departure,
+          arrival,
+          changeCount: 0,
+          legs: [
+            {
+              kind: 'train',
+              trainUid: 'W00002',
+              serviceDate: '2099-01-05',
+              originCrs: 'WOK',
+              originName: 'Woking',
+              destinationCrs: 'WAT',
+              destinationName: 'London Waterloo',
+              departure,
+              arrival,
+              operator: 'SW',
+              operatorName: null,
+            },
+          ],
+        },
+        alternatives: [],
+        acceptedIndex: null,
+      };
+      vi.mocked(api.getJourney).mockResolvedValue({ ...occurrence(), regularPlan: suggested });
+      const { unmount } = await renderPage();
+      expect(
+        screen.getByRole('heading', { name: 'Your usual train: 08:12 Woking to London Waterloo' }),
+      ).toBeInTheDocument();
+      unmount();
+
+      vi.mocked(api.getJourney).mockResolvedValue({
+        ...occurrence(),
+        regularPlan: { ...suggested, status: 'committed', acceptedIndex: 0 },
+      });
+      await renderPage();
+      expect(screen.queryByRole('heading', { name: /Your usual train/ })).not.toBeInTheDocument();
+    });
   });
 });

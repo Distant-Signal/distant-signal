@@ -2381,6 +2381,13 @@ svg[data-icon='external-link'] {
   margin-top: 2px;
 }
 
+/* Its outline "Remove leg": red text on the grape tint was 4.18:1, under
+   AA, so the button keeps the page's own background (red on it is AA in
+   both schemes). */
+.openLegCard [data-confirm-trigger][data-variant='outline'] {
+  background-color: var(--mantine-color-body);
+}
+
 /* `StationAccessibilitySection`: Yes/No with its tick or cross, and the
    real `<ul>` it uses for a list value (the two declarations Mantine's own
    List root sets). */

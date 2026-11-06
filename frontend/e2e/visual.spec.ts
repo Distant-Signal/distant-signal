@@ -100,6 +100,9 @@ const PAGES: [name: string, path: string][] = [
   // pair as one card, its "Next:" date masked. And the form to make one.
   ['regular-journeys', '/journeys/regular'],
   ['regular-journey-new', '/journeys/regular/new'],
+  // A journey of the seed's regular journey with the day's suggested train
+  // (regular journeys design §6.6), logged in.
+  ['regular-journey-day', '/journeys/900203'],
   // A group's shared trains and journeys, logged in as its owner: a live
   // train, a planned one, a timetabled bus, a journey whose train is
   // planned and a walk-and-Tube journey (2026-10-20: the owner's own
@@ -144,6 +147,7 @@ const LOGGED_IN_PAGES: ReadonlySet<string> = new Set([
   'notifications',
   'journeys',
   'regular-journeys',
+  'regular-journey-day',
   'group',
   'train-no-timetable',
   'train-planned',
