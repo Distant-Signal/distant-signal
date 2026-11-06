@@ -1,4 +1,5 @@
 import { Group, Stack, Title } from '@mantine/core';
+import { Activity } from 'react';
 import type { Metadata } from 'next';
 import {
   getAllLines,
@@ -151,16 +152,24 @@ export default async function AllLinesPage({
             {irelandOn && <TextLink href={IRELAND_PATH}>{IRELAND_LABEL}</TextLink>}
           </Group>
         </Group>
-        <AllLinesTable
-          lines={lines}
-          reports={reports}
-          pinnedLineIds={preferences.pinnedLines}
-          tocs={tocs}
-          viewerIsAnonymous={viewerIsAnonymous}
-          initialStatusGroup={initialStatusGroup}
-          initialQuery={initialQuery}
-          initialOperators={initialOperators}
-        />
+        {/* DS-338: its own hydration unit. A keypress or click that lands
+          before the page has hydrated makes React finish hydrating the
+          part it lands in at once, and with the table in the same part as
+          the nav that blocked Firefox for over a second. An `<Activity>`
+          boundary, unlike a `<Suspense>`, is rendered in place rather than
+          streamed in after the rest of the page. */}
+        <Activity>
+          <AllLinesTable
+            lines={lines}
+            reports={reports}
+            pinnedLineIds={preferences.pinnedLines}
+            tocs={tocs}
+            viewerIsAnonymous={viewerIsAnonymous}
+            initialStatusGroup={initialStatusGroup}
+            initialQuery={initialQuery}
+            initialOperators={initialOperators}
+          />
+        </Activity>
         <DataCredits credits={lineCredits(lines.map((line) => line.id))} />
       </Stack>
     </Stack>
