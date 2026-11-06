@@ -24,13 +24,13 @@ describe('SaveAsTemplateButton', () => {
   it('opens the modal on click and closes it', async () => {
     renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Make this a template' }));
-    expect(await screen.findByText('Save this journey as a reusable template')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+    expect(await screen.findByRole('dialog', { name: 'Make this a regular journey' })).toBeInTheDocument();
 
     // Mantine's Modal renders a close button labelled "Close".
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => {
-      expect(screen.queryByText('Save this journey as a reusable template')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Make this a regular journey' })).not.toBeInTheDocument();
     });
   });
 
@@ -39,8 +39,8 @@ describe('SaveAsTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateId: 99 }), { status: 200 }));
 
     renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Make this a template' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save as template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -58,11 +58,11 @@ describe('SaveAsTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateId: 99 }), { status: 200 }));
 
     renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Make this a template' }));
-    fireEvent.change(await screen.findByLabelText('Template name (optional)'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+    fireEvent.change(await screen.findByLabelText('Name (optional)'), {
       target: { value: '  Weekday commute  ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save as template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -80,10 +80,10 @@ describe('SaveAsTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response('unauthorized', { status: 401 }));
 
     renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Make this a template' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save as template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
-    expect(await screen.findByText('Log in to save a template')).toBeInTheDocument();
+    expect(await screen.findByText('Log in to save a regular journey')).toBeInTheDocument();
     expect(screen.queryByText('unauthorized')).not.toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
   });
@@ -93,11 +93,11 @@ describe('SaveAsTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response('Something went wrong', { status: 500 }));
 
     renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Make this a template' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save as template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
-    expect(await screen.findByText("Couldn't save this template. Try again.")).toBeInTheDocument();
-    expect(screen.queryByText('Log in to save a template')).not.toBeInTheDocument();
+    expect(await screen.findByText("Couldn't save this regular journey. Try again.")).toBeInTheDocument();
+    expect(screen.queryByText('Log in to save a regular journey')).not.toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
   });
 
@@ -106,15 +106,15 @@ describe('SaveAsTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateId: 123 }), { status: 200 }));
 
     renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Make this a template' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save as template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/journeys/templates/123');
+      expect(pushMock).toHaveBeenCalledWith('/journeys/regular/123');
     });
     // The modal closes on success.
     await waitFor(() => {
-      expect(screen.queryByText('Save this journey as a reusable template')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Make this a regular journey' })).not.toBeInTheDocument();
     });
   });
 });

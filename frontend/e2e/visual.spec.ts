@@ -96,6 +96,10 @@ const PAGES: [name: string, path: string][] = [
   // planned three-leg journey, named end to end (docs/style-guide.md,
   // "Journey names").
   ['journeys', '/journeys'],
+  // Regular journeys (regular journeys design §4.6), logged in: the seed's
+  // pair as one card, its "Next:" date masked. And the form to make one.
+  ['regular-journeys', '/journeys/regular'],
+  ['regular-journey-new', '/journeys/regular/new'],
   // A group's shared trains and journeys, logged in as its owner: a live
   // train, a planned one, a timetabled bus, a journey whose train is
   // planned and a walk-and-Tube journey (2026-10-20: the owner's own
@@ -139,6 +143,7 @@ const LOGGED_IN_PAGES: ReadonlySet<string> = new Set([
   'preferences-logged-in',
   'notifications',
   'journeys',
+  'regular-journeys',
   'group',
   'train-no-timetable',
   'train-planned',
@@ -165,13 +170,17 @@ const SCHEMES = ['light', 'dark'] as const;
  *  - a group's invite link expiry ("Expires 27 Oct 2026."): the seed
  *    dates it a week after the seeding;
  *  - a TfL arrival's expected time ("Expected 10:02"): the TfL stub
- *    answers relative to the server's clock. */
+ *    answers relative to the server's clock;
+ *  - a regular journey's next date ("Weekdays · Next: 21 Sep 2026"):
+ *    the api works it out from the server's today. */
 function volatile(page: Page) {
   return [
     page.getByText(/\b(updated|last updated|fetched)\b.*\d/i),
     page.getByText(/\b\d+ (min|hr|days?) ago\b|\bjust now\b/),
     page.getByText(/\b\d{1,2} [A-Z][a-z]{2,3} \d{4}, \d{1,2}:\d{2}\b/),
     page.getByText(/^(Search (a|a different|a later|an earlier) day\b|Only .* can be searched\.)/),
+    // A regular journey's next date follows the server's today.
+    page.getByText(/^Next: \d{1,2} [A-Z][a-z]{2} \d{4}$/),
     // The group's invite link expiry: the seed sets it a week after seeding.
     page.getByText(/^Expires \d{1,2} [A-Z][a-z]{2,3} \d{4}\.$/),
     page.locator('.mantine-DatePickerInput-input, .mantine-TimeInput-input, input[type="date"], input[type="time"]'),

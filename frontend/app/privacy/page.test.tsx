@@ -34,7 +34,7 @@ describe('PrivacyPage retention copy', () => {
 
   it('states the 18-month travel-date limit for tracked trains, journeys and tickets', () => {
     render();
-    expect(retentionText('Tracked trains, journeys and journey templates')).toMatch(/18 months after the travel date/);
+    expect(retentionText('Tracked trains, journeys and regular journeys')).toMatch(/18 months after the travel date/);
     expect(retentionText('Tickets')).toMatch(/18 months after the travel date/);
   });
 

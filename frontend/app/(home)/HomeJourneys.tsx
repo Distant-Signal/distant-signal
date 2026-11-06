@@ -1,6 +1,7 @@
 import { Card, Group, Stack, Text } from '@mantine/core';
 import { ButtonLink } from '@/components/ButtonLink';
 import { CardTitleLink, ClickableCard } from '@/components/ClickableCard';
+import { RegularJourneyLine } from '@/components/RegularJourneyLine';
 import { DelayBadge } from '@/components/DelayBadge';
 import { JourneyBreakBanner } from '@/components/JourneyBreakBanner';
 import { JourneyStatusGroupBadge } from '@/components/JourneyStatusBadge';
@@ -166,6 +167,14 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
               {followedFromLabel(journey.item.followedFrom)}
             </Text>
           )}
+          {/* Made from a regular journey: under way, so no "Skip". */}
+          {journey.item.sourceTemplateId !== null && (
+            <RegularJourneyLine
+              templateId={journey.item.sourceTemplateId}
+              date={journey.item.firstServiceDate}
+              canSkip={false}
+            />
+          )}
         </Stack>
         {leg !== null && (
           <dl className="keyFacts keyFacts--compact">
@@ -208,32 +217,43 @@ export function HomeJourneyRow({ journey }: { journey: HomeJourney }) {
   ]
     .filter((part): part is string => part !== null)
     .join(' · ');
+  const templateId = journey.item.sourceTemplateId;
   return (
     <ClickableCard>
-      <StatusRow
-        align="flex-start"
-        title={
-          <Text fw={500} lineClamp={2} miw={0}>
-            <CardTitleLink href={`/journeys/${journey.item.id}`}>{journeyDisplayName(name)}</CardTitleLink>
-          </Text>
-        }
-        subtitle={
-          details !== '' && (
-            <Text size="sm" c="dimmed">
-              {details}
+      <Stack gap="xs">
+        <StatusRow
+          align="flex-start"
+          title={
+            <Text fw={500} lineClamp={2} miw={0}>
+              <CardTitleLink href={`/journeys/${journey.item.id}`}>{journeyDisplayName(name)}</CardTitleLink>
             </Text>
-          )
-        }
-        trailing={
-          // "Needs a train picked" asks only someone who can pick one: the
-          // owner, or a follower (DS-199).
-          group === 'unmatched' && !viewerCanPickTrain(journey.item) ? (
-            <NoTrainPickedYetBadge />
-          ) : (
-            <JourneyStatusGroupBadge group={group} cancellation={journeyListItemCancellation(journey.item)} />
-          )
-        }
-      />
+          }
+          subtitle={
+            details !== '' && (
+              <Text size="sm" c="dimmed">
+                {details}
+              </Text>
+            )
+          }
+          trailing={
+            // "Needs a train picked" asks only someone who can pick one: the
+            // owner, or a follower (DS-199).
+            group === 'unmatched' && !viewerCanPickTrain(journey.item) ? (
+              <NoTrainPickedYetBadge />
+            ) : (
+              <JourneyStatusGroupBadge group={group} cancellation={journeyListItemCancellation(journey.item)} />
+            )
+          }
+        />
+        {/* Made from a regular journey: "Skip" until it sets off. */}
+        {templateId !== null && (
+          <RegularJourneyLine
+            templateId={templateId}
+            date={journey.item.firstServiceDate}
+            canSkip={journey.item.startedLegCount === 0 && !journey.item.travelled}
+          />
+        )}
+      </Stack>
     </ClickableCard>
   );
 }

@@ -50,7 +50,7 @@ export function DeleteAccountButton() {
         <>
           <Text>This permanently deletes your Distant Signal account and everything in it:</Text>
           <List size="sm" spacing={4}>
-            <List.Item>tracked trains, tickets, journeys and journey templates</List.Item>
+            <List.Item>tracked trains, tickets, journeys and regular journeys</List.Item>
             <List.Item>pinned lines, stations and operators, and your custom lines</List.Item>
             <List.Item>push notification subscriptions and all your sessions, on every device</List.Item>
             <List.Item>share links and invite links you created</List.Item>

@@ -116,7 +116,16 @@ describe('next.config.mjs redirects', () => {
     // The one parameterised source, for links sent before 22 Oct 2026, takes
     // digits only, so it can't catch `/track/mine` or anything under it.
     const parameterised = sources.filter((source) => source.includes(':') || source.includes('*'));
-    expect(parameterised).toEqual(['/track/:trackingId(\\d+)']);
+    expect(parameterised).toEqual(['/journeys/templates/:id(\\d+)', '/track/:trackingId(\\d+)']);
+  });
+
+  it('sends the old journey templates pages to Regular journeys for good', async () => {
+    if (!nextConfig.redirects) throw new Error('next.config.mjs defines no redirects()');
+    const entries = await nextConfig.redirects();
+    expect(entries.filter((entry) => entry.source.startsWith('/journeys/templates'))).toEqual([
+      { source: '/journeys/templates', destination: '/journeys/regular', permanent: true },
+      { source: '/journeys/templates/:id(\\d+)', destination: '/journeys/regular/:id', permanent: true },
+    ]);
   });
 
   it('sends the old numeric /track/{id} push links to the train page', async () => {

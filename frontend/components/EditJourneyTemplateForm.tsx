@@ -277,7 +277,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
         if (response.status === 401) {
           needsLoginState.markNeedsLogin();
         } else {
-          setError(await failureFromResponse('save', 'this template', response));
+          setError(await failureFromResponse('save', 'this regular journey', response));
         }
         setSubmitting(false);
         return;
@@ -286,7 +286,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
       setSaved(true);
       router.refresh();
     } catch {
-      setError(describeFailure('save', 'this template'));
+      setError(describeFailure('save', 'this regular journey'));
       setSubmitting(false);
     }
   }
@@ -294,7 +294,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
   return (
     <Stack>
       <TextInput
-        label="Template name"
+        label="Name"
         placeholder="e.g. Weekday commute"
         value={customName}
         onChange={(event) => setCustomName(event.currentTarget.value)}
@@ -325,7 +325,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
       </Stack>
       <Stack gap={4}>
         <Text size="sm" fw={500}>
-          When a matching train appears
+          Each day
         </Text>
         <SegmentedControl
           value={matchMode}
@@ -334,8 +334,8 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
             setMatchMode(value);
           }}
           data={[
-            { label: "Remind me, don't guess", value: 'manual' },
-            { label: 'Auto-commit for me', value: 'auto' },
+            { label: 'Remind me', value: 'manual' },
+            { label: 'Pick for me', value: 'auto' },
           ]}
         />
         {autoNeedsTimes ? (
@@ -353,7 +353,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
       </Stack>
       <Switch
         label="Paused"
-        description="A paused template won't generate new journeys until resumed."
+        description="A paused regular journey adds no new journeys until you resume it."
         checked={paused}
         onChange={(event) => {
           setSaved(false);

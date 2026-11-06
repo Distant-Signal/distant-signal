@@ -13,8 +13,9 @@ import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainL
 // pulls in `useLoginHref`, which calls `usePathname`/`useSearchParams` --
 // real Next.js navigation hooks that throw outside a router context. Same
 // mock `TrackTrainForm.test.tsx` already needs for the exact same reason.
+const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
   usePathname: () => '/plan',
   useSearchParams: () => new URLSearchParams(''),
 }));
@@ -210,6 +211,47 @@ describe('PlanTripFlow', () => {
     const init = fetchMock.mock.calls[1]![1] as RequestInit;
     const headers = init.headers as Record<string, string>;
     expect(headers['Idempotency-Key']).toMatch(/\S{8,}/);
+  });
+
+  it('hands the route, its time and the picked train to the regular journey form', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(singleSegmentPlan) }));
+    mockPush.mockClear();
+    window.sessionStorage.clear();
+    renderWithMantine(<PlanTripFlow onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'EUS' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'MKC' } });
+    fireEvent.click(screen.getByText('Find routes'));
+    await screen.findByText(byVisibleText('08:00 EUS to MKC 08:50'));
+    const radios = screen.getAllByRole('radio');
+    fireEvent.click(radios[radios.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
+
+    expect(mockPush).toHaveBeenCalledWith('/journeys/regular/new');
+    const draft = JSON.parse(window.sessionStorage.getItem('ds:regular-journey-draft') ?? 'null') as Record<
+      string,
+      unknown
+    >;
+    expect(draft).toMatchObject({
+      originCrs: 'EUS',
+      destinationCrs: 'MKC',
+      // The search's own "Depart at" time.
+      target: { kind: 'depart_after', time: expect.stringMatching(/^\d{2}:\d{2}$/), dayOffset: 0 },
+      planOptions: null,
+      usualItinerary: {
+        legs: [
+          expect.objectContaining({
+            kind: 'train',
+            trainUid: 'C11052',
+            serviceDate: '2026-09-23',
+            originCrs: 'EUS',
+            destinationCrs: 'MKC',
+            departs: '08:00',
+            arrives: '08:50',
+          }),
+        ],
+      },
+    });
   });
 
   it('omits originCrs/destinationCrs entirely (not null) when the itinerary leg has no CRS for either end', async () => {

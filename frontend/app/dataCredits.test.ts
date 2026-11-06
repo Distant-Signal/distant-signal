@@ -34,8 +34,8 @@ const NO_THIRD_PARTY_DATA: Readonly<Record<string, string>> = {
   // api drops a journey's untracked legs and needs both codes on every leg
   // (ds-api crates/api/src/routes/journey_templates.rs), so no TfL-picked
   // place can be in one. Credit TfL's stops here if that ever changes.
-  'journeys/templates/page.tsx': "the visitor's saved plans: National Rail station names and times, no live data",
-  'journeys/templates/[id]/page.tsx': "the visitor's saved plan: National Rail station names and times, no live data",
+  'journeys/regular/page.tsx': "the visitor's saved plans: National Rail station names and times, no live data",
+  'journeys/regular/[id]/page.tsx': "the visitor's saved plan: National Rail station names and times, no live data",
   'lines/new/page.tsx': "a form over Distant Signal's own line catalogue",
   'lines/[id]/edit/page.tsx': "a form over Distant Signal's own line catalogue",
   'track/mine/add-ticket/page.tsx': "the visitor's own ticket",

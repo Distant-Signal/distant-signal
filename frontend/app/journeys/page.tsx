@@ -51,7 +51,7 @@ export const metadata: Metadata = {
  * Upcoming and Past (`lib/upcomingPast.ts`) with "Your reliability"
  * between them. Its header starts everything tracking-shaped: "Plan a
  * journey" (`/plan`, no longer a nav entry since DS-194), "Find a train",
- * "Add a ticket" and journey templates. Below
+ * "Add a ticket" and regular journeys. Below
  * that, a logged-in user's own
  * tracked trains AND tickets, one merged page (Part B of the upload-first ticket-tracking plan). Was two
  * separate pages (`/journeys` for trains, `/track/tickets` for tickets)
@@ -297,7 +297,7 @@ export default async function JourneysPage() {
  * as a button, for everyone: `/plan` needs no account to search and asks a
  * logged-out visitor to log in when they save, and is reached from here and
  * the home page, not the nav (DS-194). The rest are links: a train search
- * for everyone and, logged in, a ticket and journey templates. */
+ * for everyone and, logged in, a ticket and regular journeys. */
 function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) {
   return (
     <Stack gap="sm">
@@ -308,7 +308,7 @@ function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) 
         {authenticated && (
           <>
             <TextLink href="/track/mine/add-ticket">Add a ticket</TextLink>
-            <TextLink href="/journeys/templates">Journey templates</TextLink>
+            <TextLink href="/journeys/regular">Regular journeys</TextLink>
           </>
         )}
       </Group>

@@ -45,7 +45,8 @@ export default async function AccountPage() {
           <SectionTitle id="download-heading">Download my data</SectionTitle>
           <Text>
             A JSON file of everything Distant Signal holds about you: your account details, tracked trains, tickets,
-            journeys, templates, pins, custom lines, groups, share links, notification subscriptions and sessions.
+            journeys, regular journeys, pins, custom lines, groups, share links, notification subscriptions and
+            sessions.
           </Text>
           <Button component="a" href="/api/account/export" download variant="light">
             Download my data
@@ -67,8 +68,8 @@ export default async function AccountPage() {
         <Stack gap="xs">
           <SectionTitle id="retention-heading">How long we keep it</SectionTitle>
           <Text size="sm">
-            Tracked trains, tickets and journeys are deleted automatically 18 months after the day of travel. Journey
-            templates, groups, pins and custom lines are kept until you delete them or your account.
+            Tracked trains, tickets and journeys are deleted automatically 18 months after the day of travel. Regular
+            journeys, groups, pins and custom lines are kept until you delete them or your account.
           </Text>
           <Text size="sm">
             Database backups are encrypted, and anything deleted can stay in them for up to 14 days.

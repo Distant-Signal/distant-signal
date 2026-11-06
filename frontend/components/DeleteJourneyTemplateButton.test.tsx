@@ -7,7 +7,7 @@ const pushMock = vi.fn();
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock, refresh: refreshMock }),
-  usePathname: () => '/journeys/templates/167',
+  usePathname: () => '/journeys/regular/167',
   useSearchParams: () => new URLSearchParams(''),
 }));
 
@@ -25,23 +25,23 @@ describe('DeleteJourneyTemplateButton', () => {
   it('does not call DELETE until the confirmation modal is confirmed', () => {
     const fetchMock = vi.mocked(fetch);
     renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('DELETEs the template and redirects to /journeys/templates on success', async () => {
+  it('DELETEs the template and redirects to /journeys/regular on success', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
     renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete template' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete regular journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete regular journey' }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/JourneyTemplates/167', { method: 'DELETE' });
     });
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/templates'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
   });
 
   it('shows an error and does not navigate on a failed (non-401) delete', async () => {
@@ -49,12 +49,12 @@ describe('DeleteJourneyTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response('no template with that id', { status: 404 }));
 
     renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete template' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete regular journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete regular journey' }));
 
     await waitFor(() => {
-      expect(screen.getByText("Couldn't delete this template. It may have been removed.")).toBeInTheDocument();
+      expect(screen.getByText("Couldn't delete this regular journey. It may have been removed.")).toBeInTheDocument();
     });
     expect(pushMock).not.toHaveBeenCalled();
   });
@@ -64,19 +64,19 @@ describe('DeleteJourneyTemplateButton', () => {
     fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
 
     renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete template' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete template' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete regular journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete regular journey' }));
 
-    const loginLink = await screen.findByRole('link', { name: 'Log in to delete this template' });
+    const loginLink = await screen.findByRole('link', { name: 'Log in to delete this regular journey' });
     expect(loginLink).toBeInTheDocument();
     expect(screen.queryByText('no session')).not.toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('mentions that already-run journeys survive the delete', async () => {
+  it('says the journeys already made from it are kept', async () => {
     renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete template' }));
-    await waitFor(() => expect(screen.getByText(/not any journeys you've already run from it/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
+    await waitFor(() => expect(screen.getByText(/Journeys already made from it are kept\./)).toBeInTheDocument());
   });
 });

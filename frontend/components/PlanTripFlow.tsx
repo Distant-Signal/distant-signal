@@ -1,7 +1,8 @@
 'use client';
 
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Anchor, Button, List, ListItem, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Button, Group, List, ListItem, Stack, Text } from '@mantine/core';
+import { useRouter } from 'next/navigation';
 import { PlanTripForm } from './PlanTripForm';
 import { ItineraryOption } from './ItineraryOption';
 import { useNeedsLogin } from './useNeedsLogin';
@@ -22,6 +23,13 @@ import { listPlan, mergePage, pageQuery, startList, type PageDirection, type Pla
 import { captureScrollAnchor, restoreScrollAnchor, type ScrollAnchor } from '@/lib/scrollAnchor';
 import { getStationNames } from '@/lib/suggestions';
 import { itineraryLegsForSaving } from '@/lib/tripPlanSave';
+import {
+  NEW_REGULAR_JOURNEY_HREF,
+  planOptionsFromQuery,
+  saveRegularJourneyDraft,
+  usualItineraryFromPlan,
+  usualTrainSummary,
+} from '@/lib/regularJourneys';
 import { groupLabels, useStationGroups } from '@/lib/stationGroups';
 import { codeRouteLabel, codeStationLabel, isGroupCode } from '@/lib/stationLabel';
 import { ProvisionalTimetableNote } from './ProvisionalTimetableNote';
@@ -113,6 +121,7 @@ export function PlanTripFlow({
    * operator names; `null` when the read failed. */
   operatorCatalogue?: PlannerOperatorCatalogue | null | undefined;
 }) {
+  const router = useRouter();
   const nameOfOperator = useMemo(() => (entry: string) => operatorName(entry, operatorCatalogue), [operatorCatalogue]);
   // The results' "Add London Underground" (a no-route hint), handed to the
   // form's fields as well as searched.
@@ -347,6 +356,37 @@ export function PlanTripFlow({
     } finally {
       setCreating(false);
     }
+  }
+
+  // "Make this a regular journey" (regular journeys design §4.4): the
+  // form at /journeys/regular/new, filled with this search's route, time
+  // and options and the chosen route as the usual train. Station to
+  // station only: a regular journey's ends are station codes.
+  const canMakeRegular =
+    answeredQuery !== null &&
+    /^[A-Z]{3}$/i.test(answeredQuery.originCrs) &&
+    /^[A-Z]{3}$/i.test(answeredQuery.destinationCrs);
+
+  function handleMakeRegular() {
+    if (!allSegmentsSelected || !answeredQuery) return;
+    const chosen = selections.flatMap((selection) => (selection.itinerary ? [selection.itinerary] : []));
+    const nameFor = (code: string) => stationNames.get(code);
+    const usualItinerary = usualItineraryFromPlan(chosen, nameFor);
+    const firstTrain = usualItinerary.legs.find((leg) => leg.kind === 'train');
+    const time = answeredQuery.arriveBy ?? answeredQuery.departAfter ?? firstTrain?.departs ?? '';
+    if (!firstTrain || time === '') {
+      setCreationError('This route needs no train, so there is nothing to repeat.');
+      return;
+    }
+    saveRegularJourneyDraft({
+      originCrs: answeredQuery.originCrs.toUpperCase(),
+      destinationCrs: answeredQuery.destinationCrs.toUpperCase(),
+      target: { kind: answeredQuery.arriveBy ? 'arrive_by' : 'depart_after', time, dayOffset: 0 },
+      planOptions: planOptionsFromQuery(answeredQuery),
+      usualItinerary,
+      usualSummary: usualTrainSummary(usualItinerary, nameFor),
+    });
+    router.push(NEW_REGULAR_JOURNEY_HREF);
   }
 
   // Earlier/later (spec 2026-10-19 §4.3): one page at a time, merged into
@@ -587,13 +627,20 @@ export function PlanTripFlow({
         </Alert>
       )}
       {plan && (
-        <Button
-          disabled={!allSegmentsSelected || creating}
-          loading={creating}
-          onClick={() => void handleTrackJourney()}
-        >
-          Track this journey
-        </Button>
+        <Group gap="sm" wrap="wrap">
+          <Button
+            disabled={!allSegmentsSelected || creating}
+            loading={creating}
+            onClick={() => void handleTrackJourney()}
+          >
+            Track this journey
+          </Button>
+          {canMakeRegular && (
+            <Button variant="default" disabled={!allSegmentsSelected || creating} onClick={handleMakeRegular}>
+              Make this a regular journey
+            </Button>
+          )}
+        </Group>
       )}
       <LoginPromptModal opened={needsLoginState.needsLogin} onClose={needsLoginState.reset}>
         Log in to track this journey.

@@ -12,7 +12,7 @@ import { LoginControl } from './LoginControl';
 import type { MaterializeTemplateRequest, MaterializeTemplateResponse } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 
-/** "Run now" — the manual, on-demand materialization trigger
+/** "Add a date" (was "Run now") — the manual, on-demand materialization trigger
  * (`POST /JourneyTemplates/{id}/materialize`), §6 item 3. Defaults its
  * date field to London's today (`nowInLondon().format('YYYY-MM-DD')`, same convention
  * `AddJourneyLegButton`'s own `handleOpen` already uses) but always sends
@@ -60,7 +60,7 @@ export function RunTemplateNowButton({ templateId }: { templateId: number }) {
         if (response.status === 401) {
           needsLoginState.markNeedsLogin();
         } else {
-          setError(await failureFromResponse('run', 'this template', response));
+          setError(await failureFromResponse('add', 'this date', response));
         }
         setSubmitting(false);
         return;
@@ -70,29 +70,29 @@ export function RunTemplateNowButton({ templateId }: { templateId: number }) {
       close();
       router.push(`/journeys/${result.journeyId}`);
     } catch {
-      setError(describeFailure('run', 'this template'));
+      setError(describeFailure('add', 'this date'));
       setSubmitting(false);
     }
   }
 
   return (
     <>
-      <Button onClick={handleOpen}>Run now</Button>
-      <Modal opened={opened} onClose={close} title="Run this template">
+      <Button onClick={handleOpen}>Add a date</Button>
+      <Modal opened={opened} onClose={close} title="Add a date">
         <Stack>
           {/* Was free text with a "YYYY-MM-DD" placeholder, which showed
               visitors an ISO date and let a garbled one reach the API. The
               request still carries "YYYY-MM-DD". */}
           <DateInput
-            label="Service date"
+            label="Date"
             valueFormat={PICKER_DATE_FORMAT}
             value={serviceDate || null}
             onChange={(value) => setServiceDate(value ?? '')}
           />
           {error && <Alert color="red">{error}</Alert>}
-          {needsLoginState.needsLogin && <LoginControl underline="always">Log in to run this template</LoginControl>}
+          {needsLoginState.needsLogin && <LoginControl underline="always">Log in to add a date</LoginControl>}
           <Button onClick={handleSubmit} disabled={!serviceDateValid} loading={submitting}>
-            Create journey
+            Add journey
           </Button>
         </Stack>
       </Modal>

@@ -6,6 +6,7 @@ import { LoadMoreControl } from './LoadMoreControl';
 import { ServiceRow, ServiceRowList } from './ServiceRow';
 import { TextLink } from './TextLink';
 import { useNeedsLogin } from './useNeedsLogin';
+import { useUsualTrainFor } from './UsualTrainContext';
 import { LoginPromptModal } from './LoginPromptModal';
 import { OperatorField } from './OperatorField';
 import { NO_TIME } from '@/lib/dateFormat';
@@ -127,6 +128,9 @@ export function JourneyLegCandidates({
   // set on a real 401, surfaced as an unconditionally-rendered modal below
   // rather than folded into `body()`'s own state machine.
   const needsLoginState = useNeedsLogin();
+  // Opened from a regular journey's pick reminder (`?pick=usual`): the
+  // usual train, when it is among the trains found, goes first on its own.
+  const usualUid = useUsualTrainFor(legId);
 
   // Operator/TOC filter -- design doc's journey-leg-operator-filter plan,
   // Task 6. `operator` is the field's value: the picked code, or the raw
@@ -269,6 +273,9 @@ export function JourneyLegCandidates({
   // states `hasRows`/`Results` already model, just factored out of the
   // top-level return so the Operator filter (below) can wrap ALL of them
   // uniformly, rather than being duplicated into every early-return branch.
+  const usualRow = hasRows(results) && usualUid ? (results.rows.find((row) => row.uid === usualUid) ?? null) : null;
+  const otherRows = hasRows(results) ? results.rows.filter((row) => row !== usualRow) : [];
+
   function body() {
     if (results === null || results === 'loading') {
       return <LoadingText>Searching for candidate trains</LoadingText>;
@@ -336,8 +343,26 @@ export function JourneyLegCandidates({
           Times are when each train leaves the station you board at and reaches the one you get off at.
         </Text>
         {pickError && <Alert color="red">{pickError}</Alert>}
-        <ServiceRowList aria-label="Candidate trains">
-          {results.rows.map((row) => (
+        {usualRow && (
+          <Stack gap={4}>
+            <Text size="sm" fw={600}>
+              Your usual train
+            </Text>
+            <ServiceRowList aria-label="Your usual train">
+              <CandidateRowView
+                row={usualRow}
+                serviceDate={serviceDate}
+                picking={picking}
+                onPick={() => pick(usualRow.uid)}
+              />
+            </ServiceRowList>
+            <Text size="sm" fw={600} mt="xs">
+              Other trains
+            </Text>
+          </Stack>
+        )}
+        <ServiceRowList aria-label={usualRow ? 'Other trains' : 'Candidate trains'}>
+          {otherRows.map((row) => (
             <CandidateRowView
               key={`${row.uid}-${row.scheduled ?? ''}`}
               row={row}

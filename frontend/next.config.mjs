@@ -108,6 +108,20 @@ const nextConfig = {
         destination: '/plan',
         permanent: true,
       },
+      // Journey templates became "Regular journeys" (regular journeys
+      // design §4.4, 2026-11-06): the list and each template's page moved,
+      // and old links and bookmarks follow. The id takes digits only, as
+      // the page does.
+      {
+        source: '/journeys/templates',
+        destination: '/journeys/regular',
+        permanent: true,
+      },
+      {
+        source: '/journeys/templates/:id(\\d+)',
+        destination: '/journeys/regular/:id',
+        permanent: true,
+      },
       // Train pushes linked to `/track/{id}`, a page that never existed,
       // until 22 Oct 2026; this keeps the links already sent working.
       {

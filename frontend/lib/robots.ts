@@ -21,7 +21,7 @@ export const DISALLOWED_PATHS: readonly string[] = [
   // Every groups page is per-user. This also covers `/groups/join/<token>`
   // invite links, which carry a secret token and must never be crawled.
   '/groups',
-  // `/journeys/<id>` and `/journeys/templates` are per-user, and
+  // `/journeys/<id>` and `/journeys/regular` are per-user, and
   // `/journeys/shared/<token>` share links carry a secret token.
   // `/journeys/new` redirects to `/plan` (DS-194), which is crawlable.
   '/journeys/',
