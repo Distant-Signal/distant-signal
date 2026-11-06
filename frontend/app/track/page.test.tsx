@@ -45,12 +45,6 @@ describe('TrackPage', () => {
     expect(screen.getByText(/needs a Distant Signal account/)).toBeInTheDocument();
   });
 
-  it('swaps in the ticket-specific subtitle for a valid ?ticketId=', async () => {
-    renderWithMantine(await TrackPage({ searchParams: Promise.resolve({ ticketId: '42' }) }));
-
-    expect(screen.getByText(/Find or track the train your saved ticket is for/)).toBeInTheDocument();
-  });
-
   // Review §2.1/I21: previously nothing in the app could link straight to
   // window mode. `?mode=window` mirrors the existing `?origin=` pattern.
   it('starts the form in window mode for ?mode=window', async () => {
@@ -143,24 +137,14 @@ describe('metadata', () => {
     });
   });
 
-  it('stays static, so a per-visitor ?ticketId=/?origin= can never reach a shared preview card', () => {
-    // The subtitle's copy DOES vary with `attachTicketId` (covered above);
-    // the metadata deliberately does not. Next hands `generateMetadata`
-    // the same `searchParams` this page component gets, so adding one here
-    // would put one visitor's saved ticket -- or the station they happened
-    // to arrive from -- within reach of a cached, shared unfurl. Asserted
+  it('stays static, so a per-visitor ?origin= can never reach a shared preview card', () => {
+    // Next hands `generateMetadata` the same `searchParams` this page
+    // component gets, so adding one here would put the station one visitor
+    // happened to arrive from within reach of a cached, shared unfurl. Asserted
     // as "this module exports no generateMetadata at all" --
     // `typeof metadata === 'object'` would NOT catch it, since Next's
     // function form is a separate, differently-named export that can sit
     // alongside this one.
     expect('generateMetadata' in pageModule).toBe(false);
-  });
-
-  it('says nothing about tickets, the one searchParam with a page-visible branch', () => {
-    // Belt-and-braces alongside the structural check above: even a future
-    // hand-written static description must not describe the
-    // `?ticketId=`-only flow, since an unfurler bot never carries that
-    // param and would be previewing a page state it cannot reach.
-    expect(JSON.stringify(metadata)).not.toMatch(/ticket/i);
   });
 });

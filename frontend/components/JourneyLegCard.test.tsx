@@ -4,7 +4,12 @@ import { renderWithMantine } from '@/test/render';
 import { JourneyLegCard } from './JourneyLegCard';
 import type { JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
-import { JOURNEY_LEG_DEFAULTS, JOURNEY_STOP_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
+import {
+  JOURNEY_LEG_DEFAULTS,
+  JOURNEY_STOP_DEFAULTS,
+  LEG_DELAY_REPAY_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+} from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -236,6 +241,25 @@ describe('JourneyLegCard', () => {
     renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByRole('button', { name: 'Remove leg' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Change train' })).toBeInTheDocument();
+  });
+
+  it("shows the owner the leg's Delay Repay and ticket details, with no ticket needed", () => {
+    const delayRepay = {
+      ...LEG_DELAY_REPAY_DEFAULTS,
+      delayMinutes: 6,
+      claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
+      disclaimer: 'A rough estimate.',
+    };
+    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg({ delayRepay })} isOwner isOnlyLeg={false} />);
+    expect(screen.getByText('Delay Repay')).toBeInTheDocument();
+    expect(screen.getByText('6 minutes late')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add ticket details' })).toBeInTheDocument();
+  });
+
+  it('shows neither to a non-owner', () => {
+    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner={false} isOnlyLeg={false} />);
+    expect(screen.queryByText('Delay Repay')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ticket details/ })).not.toBeInTheDocument();
   });
 
   it('offers neither action to a non-owner (shared-group viewer)', () => {

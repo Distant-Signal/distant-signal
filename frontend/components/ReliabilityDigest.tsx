@@ -6,23 +6,18 @@ import {
   computePunctualitySummary,
   type DelayRepayRollup,
   type PunctualitySummary,
-  type WorstJourney,
 } from '@/lib/reliabilityDigest';
-import { londonDayKey, formatDate } from '@/lib/dateFormat';
-import type { TrackedTrainListItem, TicketListItem } from '@/lib/types';
+import { formatDate } from '@/lib/dateFormat';
+import type { ReliabilityJourney, ReliabilityResponse } from '@/lib/types';
 
-/** New retrospective summary card for `/journeys`, per
- * docs/superpowers/specs/2026-09-12-reliability-digest-design.md. Takes the
- * exact same two already-fetched arrays the rest of the page renders from
- * -- no fetch of its own, no new `Promise.all` member (Decision 5).
- * `today` is computed here, once per render, from `londonDayKey(new
- * Date())` -- this page already sets `revalidate = 0` for the same
- * "don't let this go stale mid-day" reason (see page.tsx's own comment on
- * that export). */
-export function ReliabilityDigest({ trains, tickets }: { trains: TrackedTrainListItem[]; tickets: TicketListItem[] }) {
-  const today = londonDayKey(new Date());
-  const punctuality = computePunctualitySummary(trains, today);
-  const rollup = computeDelayRepayRollup(tickets);
+/** The retrospective summary card on `/journeys`, from
+ * `GET /Journeys/reliability` (the page fetches it alongside the rest).
+ * Punctuality is over the trains the caller actually took; Delay Repay is
+ * once per finished journey, with no ticket needed. See
+ * `lib/reliabilityDigest.ts` for what is counted. */
+export function ReliabilityDigest({ reliability }: { reliability: ReliabilityResponse }) {
+  const punctuality = computePunctualitySummary(reliability.trains);
+  const rollup = computeDelayRepayRollup(reliability.journeys);
 
   return (
     <Card withBorder>
@@ -35,44 +30,32 @@ export function ReliabilityDigest({ trains, tickets }: { trains: TrackedTrainLis
   );
 }
 
-// Same "canonical link once resolved, by-id fallback otherwise" href
-// TrackedTrainListRow already computes on this exact page (spec Decision
-// 2/Architecture) -- ordinary in-app navigation to a journey's own
-// existing detail page, not an outbound Delay Repay claim link (that
-// guardrail is specific to DelayRepaySection below). Local to this file
-// (this component's only call site) rather than a cross-file shared
-// helper -- the same ternary already exists standalone in a few other
-// pages/components, but consolidating those pre-existing copies is a
-// separate, unrelated refactor this fix doesn't take on.
-function journeyHref(journey: Pick<WorstJourney, 'trainUid' | 'trainId' | 'serviceDate'>): string {
-  return journey.trainUid ? `/train/${journey.trainUid}/${journey.serviceDate}` : `/train/by-id/${journey.trainId}`;
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
 function PunctualitySection({ summary }: { summary: PunctualitySummary }) {
-  // Gated on `eligibleCount === 0 && cancelledCount === 0`, not
-  // `eligibleCount === 0` alone: `eligibleCount` deliberately excludes
-  // cancelled journeys (it's the on-time/delay arithmetic's own
-  // denominator), so a user whose only finished journeys were all
-  // cancelled would otherwise fall into this branch and see the generic
-  // "nothing tracked yet" prose -- silently hiding a real, known fact
-  // (their cancellations) instead of "reporting it as a separate count"
-  // the way the rest of this feature does (spec Global Constraints).
+  // Gated on both counts: a caller whose only finished trains were all
+  // cancelled still has a real fact to see (their cancellations), not the
+  // "nothing yet" prose.
   if (summary.eligibleCount === 0 && summary.cancelledCount === 0) {
     return (
       <Text size="sm" c="dimmed">
-        Track a train and check back once it&apos;s finished running to see your punctuality here.
+        Save a journey and check back once its trains have run to see your punctuality here.
       </Text>
     );
   }
 
+  const replaced =
+    summary.replacedCount > 0
+      ? ` That includes ${plural(summary.replacedCount, 'booked train', 'booked trains')} the railway replaced after a cancellation or a missed connection.`
+      : '';
+
   if (summary.eligibleCount === 0) {
-    // eligibleCount === 0 but cancelledCount > 0: every finished journey
-    // in this population was cancelled, so there is no on-time/delay
-    // figure to show, but the cancellations themselves are real data.
     return (
       <Text size="sm" c="dimmed">
-        {summary.cancelledCount} tracked journey{summary.cancelledCount === 1 ? ' was' : 's were'} cancelled.
-        Punctuality appears once a tracked train finishes running.
+        {plural(summary.cancelledCount, 'train you were booked on was', 'trains you were booked on were')} cancelled.
+        {replaced} Punctuality appears once one of your trains runs.
       </Text>
     );
   }
@@ -80,24 +63,25 @@ function PunctualitySection({ summary }: { summary: PunctualitySummary }) {
   return (
     <Stack gap={4}>
       <Text>
-        Of your last {summary.eligibleCount} tracked journey{summary.eligibleCount === 1 ? '' : 's'} with a recorded
-        outcome, {summary.onTimePct}% were on time
+        {summary.eligibleCount === 1 ? 'Of the 1 train' : `Of the last ${summary.eligibleCount} trains`} you took with a
+        recorded arrival, {summary.onTimePct}% were on time
         {summary.avgDelayMinutes !== null && ` (average delay ${summary.avgDelayMinutes.toFixed(1)} minutes)`}.
         {summary.cancelledCount > 0 &&
-          ` ${summary.cancelledCount} journey${summary.cancelledCount === 1 ? ' was' : 's were'} cancelled and ${summary.cancelledCount === 1 ? "isn't" : "aren't"} counted in that figure.`}
+          ` ${plural(summary.cancelledCount, 'train was', 'trains were')} cancelled and ${summary.cancelledCount === 1 ? "isn't" : "aren't"} counted in that figure.`}
+        {replaced}
       </Text>
-      {summary.worstJourneys.length > 0 && (
+      {summary.worstTrains.length > 0 && (
         <Stack gap={2}>
           <Text size="sm" fw={500}>
-            Your most delayed tracked journeys:
+            Your most delayed trains:
           </Text>
-          {summary.worstJourneys.map((journey) => (
-            <Group key={journey.trainId} gap="xs">
-              <TextLink href={journeyHref(journey)} underline="always" inline>
-                {formatDate(journey.serviceDate)}
+          {summary.worstTrains.map((train) => (
+            <Group key={train.key} gap="xs">
+              <TextLink href={`/journeys/${train.journeyId}`} underline="always" inline>
+                {formatDate(train.serviceDate)}
               </TextLink>
               <Text size="sm" c="dimmed">
-                {journey.delayMinutes} minutes late
+                {train.delayMinutes} minutes late
               </Text>
             </Group>
           ))}
@@ -107,39 +91,42 @@ function PunctualitySection({ summary }: { summary: PunctualitySummary }) {
   );
 }
 
-// Human-readable labels for the known bands this app's own
-// `delay_repay_rules.rs` ever produces -- `dr15_band`/`dr30_band` only ever
-// return 15/30/60 as `bandMinutes`, so this table is exhaustive against
-// today's rules, not a guess. An unlisted key (a future new band) falls
-// back to the raw key itself, so a rules change never disappears silently.
+// Labels for every band `delay_repay_rules.rs` produces (DR15: 15, 30, 60
+// and 120; DR30: 30, 60 and 120; Heathrow Express: 30 and 60). An unlisted
+// key (a future band) falls back to the raw key, so a rules change never
+// disappears silently.
 const BAND_LABELS: Record<string, string> = {
-  'DR15-15': '15–29 minute delays (25% of fare)',
-  'DR15-30': '30–59 minute delays (50% of fare)',
-  'DR15-60': '60+ minute delays (100% of fare)',
-  'DR30-30': '30–59 minute delays (50% of fare)',
-  'DR30-60': '60+ minute delays (100% of fare)',
+  'DR15-15': '15 to 29 minutes late (25% of a single fare)',
+  'DR15-30': '30 to 59 minutes late (50% of a single fare)',
+  'DR15-60': '60 to 119 minutes late (100% of a single fare)',
+  'DR15-120': '120 minutes or more late (100% of a single or return fare)',
+  'DR30-30': '30 to 59 minutes late (50% of a single fare)',
+  'DR30-60': '60 to 119 minutes late (100% of a single fare)',
+  'DR30-120': '120 minutes or more late (100% of a single or return fare)',
+  'HX-30': 'More than 30 minutes late (25% of the ticket)',
+  'HX-60': 'More than 60 minutes late (50% of the ticket)',
 };
 
-// The always-populated top-level disclaimer `delay_repay_rules::ROUTE_DISCLAIMER`
-// produces, reproduced VERBATIM up to its hedge clause -- same
-// "not a guarantee of compensation and not proof you travelled" wording
-// `DelayRepayEstimate.tsx` renders (via `response.disclaimer`) for a
-// single ticket. Unlike that component, this aggregate has no single
-// `DelayRepayEstimateResponse` to read the string from (there is no
-// aggregate API response at all -- Decision 5), so this is hardcoded
-// rather than data-driven -- a known, explicitly flagged residual drift
-// risk if `ROUTE_DISCLAIMER` is ever reworded (spec Open questions 1). The
-// backend sentence's own tail ("...using the link above") is deliberately
-// NOT reproduced here: this rollup renders no claim link at all (below),
-// so that clause would describe a link that does not exist on screen.
+// The api's `delay_repay_rules::ROUTE_DISCLAIMER`, up to its hedge clause:
+// the same "not a guarantee of compensation and not proof you travelled"
+// wording each journey's own estimate carries. Its tail ("...using the
+// link above") is left out: this rollup has no claim link of its own.
 const CARRIED_FORWARD_DISCLAIMER = 'A rough estimate, not a guarantee of compensation and not proof you travelled.';
 
+function journeyLine(journey: ReliabilityJourney): string {
+  if (journey.outcome === 'notReached') {
+    return `didn't get you to ${journey.destinationName ?? journey.destinationCrs ?? 'your destination'}`;
+  }
+  const late = `${journey.delayMinutes ?? 0} minutes late`;
+  return journey.againstBookedPlan ? `${late} against the train you booked` : late;
+}
+
 function DelayRepaySection({ rollup }: { rollup: DelayRepayRollup }) {
-  if (rollup.attachedTicketsWithOperator === 0) {
+  if (rollup.finishedCount === 0) {
     return (
       <Text size="sm" c="dimmed">
-        Attach a ticket to one of your tracked trains to see whether any of your journeys may have qualified for Delay
-        Repay.
+        Once one of your journeys has finished, you&apos;ll see here whether it may have qualified for Delay Repay. No
+        ticket needed.
       </Text>
     );
   }
@@ -148,32 +135,50 @@ function DelayRepaySection({ rollup }: { rollup: DelayRepayRollup }) {
 
   return (
     <Stack gap={4} data-testid="delay-repay-rollup">
-      {/* Counts TICKETS, not distinct journeys -- one tracked train can
-          have more than one ticket attached (see
-          `computeDelayRepayRollup`'s own doc comment and
-          `app/journeys/page.test.tsx`'s "multiple tickets on one
-          train" case), so this copy must not say "journeys" here, or it
-          would overstate how many distinct trips were involved. */}
-      <Alert color="grape" title="Possible Delay Repay eligibility, across your attached tickets" variant="light">
-        Of the {rollup.attachedTicketsWithOperator} ticket{rollup.attachedTicketsWithOperator === 1 ? '' : 's'} attached
-        to a tracked train with a known operator, {rollup.eligibleCount} may have qualified for a partial or full refund
-        of that ticket&apos;s fare under the operator&apos;s Delay Repay scheme.
+      <Alert color="grape" title="Possible Delay Repay across your journeys" variant="light">
+        {rollup.finishedCount === 1
+          ? 'Of your 1 finished journey, '
+          : `Of your last ${rollup.finishedCount} finished journeys, `}
+        {rollup.qualifyingCount} may have qualified for a partial or full refund under the operator&apos;s Delay Repay
+        scheme.
       </Alert>
       {bandEntries.length > 0 && (
         <Stack gap={2}>
           {bandEntries.map(([key, count]) => (
             <Text key={key} size="sm">
-              {count} ticket{count === 1 ? '' : 's'}: {BAND_LABELS[key] ?? key}
+              {plural(count, 'journey', 'journeys')}: {BAND_LABELS[key] ?? key}
             </Text>
           ))}
         </Stack>
       )}
-      <Text size="sm">{CARRIED_FORWARD_DISCLAIMER} Claim with each operator using the link on each ticket.</Text>
+      {rollup.qualifying.length > 0 && (
+        <Stack gap={2}>
+          {rollup.qualifying.map((journey) => (
+            <Group key={journey.journeyId} gap="xs">
+              <TextLink href={`/journeys/${journey.journeyId}`} underline="always" inline>
+                {journey.customName ?? formatDate(journey.serviceDate)}
+              </TextLink>
+              <Text size="sm" c="dimmed">
+                {journeyLine(journey)}
+              </Text>
+            </Group>
+          ))}
+        </Stack>
+      )}
+      {rollup.ticketTypeWouldHelp && (
+        <Text size="sm">
+          At 120 minutes or more a return pays more than a single. Add your ticket type on the journey to see which
+          applies.
+        </Text>
+      )}
+      <Text size="sm">{CARRIED_FORWARD_DISCLAIMER} Claim with the operator from each journey&apos;s page.</Text>
       <details>
         <summary>How this is calculated</summary>
         <Text size="sm" c="dimmed" mt="xs">
-          This counts tickets, not money: we don&apos;t store ticket prices, so there is no refund total. Distant Signal
-          never claims on your behalf. Check eligibility with the operator.
+          This counts journeys, not money: we don&apos;t store ticket prices, so there is no refund total. Each journey
+          is measured at its final station. If the railway changed your plan (a cancellation or a missed connection),
+          it&apos;s measured against the arrival you booked. Distant Signal never claims on your behalf. Check
+          eligibility with the operator.
         </Text>
       </details>
     </Stack>

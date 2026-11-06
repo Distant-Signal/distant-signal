@@ -15,9 +15,8 @@ import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
  *
  * Static rather than an async `generateMetadata()` despite this route
  * reading `searchParams`, for the same reason `/incidents` gives: the
- * params here pre-fill a search form, and `?ticketId=` in particular is
- * one visitor's own ticket -- a title varying on it would leak per-visitor
- * state into a cached preview card for no gain. The canonical URL is the
+ * params here pre-fill a search form -- a title varying on them would
+ * leak per-visitor state into a cached preview card for no gain. The canonical URL is the
  * bare `/trains`, whatever the query string.
  *
  * Title matches the page's own `<h1>` and its nav label, "Trains"
@@ -63,8 +62,6 @@ function toUrlSearchParams(raw: TrainsSearchParams): URLSearchParams {
  *   `from`/`to` as times) gets a permanent redirect to the same search in
  *   today's names; `proxy.ts` sends both (`trainsRedirect`), before this
  *   page renders;
- * - `?ticketId=` (the Journeys page's "find the train this ticket is for")
- *   is carried through, and only then do rows offer "Track this train".
  *
  * Specs: docs/superpowers/specs/2026-09-08-calling-point-train-search-design.md,
  * 2026-09-09-stops-at-search-filter-design.md and
@@ -78,8 +75,6 @@ export default async function TrainsPage({ searchParams }: { searchParams: Promi
   const code = (key: string) => first(key)?.toUpperCase();
   const view = trainsViewFor(params);
   const between = view === 'between';
-  const ticketIdParam = first('ticketId');
-  const attachTicketId = ticketIdParam && /^\d+$/.test(ticketIdParam) ? Number(ticketIdParam) : undefined;
   // Names each result row's operator, from the same hour-cached TOC list
   // `app/stations/[crs]/page.tsx` fetches. If the list fails to load (or
   // comes back empty) the rows carry no operator at all, rather than a
@@ -101,9 +96,8 @@ export default async function TrainsPage({ searchParams }: { searchParams: Promi
     <Stack p="lg" gap="md">
       <Title order={1}>Trains</Title>
       <Text c="dimmed">
-        {attachTicketId !== undefined
-          ? "Find the train your saved ticket is for. It'll be attached automatically once you track it."
-          : 'Timetables for the whole network. See what leaves or arrives at a station, the trains between two stations, or one train by its headcode or UID.'}
+        Timetables for the whole network. See what leaves or arrives at a station, the trains between two stations, or
+        one train by its headcode or UID.
       </Text>
       <TrainsLookup
         initialView={view}
@@ -123,7 +117,6 @@ export default async function TrainsPage({ searchParams }: { searchParams: Promi
           initialArrivalToDayOffset: first('arrival_to_day_offset'),
           initialOperator: first('operator'),
           initialStopFilters: parseStopFilterParams(params),
-          attachTicketId,
           operatorNames,
           unnamedOperatorCodes,
           searchDates,

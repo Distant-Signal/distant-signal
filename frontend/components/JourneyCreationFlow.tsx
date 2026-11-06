@@ -225,7 +225,6 @@ export function JourneyCreationFlow({
             Other ways to start:
           </Text>
           <TextLink href="/trains">Find a train</TextLink>
-          <TextLink href="/track/mine/add-ticket">Add a ticket</TextLink>
           <TextLink href="/journeys/regular">Regular journeys</TextLink>
         </Group>
       </Stack>

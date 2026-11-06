@@ -1,6 +1,5 @@
 @import '@mantine/core/styles.css';
 @import '@mantine/dates/styles.css';
-@import '@mantine/dropzone/styles.css';
 @import '@mantine/charts/styles.css';
 
 /* Mantine resolves `--mantine-color-anchor` to `primaryColor`-6 in the
@@ -72,7 +71,7 @@ html:root[data-mantine-color-scheme='light'] {
        grape 6 #be4bdb  4.02:1  ->  grape 7 #ae3ec9  4.85:1
      Those are the only three colours this app renders `outline` with
      (`grep 'variant="outline"'`: IssueList / DisruptionDetail /
-     IncidentSearchForm / TicketSummary use gray, IncidentSearchForm uses
+     IncidentSearchForm use gray, IncidentSearchForm uses
      grape, the Delete/Revoke/Leave buttons use red, and ShareButton's
      ActionIcon uses gray) -- the rest of the palette is deliberately left
      alone rather than pre-emptively darkened, and the full-ruleset
@@ -2336,12 +2335,6 @@ svg[data-icon='external-link'] {
 .incidentRow__head {
   row-gap: 2px;
   overflow-wrap: anywhere;
-}
-
-/* `/track/mine`: a train's attached tickets hang off it on an indented
-   rule. */
-.attachedTickets {
-  border-inline-start: 2px solid var(--mantine-color-default-border);
 }
 
 /* `EditJourneyTemplateForm`: one bordered block per leg. */

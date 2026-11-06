@@ -1317,3 +1317,70 @@ INSERT INTO journey_legs
    window_searched)
 VALUES (900203, 1, 'KGX', 'EUS', '2099-03-02', 'unmatched', '08:55', '09:05', TRUE)
 ON CONFLICT (journey_id, leg_order) DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- A two-revision journey for fixture-owner (reliability and Delay Repay
+-- on journey legs, 2026-11-06; e2e/reliability.spec.ts): the booked
+-- 08:00 W93001 London Kings Cross to London Euston on 16 Sep 2026 was
+-- cancelled, and the railway's-fault replacement (revision 2, cause
+-- `cancelled`) took the 08:30 W93002, which arrived 12 minutes late. The
+-- leg's outcome is recorded (`journey_legs.final_*`), as the retention
+-- pass records it, so it outlives the train's own data: "Your
+-- reliability" counts one cancellation and one 12-minute delay, and the
+-- journey's Delay Repay is 42 minutes against the booked 10:00 (LNER,
+-- DR30, the 30-minute band). Fixed id; the leg is the only one.
+-- ---------------------------------------------------------------------
+INSERT INTO trains (train_uid, service_date, origin_crs, scheduled_departure, destination_crs, created_at)
+VALUES ('W93002', '2026-09-16', 'KGX', '2026-09-16T07:30:00Z', 'EUS', NOW())
+ON CONFLICT (train_uid, service_date) DO NOTHING;
+
+INSERT INTO schedule_destination_departures
+  (service_date, destination_crs, scheduled, train_uid, origin_crs, destination_arrival, operator_atoc,
+   public_departure, public_destination_arrival)
+VALUES ('2026-09-16', 'EUS', '08:30', 'W93002', 'KGX', '10:30', 'GR', '08:30', '10:30')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO train_subscriptions (user_id, service_date, pin_origin_crs, pin_scheduled_departure, pin_destination_crs, resolution_status, tracked_at, trains_id, notifications_enabled)
+SELECT 'fixture-owner', '2026-09-16', 'KGX', '2026-09-16T07:30:00Z', 'EUS', 'resolved', NOW(), t.id, TRUE
+FROM trains t
+WHERE t.train_uid = 'W93002' AND t.service_date = '2026-09-16'
+  AND NOT EXISTS (SELECT 1 FROM train_subscriptions ts WHERE ts.trains_id = t.id AND ts.user_id = 'fixture-owner');
+
+INSERT INTO journeys (id, user_id, custom_name, created_at, updated_at)
+VALUES (900301, 'fixture-owner', 'Fixture replaced ride', '2026-09-15T08:00:00Z', '2026-09-16T07:10:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO journey_legs
+  (journey_id, leg_order, origin_crs, destination_crs, service_date, train_subscription_id, match_mode,
+   final_arrival_delay_minutes, final_train_cancelled, final_recorded_at)
+SELECT 900301, 1, 'KGX', 'EUS', '2026-09-16', ts.id, 'manual', 12, FALSE, '2026-09-16T12:00:00Z'
+FROM train_subscriptions ts
+JOIN trains t ON t.id = ts.trains_id
+WHERE t.train_uid = 'W93002' AND t.service_date = '2026-09-16' AND ts.user_id = 'fixture-owner'
+ON CONFLICT (journey_id, leg_order) DO NOTHING;
+
+INSERT INTO journey_revisions (journey_id, revision_no, created_at, reason, cause, fault, actor, is_compensation_baseline)
+VALUES
+  (900301, 1, '2026-09-15T08:00:00Z', 'booked', NULL, NULL, 'owner', TRUE),
+  (900301, 2, '2026-09-16T07:10:00Z', 'replace', 'cancelled', 'operator', 'owner', FALSE)
+ON CONFLICT (journey_id, revision_no) DO NOTHING;
+
+INSERT INTO journey_revision_legs
+  (revision_id, position, source_leg_id, kind, train_uid, service_date, atoc_code, origin_crs, destination_crs,
+   booked_departure, booked_arrival, fate)
+SELECT r.id, 1, NULL, 'train', 'W93001', '2026-09-16', 'GR', 'KGX', 'EUS',
+       '2026-09-16T07:00:00Z', '2026-09-16T09:00:00Z', 'cancelled'
+FROM journey_revisions r
+WHERE r.journey_id = 900301 AND r.revision_no = 1
+ON CONFLICT (revision_id, position) DO NOTHING;
+
+INSERT INTO journey_revision_legs
+  (revision_id, position, source_leg_id, kind, train_uid, service_date, trains_id, atoc_code, origin_crs,
+   destination_crs, booked_departure, booked_arrival, fate)
+SELECT r.id, 1, l.id, 'train', 'W93002', '2026-09-16', ts.trains_id, 'GR', 'KGX', 'EUS',
+       '2026-09-16T07:30:00Z', '2026-09-16T09:30:00Z', 'planned'
+FROM journey_revisions r
+JOIN journey_legs l ON l.journey_id = r.journey_id AND l.leg_order = 1
+JOIN train_subscriptions ts ON ts.id = l.train_subscription_id
+WHERE r.journey_id = 900301 AND r.revision_no = 2
+ON CONFLICT (revision_id, position) DO NOTHING;

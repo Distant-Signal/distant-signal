@@ -32,6 +32,12 @@ describe('PrivacyPage retention copy', () => {
     expect(retentionText('Push notifications')).toMatch(/have not logged in .* for 12 months/);
   });
 
+  it('says what ticket details hold, and that a Wallet pass is never stored', () => {
+    render();
+    const section = retentionText('Tickets');
+    expect(section).toMatch(/Wallet passes are not kept at all/);
+  });
+
   it('states the 18-month travel-date limit for tracked trains, journeys and tickets', () => {
     render();
     expect(retentionText('Tracked trains, journeys and regular journeys')).toMatch(/18 months after the travel date/);
@@ -59,7 +65,9 @@ describe('PrivacyPage retention copy', () => {
     const text = retentionText('Tracked trains, journeys and regular journeys');
     expect(text).toMatch(/how late each of your trains arrived and whether it was cancelled/);
     expect(text).toMatch(/Journeys made from a regular journey go sooner: 3 months after the travel date/);
-    expect(text).toMatch(/has a ticket, was cancelled or arrived 15 or more minutes late, or you missed a connection/);
+    expect(text).toMatch(
+      /you added ticket details to one of its trains, one was cancelled or arrived 15 or more minutes late, or you missed a connection/,
+    );
     expect(text).toMatch(/kept like other journeys\. Regular journeys: until you delete them/);
   });
 

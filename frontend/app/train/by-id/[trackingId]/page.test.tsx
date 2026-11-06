@@ -29,7 +29,7 @@ const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
 // usePathname()/useSearchParams() stubbed for the same reason as
-// AuthStatus.test.tsx/TicketPanel.test.tsx -- the login-error branch now
+// AuthStatus.test.tsx -- the login-error branch now
 // renders LoginControl (Task 1).
 vi.mock('next/navigation', () => ({
   notFound: () => notFoundMock(),
@@ -37,17 +37,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => '/train/by-id/42',
   useSearchParams: () => new URLSearchParams(''),
-}));
-// `TicketPanel` is itself an async Server Component (it does its own
-// `getSession()`/ownership-probe fetches) -- React's plain DOM test
-// renderer, used via `renderWithMantine` here, can't render an async
-// function component at all (that's an RSC-only capability), so it has to
-// be stubbed out for a success-path test that renders the whole page.
-// Only this file's success-path test below cares about `DeleteTrainButton`
-// being present, not `TicketPanel`'s own rendering, which is already
-// covered by `TicketPanel.test.tsx`.
-vi.mock('@/components/TicketPanel', () => ({
-  TicketPanel: () => null,
 }));
 
 function trackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedTrainState {

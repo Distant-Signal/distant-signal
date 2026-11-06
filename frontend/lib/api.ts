@@ -38,9 +38,7 @@ import type {
   TrainSearchOperator,
   PlannerOperatorCatalogue,
   TrackedTrainListItem,
-  TrackedTrainTicket,
-  DelayRepayEstimateResponse,
-  TicketListItem,
+  ReliabilityResponse,
   IncidentDetail,
   RecentlyClearedIncident,
   StationOperatorSampleStats,
@@ -244,8 +242,7 @@ async function cookieForwardInit(): Promise<RequestInit> {
  * and `..`'s separators, so the segment can only ever *be* a segment.
  *
  * Helpers whose id parameter is typed `number` (`getTrackedTrainById`,
- * `getJourney`, `getJourneyTemplate`, `getTicketsForTrackedTrain`,
- * `getDelayRepayEstimate`) are deliberately left uninterpolated-but-unencoded:
+ * `getJourney`, `getJourneyTemplate`) are deliberately left uninterpolated-but-unencoded:
  * a `number` cannot carry a `/`, `?` or `.`-pair, and every call site coerces
  * with `Number(...)` first (worst case `NaN`, a harmless 4-char segment). If
  * one of those signatures ever widens to `string`, it must gain
@@ -893,13 +890,10 @@ export async function getPublicTrainByUidAndDate(uid: string, date: string): Pro
 }
 
 /** `GET /Train/mine`. Returns `null` on `401` (not logged in) --
- * deliberately not `ApiNotFoundError`, matching `getTicketsForTrackedTrain`'s
- * precedent of treating "no session" as an expected outcome, not a
- * failure. Unlike that function, there is no second, distinct 404-shaped
- * outcome to also collapse into `null` here -- there's no id in this
- * route's path to be wrong about, so a 401 from this one call is the
- * complete, unambiguous signal. `app/journeys/page.tsx` does NOT need a
- * separate `getSession()` call the way `TicketPanel` does. */
+ * deliberately not `ApiNotFoundError`: "no session" is an expected
+ * outcome, not a failure. There's no id in this route's path to be wrong
+ * about, so a 401 from this one call is the complete, unambiguous
+ * signal. */
 export async function getMyTrackedTrains(): Promise<TrackedTrainListItem[] | null> {
   const url = `${baseUrl()}/Train/mine`;
   const response = await apiFetch(url, {
@@ -1002,85 +996,19 @@ export async function getJourneyTemplate(id: number): Promise<JourneyTemplateDet
   return response.json() as Promise<JourneyTemplateDetail>;
 }
 
-/** Per-user, session-gated ticket list for one tracked train
- * (`GET /Train/{trackingId}/tickets`). Same cookie-forwarding pattern as
- * `getPreferences`/`getSession` (a Server Component's own fetch does not
- * inherit the incoming request's cookies). Returns `null` on BOTH `401`
- * and `404` -- deliberately not thrown as `ApiNotFoundError`, since "you're
- * not the owner of this pin" is an expected, common outcome for a public,
- * shareable tracked-train page (every non-owner viewer hits this), not an
- * exceptional one. This collapses two different real conditions (not
- * logged in at all vs. logged in but not the owner) into one `null` --
- * `components/TicketPanel.tsx` tells them apart itself by separately
- * calling the existing `getSession()` first, since widening this
- * function's own signature would depart from the design spec's own
- * hand-written contract for it. */
-export async function getTicketsForTrackedTrain(trackingId: number): Promise<TrackedTrainTicket[] | null> {
-  const url = `${baseUrl()}/Train/${trackingId}/tickets`;
+/** `GET /Journeys/reliability`: how the caller's own trains ran and what
+ * Delay Repay their finished journeys may be owed, built from their
+ * journeys' legs (`ReliabilityDigest`). `null` on `401` (not logged in),
+ * the same contract as `getMyJourneys`. */
+export async function getMyReliability(): Promise<ReliabilityResponse | null> {
+  const url = `${baseUrl()}/Journeys/reliability`;
   const response = await apiFetch(url, {
     cache: 'no-store',
     ...(await cookieForwardInit()),
   });
-  if (response.status === 401 || response.status === 404) {
-    return null;
-  }
-  if (!response.ok) {
-    throw errorForResponse(url, response);
-  }
-  return response.json() as Promise<TrackedTrainTicket[]>;
-}
-
-/** Per-ticket Delay Repay estimate
- * (`GET /Train/{trackingId}/tickets/{ticketId}/delay-repay`). Same
- * cookie-forwarding and null-on-401/404 shape as
- * `getTicketsForTrackedTrain` above -- called only from within the "you
- * own this pin" branch `TicketPanel` has already established (see that
- * component), so a `null` here in practice means the specific ticket id
- * didn't resolve under this tracking id, a narrower condition than the
- * top-level list's 401/404 split -- `TicketPanel` treats it as "no
- * estimate to show for this ticket" rather than failing the whole page. */
-export async function getDelayRepayEstimate(
-  trackingId: number,
-  ticketId: number,
-): Promise<DelayRepayEstimateResponse | null> {
-  const url = `${baseUrl()}/Train/${trackingId}/tickets/${ticketId}/delay-repay`;
-  const response = await apiFetch(url, {
-    cache: 'no-store',
-    ...(await cookieForwardInit()),
-  });
-  if (response.status === 401 || response.status === 404) {
-    return null;
-  }
-  if (!response.ok) {
-    throw errorForResponse(url, response);
-  }
-  return response.json() as Promise<DelayRepayEstimateResponse>;
-}
-
-/** `GET /Train/tickets/mine`. Returns `null` on `401` (not logged in) --
- * deliberately not `ApiNotFoundError`, matching `getTicketsForTrackedTrain`'s
- * precedent of treating "no session" as an expected, first-class outcome.
- * Unlike that function, there is no second, distinct 404-shaped outcome to
- * also collapse into `null` here -- no id in this route's path to be
- * wrong about, so a 401 from this one call is the complete signal (same
- * reasoning as `getTrackedTrainById`'s sibling list route, `getMyTrackedTrains`).
- * Called from the merged `app/journeys/page.tsx` (Part B of the
- * upload-first ticket-tracking plan -- `/track/tickets` used to call this
- * directly, but now just redirects there), which does NOT need a separate
- * `getSession()` call the way `TicketPanel` does. */
-export async function getMyTickets(): Promise<TicketListItem[] | null> {
-  const url = `${baseUrl()}/Train/tickets/mine`;
-  const response = await apiFetch(url, {
-    cache: 'no-store',
-    ...(await cookieForwardInit()),
-  });
-  if (response.status === 401) {
-    return null;
-  }
-  if (!response.ok) {
-    throw errorForResponse(url, response);
-  }
-  return response.json() as Promise<TicketListItem[]>;
+  if (response.status === 401) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return response.json() as Promise<ReliabilityResponse>;
 }
 
 /** `GET /public/incidents/{incidentId}`. Never *requires* a session, but it

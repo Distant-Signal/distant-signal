@@ -152,6 +152,8 @@ export const JOURNEY_LEG_DEFAULTS = {
   transitNetwork: null,
   transitLineId: null,
   headsign: null,
+  ticket: null,
+  delayRepay: null,
 } satisfies Partial<Api.JourneyLegDetailResponse>;
 
 /** A `JourneyDetailResponse`, less its id and legs. */
@@ -325,31 +327,39 @@ export const DELAY_REPAY_DEFAULTS = {
   rulesCheckedOn: '2026-10-07',
 } satisfies Partial<Api.DelayRepayFields>;
 
-/** A `DelayRepayEstimateResponse`, less `claimUrl` and `disclaimer`. */
-export const DELAY_REPAY_RESPONSE_DEFAULTS = {
+/** A leg's `LegDelayRepay`, less `claimUrl` and `disclaimer`. */
+export const LEG_DELAY_REPAY_DEFAULTS = {
   ...DELAY_REPAY_DEFAULTS,
   serviceMode: 'train',
   liveTracking: true,
   unmeasurableReason: null,
-} satisfies Partial<Api.DelayRepayEstimateResponse>;
+  ticketKnown: false,
+} satisfies Partial<Api.LegDelayRepay>;
 
-/** A `TicketListItem`, less the ticket: its id, route and source. */
-export const TICKET_LIST_ITEM_DEFAULTS = {
+/** A `ReliabilityJourney`, less its journey, date and delay. */
+export const RELIABILITY_JOURNEY_DEFAULTS = {
   ...DELAY_REPAY_DEFAULTS,
-  trackedTrainId: null,
-  operator: null,
-  ticketType: null,
-  originName: null,
-  destinationName: null,
-  serviceDate: null,
-  pinOriginCrs: null,
-  pinDestinationCrs: null,
-  pinScheduledDeparture: null,
-  resolutionStatus: null,
-  trainUid: null,
-  status: null,
   customName: null,
-} satisfies Partial<Api.TicketListItem>;
+  destinationCrs: 'YRK',
+  destinationName: 'York',
+  bookedArrival: null,
+  actualArrival: null,
+  againstBookedPlan: false,
+  differentDestination: false,
+  claimUrl: 'https://example.test/claim',
+  disclaimer: 'A rough estimate.',
+} satisfies Partial<Api.ReliabilityJourney>;
+
+/** A `ReliabilityTrain`, less its journey, leg, date and delay. */
+export const RELIABILITY_TRAIN_DEFAULTS = {
+  trainUid: 'W12345',
+  originCrs: 'KGX',
+  destinationCrs: 'YRK',
+  destinationName: 'York',
+  cancelled: false,
+  recorded: true,
+  replacedBecause: null,
+} satisfies Partial<Api.ReliabilityTrain>;
 
 /** The live fields a `GroupTrain` (and `SharedTrain`) adds to its pin. */
 export const GROUP_TRAIN_DEFAULTS = {

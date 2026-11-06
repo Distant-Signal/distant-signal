@@ -2,166 +2,125 @@ import { describe, it, expect } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { ReliabilityDigest } from './ReliabilityDigest';
-import type { TrackedTrainListItem, TicketListItem } from '@/lib/types';
+import type { ReliabilityJourney, ReliabilityResponse, ReliabilityTrain } from '@/lib/types';
 import {
   DELAY_REPAY_ESTIMATE_DEFAULTS,
-  TICKET_LIST_ITEM_DEFAULTS,
-  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+  RELIABILITY_JOURNEY_DEFAULTS,
+  RELIABILITY_TRAIN_DEFAULTS,
 } from '@/test/apiDefaults';
 
 // Substring-equal to DelayRepayEstimate.test.tsx's own TOP_LEVEL_DISCLAIMER
-// fixture -- this is the one mechanical guard against the two silently
-// drifting apart if `delay_repay_rules::ROUTE_DISCLAIMER` is ever
-// reworded. See docs/superpowers/specs/2026-09-12-reliability-digest-design.md
-// Open questions 1.
+// fixture -- the one mechanical guard against the two silently drifting
+// apart if `delay_repay_rules::ROUTE_DISCLAIMER` is ever reworded.
 const CARRIED_FORWARD_DISCLAIMER = 'not a guarantee of compensation and not proof you travelled';
 
-function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListItem {
+function train(overrides: Partial<ReliabilityTrain> = {}): ReliabilityTrain {
   return {
-    ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
-    id: 1,
+    ...RELIABILITY_TRAIN_DEFAULTS,
+    journeyId: 1,
+    legId: 10,
     serviceDate: '2026-09-01',
-    pinOriginCrs: 'KGX',
-    pinDestinationCrs: 'YRK',
-    pinOriginName: 'London Kings Cross',
-    pinDestinationName: 'York',
-    pinScheduledDeparture: '2026-09-01T09:00:00Z',
-    resolutionStatus: 'resolved',
-    trainUid: 'W12345',
-    status: 'completed',
     delayMinutes: 3,
-    trackedAt: '2026-08-30T12:00:00Z',
-    customName: null,
-    sharedGroupCount: 0,
     ...overrides,
   };
 }
 
-function ticket(overrides: Partial<TicketListItem> = {}): TicketListItem {
+function journey(overrides: Partial<ReliabilityJourney> = {}): ReliabilityJourney {
   return {
-    ...TICKET_LIST_ITEM_DEFAULTS,
-    id: 1,
-    trackedTrainId: 1,
-    operator: 'LNER',
-    ticketType: null,
-    originCrs: 'KGX',
-    destinationCrs: 'YRK',
-    originName: null,
-    destinationName: null,
-    source: 'manual',
-    createdAt: '2026-08-30T12:00:00Z',
+    ...RELIABILITY_JOURNEY_DEFAULTS,
+    journeyId: 1,
     serviceDate: '2026-09-01',
-    pinOriginCrs: 'KGX',
-    pinDestinationCrs: 'YRK',
-    pinScheduledDeparture: '2026-09-01T09:00:00Z',
-    resolutionStatus: 'resolved',
-    trainUid: 'W12345',
-    status: 'completed',
     delayMinutes: 35,
-    estimate: {
-      ...DELAY_REPAY_ESTIMATE_DEFAULTS,
-      scheme: 'DR30',
-      bandMinutes: 30,
-      percentage: 50,
-      disclaimer: 'estimate disclaimer',
-    },
-    claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
-    disclaimer: 'route disclaimer',
-    customName: null,
+    estimate: { ...DELAY_REPAY_ESTIMATE_DEFAULTS, scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'e' },
     ...overrides,
   };
+}
+
+function digest(reliability: Partial<ReliabilityResponse>) {
+  renderWithMantine(<ReliabilityDigest reliability={{ trains: [], journeys: [], ...reliability }} />);
 }
 
 describe('ReliabilityDigest', () => {
-  it('zero eligible punctuality data: renders the check-back-later prose, never a 0%/0-minute figure', () => {
-    renderWithMantine(<ReliabilityDigest trains={[]} tickets={[]} />);
-    expect(screen.getByText(/check back once it's finished running/)).toBeInTheDocument();
+  it('nothing finished yet: the check-back-later prose, never a 0% or 0-of-0 figure', () => {
+    digest({});
+    expect(screen.getByText(/check back once its trains have run/)).toBeInTheDocument();
+    expect(screen.getByText(/whether it may have qualified for Delay Repay. No ticket needed./)).toBeInTheDocument();
     expect(screen.queryByText(/0%/)).not.toBeInTheDocument();
-  });
-
-  it('zero attached-tickets-with-operator: renders the attach-a-ticket prose, never a 0-of-0 figure', () => {
-    renderWithMantine(<ReliabilityDigest trains={[]} tickets={[]} />);
-    expect(screen.getByText(/Attach a ticket to one of your tracked trains/)).toBeInTheDocument();
     expect(screen.queryByText(/0 of 0/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Attach a ticket/)).not.toBeInTheDocument();
   });
 
-  it('with eligible data: shows an on-time percentage and eligible count', () => {
-    renderWithMantine(
-      <ReliabilityDigest trains={[train({ serviceDate: '2026-09-01', delayMinutes: 0 })]} tickets={[]} />,
-    );
-    expect(screen.getByText(/100%/)).toBeInTheDocument();
+  it('shows an on-time percentage over the trains taken', () => {
+    digest({ trains: [train({ delayMinutes: 0 })] });
+    expect(screen.getByText(/Of the 1 train you took with a recorded arrival, 100% were on time/)).toBeInTheDocument();
   });
 
-  it('every finished journey cancelled: reports the cancellation count, not the generic no-data prose', () => {
-    // Fix for review finding A: eligibleCount excludes cancelled
-    // journeys, so an all-cancelled population must not fall into the
-    // "nothing tracked yet" branch, which would silently hide the
-    // cancellations from the user.
-    renderWithMantine(
-      <ReliabilityDigest trains={[train({ serviceDate: '2026-09-01', status: 'cancelled' })]} tickets={[]} />,
-    );
-    expect(screen.getByText(/1 tracked journey was cancelled/)).toBeInTheDocument();
-    expect(screen.queryByText(/check back once it's finished running/)).not.toBeInTheDocument();
+  it('all cancelled: reports the cancellations, with the booked trains the railway replaced', () => {
+    digest({
+      trains: [train({ legId: null, delayMinutes: null, cancelled: true, replacedBecause: 'cancelled' })],
+    });
+    expect(screen.getByText(/1 train you were booked on was cancelled/)).toBeInTheDocument();
+    expect(screen.getByText(/1 booked train the railway replaced/)).toBeInTheDocument();
     expect(screen.queryByText(/0%/)).not.toBeInTheDocument();
   });
 
-  it('worst-journeys list excludes on-time/early entries: an all-on-time population shows no "most delayed" list', () => {
-    // Fix for review finding B: without a delayMinutes > 0 filter this
-    // would otherwise render a nonsensical "0 minutes late" row under
-    // "Your most delayed tracked journeys".
-    renderWithMantine(
-      <ReliabilityDigest
-        trains={[
-          train({ id: 1, serviceDate: '2026-09-01', delayMinutes: 0 }),
-          train({ id: 2, serviceDate: '2026-08-31', delayMinutes: -3 }),
-        ]}
-        tickets={[]}
-      />,
-    );
-    expect(screen.getByText(/100%/)).toBeInTheDocument();
-    expect(screen.queryByText(/Your most delayed tracked journeys/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/minutes late/)).not.toBeInTheDocument();
+  it('lists only late trains as most delayed, each linking to its journey', () => {
+    digest({
+      trains: [train({ journeyId: 7, delayMinutes: 12 }), train({ journeyId: 8, legId: 11, delayMinutes: -3 })],
+    });
+    expect(screen.getByText('Your most delayed trains:')).toBeInTheDocument();
+    expect(screen.getByText('12 minutes late')).toBeInTheDocument();
+    expect(screen.queryByText('-3 minutes late')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '1 Sep 2026' })).toHaveAttribute('href', '/journeys/7');
   });
 
-  it('hedged-copy: carries the disclaimer forward verbatim, the aggregate-specific no-total sentence, no claim-performing language, and no outbound/claim link in the rollup', () => {
-    renderWithMantine(<ReliabilityDigest trains={[train({ serviceDate: '2026-09-01' })]} tickets={[ticket()]} />);
+  it('counts journeys for Delay Repay with no ticket, and says when one was measured against the booked train', () => {
+    digest({
+      trains: [train()],
+      journeys: [
+        journey(),
+        journey({ journeyId: 2, againstBookedPlan: true, delayMinutes: 42 }),
+        journey({ journeyId: 3, estimate: null, delayMinutes: 4 }),
+      ],
+    });
+    const rollup = screen.getByTestId('delay-repay-rollup');
+    expect(within(rollup).getByText(/Of your last 3 finished journeys, 2 may have qualified/)).toBeInTheDocument();
+    expect(within(rollup).getByText(/2 journeys: 30 to 59 minutes late/)).toBeInTheDocument();
+    expect(within(rollup).getByText('42 minutes late against the train you booked')).toBeInTheDocument();
+    expect(within(rollup).queryByText(/Attach a ticket|Add your ticket type/)).toBeNull();
+  });
+
+  it('asks for the ticket type only when a 120-minute band depends on it', () => {
+    digest({
+      journeys: [
+        journey({
+          delayMinutes: 130,
+          estimate: {
+            ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+            scheme: 'DR15',
+            bandMinutes: 120,
+            percentage: 100,
+            disclaimer: 'e',
+          },
+        }),
+      ],
+    });
+    expect(screen.getByText(/Add your ticket type on the journey/)).toBeInTheDocument();
+  });
+
+  it('hedged copy: the disclaimer carried forward, no money total, no claim-performing language, no outbound link', () => {
+    digest({ trains: [train()], journeys: [journey()] });
     expect(screen.getByText(new RegExp(CARRIED_FORWARD_DISCLAIMER))).toBeInTheDocument();
     expect(screen.getByText(/don.t store ticket prices/)).toBeInTheDocument();
     expect(screen.queryByText(/claim now/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/get your refund/i)).not.toBeInTheDocument();
-    // Word-boundary, not a bare /submit/i: the component's own rendered
-    // copy doesn't currently contain "submit" at all (it was worded to
-    // avoid the word entirely -- see DelayRepaySection's closing
-    // paragraph), but the *backend's* ROUTE_DISCLAIMER this copy is
-    // carried forward from legitimately contains "submits" as part of an
-    // anti-CTA hedge ("This app never submits a claim on your behalf") --
-    // a bare /submit/i substring match would flag that verbatim clause as
-    // "claim-performing" language if a future wording pass ever
-    // reintroduces it here. What this guards against is a literal
-    // "Submit" CTA verb/button (matching DelayRepayEstimate.test.tsx's
-    // own "never claim-performing language" case), which a whole-word
-    // match still catches without penalizing "submits" in hedge prose.
     expect(screen.queryByText(/\bsubmit\b/i)).not.toBeInTheDocument();
-    // Scoped to the rollup section itself (spec Decision 4: "no outbound
-    // claim link is rendered at the rollup level at all") -- not the
-    // whole digest. The punctuality section's own "most delayed
-    // journeys" list deliberately does link through to each journey's
-    // existing detail page (spec Decision 2/Architecture), the same
-    // /train/{uid}/{date} href TrackedTrainListRow already computes; that
-    // is ordinary in-app navigation, not an outbound Delay Repay claim
-    // link, and is not what this guardrail is about.
-    const rollup = screen.getByTestId('delay-repay-rollup');
-    expect(within(rollup).queryByRole('link')).not.toBeInTheDocument();
-  });
-
-  it('never renders a currency figure ("£") anywhere', () => {
-    renderWithMantine(<ReliabilityDigest trains={[train({ serviceDate: '2026-09-01' })]} tickets={[ticket()]} />);
     expect(screen.queryByText(/£/)).not.toBeInTheDocument();
-  });
-
-  it("renders a space between the eligible-count interpolation and the following word (review §4.4: explicit {' '} guard against dropped whitespace)", () => {
-    renderWithMantine(<ReliabilityDigest trains={[train({ serviceDate: '2026-09-01' })]} tickets={[ticket()]} />);
-    expect(screen.getByText(/1 may have qualified for a partial/)).toBeInTheDocument();
-    expect(screen.queryByText(/1may have/)).not.toBeInTheDocument();
+    // The rollup links only to the caller's own journeys, never out to a
+    // claim page: each journey's page carries its own claim link.
+    const rollup = screen.getByTestId('delay-repay-rollup');
+    for (const link of within(rollup).queryAllByRole('link')) {
+      expect(link.getAttribute('href')).toMatch(/^\/journeys\/\d+$/);
+    }
   });
 });

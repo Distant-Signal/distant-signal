@@ -38,7 +38,7 @@ const NO_THIRD_PARTY_DATA: Readonly<Record<string, string>> = {
   'journeys/regular/[id]/page.tsx': "the visitor's saved plan: National Rail station names and times, no live data",
   'lines/new/page.tsx': "a form over Distant Signal's own line catalogue",
   'lines/[id]/edit/page.tsx': "a form over Distant Signal's own line catalogue",
-  'track/mine/add-ticket/page.tsx': "the visitor's own ticket",
+  'track/mine/add-ticket/page.tsx': 'a redirect to the Journeys page',
   'transit/page.tsx': 'network names only; each network page credits its data',
 };
 

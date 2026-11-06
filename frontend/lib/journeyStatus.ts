@@ -19,6 +19,8 @@ export const TRAIN_LEG_BLANKS = {
   transitNetwork: null,
   transitLineId: null,
   headsign: null,
+  ticket: null,
+  delayRepay: null,
 } as const satisfies Partial<JourneyLegDetail>;
 
 /** A journey leg's own status classification, independent of

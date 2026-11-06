@@ -79,7 +79,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       : '';
   const regular =
     retention.regularJourneyDays > 0
-      ? ` Journeys made from a regular journey go sooner: ${describeRetentionDays(retention.regularJourneyDays)} after the travel date, unless you might claim Delay Repay for one (one of its trains has a ticket, was cancelled or arrived 15 or more minutes late, or you missed a connection). Those, and journeys made from a regular journey you have since deleted, are kept like other journeys.`
+      ? ` Journeys made from a regular journey go sooner: ${describeRetentionDays(retention.regularJourneyDays)} after the travel date, unless you might claim Delay Repay for one (you added ticket details to one of its trains, one was cancelled or arrived 15 or more minutes late, or you missed a connection). Those, and journeys made from a regular journey you have since deleted, are kept like other journeys.`
       : '';
   return [
     {
@@ -124,10 +124,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Tickets',
-      what: 'Ticket details you add: operator, ticket type, origin and destination. Ticket files you upload (PDF, Apple Wallet pass or zip) are read in memory to extract these details and are never stored.',
-      why: 'To attach tickets to your trains and estimate Delay Repay.',
+      what: "Ticket details you add to a journey's train: the ticket type, whether it is only valid on one train company, and a name if you give one. No price, file or barcode. An Apple Wallet pass you upload to fill these in is read in memory and never stored.",
+      why: 'To estimate Delay Repay more closely (a single or a return, and which company to claim from).',
       basis: CONTRACT,
-      retention: `Until you delete them or delete your account${travel}. Uploaded files are not kept at all.`,
+      retention: `Until you remove them, or delete the journey or your account${travel}. Wallet passes are not kept at all.`,
     },
     {
       title: 'Groups',

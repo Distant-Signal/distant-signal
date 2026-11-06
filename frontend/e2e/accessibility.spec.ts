@@ -273,13 +273,12 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
   ['a deliberate 404', '/lines/nonexistent-line-slug'],
   // The app-wide 404 (app/not-found.tsx), for a URL no route matches.
   ['an unmatched-route 404', '/this-route-does-not-exist'],
-  // These four gate on a session and, logged out, render a heading plus an
+  // These gate on a session and, logged out, render a heading plus an
   // auto-opened `LoginPromptModal`. That modal state is a real, reachable,
   // first-paint DOM for an anonymous visitor -- and is where the Mantine
   // close-button `button-name` defect lived -- so it is audited here rather
   // than treated as "logged-in only".
   ['/journeys (anonymous)', '/journeys'],
-  ['/track/mine/add-ticket (anonymous login prompt)', '/track/mine/add-ticket'],
   ['/groups (anonymous login prompt)', '/groups'],
   ['/chat (anonymous login prompt)', '/chat'],
   ['/account/preferences', '/account/preferences'],
@@ -415,7 +414,6 @@ test.describe('accessibility: logged in', () => {
     ['/lines', '/lines'],
     [`/stations/${REAL_STATION_CRS}`, `/stations/${REAL_STATION_CRS}`],
     ['/journeys', '/journeys'],
-    ['/track/mine/add-ticket', '/track/mine/add-ticket'],
     ['/groups', '/groups'],
     ['/chat', '/chat'],
     ['/account/notifications', '/account/notifications'],
@@ -428,6 +426,16 @@ test.describe('accessibility: logged in', () => {
       await expectNoViolations(page);
     });
   }
+
+  // The seed's two-revision journey (900301): a leg's Delay Repay, open
+  // because it may qualify, and its ticket details form (2026-11-06).
+  test('/journeys/[id], Delay Repay and the ticket details form', async ({ page }) => {
+    await page.goto('/journeys/900301');
+    await expect(page.getByText('Delay Repay', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Add ticket details' }).click();
+    await expect(page.getByRole('combobox', { name: 'Ticket type' })).toBeVisible();
+    await expectNoViolations(page);
+  });
 
   test('/groups/[id]', async ({ page }) => {
     test.skip(!GROUP_ID, 'set E2E_GROUP_ID to a group the E2E_SESSION_COOKIE user belongs to');
@@ -498,8 +506,8 @@ test.describe('accessibility: /train/[uid]/[date]', () => {
 
   test('as the tracking owner', async ({ browser }) => {
     test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE');
-    // The owner view adds the rename/stop-tracking/share controls and the
-    // ticket panel, none of which the anonymous view renders.
+    // The owner view adds the rename/stop-tracking/share controls, none of
+    // which the anonymous view renders.
     const context = await browser.newContext({ storageState: sessionState(SESSION_COOKIE!) });
     const owned = await context.newPage();
     await owned.goto(`/train/${TRAIN_UID}/${TRAIN_DATE}`);
@@ -813,18 +821,6 @@ test.describe('accessibility: interactive sub-states, logged in', () => {
       .click();
     await expect(page.getByRole('menu')).toBeVisible();
     await expectNoViolations(page, MENU_PORTAL_WAIVERS);
-  });
-
-  test('/track/mine/add-ticket, .pkpass upload tab', async ({ page }) => {
-    await page.goto('/track/mine/add-ticket');
-    await page.getByRole('tab', { name: /pkpass/i }).click();
-    await expectNoViolations(page);
-  });
-
-  test('/track/mine/add-ticket, PDF upload tab', async ({ page }) => {
-    await page.goto('/track/mine/add-ticket');
-    await page.getByRole('tab', { name: /PDF/i }).click();
-    await expectNoViolations(page);
   });
 
   test('/journeys, stop-tracking confirmation modal', async ({ page }) => {

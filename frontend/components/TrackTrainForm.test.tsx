@@ -558,78 +558,7 @@ describe('TrackTrainForm', () => {
     expect(await screen.findByText("Couldn't track this train. Try again.")).toBeInTheDocument();
   });
 
-  // Part A of the upload-first plan: `attachTicketId`, set when arriving
-  // from a standalone ticket's own "find or track the train this ticket is
-  // for" link.
-  it('with attachTicketId: attaches the ticket to the new pin before redirecting', async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockImplementation((input: RequestInfo | URL) => {
-      const url = String(input);
-      // The picker's own departures effect (fired for `initialOrigin="WAT"`
-      // below) also goes through this mock -- routed to an inert empty
-      // array first, same reasoning as `mockFetchByUrl`'s own default,
-      // since the picker now dereferences `rows` as an array.
-      if (/\/api\/stations\/[A-Za-z]{3}\/departures$/.test(url)) {
-        return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
-      }
-      if (url === '/api/Journeys') {
-        return Promise.resolve(
-          new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-            status: 200,
-          }),
-        );
-      }
-      return Promise.resolve(new Response(JSON.stringify({ ticketId: 99, trackedTrainId: 42 }), { status: 200 }));
-    });
-
-    renderWithMantine(<TrackTrainForm initialOrigin="WAT" attachTicketId={99} />);
-    fireEvent.change(screen.getByLabelText(/Scheduled departure/), {
-      target: { value: '2026-08-28 18:32:00' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Track this train/ }));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/Train/tickets/99/attach',
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ trackingId: 42 }) }),
-      );
-    });
-    await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/journeys/99');
-    });
-  });
-
-  it('with attachTicketId: a failed attach still redirects (tracking the train already succeeded)', async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockImplementation((input: RequestInfo | URL) => {
-      const url = String(input);
-      // See the previous test's comment on why the departures fetch is
-      // routed separately, to an inert empty array.
-      if (/\/api\/stations\/[A-Za-z]{3}\/departures$/.test(url)) {
-        return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
-      }
-      if (url === '/api/Journeys') {
-        return Promise.resolve(
-          new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-            status: 200,
-          }),
-        );
-      }
-      return Promise.resolve(new Response('ticket is already attached to a tracked train', { status: 409 }));
-    });
-
-    renderWithMantine(<TrackTrainForm initialOrigin="WAT" attachTicketId={99} />);
-    fireEvent.change(screen.getByLabelText(/Scheduled departure/), {
-      target: { value: '2026-08-28 18:32:00' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Track this train/ }));
-
-    await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/journeys/99');
-    });
-  });
-
-  it('without attachTicketId: never calls the attach route', async () => {
+  it('never calls a ticket-attach route', async () => {
     // See the earlier "selecting an origin suggestion" test's comment:
     // routed by URL, not a blanket mock.
     const fetchMock = mockFetchByUrl();

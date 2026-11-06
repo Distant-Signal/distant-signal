@@ -27,7 +27,7 @@ import { formatDateTime } from '@/lib/dateFormat';
  * is exactly the "how does it currently know what page it's rendering on"
  * mechanism the plan's own task description points at -- no new prop, and
  * no risk of a route's own `page.tsx` forgetting to pass one. */
-const FORM_ROUTES = new Set(['/track', '/trains', '/track/mine/add-ticket', '/lines/new']);
+const FORM_ROUTES = new Set(['/track', '/trains', '/lines/new']);
 
 /** `/lines/[id]/edit` -- the one form route with a dynamic segment, so it
  * can't be a literal entry in `FORM_ROUTES`. */

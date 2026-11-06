@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { LoginPromptModal } from '@/components/LoginPromptModal';
 
 /** A login prompt that opens on arrival, for a Server Component page
- * that gates on a session (`/track/mine/add-ticket`, `/groups`, `/chat`).
+ * that gates on a session (`/groups`, `/chat`).
  * Those pages can't hold the `useState` a controlled `LoginPromptModal`
  * needs themselves, so this small Client Component is the wrapper. See
  * docs/superpowers/specs/2026-09-02-modal-login-prompt-design.md

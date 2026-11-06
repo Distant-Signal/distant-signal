@@ -32,7 +32,7 @@ test.describe('Plan a journey', () => {
     await expect(page.getByRole('button', { name: 'Find routes' })).toBeVisible();
     const main = page.getByRole('main');
     await expect(main.getByRole('link', { name: 'Find a train' })).toHaveAttribute('href', '/trains');
-    await expect(main.getByRole('link', { name: 'Add a ticket' })).toHaveAttribute('href', '/track/mine/add-ticket');
+    await expect(main.getByRole('link', { name: 'Add a ticket' })).toHaveCount(0);
     await expect(main.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
     await expect(main.getByText('New journey')).toHaveCount(0);
   });
@@ -42,10 +42,7 @@ test.describe('Plan a journey', () => {
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/plan$/);
   });
 
-  test('the ticket and template links open their pages', async ({ page }) => {
-    await page.goto('/plan');
-    await page.getByRole('main').getByRole('link', { name: 'Add a ticket' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Add a ticket' })).toBeVisible();
+  test('the template and train search links open their pages', async ({ page }) => {
     await page.goto('/plan');
     await page.getByRole('main').getByRole('link', { name: 'Regular journeys' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Regular journeys' })).toBeVisible();

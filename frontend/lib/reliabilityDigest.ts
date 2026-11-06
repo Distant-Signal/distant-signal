@@ -1,91 +1,55 @@
-import type { TrackedTrainListItem, TicketListItem } from './types';
+import type { ReliabilityJourney, ReliabilityTrain } from './types';
 
-/** The punctuality half's population: a train whose real identity was
- * resolved, that has a real recorded delay figure, and whose service date
- * has fully elapsed. `serviceDate < today` (not a `status === 'completed'`
- * check) is the honest proxy for "this journey has actually happened" --
- * `train_current_state.status` never reliably reaches `'completed'` in
- * practice (a pre-existing, already-documented gap; see
- * docs/superpowers/specs/2026-08-31-tracked-trains-list-design.md Finding
- * 1). `today` is a "YYYY-MM-DD" string the caller computes once per
- * request via `londonDayKey(new Date())` (`lib/dateFormat.ts`), not
- * recomputed per row. See
- * docs/superpowers/specs/2026-09-12-reliability-digest-design.md Decision
- * 1. */
-export function isEligibleForPunctuality(train: TrackedTrainListItem, today: string): boolean {
-  return train.resolutionStatus === 'resolved' && train.delayMinutes !== null && train.serviceDate < today;
+/** "Your reliability" on `/journeys`, from `GET /Journeys/reliability`
+ * (2026-11-06): the trains the caller actually took, one per train leg of
+ * each journey's current plan, and each finished journey's Delay Repay
+ * estimate. The api already limits both to what is over and to what it
+ * knows something about, and counts a booked train the railway replaced
+ * (a cancellation, a missed connection) as a cancellation of its own. A
+ * train the caller chose to leave, or missed themselves, isn't in it. */
+
+/** A train in the punctuality figures: a recorded delay, or cancelled. */
+export function isEligibleForPunctuality(train: ReliabilityTrain): boolean {
+  return train.cancelled || train.delayMinutes !== null;
 }
 
-export interface WorstJourney {
-  trainId: number;
+export interface WorstTrain {
+  key: string;
+  journeyId: number;
   trainUid: string | null;
   serviceDate: string;
   delayMinutes: number;
 }
 
 export interface PunctualitySummary {
+  /** The trains the on-time and average figures are over (cancellations
+   * excluded). */
   eligibleCount: number;
   onTimePct: number | null;
   avgDelayMinutes: number | null;
   cancelledCount: number;
-  worstJourneys: WorstJourney[];
+  /** Of `cancelledCount`, the booked trains the railway replaced. */
+  replacedCount: number;
+  worstTrains: WorstTrain[];
 }
 
-/** The punctuality half's whole aggregation. Reuses
- * `isEligibleForPunctuality`'s population for every figure -- there is no
- * separate population for `worstJourneys` (spec Decision 2). Cancelled
- * journeys are excluded from the delay/on-time arithmetic entirely and
- * counted separately (spec Decision 1's own extension of DESIGN.md
- * §5.5/§6's "delay rate and cancellation rate are two independent axes"
- * posture) -- a cancelled row's leftover `delayMinutes` never contributes
- * to `avgDelayMinutes` or `onTimePct`, but can still surface in
- * `worstJourneys` (it is still a real recorded delay figure on a real
- * tracked train; excluding it from *both* would silently drop a legitimate
- * "this journey was a mess" data point the user tracked). "On time" is
- * `delayMinutes <= 0`, matching `RowStatusBadge`'s existing convention on
- * this exact page, not `common::Defaults::delay_threshold_minutes` (spec
- * Correction 6). Returns an explicit no-data shape (`null`, never `NaN`
- * dressed up as `0`) when nothing is eligible.
- *
- * `eligibleCount` reports the non-cancelled arithmetic population --
- * exactly the denominator `onTimePct`/`avgDelayMinutes` were computed
- * over -- not the raw `isEligibleForPunctuality` population. Cancelled
- * journeys are "reported as a separate count, never blended into" the
- * headline figures (spec Global Constraints); folding them into
- * `eligibleCount` while excluding them from the arithmetic would silently
- * make "N of your last {eligibleCount} were on time" describe a
- * denominator the arithmetic never actually used. `worstJourneys` still
- * draws from the full `isEligibleForPunctuality` population (including
- * cancelled rows, deliberately -- see below) -- there is no separate
- * eligibility population for it (spec Decision 2) -- but IS further
- * narrowed to `delayMinutes > 0`: a "most delayed" list has no honest
- * entry for a journey that was on time or early (`delayMinutes <= 0`),
- * and without this filter a user with only a handful of on-time/early
- * eligible journeys would see nonsensical rows like "0 minutes late" or
- * "-3 minutes late" under that heading. A cancelled row with a genuinely
- * positive leftover `delayMinutes` can still appear here even though it
- * never contributes to `avgDelayMinutes`/`onTimePct` -- it is still a
- * real recorded delay figure on a real tracked train, and excluding it
- * from both would silently drop a legitimate "this journey was a mess"
- * data point the user tracked; this is a deliberate, reasoned choice, not
- * an oversight (a follow-up could mark such rows as cancelled in the UI,
- * but that is not this fix's concern). */
-export function computePunctualitySummary(trains: TrackedTrainListItem[], today: string): PunctualitySummary {
-  const eligible = trains.filter((t) => isEligibleForPunctuality(t, today));
-  const cancelledCount = eligible.filter((t) => t.status === 'cancelled').length;
-  const forArithmetic = eligible.filter((t) => t.status !== 'cancelled');
+/** The punctuality half. Cancellations are counted on their own, never
+ * blended into the on-time and delay arithmetic ("delay rate and
+ * cancellation rate are two independent axes"). "On time" is
+ * `delayMinutes <= 0`, matching the badges on this page. Nothing eligible
+ * gives `null`, never `NaN` dressed up as `0`. The most delayed list
+ * holds only trains that were actually late. */
+export function computePunctualitySummary(trains: ReliabilityTrain[]): PunctualitySummary {
+  const eligible = trains.filter(isEligibleForPunctuality);
+  const cancelled = eligible.filter((t) => t.cancelled);
+  const forArithmetic = eligible.filter((t) => !t.cancelled && t.delayMinutes !== null);
+  const delays = forArithmetic.map((t) => t.delayMinutes as number);
 
   const onTimePct =
-    forArithmetic.length === 0
-      ? null
-      : Math.round((forArithmetic.filter((t) => (t.delayMinutes as number) <= 0).length / forArithmetic.length) * 100);
+    delays.length === 0 ? null : Math.round((delays.filter((d) => d <= 0).length / delays.length) * 100);
+  const avgDelayMinutes = delays.length === 0 ? null : delays.reduce((sum, d) => sum + d, 0) / delays.length;
 
-  const avgDelayMinutes =
-    forArithmetic.length === 0
-      ? null
-      : forArithmetic.reduce((sum, t) => sum + (t.delayMinutes as number), 0) / forArithmetic.length;
-
-  const worstJourneys: WorstJourney[] = eligible
+  const worstTrains: WorstTrain[] = forArithmetic
     .filter((t) => (t.delayMinutes as number) > 0)
     .sort((a, b) => {
       const delayDiff = (b.delayMinutes as number) - (a.delayMinutes as number);
@@ -94,7 +58,8 @@ export function computePunctualitySummary(trains: TrackedTrainListItem[], today:
     })
     .slice(0, 5)
     .map((t) => ({
-      trainId: t.id,
+      key: `${t.journeyId}-${t.legId ?? 'booked'}-${t.trainUid ?? ''}`,
+      journeyId: t.journeyId,
       trainUid: t.trainUid,
       serviceDate: t.serviceDate,
       delayMinutes: t.delayMinutes as number,
@@ -104,61 +69,54 @@ export function computePunctualitySummary(trains: TrackedTrainListItem[], today:
     eligibleCount: forArithmetic.length,
     onTimePct,
     avgDelayMinutes,
-    cancelledCount,
-    worstJourneys,
+    cancelledCount: cancelled.length,
+    replacedCount: cancelled.filter((t) => t.replacedBecause !== null).length,
+    worstTrains,
   };
 }
 
-export interface DelayRepayRollup {
-  attachedTicketsWithOperator: number;
-  eligibleCount: number;
-  bandCounts: Record<string, number>;
+/** Whether a journey may have qualified: an estimate in a band, or a
+ * train that never got there (eligibility then depends on how the
+ * traveller carried on, so the operator decides). */
+export function mayHaveQualified(journey: ReliabilityJourney): boolean {
+  return journey.estimate !== null || journey.outcome === 'notReached';
 }
 
-/** The Delay Repay half's whole aggregation. Population is "attached
- * tickets that have a non-null operator" -- NOT "all tracked trains"
- * (operator data only reliably exists via an attached ticket; the
- * NR-primary "track this train" flow never captures one, and
- * tracked-train read models carry no operator field at all -- spec
- * Correction 2). A standalone ticket (`trackedTrainId: null`) is excluded
- * from both numerator and denominator: there is no journey yet to have
- * been delayed on. An attached ticket with `operator: null` is excluded
- * from the denominator too, NOT counted as "0% eligible" -- this app has
- * no idea whether that operator would have paid out at all, and folding
- * "we don't know" into the same bucket as "we know and it's zero" would
- * misstate the denominator's own meaning (spec Decision 3).
- *
- * Both fields count TICKETS, not distinct journeys/tracked trains: one
- * tracked train can legitimately have more than one ticket attached (see
- * `app/journeys/page.test.tsx`'s "multiple tickets on one train" case),
- * and each is counted separately here. Calling code must describe these
- * numbers as ticket counts, not journey counts, to avoid overstating how
- * many distinct journeys were involved.
- *
- * Consumes `TicketListItem.estimate` -- the already-serialized output of
- * `estimate_delay_repay`, computed once server-side by
- * `build_ticket_list_item` -- never calls `estimate_delay_repay` itself
- * (spec Correction 5). Deliberately computes NO average/blended
- * percentage and NO currency total: `percentage` is a percentage of an
- * unknown fare (this app never stores ticket prices), so averaging two
- * different tickets' percentages produces a number with no unit anyone
- * can act on (spec Correction 1, Decision 3). `bandCounts`' keys are
- * `${scheme}-${bandMinutes}` (e.g. "DR15-30") -- a plain count per band
- * actually observed, nothing more. */
-export function computeDelayRepayRollup(tickets: TicketListItem[]): DelayRepayRollup {
-  const attached = tickets.filter((t) => t.trackedTrainId !== null && t.operator !== null);
-  const eligible = attached.filter((t) => t.estimate !== null);
+export interface DelayRepayRollup {
+  /** Finished journeys with a known arrival (or a cancellation). */
+  finishedCount: number;
+  /** Of those, the ones that may have qualified. */
+  qualifyingCount: number;
+  /** `${scheme}-${bandMinutes}` (e.g. "DR15-30"): how many journeys in
+   * each band actually observed. */
+  bandCounts: Record<string, number>;
+  /** Up to five qualifying journeys, newest first. */
+  qualifying: ReliabilityJourney[];
+  /** A qualifying 120-minute band whose ticket isn't known to be a single
+   * or a return: the ticket type would say which applies. */
+  ticketTypeWouldHelp: boolean;
+}
 
+/** The Delay Repay half: once per journey, as the api measures it (the
+ * last train's delay, or the end-to-end delay against the booked plan
+ * after the railway changed it). Deliberately no average percentage and
+ * no money total: this app never stores ticket prices, so a percentage of
+ * an unknown fare can't be added up into anything anyone can act on. */
+export function computeDelayRepayRollup(journeys: ReliabilityJourney[]): DelayRepayRollup {
+  const qualifying = journeys.filter(mayHaveQualified);
   const bandCounts: Record<string, number> = {};
-  for (const { estimate } of eligible) {
+  for (const { estimate } of qualifying) {
     if (estimate === null) continue;
     const key = `${estimate.scheme}-${estimate.bandMinutes}`;
     bandCounts[key] = (bandCounts[key] ?? 0) + 1;
   }
-
   return {
-    attachedTicketsWithOperator: attached.length,
-    eligibleCount: eligible.length,
+    finishedCount: journeys.length,
+    qualifyingCount: qualifying.length,
     bandCounts,
+    qualifying: qualifying.slice(0, 5),
+    ticketTypeWouldHelp: qualifying.some(
+      (j) => (j.estimate?.bandMinutes ?? 0) >= 120 && j.estimate?.ticketKind === 'unknown',
+    ),
   };
 }

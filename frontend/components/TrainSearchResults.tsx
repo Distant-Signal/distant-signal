@@ -4,7 +4,6 @@ import { LoadMoreControl } from './LoadMoreControl';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
 import { ProvisionalTimetableNote } from './ProvisionalTimetableNote';
 import { ServiceRow, ServiceRowList } from './ServiceRow';
-import { TrackThisTrainButton } from './TrackThisTrainButton';
 import { LoadingText } from '@/components/LoadingText';
 import type { TrainArrivalResult, TrainSearchResult } from '@/lib/types';
 import {
@@ -19,7 +18,6 @@ import {
   resolvedDate,
   serviceDateLabel,
   splitSearchRows,
-  trackNoun,
   type StationBoard,
   type TrainSearchResults as TrainSearchResultsState,
 } from '@/lib/trainSearch';
@@ -63,7 +61,6 @@ export function TrainSearchResults({
   loadingMore,
   onLoadMore: handleLoadMore,
   operatorLookup,
-  attachTicketId,
 }: {
   view?: 'station' | 'between' | undefined;
   board?: StationBoard | undefined;
@@ -77,9 +74,6 @@ export function TrainSearchResults({
   loadingMore: boolean;
   onLoadMore: () => void;
   operatorLookup: ReadonlyMap<string, string> | undefined;
-  /** Only in the ticket flow: each row gets a "Track this train" action
-   * that attaches this ticket. Otherwise a row is just its link. */
-  attachTicketId: number | undefined;
 }) {
   const afterMidnightHeadingId = useId();
   const previousDayHeadingId = useId();
@@ -200,9 +194,7 @@ export function TrainSearchResults({
        * the list to keep on screen -- while costing real usability on
        * touch, where it steals the page's own scroll gesture. */}
       {/* One `ServiceRow` per train, the whole row its link to the train's
-       * page. Only in the ticket flow does a row carry an action, its
-       * "Track this train" button, beside the destination link (never in
-       * it); on a phone the actions wrap onto a line of their own. */}
+       * page. */}
       {/* A date's whole train day: its trains leaving (or, on the arrivals
        * board, arriving) after midnight come last, in a list of their own
        * under the next date, each still marked "+1" and still linking to
@@ -253,17 +245,6 @@ export function TrainSearchResults({
                       ]
                         .filter(Boolean)
                         .join(' · ') || undefined
-                    }
-                    actions={
-                      attachTicketId === undefined ? undefined : (
-                        <TrackThisTrainButton
-                          uid={row.uid}
-                          date={date}
-                          attachTicketId={attachTicketId}
-                          size="xs"
-                          noun={trackNoun(row)}
-                        />
-                      )
                     }
                   />
                 );

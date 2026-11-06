@@ -1,23 +1,17 @@
-import { Card, Divider, Group, Stack, Text, Title } from '@mantine/core';
+import { Group, Stack, Text, Title } from '@mantine/core';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
 import { SectionTitle } from '@/components/SectionTitle';
 import { CardTitleLink, ClickableCard, StaticCard } from '@/components/ClickableCard';
-import { getMyTrackedTrains, getMyTickets, getSharedGroupTrains, getMyJourneys } from '@/lib/api';
+import { getMyTrackedTrains, getMyReliability, getSharedGroupTrains, getMyJourneys } from '@/lib/api';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { ButtonLink } from '@/components/ButtonLink';
 import { StateBadge } from '@/components/StateBadge';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { PLAN_JOURNEY_HREF, PLAN_JOURNEY_LABEL } from '@/lib/navLinks';
-import { TicketSummary } from '@/components/TicketSummary';
 import { FollowJourneyButton } from '@/components/FollowJourneyButton';
 import { followedFromLabel } from '@/lib/followedFrom';
 import { ReliabilityDigest } from '@/components/ReliabilityDigest';
-import { DelayRepayEstimate } from '@/components/DelayRepayEstimate';
-import { AttachTicketAction } from '@/components/AttachTicketAction';
-import { CreateJourneyLegFromTicketButton } from '@/components/CreateJourneyLegFromTicketButton';
-import { DeleteTicketButton } from '@/components/DeleteTicketButton';
-import { RenameTicketButton } from '@/components/RenameTicketButton';
 import { StatusRow } from '@/components/StatusRow';
 import { TrackedTrainRowMenu } from '@/components/TrackedTrainRowMenu';
 import { TrackedRowStatusBadge } from '@/components/TrackedRowStatusBadge';
@@ -29,7 +23,7 @@ import { memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/memberLabel';
 import type { TrackedRowStatus } from '@/lib/trackedRowStatus';
 import { journeysPageSections, type JourneysPageEntry } from '@/lib/journeyHistory';
 import { journeyDisplayName, journeyListItemNameInput, journeyPreviewLine } from '@/lib/journeyName';
-import type { TrackedTrainListItem, TicketListItem, JourneyListItem } from '@/lib/types';
+import type { TrackedTrainListItem, JourneyListItem } from '@/lib/types';
 import type { Metadata } from 'next';
 import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
@@ -41,7 +35,7 @@ import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  ...pageMetadata('Journeys', 'Your journeys, upcoming and past, with your tracked trains and tickets.'),
+  ...pageMetadata('Journeys', 'Your journeys, upcoming and past, with your tracked trains and how they ran.'),
   robots: { index: false },
 };
 
@@ -51,33 +45,19 @@ export const metadata: Metadata = {
  * Upcoming and Past (`lib/upcomingPast.ts`) with "Your reliability"
  * between them. Its header starts everything tracking-shaped: "Plan a
  * journey" (`/plan`, no longer a nav entry since DS-194), "Find a train",
- * "Add a ticket" and regular journeys. Below
- * that, a logged-in user's own
- * tracked trains AND tickets, one merged page (Part B of the upload-first ticket-tracking plan). Was two
- * separate pages (`/journeys` for trains, `/track/tickets` for tickets)
- * per docs/superpowers/specs/2026-08-31-tracked-trains-list-design.md and
- * docs/superpowers/specs/2026-08-31-tickets-list-design.md -- the latter's
- * own Decision 3 gave "a ticket-focused view answers a different question
- * than a train-focused one" as its reason to keep them apart, but that
- * reasoning assumed every ticket has an owning tracked train. Part A of
- * this plan removed that assumption (a ticket can now exist standalone,
- * `trackedTrainId: null`, before a tracked train exists for it), and once
- * that's true, a bare "My Tickets" list of mostly-attached tickets sits
- * awkwardly next to a bare "My Tracked Trains" list -- the natural, useful
- * view is "my trains, each with whatever ticket(s) I've attached to it"
- * plus "tickets I haven't attached to anything yet, with a way to do that
- * now." `/track/tickets` now redirects here rather than duplicating this
- * page's content under two URLs.
+ * and regular journeys. Below that, a logged-in user's own journeys and
+ * tracked trains. Tickets used to be listed here too, attached to a train
+ * or standalone; since 2026-11-06 a ticket is a few details on a journey
+ * leg, edited on the journey's own page, and "Your reliability" comes from
+ * `getMyReliability()` (the trains each journey actually took, and Delay
+ * Repay once per journey, no ticket needed).
  *
  * `getMyTrackedTrains()` returning `null` on a `401` is the COMPLETE "not
- * logged in" signal for this page, same as before -- there's no second
- * party to disambiguate on a route with no id in its path, so no separate
- * `getSession()` call is needed (same reasoning both predecessor pages
- * already established). `getMyTickets()` is gated identically (also
- * `AuthenticatedUser`-only, also no id in its path), so a `null` from one
- * always means a `null` from the other in practice -- this page still
- * defensively falls back to `[]` for `tickets` rather than assuming that
- * invariant blindly, since the two are independent HTTP calls.
+ * logged in" signal for this page -- there's no second party to
+ * disambiguate on a route with no id in its path, so no separate
+ * `getSession()` call is needed. `getMyReliability()` is auxiliary, so it
+ * gets `.catch(() => null)` like the shared lists below: a failure only
+ * hides the digest.
  *
  * `getSharedGroupTrains()` is the third call, gated and null-on-401 in
  * exactly the same way, and is what makes this "my trains" rather than
@@ -117,9 +97,9 @@ export const metadata: Metadata = {
  * order under one cap. It replaced a separate `getSharedGroupJourneys()`
  * whose rows were listed in a block after the caller's own. */
 export default async function JourneysPage() {
-  const [trains, tickets, sharedTrains, journeys] = await Promise.all([
+  const [trains, reliability, sharedTrains, journeys] = await Promise.all([
     getMyTrackedTrains(),
-    getMyTickets(),
+    getMyReliability().catch(() => null),
     getSharedGroupTrains().catch(() => null),
     // The caller's own journeys, the ones they follow and the ones other
     // members shared into their groups (since DS-124 a shared tracked
@@ -135,24 +115,12 @@ export default async function JourneysPage() {
       // (it asks them to log in when they save it) and a train search.
       <Stack p="lg" gap="md" maw={640}>
         <JourneysHeader />
-        <Text>Log in to see your journeys, and to keep your tickets with them.</Text>
+        <Text>Log in to see your journeys and how your trains ran.</Text>
         <LoginControl variant="button" title="Log in (needs a Distant Signal account)">
           Log in
         </LoginControl>
       </Stack>
     );
-  }
-
-  const ticketsByTrain = new Map<number, TicketListItem[]>();
-  const unattachedTickets: TicketListItem[] = [];
-  for (const ticket of tickets ?? []) {
-    if (ticket.trackedTrainId === null) {
-      unattachedTickets.push(ticket);
-      continue;
-    }
-    const existing = ticketsByTrain.get(ticket.trackedTrainId) ?? [];
-    existing.push(ticket);
-    ticketsByTrain.set(ticket.trackedTrainId, existing);
   }
 
   // De-duplicated per train, and filtered against the caller's own rows --
@@ -163,7 +131,7 @@ export default async function JourneysPage() {
   // Split deliberately. `hasOwnContent` is the OLD `!nothingToShow`, and
   // still gates the reliability digest alone: that card is the caller's
   // own punctuality/Delay Repay record ("Your reliability"), computed from
-  // their own trains and tickets, so a shared train is not evidence about
+  // their own journeys, so a shared train is not evidence about
   // it and must not make an otherwise-empty digest appear.
   //
   // `nothingToShow` now also accounts for shared trains: a member who
@@ -177,22 +145,20 @@ export default async function JourneysPage() {
   // would put the same service on screen twice under two different nouns
   // (the review's I22). The journey row wins, for EVERY leg's train, not
   // only the current leg's: it links to `/journeys/{id}` and knows about
-  // the journey's other legs, which a bare train row does not. Tickets
-  // attached to a folded train move under its journey, so they stay on
-  // this page. See `splitJourneyTrains` for the rule and its fallbacks.
-  const { standalone: standaloneTrains, trainIdsByJourney } = splitJourneyTrains(trains, journeys);
-  const ticketsForJourney = (journeyId: number): TicketListItem[] =>
-    (trainIdsByJourney.get(journeyId) ?? []).flatMap((trainId) => ticketsByTrain.get(trainId) ?? []);
+  // the journey's other legs, which a bare train row does not. See
+  // `splitJourneyTrains` for the rule and its fallbacks.
+  const { standalone: standaloneTrains } = splitJourneyTrains(trains, journeys);
 
-  // `hasOwnContent` still gates the reliability digest ALONE and so still
-  // counts only trains and tickets -- a journey with no train picked yet is
-  // not evidence about the caller's punctuality record, and its matched
-  // legs are already counted via `trains`. `nothingToShow` does count
+  // `hasOwnContent` still gates the reliability digest ALONE: the caller's
+  // own trains, or a finished journey the digest already knows about (a
+  // journey with no train picked yet is not evidence about the caller's
+  // punctuality record). `nothingToShow` does count
   // journeys: a user whose only tracked object is an unmatched journey has
   // something to show, and the "you haven't tracked any trains" empty
   // state would both be wrong and (since it's the branch that hides the
   // list) hide the very row C1 exists to add.
-  const hasOwnContent = trains.length > 0 || unattachedTickets.length > 0;
+  const hasOwnContent =
+    trains.length > 0 || (reliability !== null && (reliability.trains.length > 0 || reliability.journeys.length > 0));
   const nothingToShow = !hasOwnContent && shared.length === 0 && journeyRows.length === 0;
 
   // Two lists with one cut-off: Upcoming (still to come, or under way now)
@@ -216,23 +182,9 @@ export default async function JourneysPage() {
   const renderEntry = (entry: JourneysPageEntry) => {
     switch (entry.kind) {
       case 'journey':
-        return (
-          <JourneyListRow
-            key={entry.key}
-            journey={entry.journey}
-            status={entry.status}
-            tickets={ticketsForJourney(entry.journey.id)}
-          />
-        );
+        return <JourneyListRow key={entry.key} journey={entry.journey} status={entry.status} />;
       case 'train':
-        return (
-          <TrackedTrainListRow
-            key={entry.key}
-            train={entry.train}
-            status={entry.status}
-            tickets={ticketsByTrain.get(entry.train.id) ?? []}
-          />
-        );
+        return <TrackedTrainListRow key={entry.key} train={entry.train} status={entry.status} />;
       case 'sharedTrain':
         return <SharedTrainListRow key={entry.key} row={entry.row} status={entry.status} />;
     }
@@ -260,30 +212,13 @@ export default async function JourneysPage() {
           {/* Below Upcoming and above Past (DS-115): the caller's own record
               matters less than what is coming up, and more than the list of
               what is over. */}
-          {hasOwnContent && <ReliabilityDigest trains={trains} tickets={tickets ?? []} />}
+          {hasOwnContent && <ReliabilityDigest reliability={reliability ?? { trains: [], journeys: [] }} />}
           {pastCount > 0 && (
             // Travelled, newest first, own and shared together. A
             // cancelled one keeps its red badge here.
             <Stack component="section" aria-labelledby="past-heading" gap="xs">
               <SectionTitle id="past-heading">Past</SectionTitle>
               {sections.past.map(renderEntry)}
-            </Stack>
-          )}
-          {unattachedTickets.length > 0 && (
-            <Stack component="section" aria-labelledby="unattached-tickets-heading" gap="md">
-              <SectionTitle id="unattached-tickets-heading">Tickets not yet attached to a train</SectionTitle>
-              <Text size="sm" c="dimmed">
-                We can&apos;t tell which train one of these tickets is for. Attach it to one of your tracked trains
-                below, or track the right one.
-              </Text>
-              <Stack gap="lg">
-                {unattachedTickets.map((ticket, index) => (
-                  <Stack key={ticket.id} gap="xs">
-                    {index > 0 && <Divider />}
-                    <UnattachedTicketRow ticket={ticket} trains={trains} />
-                  </Stack>
-                ))}
-              </Stack>
             </Stack>
           )}
           <DataCredits credits={TRAIN_CREDITS} />
@@ -297,7 +232,7 @@ export default async function JourneysPage() {
  * as a button, for everyone: `/plan` needs no account to search and asks a
  * logged-out visitor to log in when they save, and is reached from here and
  * the home page, not the nav (DS-194). The rest are links: a train search
- * for everyone and, logged in, a ticket and regular journeys. */
+ * for everyone and, logged in, regular journeys. */
 function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) {
   return (
     <Stack gap="sm">
@@ -307,7 +242,6 @@ function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) 
         <TextLink href="/trains">Find a train</TextLink>
         {authenticated && (
           <>
-            <TextLink href="/track/mine/add-ticket">Add a ticket</TextLink>
             <TextLink href="/journeys/regular">Regular journeys</TextLink>
           </>
         )}
@@ -331,15 +265,7 @@ function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) 
  * `Group justify="space-between"`, for the shrink-safe title/trailing
  * behaviour the primitive encodes (review P2) -- the same reason
  * `ScheduleRow` is built on it. */
-function JourneyListRow({
-  journey,
-  status,
-  tickets,
-}: {
-  journey: JourneyListItem;
-  status: TrackedRowStatus;
-  tickets: TicketListItem[];
-}) {
+function JourneyListRow({ journey, status }: { journey: JourneyListItem; status: TrackedRowStatus }) {
   const name = journeyListItemNameInput(journey);
   const preview = journeyPreviewLine(name);
   // A followed journey is labelled as followed (below) even when it is
@@ -383,7 +309,7 @@ function JourneyListRow({
           </>
         )}
         {/* A journey the caller follows (DS-146): whose it is, and the way
-            to stop. It is read-only, and holds none of their tickets. */}
+            to stop. It is read-only. */}
         {journey.followedFrom && (
           <Group gap="xs" wrap="wrap" justify="space-between">
             <Text size="sm" c="dimmed">
@@ -392,52 +318,12 @@ function JourneyListRow({
             <FollowJourneyButton journeyId={journey.id} following />
           </Group>
         )}
-        <AttachedTickets tickets={tickets} />
       </Stack>
     </ClickableCard>
   );
 }
 
-/** Tickets attached to a tracked train, under its row -- or under its
- * journey's row, once the train is folded into the journey. Only the row's
- * header is a link, so these controls never nest inside one. */
-function AttachedTickets({ tickets }: { tickets: TicketListItem[] }) {
-  if (tickets.length === 0) {
-    return null;
-  }
-  return (
-    <Stack gap="md" pl="md" className="attachedTickets">
-      {tickets.map((ticket) => (
-        <Stack key={ticket.id} gap={4}>
-          <TicketSummary ticket={ticket} />
-          {/* Imported and used exactly as-is, no new props, no
-              wrapper -- literal reuse of the already-reviewed
-              rendering, same as both predecessor pages. */}
-          <DelayRepayEstimate response={ticket} />
-          <Group gap="xs">
-            <RenameTicketButton
-              ticketId={ticket.id}
-              customName={ticket.customName}
-              defaultName={`${ticket.operator ?? 'Ticket'}${ticket.ticketType ? ` · ${ticket.ticketType}` : ''}`}
-            />
-            <CreateJourneyLegFromTicketButton ticketId={ticket.id} />
-            <DeleteTicketButton ticketId={ticket.id} />
-          </Group>
-        </Stack>
-      ))}
-    </Stack>
-  );
-}
-
-function TrackedTrainListRow({
-  train,
-  status,
-  tickets,
-}: {
-  train: TrackedTrainListItem;
-  status: TrackedRowStatus;
-  tickets: TicketListItem[];
-}) {
+function TrackedTrainListRow({ train, status }: { train: TrackedTrainListItem; status: TrackedRowStatus }) {
   // Canonical, shareable URL once resolved; the by-id detail route
   // otherwise, rather than always sending the user through the by-id
   // redirect hop. The home page's lone-train rows link the same way.
@@ -459,10 +345,8 @@ function TrackedTrainListRow({
     <ClickableCard>
       <Stack gap="sm">
         {/* The train's name is the card's link, stretched over the card
-            (`ClickableCard`). Attached tickets below render their own
-            outbound Delay Repay link (DelayRepayEstimate) and buttons, and
-            the row menu sits beside the title: each is lifted above the
-            stretched link, so none nests inside it or follows it. */}
+            (`ClickableCard`). The row menu sits beside the title, lifted
+            above the stretched link, so it never nests inside it. */}
         <StatusRow
           align="flex-start"
           title={
@@ -513,7 +397,6 @@ function TrackedTrainListRow({
             />
           }
         />
-        <AttachedTickets tickets={tickets} />
       </Stack>
     </ClickableCard>
   );
@@ -605,39 +488,5 @@ function SharedTrainListRow({ row, status }: { row: MergedSharedTrain; status: T
         </Group>
       </Stack>
     </Frame>
-  );
-}
-
-function UnattachedTicketRow({ ticket, trains }: { ticket: TicketListItem; trains: TrackedTrainListItem[] }) {
-  // Same "find or track the train this is for" mechanism
-  // `TicketEntryForm`'s own post-save next step uses -- the ticket's
-  // origin (if any) pre-fills `TrackTrainForm`, and its id is carried
-  // forward so a newly-created pin attaches automatically.
-  const trackParams = new URLSearchParams();
-  if (ticket.originCrs) {
-    trackParams.set('origin', ticket.originCrs);
-  }
-  trackParams.set('ticketId', String(ticket.id));
-
-  return (
-    <Card withBorder>
-      <Stack gap="sm">
-        <TicketSummary ticket={ticket} />
-        <DelayRepayEstimate response={ticket} />
-        <Group gap="lg" wrap="wrap" align="flex-end">
-          <AttachTicketAction ticketId={ticket.id} trains={trains} />
-          <TextLink href={`/track?${trackParams.toString()}`} underline="always">
-            Track a new train for this ticket
-          </TextLink>
-          <CreateJourneyLegFromTicketButton ticketId={ticket.id} />
-          <RenameTicketButton
-            ticketId={ticket.id}
-            customName={ticket.customName}
-            defaultName={`${ticket.operator ?? 'Ticket'}${ticket.ticketType ? ` · ${ticket.ticketType}` : ''}`}
-          />
-          <DeleteTicketButton ticketId={ticket.id} />
-        </Group>
-      </Stack>
-    </Card>
   );
 }

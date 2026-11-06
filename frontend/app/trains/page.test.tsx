@@ -79,7 +79,7 @@ describe('TrainsPage', () => {
     expect(screen.getByText('Pick a station to see its departures.')).toBeInTheDocument();
   });
 
-  it('talks about timetables, never journeys or tracking, outside the ticket flow', async () => {
+  it('talks about timetables, never journeys or tracking', async () => {
     renderWithMantine(await TrainsPage({ searchParams: searchParams({}) }));
     expect(screen.getByText(/^Timetables for the whole network\./)).toBeInTheDocument();
     expect(screen.queryByText(/journey|track/i)).not.toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('TrainsPage', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Between stations' }));
     expect(screen.getByRole('combobox', { name: 'From' })).toHaveValue('');
     expect(screen.getByRole('combobox', { name: 'To' })).toBeInTheDocument();
-    // The station's params go; the ticket stays.
+    // The station's params go; any other param stays.
     expect(window.location.search).toBe('?ticketId=7');
     fireEvent.click(screen.getByRole('radio', { name: 'Headcode or UID' }));
     expect(screen.getByRole('textbox', { name: 'Headcode or UID' })).toBeInTheDocument();
@@ -265,22 +265,9 @@ describe('TrainsPage', () => {
     expect(screen.getByRole('combobox', { name: 'Station' })).toHaveValue('MAN');
   });
 
-  it('shows the ticket-attach explainer copy when arriving with a ticketId', async () => {
+  // The retired ticket flow's `?ticketId=` (an old link) changes nothing.
+  it('ignores an old ?ticketId= link', async () => {
     renderWithMantine(await TrainsPage({ searchParams: searchParams({ ticketId: '7' }) }));
-    expect(
-      screen.getByText("Find the train your saved ticket is for. It'll be attached automatically once you track it."),
-    ).toBeInTheDocument();
-  });
-
-  it('carries a valid ticketId through to the manual fallback link', async () => {
-    renderWithMantine(await TrainsPage({ searchParams: searchParams({ ticketId: '7' }) }));
-    expect(screen.getByRole('link', { name: 'Track it manually' })).toHaveAttribute('href', '/track?ticketId=7');
-  });
-
-  // Same posture as app/track/page.tsx:16-21: a malformed value is treated
-  // as absent rather than passed through as NaN.
-  it('treats a non-numeric ticketId as absent', async () => {
-    renderWithMantine(await TrainsPage({ searchParams: searchParams({ ticketId: 'nope' }) }));
     expect(screen.queryByRole('link', { name: 'Track it manually' })).not.toBeInTheDocument();
     expect(screen.queryByText(/it'll be attached automatically once you track it/)).not.toBeInTheDocument();
   });
@@ -318,12 +305,10 @@ describe('metadata', () => {
     });
   });
 
-  it('stays static, so a per-visitor ?ticketId= can never reach a shared preview card', () => {
-    // The <h1>'s own copy DOES vary with `attachTicketId` (covered above);
-    // the metadata deliberately does not. Next hands `generateMetadata`
-    // the same `searchParams` this page component gets, so adding one here
-    // would put one visitor's ticket within reach of a cached, shared
-    // unfurl. Asserted as "this module exports no generateMetadata at all"
+  it('stays static, so a per-visitor query can never reach a shared preview card', () => {
+    // Next hands `generateMetadata` the same `searchParams` this page
+    // component gets, so adding one here would put one visitor's search
+    // within reach of a cached, shared unfurl. Asserted as "this module exports no generateMetadata at all"
     // -- `typeof metadata === 'object'` would NOT catch it, since Next's
     // function form is a separate, differently-named export that can sit
     // alongside this one.

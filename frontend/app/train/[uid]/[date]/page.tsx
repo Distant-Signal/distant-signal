@@ -6,7 +6,6 @@ import { ShareButton } from '@/components/ShareButton';
 import { TrainJourneyPanel } from '@/components/TrainJourneyPanel';
 import { TrackThisTrainButton } from '@/components/TrackThisTrainButton';
 import { TrackedTrainOwnerControls } from '@/components/TrackedTrainOwnerControls';
-import { TicketPanel } from '@/components/TicketPanel';
 import { TextLink } from '@/components/TextLink';
 import { LastUpdated } from '@/components/LastUpdated';
 import { REFRESH_INTERVAL_MS } from '@/lib/refresh';
@@ -35,7 +34,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
  * than calling this function differently. There is deliberately no `id` in
  * the result type at all -- `PublicTrainState.trainsId` is a `trains.id`, NOT a
  * `train_subscriptions.id`, and this page previously fed it straight into
- * `RenameTrainButton`/`DeleteTrainButton`/`TicketPanel` as a `trackingId`.
+ * `RenameTrainButton`/`DeleteTrainButton` as a `trackingId`.
  * Both are `BIGSERIAL` starting at 1, so a logged-in visitor could rename
  * or delete an unrelated subscription of their own that happened to share
  * the number.
@@ -209,8 +208,8 @@ export async function generateMetadata({
  * `/train/by-id/[trackingId]`: alongside the public fetch, it also asks
  * `getMyTrackedTrains()` whether the current visitor already tracks this
  * exact `(trainUid, serviceDate)` pair, and if so overlays the same owner
- * controls the by-id page renders (`TrackedTrainOwnerControls`/
- * `TicketPanel`) in place of the generic `TrackThisTrainButton`. An
+ * controls the by-id page renders (`TrackedTrainOwnerControls`) in place
+ * of the generic `TrackThisTrainButton`. An
  * anonymous visitor, or a logged-in one tracking some other train, sees
  * exactly today's read-only view -- see the "tracking overlay" describe
  * block in this file's test for the full case split.
@@ -339,11 +338,7 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
             // Shown to EVERY visitor, logged in or not -- the shared
             // "show the control to everyone, prompt on the real 401"
             // posture `PinToggle`/`TrackTrainForm` already establish via
-            // useNeedsLogin/LoginPromptModal. No `attachTicketId`: this page
-            // has no `ticketId` query-param convention and inventing one is
-            // explicitly out of scope
-            // (docs/superpowers/specs/2026-09-07-train-listing-page-design.md
-            // §5/§6). Only /trains' own row action attaches tickets.
+            // useNeedsLogin/LoginPromptModal.
             <TrackThisTrainButton uid={uid} date={date} noun={trackNoun(train)} variant="light" />
           )}
           {/* Independent of ownership -- shown regardless of which branch
@@ -373,7 +368,6 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
           · refreshes every {REFRESH_INTERVAL_MS / 1000}s · {TIMES_IN_UK_LOCAL_TIME}
         </Text>
       </Group>
-      {match && <TicketPanel trackingId={match.id} />}
       {/* `inline`/`underline="always"`: this link sits mid-sentence in
           body text rather than in a nav or beside a heading, so (a) colour
           alone can't be what marks it (WCAG 1.4.1) and (b) it must render as
