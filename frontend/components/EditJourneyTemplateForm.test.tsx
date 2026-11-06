@@ -543,6 +543,30 @@ describe('EditJourneyTemplateForm', () => {
       expect(body.autoCommitRule).toBeNull();
     });
 
+    it('refuses "auto" while a leg has no time, and says why', () => {
+      const openLeg = { ...template().legs[0]!, departAfter: null, departBefore: null };
+      renderWithMantine(<EditJourneyTemplateForm template={template({ legs: [openLeg] })} />);
+      fireEvent.click(screen.getByRole('radio', { name: 'Auto-commit for me' }));
+
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Add a departure time to each leg to let us pick your train.',
+      );
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+
+      fireEvent.change(screen.getByLabelText('Latest arrival (optional)'), { target: { value: '09:30' } });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+    });
+
+    it('asks for a time on a recurring reminder template with an open leg', () => {
+      const openLeg = { ...template().legs[0]!, departAfter: null, departBefore: null };
+      renderWithMantine(<EditJourneyTemplateForm template={template({ legs: [openLeg], daysOfWeek: 31 })} />);
+      expect(
+        screen.getByText('Add a departure time to each leg so we can remind you to pick a train.'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+    });
+
     it('the Paused switch sends the real active boolean, inverted', async () => {
       renderWithMantine(<EditJourneyTemplateForm template={template({ active: true })} />);
       fireEvent.click(screen.getByRole('switch', { name: /^Paused/ }));
