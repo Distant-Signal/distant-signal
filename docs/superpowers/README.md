@@ -37,6 +37,7 @@ Status values:
 | superseded | Replaced by a later spec, or the code went a different way. |
 | research / review | Research, findings or a review with no single build target. The note says whether it was acted on where that is known. |
 | unverified | The status could not be confirmed from this repository. |
+| proposed | A design waiting for review. Nothing is built yet. |
 
 Statuses were checked against the code on 2026-09-28 by looking for each
 spec's crates, routes, tables, components and chart values. The partly and
@@ -235,6 +236,7 @@ server), only this repository's side was checked.
 | [2026-10-30-tfl-transit-design](specs/2026-10-30-tfl-transit-design.md) | implemented, off | TfL's Underground, DLR and London Trams as one `tfl` transit network from TfL's Journey Planner TransXChange (DS-212): the narrowest-active-file override rule, line modes, status from `tfl-<line>` rows, `/transit/tfl`, line frequencies and branches, scheduled times on `/tfl/stops/{id}`. P1 to P4 built, off by default (`api.transitNetworks` and `api.tripPlanTransitNetworks`). Corrects the planning spec's BODS London counts (§16) |
 | [2026-11-04-island-of-ireland-pages-design](specs/2026-11-04-island-of-ireland-pages-design.md) | implemented | The first user-facing Iarnród Éireann and NI Railways pages (DS-360): `/island-of-ireland`, a page per network, line and station, live departures where a station has a live board, Irish stations in `/stations` search, no line status shown. Self-hiding while the catalogue is empty. |
 | [2026-11-05-irish-rail-train-tracking-design](specs/2026-11-05-irish-rail-train-tracking-design.md) | implemented | Accepted 2026-11-05 (DS-369): Iarnród Éireann train tracking from the departure boards we already poll, with no new upstream calls. Phase 1 keeps `Traindate`, `Origintime`, `Destinationtime` and `Lastlocation` and a 14-day board history, matching National Rail retention. Phase 2a adds a history-backed train page linked from the boards, and 2b adds `ie:<code>` tracking. Phase 3 adds delay pushes, and phase 4 groups and the token API. Built on ds-core v0.4.1; a tracked train with no state row yet reads it from the board history (§5.3's note). |
+| [2026-11-06-regular-journeys-design](specs/2026-11-06-regular-journeys-design.md) | proposed | DS-376: journey templates become "Regular journeys". Phase 1 targets, pairs, skip next and the evening-before mint; 2 leave-by countdowns and pushes; 3 the api plans each day's train; 4 breaks switched on, with leave-by in the notice; 5 bank holidays from GOV.UK. Builds on phase 0 (DS-375). |
 
 ## Plans
 
