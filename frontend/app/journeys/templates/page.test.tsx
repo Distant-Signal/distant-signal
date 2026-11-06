@@ -32,6 +32,9 @@ function template(overrides: Partial<JourneyTemplateListItem> = {}): JourneyTemp
     lastDestinationName: 'Edinburgh',
     active: true,
     daysOfWeek: null,
+    defaultMatchMode: 'manual',
+    nextRunOn: null,
+    hasOpenLegs: false,
     ...overrides,
   };
 }
@@ -90,5 +93,44 @@ describe('JourneyTemplatesPage', () => {
     await renderPage();
     expect(screen.getByRole('link', { name: 'Commute' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Weekend trip' })).toBeInTheDocument();
+  });
+
+  it('says a template with no days does not recur', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([template()]);
+    await renderPage();
+    expect(screen.getByText('Not recurring')).toBeInTheDocument();
+    expect(screen.queryByText('Paused')).not.toBeInTheDocument();
+  });
+
+  it("shows a recurring template's days and next run", async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({ daysOfWeek: 31, nextRunOn: '2099-01-05' }),
+      template({ id: 2, daysOfWeek: 1 | 4 | 16, nextRunOn: null }),
+    ]);
+    await renderPage();
+    expect(screen.getByText('Weekdays · next Mon 5 Jan')).toBeInTheDocument();
+    expect(screen.getByText('Mon, Wed, Fri')).toBeInTheDocument();
+  });
+
+  it('marks a paused template and gives no next run', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({ daysOfWeek: 31, active: false, nextRunOn: null, hasOpenLegs: true }),
+    ]);
+    await renderPage();
+    expect(screen.getByText('Paused')).toBeInTheDocument();
+    expect(screen.getByText('Weekdays')).toBeInTheDocument();
+    expect(screen.queryByText(/Add a departure time/)).not.toBeInTheDocument();
+  });
+
+  it('asks for times when a recurring leg has none', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({ daysOfWeek: 31, nextRunOn: '2099-01-05', hasOpenLegs: true }),
+      template({ id: 2, daysOfWeek: 31, nextRunOn: '2099-01-05', hasOpenLegs: true, defaultMatchMode: 'auto' }),
+    ]);
+    await renderPage();
+    expect(
+      screen.getByText('Add a departure time to each leg so we can remind you to pick a train.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Add a departure time to each leg to let us pick your train.')).toBeInTheDocument();
   });
 });

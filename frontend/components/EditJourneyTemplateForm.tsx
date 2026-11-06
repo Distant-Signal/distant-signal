@@ -10,6 +10,7 @@ import type { JourneyTemplateDetail, PutJourneyTemplateRequest, TemplateLegReque
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { resolveStationCode } from '@/lib/suggestionAutocomplete';
 import { StationField } from './StationField';
+import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
 
 interface EditableLeg {
   // A stable, position-independent identity for this leg -- used for React
@@ -116,18 +117,7 @@ function LegStationField({
   );
 }
 
-/** Mon=bit 0 (value 1) .. Sun=bit 6 (value 64), mirroring the backend's
- * own `weekday_bit`/`due_templates_for` convention
- * (`chrono::Weekday::num_days_from_monday()`-based). */
-const DAYS: { key: string; label: string; bit: number }[] = [
-  { key: 'mon', label: 'Mon', bit: 1 },
-  { key: 'tue', label: 'Tue', bit: 2 },
-  { key: 'wed', label: 'Wed', bit: 4 },
-  { key: 'thu', label: 'Thu', bit: 8 },
-  { key: 'fri', label: 'Fri', bit: 16 },
-  { key: 'sat', label: 'Sat', bit: 32 },
-  { key: 'sun', label: 'Sun', bit: 64 },
-];
+const DAYS = TEMPLATE_DAYS;
 
 function daysOfWeekToKeys(mask: number | null): string[] {
   if (mask === null) return [];
@@ -244,10 +234,16 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
     return !flags || !Object.values(flags).some(Boolean);
   });
 
+  // A leg with no time at all gives the sweep nothing to pick or remind
+  // against: the api refuses "auto" for one, and a reminder never comes.
+  const hasOpenLeg = legs.some((leg) => !leg.departFrom && !leg.departTo && !leg.arriveFrom && !leg.arriveTo);
+  const autoNeedsTimes = matchMode === 'auto' && hasOpenLeg;
+
   const isValid =
     legs.length > 0 &&
     legs.every((leg) => leg.originResolved !== null && leg.destinationResolved !== null) &&
-    allTimesComplete;
+    allTimesComplete &&
+    !autoNeedsTimes;
 
   async function handleSave() {
     if (!isValid) return;
@@ -342,6 +338,18 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
             { label: 'Auto-commit for me', value: 'auto' },
           ]}
         />
+        {autoNeedsTimes ? (
+          <Text size="sm" c="red" role="alert">
+            Add a departure time to each leg to let us pick your train.
+          </Text>
+        ) : (
+          selectedDays.length > 0 &&
+          hasOpenLeg && (
+            <Text size="sm" c="dimmed">
+              Add a departure time to each leg so we can remind you to pick a train.
+            </Text>
+          )
+        )}
       </Stack>
       <Switch
         label="Paused"

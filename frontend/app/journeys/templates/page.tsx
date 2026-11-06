@@ -1,10 +1,11 @@
-import { Group, Stack, Text, Title } from '@mantine/core';
+import { Badge, Group, Stack, Text, Title } from '@mantine/core';
 import { CardTitleLink, ClickableCard } from '@/components/ClickableCard';
 import { getMyJourneyTemplates } from '@/lib/api';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyRouteLabel, type JourneyNameInput } from '@/lib/journeyName';
+import { nextRunLabel, recurrenceSummary } from '@/lib/templateRecurrence';
 import type { JourneyTemplateListItem } from '@/lib/types';
 import type { Metadata } from 'next';
 
@@ -60,9 +61,11 @@ function TemplateCard({ template }: { template: JourneyTemplateListItem }) {
   };
   const route = journeyRouteLabel(name);
   const title = journeyDisplayName(name);
+  const recurring = template.daysOfWeek !== null;
+  const paused = recurring && !template.active;
   return (
     <ClickableCard>
-      <Group justify="space-between">
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
         <Stack gap={2}>
           <Text fw={600}>
             <CardTitleLink href={`/journeys/templates/${template.id}`}>{title}</CardTitleLink>
@@ -72,10 +75,26 @@ function TemplateCard({ template }: { template: JourneyTemplateListItem }) {
               {route}
             </Text>
           )}
+          <Text size="sm">
+            {recurrenceSummary(template.daysOfWeek)}
+            {recurring && !paused && template.nextRunOn && ` · next ${nextRunLabel(template.nextRunOn)}`}
+          </Text>
+          {recurring && !paused && template.hasOpenLegs && (
+            <Text size="sm" c="dimmed">
+              {template.defaultMatchMode === 'auto'
+                ? 'Add a departure time to each leg to let us pick your train.'
+                : 'Add a departure time to each leg so we can remind you to pick a train.'}
+            </Text>
+          )}
           <Text size="xs" c="dimmed">
             {template.legCount} {template.legCount === 1 ? 'leg' : 'legs'} · saved {formatDate(template.createdAt)}
           </Text>
         </Stack>
+        {paused && (
+          <Badge color="gray" variant="light" tt="none">
+            Paused
+          </Badge>
+        )}
       </Group>
     </ClickableCard>
   );
