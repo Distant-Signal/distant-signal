@@ -96,6 +96,7 @@ describe('retentionPolicy', () => {
       pastTravelDays: 548,
       stalePushSubscriptionDays: 365,
       inactiveAccountDays: 0,
+      regularJourneyDays: 0,
     });
   });
 
@@ -105,8 +106,9 @@ describe('retentionPolicy', () => {
         RETENTION_PAST_TRAVEL_DAYS: '400',
         RETENTION_STALE_PUSH_SUBSCRIPTION_DAYS: '0',
         RETENTION_INACTIVE_ACCOUNT_DAYS: '730',
+        RETENTION_REGULAR_JOURNEY_DAYS: '90',
       }),
-    ).toEqual({ pastTravelDays: 400, stalePushSubscriptionDays: 0, inactiveAccountDays: 730 });
+    ).toEqual({ pastTravelDays: 400, stalePushSubscriptionDays: 0, inactiveAccountDays: 730, regularJourneyDays: 90 });
   });
 
   it('falls back to the default for a malformed value', () => {

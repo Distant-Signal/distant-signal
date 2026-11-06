@@ -24,7 +24,10 @@ import { withAbsoluteTitle } from '@/lib/pageMetadata';
 // the chart passes to the frontend (lib/legal.ts `retentionPolicy`): tracked
 // trains, tickets and journeys after the travel date, push subscriptions
 // after a long absence, and -- only once enabled (DQ7: 730 days, after this
-// notice is published) -- whole inactive accounts.
+// notice is published) -- whole inactive accounts. Journeys made from a
+// regular journey go sooner only while `REGULAR_JOURNEY_RETENTION_DAYS` is
+// on (DS-379; ds-api's data/retention.rs `prune_regular_occurrences`): keep
+// the sentence's list of what keeps one in step with that query.
 // Server logs: Loki keeps the distant-signal namespace's logs for 31 days
 // (Ranma-Config's per-namespace retention rule); the SFTP audit tiers keep
 // 90 and 400 days. See docs/personal-data-retention.md.
@@ -74,6 +77,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     retention.pastTravelDays > 0
       ? `, or ${describeRetentionDays(retention.pastTravelDays)} after the travel date, whichever comes first`
       : '';
+  const regular =
+    retention.regularJourneyDays > 0
+      ? ` Journeys made from a regular journey go sooner: ${describeRetentionDays(retention.regularJourneyDays)} after the travel date, unless you might claim Delay Repay for one (one of its trains has a ticket, was cancelled or arrived 15 or more minutes late, or you missed a connection). Those, and journeys made from a regular journey you have since deleted, are kept like other journeys.`
+      : '';
   return [
     {
       title: 'Your account',
@@ -110,10 +117,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Tracked trains, journeys and regular journeys',
-      what: 'The date, origin, destination and operator of trains and journeys you track, and any names you give them.',
+      what: 'The date, origin, destination and operator of trains and journeys you track, any names you give them, and how late each of your trains arrived and whether it was cancelled.',
       why: 'To track your trains and journeys and tell you about delays.',
       basis: CONTRACT,
-      retention: `Tracked trains and journeys: until you delete them or delete your account${travel}. Regular journeys: until you delete them or delete your account.`,
+      retention: `Tracked trains and journeys: until you delete them or delete your account${travel}.${regular} Regular journeys: until you delete them or delete your account.`,
     },
     {
       title: 'Tickets',

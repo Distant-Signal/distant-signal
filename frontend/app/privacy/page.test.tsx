@@ -48,6 +48,21 @@ describe('PrivacyPage retention copy', () => {
     expect(retentionText('Your account')).toMatch(/If you do not log in for 24 months .* we delete your account/);
   });
 
+  // DS-379: the regular-journey rule appears only while the api has it on.
+  it('says nothing about the regular-journey rule while it is off (the default)', () => {
+    render();
+    expect(retentionText('Tracked trains, journeys and regular journeys')).not.toMatch(/go sooner/);
+  });
+
+  it('states the regular-journey rule and what keeps a journey for Delay Repay once it is on', () => {
+    render({ RETENTION_REGULAR_JOURNEY_DAYS: '90' });
+    const text = retentionText('Tracked trains, journeys and regular journeys');
+    expect(text).toMatch(/how late each of your trains arrived and whether it was cancelled/);
+    expect(text).toMatch(/Journeys made from a regular journey go sooner: 3 months after the travel date/);
+    expect(text).toMatch(/has a ticket, was cancelled or arrived 15 or more minutes late, or you missed a connection/);
+    expect(text).toMatch(/kept like other journeys\. Regular journeys: until you delete them/);
+  });
+
   // docs/personal-data-retention.md: the SFTP server's 7/90/400-day log tiers.
   it('states the file-transfer server log tiers', () => {
     render();

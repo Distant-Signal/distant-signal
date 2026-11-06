@@ -161,7 +161,8 @@ export function legalPageMetadata(
 /** The api's personal-data retention settings, as the privacy notice
  * states them (LEG-5, LEG-28, DQ7). The chart copies the api's own values
  * (`api.pastTravelRetentionDays`, `api.stalePushSubscriptionDays`,
- * `api.inactiveAccountRetentionDays`) into the frontend's env, so the
+ * `api.inactiveAccountRetentionDays`, `api.regularJourneyRetentionDays`)
+ * into the frontend's env, so the
  * notice follows the real configuration; the defaults below match the
  * chart's. 0 means that limit is off. Read per request, like the flags. */
 export interface RetentionPolicy {
@@ -172,12 +173,18 @@ export interface RetentionPolicy {
   /** Whole accounts: days with no login and no live session. OFF (0) by
    * default; DQ7: set to 730 once the privacy notice is published. */
   inactiveAccountDays: number;
+  /** Journeys made from a regular journey that nothing on keeps for Delay
+   * Repay: days after their last leg (the api's
+   * `REGULAR_JOURNEY_RETENTION_DAYS`, DS-379). OFF (0) by default; the
+   * chart sets 90 once the api records each leg's arrival delay. */
+  regularJourneyDays: number;
 }
 
 export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
   pastTravelDays: 548,
   stalePushSubscriptionDays: 365,
   inactiveAccountDays: 0,
+  regularJourneyDays: 0,
 };
 
 function retentionDays(raw: string | undefined, fallback: number): number {
@@ -197,6 +204,7 @@ export function retentionPolicy(env: Record<string, string | undefined> = proces
       env.RETENTION_INACTIVE_ACCOUNT_DAYS,
       DEFAULT_RETENTION_POLICY.inactiveAccountDays,
     ),
+    regularJourneyDays: retentionDays(env.RETENTION_REGULAR_JOURNEY_DAYS, DEFAULT_RETENTION_POLICY.regularJourneyDays),
   };
 }
 
