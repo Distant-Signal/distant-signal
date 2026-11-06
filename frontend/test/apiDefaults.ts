@@ -163,6 +163,7 @@ export const JOURNEY_DETAIL_DEFAULTS = {
   openBreak: null,
   revisionCount: 0,
   sourceTemplateId: null,
+  regularPlan: null,
 } satisfies Partial<Api.JourneyDetailResponse>;
 
 /** A `JourneyListItem` (`GET /Journeys/mine`), less its ids, current leg

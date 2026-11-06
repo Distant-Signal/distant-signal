@@ -471,7 +471,11 @@ export function RegularJourneyForm() {
       >
         <Stack gap="xs" mt={4}>
           <Radio value="manual" label="Remind me to pick my train" />
-          <Radio value="auto" label="Pick my usual train for me" />
+          <Radio
+            value="auto"
+            label="Pick my usual train for me"
+            description="We'll pick the train closest to your usual one each day."
+          />
         </Stack>
       </Radio.Group>
       {error && <Alert color="red">{error}</Alert>}

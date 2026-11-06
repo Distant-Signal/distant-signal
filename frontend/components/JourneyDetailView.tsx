@@ -1,6 +1,8 @@
 import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
 import { RegularJourneyLine } from './RegularJourneyLine';
+import { RegularPlanCard } from './RegularPlanCard';
+import { showsSuggestion } from '@/lib/regularPlan';
 import { regularOccurrenceStarted } from '@/lib/regularJourneys';
 import { DeleteJourneyButton } from './DeleteJourneyButton';
 import { JourneyLegCard } from './JourneyLegCard';
@@ -266,6 +268,19 @@ export function JourneyDetailView({
           afterSkipHref="/journeys"
         />
       )}
+      {/* Remind mode: the day's train we picked, and the others (regular
+          journeys design §6.6). Gone once one is tracked or it has
+          started. */}
+      {journey.isOwner &&
+        showsSuggestion(journey.regularPlan) &&
+        journey.legs[0] &&
+        !regularOccurrenceStarted(journey.legs, new Date(fetchedAt)) && (
+          <RegularPlanCard
+            journeyId={journey.id}
+            serviceDate={journey.legs[0].serviceDate}
+            plan={journey.regularPlan}
+          />
+        )}
       {/* A custom name hides the route and date, so they come back here,
           as on every journey row (`journeyPreviewLine`). The per-leg
           summary below already says how many legs there are. */}

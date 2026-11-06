@@ -1274,3 +1274,44 @@ SELECT v.template_id, 1, v.origin_crs, v.destination_crs, v.depart_after::time, 
 FROM (VALUES (900201, 'KGX', 'EUS', '08:55', '09:05'), (900202, 'EUS', 'KGX', '17:25', '17:35'))
   AS v (template_id, origin_crs, destination_crs, depart_after, depart_before)
 WHERE NOT EXISTS (SELECT 1 FROM journey_template_legs l WHERE l.template_id = v.template_id);
+
+-- ---------------------------------------------------------------------
+-- A journey of that regular journey (900201) in remind mode, with the
+-- day's train the api's plan sweep suggested (regular journeys design
+-- §6.6): the usual 09:00 and two other trains. On a far-off date, so it
+-- has never started and the card stays; the sweep is off in e2e, so
+-- nothing replans it. regular-journeys.spec.ts answers its "Track this
+-- train" itself, so the visual spec always shoots it untouched.
+INSERT INTO journeys
+  (id, user_id, created_at, updated_at, source_template_id, regular_plan, regular_plan_status,
+   regular_plan_marker, regular_planned_at)
+VALUES
+  (900203, 'fixture-owner', '2026-09-01T08:00:00Z', '2026-09-01T08:00:00Z', 900201,
+   $plan${
+     "reason": "usual",
+     "choice": {"departure": "2099-03-02T09:00:00Z", "arrival": "2099-03-02T11:00:00Z", "changeCount": 0,
+       "legs": [{"kind": "train", "trainUid": "W90201", "serviceDate": "2099-03-02",
+         "originCrs": "KGX", "originName": "London Kings Cross", "destinationCrs": "EUS",
+         "destinationName": "London Euston", "departure": "2099-03-02T09:00:00Z",
+         "arrival": "2099-03-02T11:00:00Z", "operator": "GR", "operatorName": "LNER"}]},
+     "alternatives": [
+       {"departure": "2099-03-02T09:15:00Z", "arrival": "2099-03-02T11:10:00Z", "changeCount": 0,
+         "legs": [{"kind": "train", "trainUid": "W90211", "serviceDate": "2099-03-02",
+           "originCrs": "KGX", "originName": "London Kings Cross", "destinationCrs": "EUS",
+           "destinationName": "London Euston", "departure": "2099-03-02T09:15:00Z",
+           "arrival": "2099-03-02T11:10:00Z", "operator": "GR", "operatorName": "LNER"}]},
+       {"departure": "2099-03-02T09:30:00Z", "arrival": "2099-03-02T11:40:00Z", "changeCount": 1,
+         "legs": [{"kind": "train", "trainUid": "W90212", "serviceDate": "2099-03-02",
+           "originCrs": "KGX", "originName": "London Kings Cross", "destinationCrs": "EUS",
+           "destinationName": "London Euston", "departure": "2099-03-02T09:30:00Z",
+           "arrival": "2099-03-02T11:40:00Z", "operator": "GR", "operatorName": "LNER"}]}],
+     "sweepLegIds": []
+   }$plan$,
+   'suggested', 'none', '2026-09-01T18:00:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO journey_legs
+  (journey_id, leg_order, origin_crs, destination_crs, service_date, match_mode, depart_after, depart_before,
+   window_searched)
+VALUES (900203, 1, 'KGX', 'EUS', '2099-03-02', 'unmatched', '08:55', '09:05', TRUE)
+ON CONFLICT (journey_id, leg_order) DO NOTHING;
