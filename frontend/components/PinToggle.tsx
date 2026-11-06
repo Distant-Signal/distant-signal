@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ActionIcon, Group, Switch, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Group, Switch, Text } from '@mantine/core';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginPromptModal } from './LoginPromptModal';
+import { LazyTooltip } from './LazyTooltip';
 import type { Preferences } from '@/lib/types';
 import { tokens } from '@/lib/theme';
 
@@ -80,6 +81,11 @@ export function PinToggle({
   // default: pinning and alerting are separate. `null` until it asks.
   const [alerts, setAlerts] = useState<boolean | null>(null);
   const [alertsBusy, setAlertsBusy] = useState(false);
+  // The log-in prompt is mounted at the first click, not up front (DS-374):
+  // a closed Mantine `Modal` still sets up its portal and hooks, once per
+  // row of /lines. Mounted closed while the first request is in flight, so
+  // a 401 opens it with its usual transition.
+  const [loginPromptMounted, setLoginPromptMounted] = useState(false);
 
   /** Known tradeoff: this is a full read-modify-write against the whole
    * pinned list, not a per-item mutation. Each toggle re-fetches
@@ -95,6 +101,7 @@ export function PinToggle({
    * both out of scope for this plan. */
   async function toggle() {
     setBusy(true);
+    setLoginPromptMounted(true);
     needsLoginState.reset();
     setError(null);
     try {
@@ -197,7 +204,7 @@ export function PinToggle({
 
   return (
     <Group gap={4} wrap="nowrap">
-      <Tooltip label={label}>
+      <LazyTooltip label={label}>
         <ActionIcon
           variant={pinned ? 'filled' : 'outline'}
           // Distinct hues (not just filled vs. outline of the same yellow)
@@ -218,7 +225,7 @@ export function PinToggle({
         >
           <StarIcon filled={pinned} />
         </ActionIcon>
-      </Tooltip>
+      </LazyTooltip>
       {pinned && alerts !== null && (
         <Switch
           size="xs"
@@ -233,9 +240,11 @@ export function PinToggle({
           {error}
         </Text>
       )}
-      <LoginPromptModal opened={needsLoginState.needsLogin} onClose={needsLoginState.reset}>
-        Log in to pin this {kind}.
-      </LoginPromptModal>
+      {loginPromptMounted && (
+        <LoginPromptModal opened={needsLoginState.needsLogin} onClose={needsLoginState.reset}>
+          Log in to pin this {kind}.
+        </LoginPromptModal>
+      )}
     </Group>
   );
 }

@@ -16,7 +16,10 @@ import { LoginControl } from './LoginControl';
  * `LoginControl`'s flexibility) -- there is deliberately no `verb`
  * prop; the title is a fixed constant, never a prop. See
  * docs/superpowers/specs/2026-09-02-modal-login-prompt-design.md
- * Decisions 1-3.
+ * Decisions 1-3. The exception is a control repeated down a long list:
+ * `PinToggle` mounts this at its first click instead, since even a closed
+ * `Modal` sets up a portal and its hooks, once per row of /lines
+ * (DS-374).
  *
  * `closeButtonProps={{ 'aria-label': 'Close' }}`: Mantine's `Modal` close
  * button has no default accessible name (confirmed by reading the
