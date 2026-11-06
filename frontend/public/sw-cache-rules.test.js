@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import cacheRules from './sw-cache-rules.js';
 
-const { isCacheable, parsePushPayload, sameOriginNotificationUrl, showsNotificationPage } = cacheRules;
+const { isCacheable, notificationOptions, parsePushPayload, sameOriginNotificationUrl, showsNotificationPage } =
+  cacheRules;
 
 describe('isCacheable', () => {
   it.each([
@@ -32,6 +33,24 @@ describe('isCacheable', () => {
 });
 
 // FE-10
+describe('notificationOptions', () => {
+  it('passes the body, tag and url, and renotify only when asked with a tag', () => {
+    expect(notificationOptions({ title: 't', body: 'b', tag: 'line-x', url: '/lines/x' })).toEqual({
+      body: 'b',
+      tag: 'line-x',
+      data: { url: '/lines/x' },
+    });
+    expect(
+      notificationOptions({ title: 't', body: 'b', tag: 'journey-leg-leave-11', url: '/journeys/7', renotify: true }),
+    ).toEqual({ body: 'b', tag: 'journey-leg-leave-11', renotify: true, data: { url: '/journeys/7' } });
+    // renotify without a tag would throw in showNotification.
+    expect(notificationOptions({ title: 't', body: 'b', url: '/', renotify: true })).toEqual({
+      body: 'b',
+      data: { url: '/' },
+    });
+  });
+});
+
 describe('parsePushPayload', () => {
   it('returns the parsed object for a JSON payload', () => {
     expect(parsePushPayload({ json: () => ({ title: 't', url: '/lines/x' }) })).toEqual({

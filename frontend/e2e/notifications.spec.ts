@@ -35,6 +35,10 @@ async function resetSettings(page: Page): Promise<void> {
       predictedStart: true,
       stationSkip: true,
       templateAttention: true,
+      leaveBy: true,
+      leaveByQuietHours: true,
+      leaveByLeadMinutes: 0,
+      morningSummary: false,
       delayThresholdMinutes: null,
       quietHours: null,
     },
@@ -68,7 +72,7 @@ test.describe('Notifications, logged in', () => {
     await page.goto('/account/preferences');
     await page.getByRole('link', { name: 'Choose which notifications you get' }).click();
     await expect(page).toHaveURL(new RegExp(`${NOTIFICATIONS}$`));
-    for (const name of ['This device', 'What to send', 'Quiet hours', 'Lines', 'Devices']) {
+    for (const name of ['This device', 'What to send', 'Regular journeys', 'Quiet hours', 'Lines', 'Devices']) {
       await expect(page.getByRole('region', { name })).toBeVisible();
     }
     // Push is not on for any of the seed user's devices.
@@ -104,6 +108,33 @@ test.describe('Notifications, logged in', () => {
       await expect(quiet.getByRole('switch', { name: 'Quiet hours' })).toBeChecked();
       await expect(quiet.getByLabel('From')).toHaveValue('22:00');
       await expect(quiet.getByLabel('Until')).toHaveValue('07:00');
+    } finally {
+      await resetSettings(page);
+    }
+  });
+
+  test('saves the leave-by reminder settings', async ({ page }) => {
+    await page.goto(NOTIFICATIONS);
+    try {
+      const regular = page.getByRole('region', { name: 'Regular journeys' });
+      const reminders = regular.getByRole('switch', { name: /^Leave-by reminders/ });
+      await expect(reminders).toBeEnabled();
+      await expect(reminders).toBeChecked();
+      await expect(regular.getByRole('combobox', { name: 'When' })).toHaveValue('At leave-by time');
+
+      await regular.getByRole('combobox', { name: 'When' }).click();
+      await page.getByRole('option', { name: '2 min early' }).click();
+      await expect(regular.getByRole('combobox', { name: 'When' })).toHaveValue('2 min early');
+      const summary = regular.getByRole('switch', { name: /^Morning summary/ });
+      await expect(async () => {
+        await summary.setChecked(true, { force: true, timeout: 2_000 });
+        await expect(summary).toBeChecked({ timeout: 2_000 });
+      }).toPass({ timeout: 20_000 });
+
+      await page.reload();
+      await expect(regular.getByRole('combobox', { name: 'When' })).toHaveValue('2 min early');
+      await expect(regular.getByRole('switch', { name: /^Morning summary/ })).toBeChecked();
+      await expect(regular.getByRole('switch', { name: /^During quiet hours/ })).toBeChecked();
     } finally {
       await resetSettings(page);
     }

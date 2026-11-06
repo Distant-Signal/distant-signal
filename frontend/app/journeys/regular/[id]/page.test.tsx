@@ -36,6 +36,7 @@ function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTempla
     defaultMatchMode: 'manual',
     autoCommitRule: null,
     ...TEMPLATE_TARGET_DEFAULTS,
+    stationBufferMinutes: null,
     planOptions: null,
     usualItinerary: null,
     legs: [

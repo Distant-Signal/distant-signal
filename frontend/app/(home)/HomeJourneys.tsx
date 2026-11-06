@@ -5,6 +5,7 @@ import { RegularJourneyLine } from '@/components/RegularJourneyLine';
 import { DelayBadge } from '@/components/DelayBadge';
 import { JourneyBreakBanner } from '@/components/JourneyBreakBanner';
 import { JourneyStatusGroupBadge } from '@/components/JourneyStatusBadge';
+import { LeaveByCountdown } from '@/components/LeaveByCountdown';
 import { instantLateDepartureTimes, LateDepartureNote } from '@/components/LateDepartureNote';
 import { LoginControl } from '@/components/LoginControl';
 import { SectionTitle } from '@/components/SectionTitle';
@@ -103,6 +104,12 @@ function legArrivalText(leg: JourneyLegDetail): string | null {
   return legDestinationArrivalLabel(leg.destinationCrs, leg.trackedTrainState?.journeyStops);
 }
 
+/** The journey's first train's expected lateness, for its leave-by. */
+function firstTrainDelay(detail: JourneyDetail): number | null {
+  const train = detail.legs.find((leg) => !isUntrackedLeg(leg));
+  return train?.trackedTrainState?.delayMinutes ?? null;
+}
+
 /** The current leg's own live status, secondary to the journey's: its
  * delay in minutes where a running train has one ("12 min late"),
  * otherwise its status badge. `null` when that would only repeat the
@@ -167,6 +174,14 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
               {followedFromLabel(journey.item.followedFrom)}
             </Text>
           )}
+          {/* When to leave (regular journeys): hidden once its train has left. */}
+          {detail.leaveBy && (
+            <LeaveByCountdown
+              leaveBy={detail.leaveBy}
+              delayMinutes={firstTrainDelay(detail)}
+              initialNow={now.toISOString()}
+            />
+          )}
           {/* Made from a regular journey: under way, so no "Skip". */}
           {journey.item.sourceTemplateId !== null && (
             <RegularJourneyLine
@@ -206,7 +221,7 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
  * in full, whose it is when the traveller follows it rather than owns it
  * (DS-146), and its whole-journey status (`homeJourneyStatusGroup`). Links
  * to the journey page. */
-export function HomeJourneyRow({ journey }: { journey: HomeJourney }) {
+export function HomeJourneyRow({ journey, now }: { journey: HomeJourney; now?: Date | undefined }) {
   const name = journeyListItemNameInput(journey.item);
   const followed = journey.item.followedFrom;
   const group = homeJourneyStatusGroup(journey);
@@ -245,6 +260,16 @@ export function HomeJourneyRow({ journey }: { journey: HomeJourney }) {
             )
           }
         />
+        {/* When to leave (regular journeys), before the journey starts:
+            its current leg is then its first, so the row's delay is the
+            first train's. */}
+        {journey.item.leaveBy && journey.item.startedLegCount === 0 && (
+          <LeaveByCountdown
+            leaveBy={journey.item.leaveBy}
+            delayMinutes={journey.item.kind === 'train' ? journey.item.delayMinutes : null}
+            initialNow={now?.toISOString()}
+          />
+        )}
         {/* Made from a regular journey: "Skip" until it sets off. */}
         {templateId !== null && (
           <RegularJourneyLine
@@ -361,8 +386,8 @@ export function HomeTrainRow({ entry }: { entry: HomeLoneTrain }) {
 }
 
 /** One row of either section: a journey or a lone train. */
-function HomeEntryRow({ entry }: { entry: HomeEntry }) {
-  return isLoneTrain(entry) ? <HomeTrainRow entry={entry} /> : <HomeJourneyRow journey={entry} />;
+function HomeEntryRow({ entry, now }: { entry: HomeEntry; now?: Date | undefined }) {
+  return isLoneTrain(entry) ? <HomeTrainRow entry={entry} /> : <HomeJourneyRow journey={entry} now={now} />;
 }
 
 /** A React key unique across journeys and trains, whose ids are separate
@@ -402,7 +427,7 @@ export function CurrentJourneySection({
         <Stack gap="xs">
           <SectionTitle order={3}>Also in progress</SectionTitle>
           {alsoInProgress.map((entry) => (
-            <HomeEntryRow key={entryKey(entry)} entry={entry} />
+            <HomeEntryRow key={entryKey(entry)} entry={entry} now={now} />
           ))}
         </Stack>
       )}
@@ -430,10 +455,13 @@ export function UpcomingJourneysSection({
   upcoming,
   shared = [],
   loadFailed = false,
+  now,
 }: {
   upcoming: readonly HomeEntry[];
   shared?: readonly HomeJourney[];
   loadFailed?: boolean;
+  /** When the page was rendered, for the leave-by countdowns. */
+  now?: Date | undefined;
 }) {
   const shown = upcoming.slice(0, MAX_UPCOMING_JOURNEYS);
   const hidden = upcoming.length - shown.length;
@@ -464,7 +492,7 @@ export function UpcomingJourneysSection({
       {shown.length > 0 && (
         <Stack gap="xs">
           {shown.map((entry) => (
-            <HomeEntryRow key={entryKey(entry)} entry={entry} />
+            <HomeEntryRow key={entryKey(entry)} entry={entry} now={now} />
           ))}
         </Stack>
       )}

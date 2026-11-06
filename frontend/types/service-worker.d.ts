@@ -15,6 +15,7 @@ interface WorkerGlobalScope {
   // Assigned onto `self` by sw-cache-rules.js for sw.js to call. TypeScript
   // reads that file as a CommonJS module (it has `module.exports`), so its
   // functions are not globals here; the types come from its exports.
+  notificationOptions: typeof import('../public/sw-cache-rules.js').notificationOptions;
   isCacheable: typeof import('../public/sw-cache-rules.js').isCacheable;
   parsePushPayload: typeof import('../public/sw-cache-rules.js').parsePushPayload;
   sameOriginNotificationUrl: typeof import('../public/sw-cache-rules.js').sameOriginNotificationUrl;
@@ -37,4 +38,6 @@ interface PushNotificationPayload {
   body: string;
   url: string;
   tag: string;
+  /** Alert again when replacing a notification with the same tag. */
+  renotify?: boolean;
 }

@@ -17,7 +17,16 @@ export interface PinnedLineAlert {
   alerts: boolean;
 }
 
-type Switchable = Exclude<keyof NotificationPreferences, 'delayThresholdMinutes' | 'quietHours' | 'snoozedUntil'>;
+type Switchable = Exclude<
+  keyof NotificationPreferences,
+  | 'delayThresholdMinutes'
+  | 'quietHours'
+  | 'snoozedUntil'
+  | 'leaveBy'
+  | 'leaveByQuietHours'
+  | 'leaveByLeadMinutes'
+  | 'morningSummary'
+>;
 
 /** The switches, in the order the page lists them, with what each sends.
  * `journeySuggestions` says how it changes the train pushes. */
@@ -212,6 +221,8 @@ export function NotificationSettings({ pinnedLines }: { pinnedLines: PinnedLineA
         </Stack>
       </PreferencesSection>
 
+      <RegularJourneysSection settings={settings} disabled={settings === null || saving} save={save} />
+
       <PauseSection settings={settings} disabled={settings === null || saving} save={save} />
 
       <QuietHoursSection settings={settings} disabled={settings === null || saving} save={save} />
@@ -234,6 +245,90 @@ export function NotificationSettings({ pinnedLines }: { pinnedLines: PinnedLineA
 
       <DevicesSection version={devicesVersion} />
     </>
+  );
+}
+
+/** "When" a leave-by reminder comes: at the leave-by time (decision 12)
+ * or up to 5 minutes before it. */
+const LEAD_OPTIONS = [
+  { value: '0', label: 'At leave-by time' },
+  { value: '1', label: '1 min early' },
+  { value: '2', label: '2 min early' },
+  { value: '3', label: '3 min early' },
+  { value: '4', label: '4 min early' },
+  { value: '5', label: '5 min early' },
+];
+
+/** Whether this browser is on an iPhone, where Focus can hold a web push
+ * (regular journeys design §9). Checked after mount: the server can't. */
+function useIsIphone(): boolean {
+  const [iphone, setIphone] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the user agent is only known in the browser
+    setIphone(navigator.userAgent.includes('iPhone'));
+  }, []);
+  return iphone;
+}
+
+/** Regular journeys' leave-by reminders and morning summary (regular
+ * journeys design §5.4). The reminder is on by default and comes at the
+ * leave-by time, through quiet hours; the summary is off. */
+function RegularJourneysSection({
+  settings,
+  disabled,
+  save,
+}: {
+  settings: NotificationPreferences | null;
+  disabled: boolean;
+  save: (change: NotificationPreferencesUpdate) => Promise<boolean>;
+}) {
+  const iphone = useIsIphone();
+  const leaveByOff = settings?.leaveBy === false;
+  return (
+    <PreferencesSection
+      id="regular-journeys-heading"
+      title="Regular journeys"
+      description="For regular journeys with a time to get to the station."
+    >
+      <Stack gap="md">
+        <Switch
+          label="Leave-by reminders"
+          description={
+            iphone
+              ? "One notification when it's time to leave. On iPhone, Focus can delay this."
+              : "One notification when it's time to leave."
+          }
+          checked={settings?.leaveBy ?? false}
+          disabled={disabled}
+          onChange={(event) => void save({ leaveBy: event.currentTarget.checked })}
+        />
+        <Select
+          label="When"
+          data={LEAD_OPTIONS}
+          value={String(settings?.leaveByLeadMinutes ?? 0)}
+          disabled={disabled || leaveByOff}
+          allowDeselect={false}
+          onChange={(value) => {
+            if (value) void save({ leaveByLeadMinutes: Number(value) as 0 | 1 | 2 | 3 | 4 | 5 });
+          }}
+          maw={240}
+        />
+        <Switch
+          label="During quiet hours"
+          description="Leave-by reminders still come through in quiet hours."
+          checked={settings?.leaveByQuietHours ?? false}
+          disabled={disabled || leaveByOff}
+          onChange={(event) => void save({ leaveByQuietHours: event.currentTarget.checked })}
+        />
+        <Switch
+          label="Morning summary"
+          description="One notification an hour before you first leave, with the day's regular journeys."
+          checked={settings?.morningSummary ?? false}
+          disabled={disabled}
+          onChange={(event) => void save({ morningSummary: event.currentTarget.checked })}
+        />
+      </Stack>
+    </PreferencesSection>
   );
 }
 

@@ -84,10 +84,20 @@ test.describe('home page journeys (logged in)', () => {
     journeyId = null;
   });
 
+  test('the journey page shows the leave-by, with no Change on another day', async ({ page }) => {
+    await page.goto(`/journeys/${process.env.E2E_JOURNEY_ID ?? '1'}`);
+    await expect(page.getByText('Leave by 06:20')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Change', exact: true })).toHaveCount(0);
+  });
+
   test('upcoming journeys lead the page, with no Tracked trains list', async ({ page }) => {
     await page.goto('/');
     const upcoming = page.getByRole('region', { name: 'Upcoming journeys' });
     await expect(upcoming.getByRole('link', { name: /Fixture door to door/ })).toBeVisible();
+    // Its ten minutes to the start give it a leave-by (regular journeys
+    // design §5.4), counting down until then.
+    await expect(upcoming.getByText('Leave by 06:20')).toBeVisible();
+    await expect(upcoming.getByText(/^in \d/)).toBeVisible();
     await expect(upcoming.getByRole('link', { name: 'View all' })).toHaveAttribute('href', '/journeys');
     await expect(page.getByRole('heading', { name: 'Tracked trains' })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home');

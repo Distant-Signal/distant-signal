@@ -94,13 +94,38 @@ function showsNotificationPage(clientUrl, url, origin) {
   }
 }
 
+/**
+ * The `showNotification` options for a push payload: its body, tag and
+ * URL, and `renotify` when the payload asks for it (a moved leave-by, so
+ * the replacement alerts again). `renotify` needs a tag, so it is only set
+ * with one.
+ * @param {Record<string, unknown>} payload - a parsed push payload
+ * @returns {{ body: string, tag?: string, renotify?: boolean, data: { url: unknown } }}
+ */
+function notificationOptions(payload) {
+  /** @type {{ body: string, tag?: string, renotify?: boolean, data: { url: unknown } }} */
+  const options = { body: typeof payload.body === 'string' ? payload.body : '', data: { url: payload.url } };
+  if (typeof payload.tag === 'string' && payload.tag !== '') {
+    options.tag = payload.tag;
+    if (payload.renotify === true) options.renotify = true;
+  }
+  return options;
+}
+
 if (typeof self !== 'undefined') {
   self.isCacheable = isCacheable;
+  self.notificationOptions = notificationOptions;
   self.parsePushPayload = parsePushPayload;
   self.sameOriginNotificationUrl = sameOriginNotificationUrl;
   self.showsNotificationPage = showsNotificationPage;
 }
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- TypeScript assumes CommonJS `module.exports` always exists; kept as a runtime guard
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { isCacheable, parsePushPayload, sameOriginNotificationUrl, showsNotificationPage };
+  module.exports = {
+    isCacheable,
+    notificationOptions,
+    parsePushPayload,
+    sameOriginNotificationUrl,
+    showsNotificationPage,
+  };
 }

@@ -67,6 +67,7 @@ function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTempla
     defaultMatchMode: 'manual',
     autoCommitRule: null,
     ...TEMPLATE_TARGET_DEFAULTS,
+    stationBufferMinutes: null,
     planOptions: null,
     usualItinerary: null,
     legs: [
@@ -257,6 +258,7 @@ describe('EditJourneyTemplateForm', () => {
             endsOn: null,
             defaultMatchMode: 'manual',
             autoCommitRule: null,
+            stationBufferMinutes: null,
           }),
         }),
       );
@@ -321,6 +323,7 @@ describe('EditJourneyTemplateForm', () => {
             endsOn: null,
             defaultMatchMode: 'manual',
             autoCommitRule: null,
+            stationBufferMinutes: null,
           }),
         }),
       );
@@ -579,5 +582,24 @@ describe('EditJourneyTemplateForm', () => {
       await waitFor(() => expect(putCalls()).toHaveLength(1));
       expect(sentBody().active).toBe(false);
     });
+  });
+
+  it('saves the minutes to get to the station, and clears them', async () => {
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => new Response(null, { status: 204 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const puts = () => fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT');
+    renderWithMantine(<EditJourneyTemplateForm template={{ ...template(), stationBufferMinutes: 15 }} />);
+    const field = screen.getByLabelText(/^Minutes to get to the station/);
+    expect(field).toHaveValue('15');
+    fireEvent.change(field, { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(JSON.parse(String(puts()[0]![1]!.body))).toMatchObject({ stationBufferMinutes: 20 });
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(puts()).toHaveLength(2));
+    expect(JSON.parse(String(puts()[1]![1]!.body))).toMatchObject({ stationBufferMinutes: null });
   });
 });

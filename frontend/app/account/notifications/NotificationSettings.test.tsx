@@ -18,6 +18,10 @@ const SETTINGS: NotificationPreferences = {
   predictedStart: true,
   stationSkip: true,
   templateAttention: true,
+  leaveBy: true,
+  leaveByQuietHours: true,
+  leaveByLeadMinutes: 0,
+  morningSummary: false,
   delayThresholdMinutes: null,
   quietHours: null,
   snoozedUntil: null,
@@ -75,6 +79,13 @@ function thresholdInput(): HTMLElement {
   return input;
 }
 
+/** The leave-by "When" input (its listbox shares the label). */
+function leadInput(): HTMLElement {
+  const input = screen.getAllByLabelText('When').find((element) => element.tagName === 'INPUT');
+  if (!input) throw new Error('no When input');
+  return input;
+}
+
 const LINES = [
   { id: 'lner-ecml', name: 'East Coast Main Line', alerts: true },
   { id: 'metrolink:blue', name: 'Blue line', alerts: false },
@@ -107,6 +118,48 @@ describe('NotificationSettings', () => {
     expect(putBodies(fetchMock, '/api/preferences/notifications')).toEqual([{ trainDelay: false }]);
     // The threshold only matters for delays.
     expect(thresholdInput()).toBeDisabled();
+  });
+
+  it('shows the leave-by settings and saves the lead, quiet hours and the summary', async () => {
+    const fetchMock = stubFetch();
+    renderWithMantine(<NotificationSettings pinnedLines={[]} />);
+    const reminders = screen.getByRole('switch', { name: /^Leave-by reminders/ });
+    await waitFor(() => expect(reminders).toBeEnabled());
+    expect(reminders).toBeChecked();
+    expect(screen.getByRole('switch', { name: /^During quiet hours/ })).toBeChecked();
+    const summary = screen.getByRole('switch', { name: /^Morning summary/ });
+    expect(summary).not.toBeChecked();
+    const when = leadInput();
+    expect(when).toHaveValue('At leave-by time');
+
+    fireEvent.click(when);
+    fireEvent.click(await screen.findByRole('option', { name: '3 min early' }));
+    await waitFor(() => expect(when).toHaveValue('3 min early'));
+    fireEvent.click(screen.getByRole('switch', { name: /^During quiet hours/ }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: /^During quiet hours/ })).not.toBeChecked());
+    fireEvent.click(summary);
+    await waitFor(() => expect(summary).toBeChecked());
+    expect(putBodies(fetchMock, '/api/preferences/notifications')).toEqual([
+      { leaveByLeadMinutes: 3 },
+      { leaveByQuietHours: false },
+      { morningSummary: true },
+    ]);
+
+    // Off, the lead and quiet hours have nothing to apply to.
+    fireEvent.click(reminders);
+    await waitFor(() => expect(reminders).not.toBeChecked());
+    expect(when).toBeDisabled();
+    expect(screen.getByRole('switch', { name: /^During quiet hours/ })).toBeDisabled();
+    expect(screen.queryByText(/On iPhone, Focus can delay this/)).not.toBeInTheDocument();
+  });
+
+  it('warns iPhone users that Focus can delay a leave-by reminder', async () => {
+    stubFetch();
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
+    );
+    renderWithMantine(<NotificationSettings pinnedLines={[]} />);
+    expect(await screen.findByText(/On iPhone, Focus can delay this/)).toBeInTheDocument();
   });
 
   it('explains that suggestions replace the plain train notification', () => {

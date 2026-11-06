@@ -313,9 +313,11 @@ WHERE NOT EXISTS (SELECT 1 FROM train_subscriptions ts WHERE ts.trains_id = t.id
 -- database, like E2E_TRACKING_ID above (visual.spec.ts's `journey` shot).
 -- In 2099, so the walk is always "Planned". Named, so its title doesn't
 -- depend on how journeys are named by default; its preview line starts
--- from the walk's place ("Islington"), which has no station code.
-INSERT INTO journeys (user_id, custom_name, created_at, updated_at)
-SELECT 'fixture-owner', 'Fixture door to door', NOW(), NOW()
+-- from the walk's place ("Islington"), which has no station code. Ten
+-- minutes to get to the start gives it a leave-by (regular journeys design
+-- §5): "Leave by 06:20", a countdown on the home page and the journey page.
+INSERT INTO journeys (user_id, custom_name, created_at, updated_at, station_buffer_minutes)
+SELECT 'fixture-owner', 'Fixture door to door', NOW(), NOW(), 10
 WHERE NOT EXISTS (SELECT 1 FROM journeys WHERE custom_name = 'Fixture door to door');
 
 WITH j AS (
