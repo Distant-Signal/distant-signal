@@ -1178,3 +1178,71 @@ VALUES
   ('republic-of-ireland', 'A101', '2026-09-17', 'BFSTC', '10:10', NULL, '10:15', NULL, 5, NOW(), NOW()),
   ('republic-of-ireland', 'D802', '2026-09-17', 'CNLLY', NULL, '08:10', NULL, '08:10', 0, NOW(), NOW())
 ON CONFLICT (network, train_code, train_date, station_code) DO UPDATE SET changed_at = EXCLUDED.changed_at;
+
+-- Tracking Iarnród Éireann trains (2b and 4 of the same design).
+--
+-- A102 runs today (Dublin's date), so ireland.spec.ts can track it from
+-- its page (`POST /Journeys/irish-train` takes today or yesterday only);
+-- the spec stops tracking it again at the end.
+INSERT INTO island_of_ireland_trains
+  (network, train_code, train_date, origin, destination, origin_time, destination_time, status,
+   late_minutes, last_location, first_seen_at, last_seen_at, changed_at)
+VALUES
+  ('republic-of-ireland', 'A102', (NOW() AT TIME ZONE 'Europe/Dublin')::date, 'Dublin Connolly', 'Drogheda',
+   '09:00', '09:45', 'En Route', 2, 'Departed Dublin Connolly', NOW() - INTERVAL '30 minutes', NOW(), NOW())
+ON CONFLICT (network, train_code, train_date) DO UPDATE SET
+  last_seen_at = EXCLUDED.last_seen_at, changed_at = EXCLUDED.changed_at;
+
+INSERT INTO island_of_ireland_train_calls
+  (network, train_code, train_date, station_code, scheduled_arrival, scheduled_departure, expected_arrival,
+   expected_departure, late_minutes, first_seen_at, changed_at)
+VALUES
+  ('republic-of-ireland', 'A102', (NOW() AT TIME ZONE 'Europe/Dublin')::date, 'CNLLY', NULL, '09:00', NULL, '09:02',
+   2, NOW(), NOW()),
+  ('republic-of-ireland', 'A102', (NOW() AT TIME ZONE 'Europe/Dublin')::date, 'DGHDA', '09:45', NULL, '09:47', NULL,
+   2, NOW(), NOW())
+ON CONFLICT (network, train_code, train_date, station_code) DO UPDATE SET changed_at = EXCLUDED.changed_at;
+
+-- fixture-member tracks A101 (ie:A101, as the track route makes it: the
+-- boards' end names, no CRS, a subscription bound at once and tracked
+-- from Connolly, a one-leg journey with no codes) and shares the journey
+-- and the train into fixture-group-1: the group page names it by its
+-- boards and links it to its Irish page. Its state is the writer's, as
+-- derived from A101's board history.
+INSERT INTO trains (train_uid, service_date, origin_name, destination_name, scheduled_departure, created_at)
+VALUES ('ie:A101', '2026-09-17', 'Dublin Connolly', 'Belfast Grand Central', '2026-09-17T07:00:00Z', NOW())
+ON CONFLICT (train_uid, service_date) DO NOTHING;
+
+INSERT INTO train_current_state (trains_id, status, last_reported_location, last_event_type, delay_minutes, event_time)
+SELECT t.id, 'en_route', 'Dublin Connolly', 'DEPARTURE', 5, NOW()
+FROM trains t
+WHERE t.train_uid = 'ie:A101' AND t.service_date = '2026-09-17'
+ON CONFLICT (trains_id) WHERE trains_id IS NOT NULL DO NOTHING;
+
+INSERT INTO train_subscriptions (user_id, service_date, resolution_status, tracked_at, trains_id, notifications_enabled, pin_origin_ref)
+SELECT 'fixture-member', '2026-09-17', 'resolved', NOW(), t.id, TRUE, 'ie:CNLLY'
+FROM trains t
+WHERE t.train_uid = 'ie:A101' AND t.service_date = '2026-09-17'
+  AND NOT EXISTS (SELECT 1 FROM train_subscriptions ts WHERE ts.trains_id = t.id AND ts.user_id = 'fixture-member');
+
+INSERT INTO journeys (id, user_id, created_at, updated_at)
+VALUES (900121, 'fixture-member', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO journey_legs (journey_id, leg_order, service_date, train_subscription_id, match_mode)
+SELECT 900121, 1, '2026-09-17', ts.id, 'manual'
+FROM train_subscriptions ts
+JOIN trains t ON t.id = ts.trains_id
+WHERE t.train_uid = 'ie:A101' AND t.service_date = '2026-09-17' AND ts.user_id = 'fixture-member'
+ON CONFLICT (journey_id, leg_order) DO NOTHING;
+
+INSERT INTO group_journeys (group_id, journey_id, added_by, added_at)
+VALUES ('fixture-group-1', 900121, 'fixture-member', NOW())
+ON CONFLICT DO NOTHING;
+
+INSERT INTO group_trains (group_id, train_subscription_id, added_by, added_at)
+SELECT 'fixture-group-1', ts.id, 'fixture-member', NOW()
+FROM train_subscriptions ts
+JOIN trains t ON t.id = ts.trains_id
+WHERE t.train_uid = 'ie:A101' AND t.service_date = '2026-09-17' AND ts.user_id = 'fixture-member'
+ON CONFLICT DO NOTHING;

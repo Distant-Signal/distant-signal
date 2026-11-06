@@ -231,6 +231,17 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
     '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
     '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
   ],
+  // A train running today, with "Track this train" (the seed's A102,
+  // dated Dublin's today).
+  [
+    '/island-of-ireland/iarnrod-eireann/trains/A102/[today]',
+    `/island-of-ireland/iarnrod-eireann/trains/A102/${new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Dublin',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())}?from=CNLLY`,
+  ],
   ['/incidents', '/incidents'],
   [`/incidents/${REAL_INCIDENT_ID}`, `/incidents/${REAL_INCIDENT_ID}`],
   ['/trains', '/trains'],

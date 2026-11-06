@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { trackedTrainDisplayName, trackedTrainRouteLabel, UNIDENTIFIED_TRAIN_LABEL } from './trackingName';
+import {
+  publicTrainHref,
+  trackedTrainDisplayName,
+  trackedTrainHref,
+  trackedTrainRouteLabel,
+  UNIDENTIFIED_TRAIN_LABEL,
+} from './trackingName';
 
 describe('trackedTrainDisplayName', () => {
   const base = {
@@ -86,5 +92,50 @@ describe('trackedTrainRouteLabel', () => {
     expect(
       trackedTrainDisplayName({ ...noRoute, customName: null, serviceDate: '2026-10-21', trainUid: 'W12345' }),
     ).toBe('Train W12345, 21 Oct 2026');
+  });
+});
+
+describe('train links', () => {
+  const irishTrain = { trainCode: 'A120', serviceDate: '2026-11-05' };
+  const irishPage = '/island-of-ireland/iarnrod-eireann/trains/A120/2026-11-05';
+
+  it('links an Iarnród Éireann train to its own page, never by its ie: uid', () => {
+    expect(
+      trackedTrainHref({
+        id: 7,
+        resolutionStatus: 'resolved',
+        trainUid: 'ie:A120',
+        serviceDate: '2026-11-05',
+        irishTrain,
+      }),
+    ).toBe(irishPage);
+    expect(publicTrainHref({ trainUid: 'ie:A120', serviceDate: '2026-11-05', irishTrain })).toBe(irishPage);
+  });
+
+  it('links a GB train as before', () => {
+    expect(
+      trackedTrainHref({ id: 7, resolutionStatus: 'resolved', trainUid: 'C11052', serviceDate: '2026-09-07' }),
+    ).toBe('/train/C11052/2026-09-07');
+    expect(trackedTrainHref({ id: 7, resolutionStatus: 'pending', trainUid: null, serviceDate: '2026-09-07' })).toBe(
+      '/train/by-id/7',
+    );
+    expect(publicTrainHref({ trainUid: 'C11052', serviceDate: '2026-09-07', irishTrain: null })).toBe(
+      '/train/C11052/2026-09-07',
+    );
+    expect(publicTrainHref({ trainUid: null, serviceDate: '2026-09-07' })).toBeNull();
+  });
+});
+
+describe('an Iarnród Éireann train', () => {
+  it('is named by its ends, which have no codes', () => {
+    expect(
+      trackedTrainRouteLabel({
+        pinOriginCrs: null,
+        pinOriginName: 'Dublin Connolly',
+        pinDestinationCrs: null,
+        pinDestinationName: 'Belfast',
+        trainUid: 'ie:A120',
+      }),
+    ).toBe('Dublin Connolly to Belfast');
   });
 });

@@ -88,6 +88,7 @@ export const TRACKED_TRAIN_STATE_DEFAULTS = {
   scheduleCallingPoints: null,
   customName: null,
   sharedGroupCount: 0,
+  irishTrain: null,
 } satisfies Partial<Api.TrackedTrainState>;
 
 /** A `PublicTrainResponse` (`GET /Train/by-uid/{uid}/{date}`), less its
@@ -126,6 +127,7 @@ export const TRACKED_TRAIN_LIST_ITEM_DEFAULTS = {
   cancellation: null,
   serviceMode: 'train',
   liveTracking: true,
+  irishTrain: null,
 } satisfies Partial<Api.TrackedTrainListItem>;
 
 /** A `JourneyLegDetailResponse`, less its id, ends, date and kind. */
@@ -200,6 +202,7 @@ export const JOURNEY_LIST_ITEM_DEFAULTS = {
   finalArrivalDelayProvisional: false,
   openBreakId: null,
   cancellation: null,
+  irishTrain: null,
 } satisfies Partial<Api.JourneyListItem>;
 
 /** A train leg of a trip plan, less its train, ends and times. */
@@ -336,6 +339,7 @@ export const GROUP_TRAIN_DEFAULTS = {
   liveTracking: true,
   trackingPhase: null,
   firstReportExpectedAt: null,
+  irishTrain: null,
 } satisfies Partial<Api.GroupTrain>;
 
 /** A `GroupJourney` (and `SharedJourney`) summarising a train leg, less
@@ -355,6 +359,7 @@ export const GROUP_JOURNEY_DEFAULTS = {
   plannedArrival: null,
   untrackedStatus: null,
   following: false,
+  irishTrain: null,
 } satisfies Partial<Api.GroupJourney>;
 
 /** An earlier plan's leg's untracked stops and network ride. */

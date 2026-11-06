@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 import * as api from '@/lib/api';
 import { A101_TRAIN, BANGOR, BELFAST, CONNOLLY, DEPARTURES, LINES, STATIONS } from '@/test/irelandFixtures';
 import IrelandPage, { metadata } from './page';
@@ -17,6 +18,7 @@ vi.mock('@/lib/api', async () => {
     getIrelandLines: vi.fn(),
     getIrelandDepartures: vi.fn(),
     getIrelandTrain: vi.fn(),
+    getMyTrackedTrains: vi.fn(),
   };
 });
 
@@ -24,7 +26,7 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => '/island-of-ireland/iarnrod-eireann',
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -32,8 +34,9 @@ vi.mock('next/navigation', () => ({
 const network = (slug: string) => ({ params: Promise.resolve({ network: slug }) });
 const line = (slug: string, id: string) => ({ params: Promise.resolve({ network: slug, line: id }) });
 const station = (slug: string, id: string) => ({ params: Promise.resolve({ network: slug, station: id }) });
-const train = (slug: string, code: string, date: string) => ({
+const train = (slug: string, code: string, date: string, from?: string) => ({
   params: Promise.resolve({ network: slug, train: code, date }),
+  searchParams: Promise.resolve(from === undefined ? {} : { from }),
 });
 
 beforeEach(() => {
@@ -42,6 +45,7 @@ beforeEach(() => {
   vi.mocked(api.getIrelandLines).mockResolvedValue(LINES);
   vi.mocked(api.getIrelandDepartures).mockResolvedValue({ departures: DEPARTURES, polledAt: '2026-11-04T09:05:03Z' });
   vi.mocked(api.getIrelandTrain).mockResolvedValue(A101_TRAIN);
+  vi.mocked(api.getMyTrackedTrains).mockResolvedValue(null);
 });
 
 describe('/island-of-ireland', () => {
@@ -267,5 +271,50 @@ describe('/island-of-ireland/[network]/trains/[train]/[date]', () => {
     );
     await expect(IrelandTrainPage(train('iarnrod-eireann', 'A101', '17-09-2026'))).rejects.toThrow('NEXT_NOT_FOUND');
     expect(api.getIrelandTrain).not.toHaveBeenCalled();
+  });
+
+  describe('tracking (2b)', () => {
+    // 09:00 in Dublin on the fixture's service date: running today.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-09-17T08:00:00Z'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('offers to track a train running today, from the board it came from', async () => {
+      renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17', 'dghda')));
+      expect(screen.getByRole('button', { name: 'Track this train' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
+    });
+
+    it('offers nothing for a train older than yesterday', async () => {
+      vi.setSystemTime(new Date('2026-09-20T08:00:00Z'));
+      renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
+      expect(screen.queryByRole('button', { name: 'Track this train' })).toBeNull();
+    });
+
+    it("shows the owner's controls in place of the button once they track it", async () => {
+      vi.mocked(api.getMyTrackedTrains).mockResolvedValue([
+        {
+          ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+          id: 4411,
+          serviceDate: '2026-09-17',
+          pinOriginCrs: null,
+          pinDestinationCrs: null,
+          pinOriginName: 'Dublin Connolly',
+          pinDestinationName: 'Belfast Grand Central',
+          resolutionStatus: 'resolved',
+          trainUid: 'ie:A101',
+          journeyIds: [812],
+          singleLegJourneyIds: [812],
+          irishTrain: { trainCode: 'A101', serviceDate: '2026-09-17' },
+        },
+      ]);
+      renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
+      expect(screen.queryByRole('button', { name: 'Track this train' })).toBeNull();
+      expect(screen.getByRole('link', { name: 'Open journey' }).getAttribute('href')).toBe('/journeys/812');
+    });
   });
 });

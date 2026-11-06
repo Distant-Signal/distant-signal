@@ -80,7 +80,7 @@ export default async function IrelandStationPage({ params }: Params) {
       {info.network === 'republic-of-ireland' ? (
         <Stack gap="sm" id="departures">
           <SectionTitle>Departures</SectionTitle>
-          <IrelandDepartureBoard board={board} />
+          <IrelandDepartureBoard board={board} fromStation={station.liveCode ?? null} />
         </Stack>
       ) : (
         <Text c="dimmed">We don&apos;t have live {info.name} times.</Text>

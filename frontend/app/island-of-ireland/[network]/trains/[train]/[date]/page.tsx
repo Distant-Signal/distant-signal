@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Group, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import type { TrackedTrainListItem } from '@/lib/types';
 import { DelayBadge } from '@/components/DelayBadge';
 import { IrelandAttributionNote } from '@/components/IrelandAttributionNote';
 import { LastUpdated } from '@/components/LastUpdated';
@@ -9,11 +10,14 @@ import { SectionTitle } from '@/components/SectionTitle';
 import { ServiceListNotice, ServiceRowList } from '@/components/ServiceRow';
 import { ShareButton } from '@/components/ShareButton';
 import { TextLink } from '@/components/TextLink';
-import { getIrelandTrain } from '@/lib/api';
+import { TrackThisTrainButton } from '@/components/TrackThisTrainButton';
+import { TrackedTrainOwnerControls } from '@/components/TrackedTrainOwnerControls';
+import { getIrelandTrain, getMyTrackedTrains } from '@/lib/api';
 import { formatTime } from '@/lib/dateFormat';
 import { describeFailure } from '@/lib/failure';
 import {
   IRELAND_SERVICE_DATE,
+  IRELAND_STATION_CODE,
   IRELAND_TRAIN_CODE,
   type IrelandNetworkInfo,
   type IrelandTrain,
@@ -21,6 +25,7 @@ import {
   irelandTrainHref,
   irelandTrainIdentifiers,
   irelandTrainName,
+  isTrackableIrishDate,
   lastLocationText,
   networkBySlug,
   trainCallRows,
@@ -33,6 +38,11 @@ const log = createLogger('app/island-of-ireland/train');
 
 interface Params {
   params: Promise<{ network: string; train: string; date: string }>;
+}
+
+interface PageProps extends Params {
+  /** `from`: the live code of the board the visitor came from. */
+  searchParams?: Promise<{ from?: string | string[] }>;
 }
 
 /** The URL's network, train code and date, or not found: only Iarnród
@@ -159,15 +169,32 @@ function CallingPoints({ train, slug }: { train: IrelandTrain; slug: string }) {
   );
 }
 
+/** The board the visitor came from (`?from=`), when it is one the train
+ * was seen at: the station "Track this train" says they board at. */
+function fromStation(train: IrelandTrain, raw: string | string[] | undefined): string | null {
+  const code = (Array.isArray(raw) ? raw[0] : raw)?.trim().toUpperCase() ?? '';
+  if (!IRELAND_STATION_CODE.test(code)) return null;
+  return train.calls.some((call) => call.stationCode === code) ? code : null;
+}
+
+/** The visitor's own tracking of this train, if any: the owner controls
+ * replace "Track this train" (as on a GB train's page). An anonymous
+ * visitor, or a failed check, gets the plain page. */
+async function myTracking(code: string, date: string): Promise<TrackedTrainListItem | null> {
+  const mine = await getMyTrackedTrains().catch(() => null);
+  return mine?.find((item) => item.irishTrain?.trainCode === code && item.irishTrain.serviceDate === date) ?? null;
+}
+
 /** `/island-of-ireland/[network]/trains/[train]/[date]`: one Iarnród
  * Éireann train, from the departure boards we poll
  * (docs/superpowers/specs/2026-11-05-irish-rail-train-tracking-design.md
  * §9). A train no board has shown is not found: we don't make up a page
- * for a train we haven't seen. */
-export default async function IrelandTrainPage({ params }: Params) {
+ * for a train we haven't seen. A train running today or yesterday can be
+ * tracked from here (2b). */
+export default async function IrelandTrainPage({ params, searchParams }: PageProps) {
   const { network, train: segment, date } = await params;
   const { info, code } = parse(network, segment, date);
-  const train = await loadTrain(code, date);
+  const [train, match] = await Promise.all([loadTrain(code, date), myTracking(code, date)]);
   if (train === null) notFound();
   if (train === 'failed') {
     return (
@@ -178,6 +205,8 @@ export default async function IrelandTrainPage({ params }: Params) {
       </Stack>
     );
   }
+  const from = fromStation(train, (await searchParams)?.from);
+  const trackable = isTrackableIrishDate(train.serviceDate);
   return (
     <Stack p="lg" gap="lg">
       <Group justify="space-between" align="flex-start">
@@ -188,7 +217,23 @@ export default async function IrelandTrainPage({ params }: Params) {
           </Text>
           <TextLink href={irelandNetworkHref(info.slug)}>{info.name}</TextLink>
         </Stack>
-        <ShareButton />
+        <Group gap="sm">
+          {match ? (
+            <TrackedTrainOwnerControls train={match} afterDelete="refresh" />
+          ) : (
+            trackable && (
+              <TrackThisTrainButton
+                irish={{
+                  trainCode: train.trainCode,
+                  serviceDate: train.serviceDate,
+                  ...(from ? { fromStation: from } : {}),
+                }}
+                variant="light"
+              />
+            )
+          )}
+          <ShareButton />
+        </Group>
       </Group>
 
       <LiveState train={train} />

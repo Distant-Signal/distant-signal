@@ -1,5 +1,6 @@
 import { formatDate, formatTime } from './dateFormat';
 import { routeLabel, stationLabel } from './stationLabel';
+import { irishTrainHref } from './ireland';
 
 /** The route fields a tracked train's label reads. `trainUid` is optional
  * so a caller with only a pin shape can still pass it. */
@@ -21,10 +22,17 @@ export const UNIDENTIFIED_TRAIN_LABEL = 'Train not identified yet';
  * With no origin there is no station to name, which is a normal state for
  * a train tracked by UID before its timetable arrives -- not an unknown
  * station. So this names the train itself ("Train W12345", "Train W12345
- * to York (YRK)") rather than `routeLabel`'s "Unknown station" (DS-111). */
+ * to York (YRK)") rather than `routeLabel`'s "Unknown station" (DS-111).
+ * An Iarnród Éireann train, named but with no codes at all, reads by its
+ * names. */
 export function trackedTrainRouteLabel(train: TrackedTrainRouteInput): string {
   if (train.pinOriginCrs) {
     return routeLabel(train.pinOriginCrs, train.pinOriginName, train.pinDestinationCrs, train.pinDestinationName);
+  }
+  // An Iarnród Éireann train has names but no codes: "Dublin Connolly to
+  // Belfast", as its boards name its ends.
+  if (train.pinOriginName && !train.pinDestinationCrs) {
+    return train.pinDestinationName ? `${train.pinOriginName} to ${train.pinDestinationName}` : train.pinOriginName;
   }
   const subject = train.trainUid ? `Train ${train.trainUid}` : UNIDENTIFIED_TRAIN_LABEL;
   return train.pinDestinationCrs
@@ -71,18 +79,32 @@ export function trackedTrainDisplayName(
   return `${route}, ${when}`;
 }
 
-/** Where one of the caller's own tracked trains links: its canonical,
- * shareable `/train/{uid}/{date}` page once resolved, else the
- * owner-scoped `/train/by-id/{id}`. The resolved-with-no-uid fallback is
- * defensive: the backend's resolution invariant means it shouldn't
- * happen. */
+/** Where one of the caller's own tracked trains links: an Iarnród
+ * Éireann train's page (`irishTrain`), else its canonical, shareable
+ * `/train/{uid}/{date}` page once resolved, else the owner-scoped
+ * `/train/by-id/{id}`. The resolved-with-no-uid fallback is defensive: the
+ * backend's resolution invariant means it shouldn't happen. */
 export function trackedTrainHref(train: {
   id: number;
   resolutionStatus: string;
   trainUid: string | null;
   serviceDate: string;
+  irishTrain?: { trainCode: string; serviceDate: string } | null;
 }): string {
+  if (train.irishTrain) return irishTrainHref(train.irishTrain);
   return train.resolutionStatus === 'resolved' && train.trainUid
     ? `/train/${train.trainUid}/${train.serviceDate}`
     : `/train/by-id/${train.id}`;
+}
+
+/** A train's public page when there is one: an Iarnród Éireann train's
+ * (`irishTrain`), else `/train/{uid}/{date}` once its uid is known, else
+ * `null`. */
+export function publicTrainHref(train: {
+  trainUid: string | null;
+  serviceDate: string;
+  irishTrain?: { trainCode: string; serviceDate: string } | null;
+}): string | null {
+  if (train.irishTrain) return irishTrainHref(train.irishTrain);
+  return train.trainUid ? `/train/${encodeURIComponent(train.trainUid)}/${train.serviceDate}` : null;
 }
