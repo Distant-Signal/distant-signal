@@ -16,6 +16,7 @@ vi.mock('@/lib/api', async () => {
   return {
     ...actual,
     getJourney: vi.fn(),
+    getJourneyTemplate: vi.fn(),
   };
 });
 
@@ -721,5 +722,52 @@ describe('JourneyDetailPage following', () => {
     await renderPage();
     expect(screen.queryByRole('button', { name: 'Follow this journey' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Unfollow' })).not.toBeInTheDocument();
+  });
+
+  describe('made from a regular journey', () => {
+    function occurrence(overrides: Partial<JourneyLegDetail> = {}) {
+      return baseJourney({
+        isOwner: true,
+        sourceTemplateId: 5,
+        legs: [
+          matchedLeg({
+            serviceDate: '2099-01-05',
+            trackedTrainState: trackedState({ status: 'awaiting_activation', delayMinutes: null }),
+            ...overrides,
+          }),
+        ],
+      });
+    }
+
+    it('links to it and offers Skip while the journey has not started', async () => {
+      vi.mocked(api.getJourney).mockResolvedValue(occurrence());
+      await renderPage();
+      expect(screen.getByRole('link', { name: 'Regular journey' })).toHaveAttribute('href', '/journeys/regular/5');
+      expect(screen.getByRole('button', { name: 'Skip' })).toBeInTheDocument();
+    });
+
+    it('offers no Skip once the journey has started', async () => {
+      vi.mocked(api.getJourney).mockResolvedValue(occurrence({ serviceDate: '2000-01-01' }));
+      await renderPage();
+      expect(screen.getByRole('link', { name: 'Regular journey' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
+    });
+
+    it('says nothing of it to someone else, and reads the usual train only for ?pick=usual', async () => {
+      vi.mocked(api.getJourney).mockResolvedValue({ ...occurrence(), isOwner: false });
+      await renderPage();
+      expect(screen.queryByRole('link', { name: 'Regular journey' })).not.toBeInTheDocument();
+      expect(api.getJourneyTemplate).not.toHaveBeenCalled();
+
+      vi.mocked(api.getJourney).mockResolvedValue(occurrence());
+      vi.mocked(api.getJourneyTemplate).mockRejectedValue(new Error('offline'));
+      renderWithMantine(
+        await JourneyDetailPage({
+          params: Promise.resolve({ id: '167' }),
+          searchParams: Promise.resolve({ pick: 'usual' }),
+        }),
+      );
+      expect(api.getJourneyTemplate).toHaveBeenCalledWith(5);
+    });
   });
 });

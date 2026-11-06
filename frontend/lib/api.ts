@@ -990,7 +990,7 @@ export async function getMyJourneyTemplates(): Promise<JourneyTemplateListItem[]
  * `getJourney`: throws `ApiNotFoundError` on a 404 (doesn't exist, or
  * isn't this caller's — templates have no group-shared read path in
  * Phase B, unlike a journey) and `ApiUnauthorizedError` on a 401, so
- * `app/journeys/templates/[id]/page.tsx` can render the same two distinct
+ * `app/journeys/regular/[id]/page.tsx` can render the same two distinct
  * page states `app/journeys/[id]/page.tsx` already does. */
 export async function getJourneyTemplate(id: number): Promise<JourneyTemplateDetail> {
   const url = `${baseUrl()}/JourneyTemplates/${id}`;

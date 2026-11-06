@@ -1,6 +1,9 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
-import { getJourney, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
+import { getJourney, getJourneyTemplate, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
+import { UsualTrainProvider } from '@/components/UsualTrainContext';
+import { usualTrainLegs } from '@/lib/regularJourneys';
+import type { JourneyDetail } from '@/lib/types';
 import { JourneyDetailView } from '@/components/JourneyDetailView';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
@@ -37,7 +40,7 @@ export default async function JourneyDetailPage({
   params: Promise<{ id: string }>;
   /** The break push's deep link: `?break={breakId}&src=push` (mid-journey
    * changes spec 2026-10-22 §6.4). */
-  searchParams?: Promise<{ break?: string | string[]; src?: string | string[] }>;
+  searchParams?: Promise<{ break?: string | string[]; src?: string | string[]; pick?: string | string[] }>;
 }) {
   const { id } = await params;
   const query = (await searchParams) ?? {};
@@ -84,6 +87,9 @@ export default async function JourneyDetailPage({
   // unconditional means this can't silently start passing a stale/
   // undefined origin if a future edit reorders things.
   const origin = await getSiteOrigin();
+  // The pick reminder of a regular journey links with `?pick=usual`
+  // (regular journeys design §4.3): each leg's usual train goes first.
+  const usual = query.pick === 'usual' ? await usualTrainsByLeg(journey) : {};
 
   return (
     <Stack p="lg" gap="md">
@@ -113,16 +119,36 @@ export default async function JourneyDetailPage({
       ) : (
         journey.canFollow && <FollowJourneyButton journeyId={journey.id} following={false} />
       )}
-      <JourneyDetailView
-        journey={journey}
-        fetchedAt={fetchedAt}
-        origin={origin}
-        // The deep link opens the suggestions only on the owner's own,
-        // still open break; an old link just shows the page.
-        openBreakOnLoad={journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)}
-        fromPush={query.src === 'push'}
-      />
+      <UsualTrainProvider usual={usual}>
+        <JourneyDetailView
+          journey={journey}
+          fetchedAt={fetchedAt}
+          origin={origin}
+          // The deep link opens the suggestions only on the owner's own,
+          // still open break; an old link just shows the page.
+          openBreakOnLoad={journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)}
+          fromPush={query.src === 'push'}
+        />
+      </UsualTrainProvider>
       <DataCredits credits={journeyCredits(journey.legs)} />
     </Stack>
   );
+}
+
+/** Each train leg's usual train UID, by leg id: the regular journey's
+ * usual itinerary's train legs, in order, against the journey's train
+ * legs. Empty for someone else's journey, one not made from a regular
+ * journey, or one whose regular journey has no usual train or can't be
+ * read. */
+async function usualTrainsByLeg(journey: JourneyDetail): Promise<Record<number, string>> {
+  if (!journey.isOwner || journey.sourceTemplateId === null) return {};
+  const template = await getJourneyTemplate(journey.sourceTemplateId).catch(() => null);
+  const trains = usualTrainLegs(template?.usualItinerary);
+  const legs = journey.legs.filter((leg) => leg.kind === 'train');
+  const usual: Record<number, string> = {};
+  legs.forEach((leg, index) => {
+    const uid = trains[index]?.trainUid;
+    if (uid) usual[leg.id] = uid;
+  });
+  return usual;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { ConfirmActionButton } from './ConfirmActionButton';
+import { REGULAR_JOURNEYS_HREF } from '@/lib/regularJourneys';
 
 /** Deletes a journey template the caller owns
  * (`DELETE /JourneyTemplates/{id}`). Every journey this template ever
@@ -19,15 +20,15 @@ import { ConfirmActionButton } from './ConfirmActionButton';
 export function DeleteJourneyTemplateButton({ templateId }: { templateId: number }) {
   return (
     <ConfirmActionButton
-      label="Delete template"
-      actionName="delete template"
-      title="Delete this template?"
+      label="Delete regular journey"
+      actionName="delete regular journey"
+      title="Delete this regular journey?"
       request={() => fetch(`/api/JourneyTemplates/${templateId}`, { method: 'DELETE' })}
-      failure={['delete', 'this template']}
-      loginPrompt="Log in to delete this template"
-      onSuccess={(router) => router.push('/journeys/templates')}
+      failure={['delete', 'this regular journey']}
+      loginPrompt="Log in to delete this regular journey"
+      onSuccess={(router) => router.push(REGULAR_JOURNEYS_HREF)}
     >
-      This cannot be undone. Only the reusable template is deleted, not any journeys you&apos;ve already run from it.
+      Journeys already made from it are kept.
     </ConfirmActionButton>
   );
 }

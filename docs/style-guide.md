@@ -1021,10 +1021,10 @@ Stations, a station, Trains (empty and searched), a train, Incidents, the
 Plan a journey (Depart at, Arrive by, and opened on "I know my route"), Account (logged in),
 Preferences (logged out, logged in and with a pride flag), home logged in, a tracked train
 not in the timetable, a planned tracked train, a journey with an untracked
-walk, the Journeys page and a group with shared trains and journeys (all
-logged in) and the tram pages at 390 and 1366px, light and dark,
+walk, the Journeys page, the Regular journeys list and a group with shared
+trains and journeys (all logged in), the new regular journey form and the tram pages at 390 and 1366px, light and dark,
 plus the /lines filter bar's stuck and open states and the /incidents
-filters open: 128 images in `frontend/e2e/visual-baselines/`. It runs against the seeded e2e
+filters open: 184 images in `frontend/e2e/visual-baselines/`. It runs against the seeded e2e
 stack (`frontend/e2e/fixtures/seed.sql`), in its own Playwright project
 (`visual`), which the ordinary e2e run skips.
 

@@ -1,5 +1,7 @@
 import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
+import { RegularJourneyLine } from './RegularJourneyLine';
+import { regularOccurrenceStarted } from '@/lib/regularJourneys';
 import { DeleteJourneyButton } from './DeleteJourneyButton';
 import { JourneyLegCard } from './JourneyLegCard';
 import { JourneyBreakBanner } from './JourneyBreakBanner';
@@ -254,6 +256,16 @@ export function JourneyDetailView({
           <TrackJourneyAgainButton journey={journey} />
         </Group>
       </Group>
+      {/* Made from a regular journey: a link to it, and "Skip" while
+          this journey hasn't started (regular journeys design §4.4). */}
+      {journey.isOwner && journey.sourceTemplateId !== null && journey.legs[0] && (
+        <RegularJourneyLine
+          templateId={journey.sourceTemplateId}
+          date={journey.legs[0].serviceDate}
+          canSkip={!regularOccurrenceStarted(journey.legs, new Date(fetchedAt))}
+          afterSkipHref="/journeys"
+        />
+      )}
       {/* A custom name hides the route and date, so they come back here,
           as on every journey row (`journeyPreviewLine`). The per-leg
           summary below already says how many legs there are. */}

@@ -50,8 +50,8 @@ const SWITCHES: { key: Switchable; label: string; description: string }[] = [
   },
   {
     key: 'templateAttention',
-    label: 'Recurring journeys',
-    description: "When it's time to pick today's train for a recurring journey, or no train is found for one.",
+    label: 'Regular journeys',
+    description: "When it's time to pick today's train for a regular journey, or no train is found for one.",
   },
   {
     key: 'lineStatus',

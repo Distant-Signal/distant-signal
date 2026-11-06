@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { EditJourneyTemplateForm } from './EditJourneyTemplateForm';
 import type { JourneyTemplateDetail } from '@/lib/types';
+import { TEMPLATE_TARGET_DEFAULTS } from '@/test/apiDefaults';
 
 /** Forces `input.validity.badInput`, which is how a real browser reports a
  * half-entered time ("09:--"). jsdom models neither segment state nor
@@ -65,6 +66,9 @@ function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTempla
     endsOn: null,
     defaultMatchMode: 'manual',
     autoCommitRule: null,
+    ...TEMPLATE_TARGET_DEFAULTS,
+    planOptions: null,
+    usualItinerary: null,
     legs: [
       {
         id: 1,
@@ -97,7 +101,7 @@ describe('EditJourneyTemplateForm', () => {
     mockFetch();
     renderWithMantine(<EditJourneyTemplateForm template={template()} />);
 
-    expect(screen.getByLabelText('Template name')).toHaveValue('My commute');
+    expect(screen.getByLabelText('Name')).toHaveValue('My commute');
     // The saved codes, then their stations by name once looked up.
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'From station' })).toHaveValue('London Kings Cross (KGX)'),
@@ -521,7 +525,7 @@ describe('EditJourneyTemplateForm', () => {
 
     it('switching to "auto" always sends autoCommitRule: nearest_to_now', async () => {
       renderWithMantine(<EditJourneyTemplateForm template={template()} />);
-      fireEvent.click(screen.getByRole('radio', { name: 'Auto-commit for me' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Pick for me' }));
       fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
       await waitFor(() => expect(putCalls()).toHaveLength(1));
@@ -534,7 +538,7 @@ describe('EditJourneyTemplateForm', () => {
       renderWithMantine(
         <EditJourneyTemplateForm template={template({ defaultMatchMode: 'auto', autoCommitRule: 'nearest_to_now' })} />,
       );
-      fireEvent.click(screen.getByRole('radio', { name: "Remind me, don't guess" }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Remind me' }));
       fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
       await waitFor(() => expect(putCalls()).toHaveLength(1));
@@ -546,7 +550,7 @@ describe('EditJourneyTemplateForm', () => {
     it('refuses "auto" while a leg has no time, and says why', () => {
       const openLeg = { ...template().legs[0]!, departAfter: null, departBefore: null };
       renderWithMantine(<EditJourneyTemplateForm template={template({ legs: [openLeg] })} />);
-      fireEvent.click(screen.getByRole('radio', { name: 'Auto-commit for me' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Pick for me' }));
 
       expect(screen.getByRole('alert')).toHaveTextContent(
         'Add a departure time to each leg to let us pick your train.',

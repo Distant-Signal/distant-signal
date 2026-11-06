@@ -385,6 +385,25 @@ describe('UpcomingJourneysSection', () => {
     return { item: journeyListItem(detail), detail: null, departure };
   }
 
+  it('marks a journey made from a regular journey, with Skip until it sets off', () => {
+    const planned = upcoming(1);
+    const started = upcoming(2, 'Already off');
+    renderWithMantine(
+      <UpcomingJourneysSection
+        upcoming={[
+          { ...planned, item: { ...planned.item, sourceTemplateId: 5 } },
+          { ...started, item: { ...started.item, sourceTemplateId: 6, startedLegCount: 1 } },
+        ]}
+      />,
+    );
+    const first = cardOf(screen.getByRole('link', { name: /^London Kings Cross \(KGX\) to York \(YRK\)/ }));
+    expect(within(first).getByRole('link', { name: 'Regular journey' })).toHaveAttribute('href', '/journeys/regular/5');
+    expect(within(first).getByRole('button', { name: 'Skip' })).toBeInTheDocument();
+    const second = cardOf(screen.getByRole('link', { name: /Already off/ }));
+    expect(within(second).getByRole('link', { name: 'Regular journey' })).toBeInTheDocument();
+    expect(within(second).queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
+  });
+
   it('lists each journey with its status, linking to it, and "View all" to the Journeys page', () => {
     renderWithMantine(
       <UpcomingJourneysSection upcoming={[upcoming(1, null, '2026-09-20T09:00:00Z'), upcoming(2, 'Weekend away')]} />,

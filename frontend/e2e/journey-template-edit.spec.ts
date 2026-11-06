@@ -45,7 +45,7 @@ test.describe('edit a journey template', () => {
     const { templateId } = (await created.json()) as { templateId: number };
 
     try {
-      await page.goto(`/journeys/templates/${templateId}`);
+      await page.goto(`/journeys/regular/${templateId}`);
       const to = page.getByRole('combobox', { name: 'To station' });
       // The seed has no name for EDB, so it shows bare.
       await expect(to).toHaveValue('EDB');
@@ -105,19 +105,19 @@ test.describe('edit a journey template', () => {
       });
       expect(weekdays.status()).toBe(204);
 
-      await page.goto('/journeys/templates');
+      await page.goto('/journeys/regular');
       const card = page.getByRole('main').locator('.mantine-Card-root', { hasText: 'Open leg e2e' });
-      await expect(card.getByText(/^Weekdays · next /)).toBeVisible();
+      await expect(card.getByText(/^Next: \d/)).toBeVisible();
       await expect(
         card.getByText('Add a departure time to each leg so we can remind you to pick a train.'),
       ).toBeVisible();
       const axe = await new AxeBuilder({ page }).include('main').analyze();
       expect(axe.violations).toEqual([]);
 
-      await page.goto(`/journeys/templates/${templateId}`);
+      await page.goto(`/journeys/regular/${templateId}`);
       // The segmented control's radio is visually hidden; its label is what's clicked.
-      await page.getByText('Auto-commit for me').click();
-      await expect(page.getByRole('radio', { name: 'Auto-commit for me' })).toBeChecked();
+      await page.getByText('Pick for me').click();
+      await expect(page.getByRole('radio', { name: 'Pick for me' })).toBeChecked();
       await expect(page.getByText('Add a departure time to each leg to let us pick your train.')).toBeVisible();
       await expect(page.getByRole('button', { name: 'Save changes' })).toBeDisabled();
 

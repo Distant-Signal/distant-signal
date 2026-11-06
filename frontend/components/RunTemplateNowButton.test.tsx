@@ -7,7 +7,7 @@ import { RunTemplateNowButton } from './RunTemplateNowButton';
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock, refresh: vi.fn() }),
-  usePathname: () => '/journeys/templates/167',
+  usePathname: () => '/journeys/regular/167',
   useSearchParams: () => new URLSearchParams(''),
 }));
 
@@ -31,9 +31,9 @@ describe('RunTemplateNowButton', () => {
 
   it('defaults the service date field to today on open', async () => {
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
 
-    expect(await screen.findByLabelText('Service date')).toHaveValue(todayShown);
+    expect(await screen.findByLabelText('Date')).toHaveValue(todayShown);
   });
 
   it("defaults to London's today, not the host zone's (FE-4)", async () => {
@@ -41,8 +41,8 @@ describe('RunTemplateNowButton', () => {
     vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-15T23:30:00Z'));
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-    expect(await screen.findByLabelText('Service date')).toHaveValue('16 Jul 2026');
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
+    expect(await screen.findByLabelText('Date')).toHaveValue('16 Jul 2026');
   });
 
   it('submits {serviceDate} to the materialize endpoint', async () => {
@@ -50,8 +50,8 @@ describe('RunTemplateNowButton', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1] }), { status: 200 }));
 
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Create journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -69,8 +69,8 @@ describe('RunTemplateNowButton', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1, 2] }), { status: 200 }));
 
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Create journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/42'));
   });
@@ -80,10 +80,10 @@ describe('RunTemplateNowButton', () => {
     fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
 
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Create journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
-    const loginLink = await screen.findByRole('link', { name: 'Log in to run this template' });
+    const loginLink = await screen.findByRole('link', { name: 'Log in to add a date' });
     expect(loginLink).toBeInTheDocument();
     expect(screen.queryByText('no session')).not.toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
@@ -94,8 +94,8 @@ describe('RunTemplateNowButton', () => {
     fetchMock.mockResolvedValue(new Response('template has no legs', { status: 400 }));
 
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Create journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
     expect(await screen.findByText('Template has no legs.')).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
@@ -108,15 +108,15 @@ describe('RunTemplateNowButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1] }), { status: 200 }));
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
 
-    const serviceDate = await screen.findByLabelText('Service date');
+    const serviceDate = await screen.findByLabelText('Date');
     fireEvent.focus(serviceDate);
     fireEvent.change(serviceDate, { target: { value: 'next tuesday' } });
     fireEvent.blur(serviceDate);
     expect(serviceDate).toHaveValue(todayShown);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create journey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add journey' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/JourneyTemplates/167/materialize',

@@ -8,8 +8,9 @@ import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
 import type { CreateJourneyTemplateRequest, CreateJourneyTemplateResponse } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { regularJourneyHref } from '@/lib/regularJourneys';
 
-/** "Make this a template" — journey-detail-page header button
+/** "Make this a regular journey" (was "Make this a template") — journey-detail-page header button
  * (docs/superpowers/specs/2026-09-22-reusable-repeating-journeys-design.md
  * §6 item 2). Promotes THIS journey's shape into a durable template via
  * `POST /JourneyTemplates` (`mode: 'fromJourney'`) — the backend re-reads
@@ -56,7 +57,7 @@ export function SaveAsTemplateButton({ journeyId }: { journeyId: number }) {
         if (response.status === 401) {
           needsLoginState.markNeedsLogin();
         } else {
-          setError(await failureFromResponse('save', 'this template', response));
+          setError(await failureFromResponse('save', 'this regular journey', response));
         }
         setSubmitting(false);
         return;
@@ -64,9 +65,9 @@ export function SaveAsTemplateButton({ journeyId }: { journeyId: number }) {
       const result = (await response.json()) as CreateJourneyTemplateResponse;
       setSubmitting(false);
       close();
-      router.push(`/journeys/templates/${result.templateId}`);
+      router.push(regularJourneyHref(result.templateId));
     } catch {
-      setError(describeFailure('save', 'this template'));
+      setError(describeFailure('save', 'this regular journey'));
       setSubmitting(false);
     }
   }
@@ -74,24 +75,26 @@ export function SaveAsTemplateButton({ journeyId }: { journeyId: number }) {
   return (
     <>
       <Button variant="default" size="xs" onClick={handleOpen}>
-        Make this a template
+        Make this a regular journey
       </Button>
-      <Modal opened={opened} onClose={close} title="Save this journey as a reusable template">
+      <Modal opened={opened} onClose={close} title="Make this a regular journey">
         <Stack>
           <Text size="sm">
-            Creates a reusable template from this journey&apos;s route. You can run it again for a new date any time
-            from your templates list.
+            Saves this journey&apos;s route as a regular journey. Choose its days on the next page, or add it for a date
+            of your own any time.
           </Text>
           <TextInput
-            label="Template name (optional)"
+            label="Name (optional)"
             placeholder="e.g. Weekday commute"
             value={customName}
             onChange={(event) => setCustomName(event.currentTarget.value)}
           />
           {error && <Alert color="red">{error}</Alert>}
-          {needsLoginState.needsLogin && <LoginControl underline="always">Log in to save a template</LoginControl>}
+          {needsLoginState.needsLogin && (
+            <LoginControl underline="always">Log in to save a regular journey</LoginControl>
+          )}
           <Button onClick={handleSubmit} loading={submitting}>
-            Save as template
+            Save regular journey
           </Button>
         </Stack>
       </Modal>

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { JourneyLegCandidates } from './JourneyLegCandidates';
+import { UsualTrainProvider } from './UsualTrainContext';
 
 // `LoginPromptModal`'s own `LoginButtonLink` calls `useLoginHref()`, which
 // calls `usePathname()`/`useSearchParams()` -- same stub `PinToggle.test.tsx`/
@@ -211,6 +212,32 @@ describe('JourneyLegCandidates', () => {
     expect(
       await screen.findByText("1 train matches your search. Pick the one you'll be on. You can change it later."),
     ).toBeInTheDocument();
+  });
+
+  it('puts the usual train first on its own, opened from the pick reminder', async () => {
+    vi.stubGlobal('fetch', mockFetchByUrl());
+    renderWithMantine(
+      <UsualTrainProvider usual={{ 2: 'C11099' }}>
+        <JourneyLegCandidates journeyId={1} legId={2} serviceDate="2026-09-22" onPicked={onPicked} />
+      </UsualTrainProvider>,
+    );
+    const usual = await screen.findByRole('list', { name: 'Your usual train' });
+    expect(within(usual).getByRole('button', { name: /^Track this train: 11:02/ })).toBeInTheDocument();
+    expect(within(usual).getAllByRole('button')).toHaveLength(1);
+    const others = screen.getByRole('list', { name: 'Other trains' });
+    expect(within(others).getByRole('button', { name: /^Track this train: 10:32/ })).toBeInTheDocument();
+    expect(within(others).queryByRole('button', { name: /11:02/ })).not.toBeInTheDocument();
+  });
+
+  it('lists the trains as before when the usual train is not among them', async () => {
+    vi.stubGlobal('fetch', mockFetchByUrl());
+    renderWithMantine(
+      <UsualTrainProvider usual={{ 2: 'C99999' }}>
+        <JourneyLegCandidates journeyId={1} legId={2} serviceDate="2026-09-22" onPicked={onPicked} />
+      </UsualTrainProvider>,
+    );
+    expect(await screen.findByRole('list', { name: 'Candidate trains' })).toBeInTheDocument();
+    expect(screen.queryByText('Your usual train')).not.toBeInTheDocument();
   });
 
   it('gives every "Track this train" button its own accessible name', async () => {

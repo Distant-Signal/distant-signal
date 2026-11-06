@@ -162,6 +162,7 @@ export const JOURNEY_DETAIL_DEFAULTS = {
   shareLink: null,
   openBreak: null,
   revisionCount: 0,
+  sourceTemplateId: null,
 } satisfies Partial<Api.JourneyDetailResponse>;
 
 /** A `JourneyListItem` (`GET /Journeys/mine`), less its ids, current leg
@@ -203,7 +204,21 @@ export const JOURNEY_LIST_ITEM_DEFAULTS = {
   openBreakId: null,
   cancellation: null,
   irishTrain: null,
+  sourceTemplateId: null,
 } satisfies Partial<Api.JourneyListItem>;
+
+/** A regular journey's fields (`JourneyTemplateListItem` and the detail),
+ * for a template without a target. */
+export const TEMPLATE_TARGET_DEFAULTS = {
+  originCrs: null,
+  originName: null,
+  destinationCrs: null,
+  destinationName: null,
+  target: null,
+  pairedTemplateId: null,
+  nextDate: null,
+  skippedDates: [],
+} satisfies Partial<Api.JourneyTemplateListItem>;
 
 /** A train leg of a trip plan, less its train, ends and times. */
 export const PLANNED_TRAIN_LEG_DEFAULTS = {

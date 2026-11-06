@@ -448,7 +448,7 @@ describe('JourneysPage', () => {
     expect(screen.queryByRole('link', { name: 'Track a journey' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Find a train' })).toHaveAttribute('href', '/trains');
     expect(screen.getByRole('link', { name: 'Add a ticket' })).toHaveAttribute('href', '/track/mine/add-ticket');
-    expect(screen.getByRole('link', { name: 'Journey templates' })).toHaveAttribute('href', '/journeys/templates');
+    expect(screen.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
   });
 
   // The reported bug: a train another member shared into a group the

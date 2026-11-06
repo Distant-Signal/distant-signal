@@ -33,7 +33,7 @@ test.describe('Plan a journey', () => {
     const main = page.getByRole('main');
     await expect(main.getByRole('link', { name: 'Find a train' })).toHaveAttribute('href', '/trains');
     await expect(main.getByRole('link', { name: 'Add a ticket' })).toHaveAttribute('href', '/track/mine/add-ticket');
-    await expect(main.getByRole('link', { name: 'Journey templates' })).toHaveAttribute('href', '/journeys/templates');
+    await expect(main.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
     await expect(main.getByText('New journey')).toHaveCount(0);
   });
 
@@ -47,8 +47,8 @@ test.describe('Plan a journey', () => {
     await page.getByRole('main').getByRole('link', { name: 'Add a ticket' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Add a ticket' })).toBeVisible();
     await page.goto('/plan');
-    await page.getByRole('main').getByRole('link', { name: 'Journey templates' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Your journey templates' })).toBeVisible();
+    await page.getByRole('main').getByRole('link', { name: 'Regular journeys' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Regular journeys' })).toBeVisible();
     await page.goto('/plan');
     await page.getByRole('main').getByRole('link', { name: 'Find a train' }).click();
     await expect(page).toHaveURL(/\/trains$/);

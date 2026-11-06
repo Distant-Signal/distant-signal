@@ -1246,3 +1246,31 @@ FROM train_subscriptions ts
 JOIN trains t ON t.id = ts.trains_id
 WHERE t.train_uid = 'ie:A101' AND t.service_date = '2026-09-17' AND ts.user_id = 'fixture-member'
 ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- A regular journey and its return for fixture-owner (regular journeys
+-- design §4.6): London Kings Cross to London Euston (the seed's two
+-- named stations), leave after 09:00 on weekdays, back at 17:30, linked as a pair. The visual spec shoots the
+-- Regular journeys list with it (its "Next:" date follows the server's
+-- clock and is masked). Fixed ids, as the seed's journeys have.
+INSERT INTO journey_templates
+  (id, user_id, custom_name, days_of_week, active, default_match_mode, origin_crs, destination_crs,
+   target_kind, target_time, usual_itinerary, created_at, updated_at)
+VALUES
+  (900201, 'fixture-owner', NULL, 31, TRUE, 'manual', 'KGX', 'EUS', 'depart_after', '09:00',
+   '{"legs": [{"kind": "train", "trainUid": "W90201", "originCrs": "KGX", "destinationCrs": "EUS", "departs": "09:00:00", "departsDayOffset": 0, "arrives": "11:00:00", "arrivesDayOffset": 0}]}',
+   '2026-09-01T08:00:00Z', '2026-09-01T08:00:00Z'),
+  (900202, 'fixture-owner', NULL, 31, TRUE, 'manual', 'EUS', 'KGX', 'depart_after', '17:30',
+   '{"legs": [{"kind": "train", "trainUid": "W90202", "originCrs": "EUS", "destinationCrs": "KGX", "departs": "17:30:00", "departsDayOffset": 0, "arrives": "19:30:00", "arrivesDayOffset": 0}]}',
+   '2026-09-01T08:00:00Z', '2026-09-01T08:00:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+UPDATE journey_templates
+SET paired_template_id = CASE id WHEN 900201 THEN 900202 ELSE 900201 END
+WHERE id IN (900201, 900202);
+
+INSERT INTO journey_template_legs (template_id, leg_order, origin_crs, destination_crs, depart_after, depart_before)
+SELECT v.template_id, 1, v.origin_crs, v.destination_crs, v.depart_after::time, v.depart_before::time
+FROM (VALUES (900201, 'KGX', 'EUS', '08:55', '09:05'), (900202, 'EUS', 'KGX', '17:25', '17:35'))
+  AS v (template_id, origin_crs, destination_crs, depart_after, depart_before)
+WHERE NOT EXISTS (SELECT 1 FROM journey_template_legs l WHERE l.template_id = v.template_id);

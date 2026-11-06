@@ -57,7 +57,7 @@ export const TRAINS_DESTINATION: NavDestination = {
 /** `/plan`, "Plan a journey": where every journey starts (DS-194). It
  * plans a route, or builds the journey from a train the visitor already
  * knows, or from a Tube, bus or walk leg (`JourneyCreationFlow`), and links
- * to tickets and journey templates. `/journeys/new`, the "New journey" page
+ * to tickets and regular journeys. `/journeys/new`, the "New journey" page
  * it absorbed, redirects here with its query (`next.config.mjs`).
  *
  * Not a nav entry: it is reached from the button at the top of the Journeys

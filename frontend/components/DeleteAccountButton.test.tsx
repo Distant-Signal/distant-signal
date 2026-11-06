@@ -37,7 +37,7 @@ describe('DeleteAccountButton', () => {
     renderWithMantine(<DeleteAccountButton />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
 
-    expect(await screen.findByText(/tracked trains, tickets, journeys and journey templates/)).toBeInTheDocument();
+    expect(await screen.findByText(/tracked trains, tickets, journeys and regular journeys/)).toBeInTheDocument();
     expect(screen.getByText(/Groups carry on for their other members/)).toBeInTheDocument();
     expect(screen.getByText(/your data can stay in them for up to 14 days/)).toBeInTheDocument();
     expect(screen.getByText(/single sign-on account/)).toBeInTheDocument();
