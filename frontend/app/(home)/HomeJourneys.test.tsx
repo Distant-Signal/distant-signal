@@ -143,6 +143,23 @@ describe('CurrentJourneyCard', () => {
     expect(within(cardOf(link)).getByText('York (YRK), arrive est. 12:12')).toBeInTheDocument();
   });
 
+  it('shows the leave-by with the first train expected late, until it has left', () => {
+    const current = journey();
+    const leaveBy = { at: '2026-09-17T08:40:00Z', departure: '2026-09-17T09:00:00Z', basis: 'booked' as const };
+    const withLeaveBy = { ...current, detail: { ...current.detail, stationBufferMinutes: 20, leaveBy } };
+    vi.useFakeTimers({ now: new Date('2026-09-17T08:45:00Z') });
+    const { unmount } = renderWithMantine(
+      <CurrentJourneyCard journey={withLeaveBy} now={new Date('2026-09-17T08:45:00Z')} />,
+    );
+    expect(screen.getByText('Leave by 09:40 · train expected 12 min late')).toBeInTheDocument();
+    expect(screen.getByText('Leave now')).toBeInTheDocument();
+    unmount();
+    vi.setSystemTime(new Date('2026-09-17T10:00:00Z'));
+    renderWithMantine(<CurrentJourneyCard journey={withLeaveBy} now={new Date('2026-09-17T10:00:00Z')} />);
+    expect(screen.queryByText(/Leave by/)).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it("headlines the whole journey's status, with the train under way's own status second", () => {
     const detail = journeyDetail(9, [
       trainLeg(1, KGX, YRK, '2026-09-17T09:00:00Z', '2026-09-17T11:00:00Z', { status: 'en_route', delayMinutes: 0 }),
@@ -402,6 +419,22 @@ describe('UpcomingJourneysSection', () => {
     const second = cardOf(screen.getByRole('link', { name: /Already off/ }));
     expect(within(second).getByRole('link', { name: 'Regular journey' })).toBeInTheDocument();
     expect(within(second).queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
+  });
+
+  it('counts down to the leave-by on a journey that has not started', () => {
+    vi.useFakeTimers({ now: new Date('2026-09-20T08:28:00Z') });
+    const planned = upcoming(1);
+    const leaveBy = { at: '2026-09-20T08:40:00Z', departure: '2026-09-20T09:00:00Z', basis: 'booked' as const };
+    renderWithMantine(
+      <UpcomingJourneysSection
+        upcoming={[{ ...planned, item: { ...planned.item, stationBufferMinutes: 20, leaveBy } }]}
+        now={new Date('2026-09-20T08:28:00Z')}
+      />,
+    );
+    const card = cardOf(screen.getByRole('link', { name: /^London Kings Cross \(KGX\) to York \(YRK\)/ }));
+    expect(within(card).getByText('Leave by 09:40')).toBeInTheDocument();
+    expect(within(card).getByText('in 12 min')).toBeInTheDocument();
+    vi.useRealTimers();
   });
 
   it('lists each journey with its status, linking to it, and "View all" to the Journeys page', () => {

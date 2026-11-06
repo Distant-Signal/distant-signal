@@ -138,7 +138,9 @@ self.addEventListener('fetch', (event) => {
 // Web Push notifications -- docs/superpowers/specs/
 // 2026-09-02-line-status-notifications-design.md. Payload contract, fixed
 // by that plan and mirrored exactly by crates/notifier/src/send.rs's
-// `NotificationPayload`: `{ title, body, url, tag }`, JSON-encoded, where
+// `NotificationPayload`: `{ title, body, url, tag }`, plus `renotify: true`
+// on a push that should alert again when it replaces one with the same tag
+// (a moved leave-by), JSON-encoded, where
 // `url` is an app-relative pathname (e.g. "/lines/bakerloo" or
 // "/track/42"), not a full URL. Kept as two flat, independent
 // addEventListener blocks below, touching none of install/activate/fetch
@@ -151,8 +153,8 @@ self.addEventListener('push', (event) => {
     return;
   }
   // Only `title` is checked; the notifier always sends all four fields as
-  // strings (the contract above).
-  const { title, body, url, tag } = /** @type {PushNotificationPayload} */ (/** @type {unknown} */ (payload));
+  // strings (the contract above), and `renotify` only when true.
+  const { title, url } = /** @type {PushNotificationPayload} */ (/** @type {unknown} */ (payload));
 
   event.waitUntil(
     (async () => {
@@ -169,7 +171,7 @@ self.addEventListener('push', (event) => {
       if (alreadyFocused) {
         return;
       }
-      await self.registration.showNotification(title, { body, tag, data: { url } });
+      await self.registration.showNotification(title, self.notificationOptions(payload));
     })(),
   );
 });

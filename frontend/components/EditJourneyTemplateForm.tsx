@@ -9,6 +9,7 @@ import { TimeFilterInput } from './TimeFilterInput';
 import type { JourneyTemplateDetail, PutJourneyTemplateRequest, TemplateLegRequest } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { resolveStationCode } from '@/lib/suggestionAutocomplete';
+import { StationBufferField } from './StationBufferField';
 import { StationField } from './StationField';
 import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
 
@@ -159,6 +160,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
   const [selectedDays, setSelectedDays] = useState<string[]>(daysOfWeekToKeys(template.daysOfWeek));
   const [matchMode, setMatchMode] = useState<'manual' | 'auto'>(template.defaultMatchMode);
   const [paused, setPaused] = useState(!template.active);
+  const [buffer, setBuffer] = useState<number | null>(template.stationBufferMinutes);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -267,6 +269,8 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
         endsOn: template.endsOn,
         defaultMatchMode: matchMode,
         autoCommitRule: matchMode === 'auto' ? 'nearest_to_now' : null,
+        // null clears it: no leave-by. Days already added keep their own.
+        stationBufferMinutes: buffer,
       };
       const response = await fetch(`/api/JourneyTemplates/${template.id}`, {
         method: 'PUT',
@@ -351,6 +355,14 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
           )
         )}
       </Stack>
+      <StationBufferField
+        value={buffer}
+        onChange={(minutes) => {
+          setSaved(false);
+          setBuffer(minutes);
+        }}
+        description="Include a few minutes to spare. Journeys already added keep the time they had."
+      />
       <Switch
         label="Paused"
         description="A paused regular journey adds no new journeys until you resume it."

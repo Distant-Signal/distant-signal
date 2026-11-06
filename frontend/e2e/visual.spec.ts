@@ -176,7 +176,10 @@ const SCHEMES = ['light', 'dark'] as const;
  *  - a TfL arrival's expected time ("Expected 10:02"): the TfL stub
  *    answers relative to the server's clock;
  *  - a regular journey's next date ("Weekdays · Next: 21 Sep 2026"):
- *    the api works it out from the server's today. */
+ *    the api works it out from the server's today;
+ *  - a leave-by's countdown ("in 12 min"): the time to it, whose first
+ *    render is the server's and then the browser's. "Leave by 06:20"
+ *    stays visible. */
 function volatile(page: Page) {
   return [
     page.getByText(/\b(updated|last updated|fetched)\b.*\d/i),
@@ -185,6 +188,8 @@ function volatile(page: Page) {
     page.getByText(/^(Search (a|a different|a later|an earlier) day\b|Only .* can be searched\.)/),
     // A regular journey's next date follows the server's today.
     page.getByText(/^Next: \d{1,2} [A-Z][a-z]{2} \d{4}$/),
+    // A leave-by's countdown runs to its time from the clock.
+    page.getByText(/^in \d+ (h|min)\b/),
     // The group's invite link expiry: the seed sets it a week after seeding.
     page.getByText(/^Expires \d{1,2} [A-Z][a-z]{2,3} \d{4}\.$/),
     page.locator('.mantine-DatePickerInput-input, .mantine-TimeInput-input, input[type="date"], input[type="time"]'),

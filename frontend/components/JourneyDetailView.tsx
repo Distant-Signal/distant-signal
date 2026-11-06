@@ -1,6 +1,8 @@
 import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
 import { RegularJourneyLine } from './RegularJourneyLine';
+import { JourneyLeaveBy } from './JourneyLeaveBy';
+import { londonCalendarDay } from '@/lib/londonWallClock';
 import { RegularPlanCard } from './RegularPlanCard';
 import { showsSuggestion } from '@/lib/regularPlan';
 import { regularOccurrenceStarted } from '@/lib/regularJourneys';
@@ -266,6 +268,18 @@ export function JourneyDetailView({
           date={journey.legs[0].serviceDate}
           canSkip={!regularOccurrenceStarted(journey.legs, new Date(fetchedAt))}
           afterSkipHref="/journeys"
+        />
+      )}
+      {/* When to leave (regular journeys design §5.4), the owner's only;
+          gone once the train it is for has left. "Change" on the day. */}
+      {journey.isOwner && journey.leaveBy && (
+        <JourneyLeaveBy
+          journeyId={journey.id}
+          leaveBy={journey.leaveBy}
+          stationBufferMinutes={journey.stationBufferMinutes}
+          delayMinutes={journey.legs.find((leg) => !isUntrackedLeg(leg))?.trackedTrainState?.delayMinutes ?? null}
+          canChange={journey.legs[0]?.serviceDate === londonCalendarDay(fetchedAt)}
+          initialNow={fetchedAt}
         />
       )}
       {/* Remind mode: the day's train we picked, and the others (regular

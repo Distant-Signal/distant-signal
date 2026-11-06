@@ -488,7 +488,7 @@ export default async function DashboardPage() {
           one of the two ways in to /plan (the nav has none, DS-194),
           so a new user with no journeys finds it here too. */}
       {current !== null && <CurrentJourneySection current={current} alsoInProgress={alsoInProgress} now={now} />}
-      <UpcomingJourneysSection upcoming={upcoming} shared={sharedWithYou} loadFailed={myJourneys === null} />
+      <UpcomingJourneysSection upcoming={upcoming} shared={sharedWithYou} loadFailed={myJourneys === null} now={now} />
 
       {/* When ALL THREE pinned sections are empty, the live "Right now" module
           is the only thing on this page with real content -- it leads,

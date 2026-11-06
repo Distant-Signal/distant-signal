@@ -19,6 +19,7 @@ import { TimeInput } from '@mantine/dates';
 import { DateInput } from '@/components/LazyDateFields';
 import { ItineraryOption } from './ItineraryOption';
 import { LoginPromptModal } from './LoginPromptModal';
+import { StationBufferField } from './StationBufferField';
 import { StationField } from './StationField';
 import { CLOCK_HINT } from './TimeFilterInput';
 import { useNeedsLogin } from './useNeedsLogin';
@@ -41,6 +42,7 @@ import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
 import type {
   CreateJourneyTemplateRequest,
   PlanOptions,
+  StationBufferPrefill,
   TemplateTarget,
   TripPlanItinerary,
   TripPlanResponse,
@@ -261,6 +263,40 @@ function UsualTrainPicker({
  * Opened from Plan a journey ("Make this a regular journey"), it starts
  * from that search's route, time and options and the itinerary picked
  * there (`takeRegularJourneyDraft`). */
+/** The minutes to get to the station a field starts from (decision 6):
+ * the ones the traveller last used from `crs`
+ * (`GET /JourneyTemplates/station-buffer`), until they type their own.
+ * Logged out, or with none used, it stays empty. */
+function useStationBuffer(crs: string): [number | null, (minutes: number | null) => void] {
+  const [minutes, setMinutes] = useState<number | null>(null);
+  const [touched, setTouched] = useState(false);
+  useEffect(() => {
+    if (touched || !/^[A-Z]{3}$/.test(crs)) return undefined;
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+    void (async () => {
+      try {
+        const response = await fetch(`/api/JourneyTemplates/station-buffer?crs=${crs}`);
+        if (!response.ok || isCancelled()) return;
+        const body = (await response.json()) as StationBufferPrefill;
+        if (!isCancelled() && body.minutes !== null) setMinutes(body.minutes);
+      } catch {
+        // A pre-fill only: the field stays as it is.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [crs, touched]);
+  return [
+    minutes,
+    (next) => {
+      setTouched(true);
+      setMinutes(next);
+    },
+  ];
+}
+
 export function RegularJourneyForm() {
   const router = useRouter();
   const [originCrs, setOriginCrs] = useState('');
@@ -295,6 +331,8 @@ export function RegularJourneyForm() {
     setUsual({ itinerary: draft.usualItinerary, summary: draft.usualSummary });
   }, []);
 
+  const [buffer, setBuffer] = useStationBuffer(originCrs.trim().toUpperCase());
+  const [returnBuffer, setReturnBuffer] = useStationBuffer(withReturn ? destinationCrs.trim().toUpperCase() : '');
   const mask = daysMask(days);
   const date = mask === 0 ? null : nextMatchingDate(mask, startsOn, endsOn, londonToday());
   const origin = originCrs.trim().toUpperCase();
@@ -342,9 +380,14 @@ export function RegularJourneyForm() {
       startsOn,
       endsOn,
       defaultMatchMode: matchMode,
+      stationBufferMinutes: buffer,
       return:
         withReturn && returnUsual
-          ? { target: { kind: returnKind, time: returnTime, dayOffset: 0 }, usualItinerary: returnUsual.itinerary }
+          ? {
+              target: { kind: returnKind, time: returnTime, dayOffset: 0 },
+              usualItinerary: returnUsual.itinerary,
+              stationBufferMinutes: returnBuffer,
+            }
           : null,
     };
     try {
@@ -386,6 +429,7 @@ export function RegularJourneyForm() {
         onTime={(value) => changeOutbound(() => setTime(value))}
         clockHint
       />
+      <StationBufferField value={buffer} onChange={setBuffer} />
       <Stack gap={4}>
         <Text size="sm" fw={500} id={`${daysLabelId}-days`}>
           Days
@@ -455,6 +499,7 @@ export function RegularJourneyForm() {
               setReturnUsual(null);
             }}
           />
+          <StationBufferField value={returnBuffer} onChange={setReturnBuffer} />
           <UsualTrainPicker
             label="Your usual train back"
             query={usual ? returnQuery : null}

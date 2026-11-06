@@ -69,6 +69,29 @@ function pickOnlyTrain() {
   fireEvent.click(options[options.length - 1]!);
 }
 
+/** A fetch answering by URL: the station-buffer pre-fill from `buffers`
+ * (by station code), each trip plan from `plans` (by origin), and the
+ * create with `created`. Returns the calls other than the pre-fill. */
+function routeFetch(
+  buffers: Record<string, number | null>,
+  plans: Record<string, Response>,
+  created: () => Response,
+): () => [string, RequestInit | undefined][] {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock.mockImplementation(async (input) => {
+    const url = String(input);
+    const prefill = /station-buffer\?crs=([A-Z]{3})/.exec(url);
+    if (prefill) return json({ minutes: buffers[prefill[1]!] ?? null });
+    const origin = /Trips\/plan\?origin=([A-Z]{3})/.exec(url);
+    if (origin) return plans[origin[1]!]!.clone();
+    return created();
+  });
+  return () =>
+    fetchMock.mock.calls
+      .map(([input, init]) => [String(input), init] as [string, RequestInit | undefined])
+      .filter(([url]) => !url.includes('station-buffer'));
+}
+
 function fillOutbound() {
   fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'WOK' } });
   fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'WAT' } });
@@ -96,29 +119,34 @@ describe('RegularJourneyForm', () => {
   });
 
   it('finds trains, takes the picked one as the usual train, and saves a pair', async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock
-      .mockResolvedValueOnce(json(plan('W12345', 'WOK', 'WAT', '07:48')))
-      .mockResolvedValueOnce(json(plan('W54321', 'WAT', 'WOK', '17:35')))
-      .mockResolvedValueOnce(json({ templateId: 5, returnTemplateId: 6 }));
+    const calls = routeFetch(
+      { WOK: 12, WAT: 8 },
+      { WOK: json(plan('W12345', 'WOK', 'WAT', '07:48')), WAT: json(plan('W54321', 'WAT', 'WOK', '17:35')) },
+      () => json({ templateId: 5, returnTemplateId: 6 }),
+    );
     renderWithMantine(<RegularJourneyForm />);
     fillOutbound();
+    // Pre-filled from the last time used from Woking.
+    await waitFor(() => expect(screen.getAllByLabelText(/^Minutes to get to the station/)[0]).toHaveValue('12'));
     fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
     await screen.findByText(/Pick the one you usually take\./);
-    expect(String(fetchMock.mock.calls[0]![0])).toMatch(
+    expect(calls()[0]![0]).toMatch(
       /^\/api\/Trips\/plan\?origin=WOK&destination=WAT&date=\d{4}-\d{2}-\d{2}&results=options/,
     );
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('departAfter=07%3A45%3A00');
+    expect(calls()[0]![0]).toContain('departAfter=07%3A45%3A00');
     pickOnlyTrain();
     expect(await screen.findByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled();
 
     fireEvent.click(screen.getByRole('switch', { name: 'Add the return journey' }));
     expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeDisabled();
+    // The return's own, from London Waterloo; the traveller changes it.
+    await waitFor(() => expect(screen.getAllByLabelText(/^Minutes to get to the station/)[1]).toHaveValue('8'));
+    fireEvent.change(screen.getAllByLabelText(/^Minutes to get to the station/)[1]!, { target: { value: '10' } });
     fireEvent.change(screen.getAllByLabelText('Time')[1]!, { target: { value: '17:30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(String(fetchMock.mock.calls[1]![0])).toContain('origin=WAT&destination=WOK');
+    await waitFor(() => expect(calls()).toHaveLength(2));
+    expect(calls()[1]![0]).toContain('origin=WAT&destination=WOK');
     await screen.findByText(/17:35/);
     pickOnlyTrain();
     await screen.findByText('Your usual train back: 17:35 London Waterloo to Woking');
@@ -126,7 +154,7 @@ describe('RegularJourneyForm', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Pick my usual train for me' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
-    const [url, init] = fetchMock.mock.calls[2]!;
+    const [url, init] = calls()[2]!;
     expect(url).toBe('/api/JourneyTemplates');
     const body = JSON.parse(String((init as RequestInit).body)) as Record<string, unknown>;
     expect(body).toMatchObject({
@@ -136,10 +164,12 @@ describe('RegularJourneyForm', () => {
       target: { kind: 'depart_after', time: '07:45', dayOffset: 0 },
       daysOfWeek: 31,
       defaultMatchMode: 'auto',
+      stationBufferMinutes: 12,
       usualItinerary: { legs: [expect.objectContaining({ trainUid: 'W12345', departs: '07:48', atocCode: 'SW' })] },
       return: {
         target: { kind: 'depart_after', time: '17:30', dayOffset: 0 },
         usualItinerary: { legs: [expect.objectContaining({ trainUid: 'W54321' })] },
+        stationBufferMinutes: 10,
       },
     });
   });
@@ -156,17 +186,19 @@ describe('RegularJourneyForm', () => {
         usualSummary: '07:48 Woking to London Waterloo',
       }),
     );
-    vi.mocked(fetch).mockResolvedValue(json({ templateId: 5, returnTemplateId: null }));
+    const calls = routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }));
     renderWithMantine(<RegularJourneyForm />);
     expect(await screen.findByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Arrive by' })).toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
-    const body = JSON.parse(String((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body)) as Record<
-      string,
-      unknown
-    >;
-    expect(body).toMatchObject({ planOptions: { maxChanges: 1 }, target: { kind: 'arrive_by', time: '08:30' } });
+    const body = JSON.parse(String(calls()[0]![1]!.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      planOptions: { maxChanges: 1 },
+      target: { kind: 'arrive_by', time: '08:30' },
+      // Nothing used from Woking before: no leave-by.
+      stationBufferMinutes: null,
+    });
     expect(window.sessionStorage.getItem('ds:regular-journey-draft')).toBeNull();
   });
 

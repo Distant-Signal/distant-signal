@@ -164,6 +164,8 @@ export const JOURNEY_DETAIL_DEFAULTS = {
   revisionCount: 0,
   sourceTemplateId: null,
   regularPlan: null,
+  stationBufferMinutes: null,
+  leaveBy: null,
 } satisfies Partial<Api.JourneyDetailResponse>;
 
 /** A `JourneyListItem` (`GET /Journeys/mine`), less its ids, current leg
@@ -206,6 +208,8 @@ export const JOURNEY_LIST_ITEM_DEFAULTS = {
   cancellation: null,
   irishTrain: null,
   sourceTemplateId: null,
+  stationBufferMinutes: null,
+  leaveBy: null,
 } satisfies Partial<Api.JourneyListItem>;
 
 /** A regular journey's fields (`JourneyTemplateListItem` and the detail),
