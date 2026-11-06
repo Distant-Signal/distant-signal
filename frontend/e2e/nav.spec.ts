@@ -212,6 +212,37 @@ test.describe('desktop nav bar (1440x900)', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Trains' })).toBeVisible();
   });
 
+  // DS-338: in Firefox, Enter here before /lines had finished hydrating
+  // blocked the page for 1.2 to 1.7s. React hydrates the part of the page
+  // an early keypress lands in synchronously, and the nav was in the same
+  // part as the 246-row lines table. The table now hydrates on its own
+  // (app/lines/page.tsx's `<Activity>`), so the keypress only waits for the
+  // page around it. The time between the window's capture and bubble
+  // listeners is the time React spent handling the keypress.
+  test('handles a keypress on /lines without waiting for the lines table', async ({ page }) => {
+    await page.addInitScript(() => {
+      const timings = { start: 0, end: 0 };
+      Object.assign(window, { __enterKeydown: timings });
+      const record = (key: 'start' | 'end') => (event: KeyboardEvent) => {
+        if (event.key === 'Enter' && timings[key] === 0) timings[key] = performance.now();
+      };
+      window.addEventListener('keydown', record('start'), { capture: true });
+      window.addEventListener('keydown', record('end'));
+    });
+    await page.goto('/lines');
+    await waitForSessionNav(page);
+    const trains = mainNav(page).getByRole('link', { name: 'Trains', exact: true });
+    await trains.focus();
+    await page.keyboard.press('Enter');
+    await expectNavigatedTo(page, /\/trains$/);
+    const { start, end } = await page.evaluate(
+      () => (window as unknown as { __enterKeydown: { start: number; end: number } }).__enterKeydown,
+    );
+    expect(start, 'the keypress reached the page').toBeGreaterThan(0);
+    expect(end, 'the keypress bubbled back to the window').toBeGreaterThan(0);
+    expect(end - start).toBeLessThan(400);
+  });
+
   test.describe('logged in', () => {
     test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
     test.use({ storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined });
