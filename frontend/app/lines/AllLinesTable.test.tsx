@@ -10,13 +10,12 @@ import {
 } from './AllLinesTable';
 import type { LineStatusReport, LineSummary, Suggestion } from '@/lib/types';
 
-// `PinToggle` (rendered per row below) unconditionally renders
-// `LoginPromptModal`, which calls `useLoginHref()` -- and therefore
+// `PinToggle` (rendered per row below) mounts `LoginPromptModal` once its
+// star is clicked, which calls `useLoginHref()` -- and therefore
 // `usePathname()`/`useSearchParams()` -- on every render regardless of
-// whether the modal is open, not just on a 401 (`LoginPromptModal`'s own
-// doc comment on why it's always mounted). So this mock needs both stubs
-// even though none of this file's own tests exercise the login-prompt
-// path directly.
+// whether the modal is open, not just on a 401. So this mock needs both
+// stubs even though none of this file's own tests exercise the
+// login-prompt path directly.
 //
 // `navigation.search` is the mocked address bar's query string, which the
 // table seeds its filters from (`useInitialSearchParams`).
@@ -26,6 +25,19 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/lines',
   useSearchParams: () => new URLSearchParams(navigation.search),
 }));
+
+// Counts row renders: each row formats its sample summary once a render.
+const sampleSummaries = vi.hoisted(() => ({ count: 0 }));
+vi.mock('@/lib/sampleStats', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/sampleStats')>();
+  return {
+    ...actual,
+    formatSampleSummary: (...args: Parameters<typeof actual.formatSampleSummary>) => {
+      sampleSummaries.count += 1;
+      return actual.formatSampleSummary(...args);
+    },
+  };
+});
 
 // Injects exactly one synthetic non-GB modeName mapping, on top of the
 // real (today: empty) MODE_TO_COUNTRY -- see
@@ -325,6 +337,27 @@ describe('AllLinesTable', () => {
 
     expect(screen.getByText('South Western')).toBeInTheDocument();
     expect(screen.queryByText('Great Western Railway')).not.toBeInTheDocument();
+  });
+
+  // DS-374: what keeps the 250-row table quick to hydrate and to search.
+  // A Mantine `Tooltip` or `Modal` sets up a portal as soon as it renders,
+  // open or not; the rows' tooltips and log-in prompts wait until wanted.
+  it('mounts no tooltip or log-in prompt in any row until one is wanted', () => {
+    renderTable();
+    expect(document.querySelector('[data-portal]')).toBeNull();
+  });
+
+  it('renders no row again when a search or sort keeps it', () => {
+    sampleSummaries.count = 0;
+    renderTable();
+    expect(sampleSummaries.count).toBe(3);
+    sampleSummaries.count = 0;
+    const input = screen.getByRole('textbox', { name: 'Find a line' });
+    fireEvent.change(input, { target: { value: 'west' } });
+    fireEvent.change(input, { target: { value: 'western' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Avg delay/ }));
+    expect(rowNames()).toEqual(['Great Western Railway', 'South Western']);
+    expect(sampleSummaries.count).toBe(0);
   });
 
   it('sorts rows with no data to the end regardless of direction', async () => {

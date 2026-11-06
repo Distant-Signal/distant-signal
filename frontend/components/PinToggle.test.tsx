@@ -59,11 +59,10 @@ describe('PinToggle', () => {
 
   it('renders a tooltip for sighted users with the same text as the accessible name', async () => {
     renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.mouseEnter(screen.getByLabelText('Pin (currently not pinned)'));
-    // `hidden` isn't a valid option for `findByText` (it's `getByRole`-only,
-    // per `@testing-library/dom`'s `SelectorMatcherOptions` — no `hidden`
-    // field); `selector` alone is what actually scopes this to the tooltip.
-    expect(await screen.findByText('Pin (currently not pinned)', { selector: '[role="tooltip"]' })).toBeInTheDocument();
+    const star = screen.getByLabelText('Pin (currently not pinned)');
+    fireEvent.mouseEnter(star);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Pin (currently not pinned)');
+    expect(star).toHaveAccessibleDescription('Pin (currently not pinned)');
   });
 
   // Review §2.10: named alongside `ShareButton` as "the two actions a

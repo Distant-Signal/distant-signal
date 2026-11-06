@@ -411,6 +411,12 @@ used, rather than as a literal in a component.
   orange, early teal, planned blue, critical red, action grape), never by a
   colour picked at the call site. `href` makes it an in-page anchor. It
   takes no ref, so a `Tooltip` wraps it in a `<span>`.
+- **LazyTooltip** (`components/LazyTooltip.tsx`): a tooltip repeated down
+  a long list, such as each /lines row's pin star and "No data" badge. It
+  renders only its trigger until the first hover or keyboard focus, then
+  mounts the theme's `Tooltip` and behaves the same, so a page of rows
+  doesn't set up hundreds of closed tooltips while it hydrates. A one-off
+  tooltip stays a plain `Tooltip`.
 - **Wordmark** (`components/Wordmark.tsx`) and `lib/brand.ts`: the signal
   arm (one geometry, checked against `app/icon.svg`) beside the name.
   `data-site-title` (the pride hook) stays on the name only.
