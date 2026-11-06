@@ -1,0 +1,18 @@
+/* The /lines rows are plain elements carrying Mantine's own classes rather
+   than Mantine components (DS-374, `LineRow` in AllLinesTable.tsx). These
+   stand in for the `size` and `c` props the `Text`s there had, which
+   Mantine sets inline: the same custom properties and colour. */
+
+.textSm {
+  --text-fz: var(--mantine-font-size-sm);
+  --text-lh: var(--mantine-line-height-sm);
+}
+
+.textXs {
+  --text-fz: var(--mantine-font-size-xs);
+  --text-lh: var(--mantine-line-height-xs);
+}
+
+.dimmed {
+  color: var(--mantine-color-dimmed);
+}

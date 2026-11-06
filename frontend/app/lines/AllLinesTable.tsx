@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useId, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, memo, useId, useMemo, useState, type ReactNode } from 'react';
 import {
   Box,
   Chip,
@@ -12,13 +12,12 @@ import {
   TableTbody,
   TableTr,
   TableTh,
-  TableTd,
   Text,
   MultiSelect,
   UnstyledButton,
-  Tooltip,
   VisuallyHidden,
 } from '@mantine/core';
+import { LazyTooltip } from '@/components/LazyTooltip';
 import { PinToggle } from '@/components/PinToggle';
 import { TextLink } from '@/components/TextLink';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -47,6 +46,7 @@ import { useFilteredDocumentTitle } from '@/lib/useFilteredDocumentTitle';
 import { useInitialSearchParams } from '@/lib/useInitialSearchParams';
 import { StateBadge } from '@/components/StateBadge';
 import { noOptionsFound } from '@/components/noOptionsFound';
+import classes from './AllLinesTable.module.css';
 
 const LINE_NOUN: ListNoun = { one: 'line', other: 'lines' };
 
@@ -148,14 +148,33 @@ const COUNTRY_LABELS: Record<Country, string> = {
   RepublicOfIreland: 'Republic of Ireland',
 };
 
+/** Each row is plain elements with Mantine's own classes, not Mantine's
+ * `TableTr`/`TableTd`/`Text`/`VisuallyHidden` (DS-374). Every Mantine
+ * component resolves its props, theme and styles on each render, and with
+ * five or more per row that was much of the 250-row table's hydration,
+ * which a click or keypress in the table before it had hydrated waited
+ * for. The markup is the same as theirs: the components' classes, their
+ * data attributes, and `AllLinesTable.module.css` for the size and colour
+ * they set inline. */
+function cx(...names: (string | false | undefined)[]): string {
+  return names.filter(Boolean).join(' ');
+}
+const TR = cx(Table.classes.tr, 'mantine-Table-tr');
+const TD = cx(Table.classes.td, 'mantine-Table-td');
+const TEXT = cx('mantine-focus-auto', Text.classes.root, 'mantine-Text-root');
+const VISUALLY_HIDDEN = cx(VisuallyHidden.classes.root, 'mantine-VisuallyHidden-root');
+/** Mantine's `visibleFrom="sm"` and `hiddenFrom="sm"`. */
+const VISIBLE_FROM_SM = 'mantine-visible-from-sm';
+const HIDDEN_FROM_SM = 'mantine-hidden-from-sm';
+
 /** An empty numeric cell (no sampled rate): an en dash keeps the column
  * scannable at a glance; a screen reader hears "No data" instead.
  * docs/style-guide.md, Writing: placeholders. */
 const NO_VALUE = (
-  <Text size="sm" c="dimmed">
+  <p className={cx(TEXT, classes.textSm, classes.dimmed)} data-size="sm">
     <span aria-hidden="true">–</span>
-    <VisuallyHidden>No data</VisuallyHidden>
-  </Text>
+    <span className={VISUALLY_HIDDEN}>No data</span>
+  </p>
 );
 
 /** Mirrors `chipRowLabel` in `components/IssueList.tsx:131-133` --
@@ -235,6 +254,118 @@ export function filteredTitle(
   if (trimmed) parts.push(`"${trimmed}"`);
   return parts.length > 0 ? `Lines: ${parts.join(', ')}` : null;
 }
+
+/** One row's data: the line, joined to its report. */
+function lineRowData(line: LineSummary, report: LineStatusReport | undefined) {
+  const worst = report ? worstStatus(report) : undefined;
+  const representative = representativeStatus(report?.lineStatuses ?? []);
+  // Decision 1: prefer full-coverage numbers over sample numbers when
+  // both exist -- derived from the SAME `representative` status used
+  // for the subtitle/tooltip below, not a separate scan, so "which
+  // status is representative" and "which numbers render" never
+  // disagree.
+  const stats = representative?.fullCoverageStats ?? representative?.sampleStats;
+  const cancelledPct = cancelledPercent(stats);
+  // A line with no report at all has no modeName to derive a country
+  // from; every such line today is GB by construction (see
+  // docs/superpowers/plans/2026-09-05-country-filtering-plan.md
+  // Judgment Call 3 -- no non-GB LineSummary is reachable through
+  // GET /public/lines yet), so it defaults the same way
+  // countryForReport itself defaults an unrecognised modeName.
+  const country: Country = report ? countryForReport(report) : 'Gb';
+  return { line, worst, stats, cancelledPct, representative, country };
+}
+
+type LineRowData = ReturnType<typeof lineRowData>;
+
+/** One line's row. Memoised (DS-374): `row` is the same object for as long
+ * as the line's data is, so typing in "Find a line" or sorting only renders
+ * the rows that come or go, not all 250. */
+const LineRow = memo(function LineRow({
+  row: { line, worst, stats, cancelledPct, representative },
+  pinned,
+  viewerIsAnonymous,
+}: {
+  row: LineRowData;
+  pinned: boolean;
+  viewerIsAnonymous: boolean;
+}) {
+  return (
+    <tr className={TR} data-with-row-border="true">
+      <td className={cx(TD, 'linesNameCell')}>
+        {/* Task 3.4.8: at narrow widths a wrapped two-line name read
+          as two separate stacked list items rather than one
+          wrapped link, at Mantine `Text`'s default (looser)
+          line-height. */}
+        <TextLink href={`/lines/${line.id}`} lh={1.3}>
+          {breakableLineName(line.name)}
+        </TextLink>
+        {/* At 390px five columns cannot all fit, and the one that
+          was losing was Status — the page's whole point — while
+          two numeric columns kept their width. Below `sm` the
+          numbers move here instead of disappearing; `visibleFrom`/
+          `hiddenFrom` are Mantine's `display: none` classes,
+          emitted by MantineProvider on server and client alike,
+          so this is SSR-safe (unlike `useMediaQuery`). */}
+        <p className={cx(TEXT, classes.textXs, classes.dimmed, HIDDEN_FROM_SM)} data-size="xs">
+          {formatSampleSummary(representative)}
+        </p>
+      </td>
+      <td className={TD}>
+        {worst ? (
+          <StatusBadge severity={worst.statusSeverity} />
+        ) : (
+          // Task 3.4.1: previously rendered nothing at all -- ~120
+          // of ~125 rows had no `line_status` row yet (see
+          // `lineRowData`), so the Status column was blank for almost every
+          // line, with no way to tell "good service" from "no data"
+          // from "not computed yet". Grey/outline, not one of
+          // StatusBadge's severity colours (a stated Non-goal is
+          // leaving `severity.ts`'s hue map untouched) -- this is
+          // the absence of a status, not one more severity.
+          // `data-status-badge` opts out of Mantine Badge's default
+          // ellipsis truncation, the same fix `/lines/[id]`'s own
+          // "No status yet" badge and `StatusBadge` itself already
+          // rely on (see app/globals.css's `[data-status-badge]`
+          // rule) -- otherwise "No data" clips to "N…" in this same
+          // table at narrow widths.
+          <LazyTooltip label={noStatusReason(representative)}>
+            <span>
+              <StateBadge tone="neutral" data-status-badge="">
+                No data
+              </StateBadge>
+            </span>
+          </LazyTooltip>
+        )}
+      </td>
+      <td className={cx(TD, VISIBLE_FROM_SM)}>
+        {stats ? (
+          <p className={cx(TEXT, classes.textSm)} data-size="sm">
+            {stats.avgDelayMinutes.toFixed(1)} min
+          </p>
+        ) : representative ? (
+          <LazyTooltip label={sampleUnavailableReason(representative)}>{NO_VALUE}</LazyTooltip>
+        ) : (
+          NO_VALUE
+        )}
+      </td>
+      <td className={cx(TD, VISIBLE_FROM_SM)}>
+        {cancelledPct !== null ? (
+          <p className={cx(TEXT, classes.textSm)} data-size="sm">
+            {cancelledPct}%
+          </p>
+        ) : representative ? (
+          <LazyTooltip label={sampleUnavailableReason(representative)}>{NO_VALUE}</LazyTooltip>
+        ) : (
+          NO_VALUE
+        )}
+      </td>
+      <td className={TD}>
+        <PinToggle kind="line" id={line.id} initiallyPinned={pinned} needsAccountHint={viewerIsAnonymous} />
+      </td>
+    </tr>
+  );
+});
 
 export function AllLinesTable({
   lines,
@@ -344,30 +475,7 @@ export function AllLinesTable({
     [lines, nameByCode],
   );
 
-  const rows = useMemo(
-    () =>
-      lines.map((line) => {
-        const report = reportsById.get(line.id);
-        const worst = report ? worstStatus(report) : undefined;
-        const representative = representativeStatus(report?.lineStatuses ?? []);
-        // Decision 1: prefer full-coverage numbers over sample numbers when
-        // both exist -- derived from the SAME `representative` status used
-        // for the subtitle/tooltip below, not a separate scan, so "which
-        // status is representative" and "which numbers render" never
-        // disagree.
-        const stats = representative?.fullCoverageStats ?? representative?.sampleStats;
-        const cancelledPct = cancelledPercent(stats);
-        // A line with no report at all has no modeName to derive a country
-        // from; every such line today is GB by construction (see
-        // docs/superpowers/plans/2026-09-05-country-filtering-plan.md
-        // Judgment Call 3 -- no non-GB LineSummary is reachable through
-        // GET /public/lines yet), so it defaults the same way
-        // countryForReport itself defaults an unrecognised modeName.
-        const country: Country = report ? countryForReport(report) : 'Gb';
-        return { line, worst, stats, cancelledPct, representative, country };
-      }),
-    [lines, reportsById],
-  );
+  const rows = useMemo(() => lines.map((line) => lineRowData(line, reportsById.get(line.id))), [lines, reportsById]);
 
   // Mirrors operatorOptions's own "derive the option set from what's
   // actually present" pattern above, over `rows` rather than raw `lines`
@@ -628,81 +736,13 @@ export function AllLinesTable({
             </TableTr>
           </TableThead>
           <TableTbody>
-            {sortedRows.map(({ line, worst, stats, cancelledPct, representative }) => (
-              <TableTr key={line.id}>
-                <TableTd className="linesNameCell">
-                  {/* Task 3.4.8: at narrow widths a wrapped two-line name read
-                    as two separate stacked list items rather than one
-                    wrapped link, at Mantine `Text`'s default (looser)
-                    line-height. */}
-                  <TextLink href={`/lines/${line.id}`} lh={1.3}>
-                    {breakableLineName(line.name)}
-                  </TextLink>
-                  {/* At 390px five columns cannot all fit, and the one that
-                    was losing was Status — the page's whole point — while
-                    two numeric columns kept their width. Below `sm` the
-                    numbers move here instead of disappearing; `visibleFrom`/
-                    `hiddenFrom` are Mantine's `display: none` classes,
-                    emitted by MantineProvider on server and client alike,
-                    so this is SSR-safe (unlike `useMediaQuery`). */}
-                  <Text size="xs" c="dimmed" hiddenFrom="sm">
-                    {formatSampleSummary(representative)}
-                  </Text>
-                </TableTd>
-                <TableTd>
-                  {worst ? (
-                    <StatusBadge severity={worst.statusSeverity} />
-                  ) : (
-                    // Task 3.4.1: previously rendered nothing at all -- ~120
-                    // of ~125 rows had no `line_status` row yet (see `rows`
-                    // above), so the Status column was blank for almost every
-                    // line, with no way to tell "good service" from "no data"
-                    // from "not computed yet". Grey/outline, not one of
-                    // StatusBadge's severity colours (a stated Non-goal is
-                    // leaving `severity.ts`'s hue map untouched) -- this is
-                    // the absence of a status, not one more severity.
-                    // `data-status-badge` opts out of Mantine Badge's default
-                    // ellipsis truncation, the same fix `/lines/[id]`'s own
-                    // "No status yet" badge and `StatusBadge` itself already
-                    // rely on (see app/globals.css's `[data-status-badge]`
-                    // rule) -- otherwise "No data" clips to "N…" in this same
-                    // table at narrow widths.
-                    <Tooltip label={noStatusReason(representative)}>
-                      <span>
-                        <StateBadge tone="neutral" data-status-badge="">
-                          No data
-                        </StateBadge>
-                      </span>
-                    </Tooltip>
-                  )}
-                </TableTd>
-                <TableTd visibleFrom="sm">
-                  {stats ? (
-                    <Text size="sm">{stats.avgDelayMinutes.toFixed(1)} min</Text>
-                  ) : representative ? (
-                    <Tooltip label={sampleUnavailableReason(representative)}>{NO_VALUE}</Tooltip>
-                  ) : (
-                    NO_VALUE
-                  )}
-                </TableTd>
-                <TableTd visibleFrom="sm">
-                  {cancelledPct !== null ? (
-                    <Text size="sm">{cancelledPct}%</Text>
-                  ) : representative ? (
-                    <Tooltip label={sampleUnavailableReason(representative)}>{NO_VALUE}</Tooltip>
-                  ) : (
-                    NO_VALUE
-                  )}
-                </TableTd>
-                <TableTd>
-                  <PinToggle
-                    kind="line"
-                    id={line.id}
-                    initiallyPinned={pinnedSet.has(line.id)}
-                    needsAccountHint={viewerIsAnonymous}
-                  />
-                </TableTd>
-              </TableTr>
+            {sortedRows.map((row) => (
+              <LineRow
+                key={row.line.id}
+                row={row}
+                pinned={pinnedSet.has(row.line.id)}
+                viewerIsAnonymous={viewerIsAnonymous}
+              />
             ))}
           </TableTbody>
         </Table>

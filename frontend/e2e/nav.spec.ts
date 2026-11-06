@@ -243,6 +243,41 @@ test.describe('desktop nav bar (1440x900)', () => {
     expect(end - start).toBeLessThan(400);
   });
 
+  // DS-374: the same, for a click and a keypress in the table itself (its
+  // search box). One landing before the table has hydrated makes React
+  // hydrate all of it at once: 0.75 to 0.95s in Firefox, and the keypress
+  // then re-rendered every row the search kept, another 0.3 to 0.4s. The
+  // rows now hydrate in 0.1 to 0.25s (plain cells, and tooltips and log-in
+  // prompts mounted only when wanted: `LineRow` in
+  // app/lines/AllLinesTable.tsx, components/LazyTooltip.tsx, `PinToggle`)
+  // and are memoised, so the keypress takes about 15ms. Each event's time is
+  // between the window's capture and bubble listeners, as above, summed
+  // over the click and the keypress. The budget is loose because the whole
+  // suite runs in parallel: with three workers on six cores the same sum
+  // reached 0.9s in Firefox, where the old rows took 1.1 to 1.5s with the
+  // machine to themselves. The click lands once the nav has hydrated; if
+  // the table has hydrated too, this only times the search.
+  test('handles a click and a keypress in the /lines table without a long wait', async ({ page }) => {
+    await page.addInitScript(() => {
+      const spent: number[] = [];
+      Object.assign(window, { __tableEventTimes: spent });
+      for (const type of ['pointerdown', 'mousedown', 'focusin', 'pointerup', 'mouseup', 'click', 'keydown', 'input']) {
+        let start = 0;
+        window.addEventListener(type, () => (start = performance.now()), { capture: true });
+        window.addEventListener(type, () => spent.push(performance.now() - start));
+      }
+    });
+    await page.goto('/lines');
+    await waitForSessionNav(page);
+    const search = page.getByRole('textbox', { name: 'Find a line' });
+    await search.click();
+    await page.keyboard.press('x');
+    await expect(search).toHaveValue('x');
+    const spent = await page.evaluate(() => (window as unknown as { __tableEventTimes: number[] }).__tableEventTimes);
+    expect(spent.length, 'the click and the keypress reached the page').toBeGreaterThanOrEqual(7);
+    expect(spent.reduce((sum, time) => sum + time, 0)).toBeLessThan(1200);
+  });
+
   test.describe('logged in', () => {
     test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
     test.use({ storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined });
