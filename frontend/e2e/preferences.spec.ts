@@ -169,6 +169,29 @@ test.describe('Preferences, logged in', () => {
     await expect(page.getByRole('link', { name: /^Log in/ })).toHaveCount(0);
   });
 
+  test('chooses whose bank holidays regular journeys skip, and keeps it', async ({ page, context }) => {
+    await logIn(context);
+    await page.goto(PREFERENCES);
+    const card = page.getByRole('region', { name: 'Bank holidays' });
+    const select = card.getByRole('combobox', { name: 'Whose bank holidays' });
+    // The seed's choice.
+    await expect(select).toHaveValue('England and Wales');
+    try {
+      await expect(async () => {
+        await select.click();
+        await page.getByRole('option', { name: 'Scotland' }).click({ timeout: 1_000 });
+        await expect(card.getByText('Saved.')).toBeVisible({ timeout: 2_000 });
+      }).toPass({ timeout: 20_000 });
+      await page.reload();
+      await expect(page.getByRole('combobox', { name: 'Whose bank holidays' })).toHaveValue('Scotland');
+    } finally {
+      const restored = await page.request.put('/api/preferences/bank-holiday-division', {
+        data: { division: 'england-and-wales' },
+      });
+      expect(restored.status()).toBe(204);
+    }
+  });
+
   test('keeps the choices made while logged out', async ({ page, context }) => {
     await page.goto(PREFERENCES);
     await choosePrideFlag(page, 'Rainbow', 'rainbow');

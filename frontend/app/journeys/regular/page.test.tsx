@@ -117,6 +117,23 @@ describe('RegularJourneysPage', () => {
     expect(screen.getByText('Mon, Wed, Fri')).toBeInTheDocument();
   });
 
+  it('says which bank holidays the next date passes over, and not a date skipped by hand', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({
+        daysOfWeek: 31,
+        nextDate: '2099-06-02',
+        nextSkips: [
+          { date: '2099-05-29', reason: 'skipped' },
+          { date: '2099-06-01', reason: 'bank_holiday' },
+        ],
+      }),
+    ]);
+    await renderPage();
+    expect(
+      screen.getByText(byVisibleText('Weekdays · Next: 2 Jun 2099 (1 Jun 2099 is a bank holiday)')),
+    ).toBeInTheDocument();
+  });
+
   it('marks a paused template and gives no next run', async () => {
     vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
       template({ daysOfWeek: 31, active: false, nextRunOn: null, hasOpenLegs: true }),

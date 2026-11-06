@@ -1,11 +1,12 @@
 import { Stack, Title } from '@mantine/core';
 import type { Metadata } from 'next';
 import { ConnectedApps } from '@/components/ConnectedApps';
-import { getConnectedApps, getSessionOrLoggedOut } from '@/lib/api';
+import { getConnectedApps, getPreferences, getSessionOrLoggedOut } from '@/lib/api';
 import { legalPagesVisible } from '@/lib/legal';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { AccountSettingsLoginPrompt } from './AccountSettingsLoginPrompt';
 import { AppearanceSection } from './AppearanceSection';
+import { BankHolidaysSection } from './BankHolidaysSection';
 import { ClaudeKeySection } from './ClaudeKeySection';
 import { NotificationsSection } from './NotificationsSection';
 import { PreferencesSection } from './PreferencesSection';
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
  *   DS-190), saved to the account when logged in and in this browser
  *   when not.
  * - Account-backed, logged in only: `NotificationsSection`,
+ *   `BankHolidaysSection` (whose bank holidays regular journeys skip),
  *   `ClaudeKeySection`, then Connected apps (`ConnectedApps`, the apps
  *   that can work with the visitor's journeys; also at
  *   `/account/connected-apps`, docs/connected-apps.md). A logged-out
@@ -52,6 +54,8 @@ export default async function PreferencesPage() {
   // `ConnectedAppsSection`, so this page renders in one pass. A failure
   // drops only that section.
   const connectedApps = session.authenticated ? await getConnectedApps().catch(() => null) : null;
+  // The bank holidays choice; a failure drops only that section.
+  const preferences = session.authenticated ? await getPreferences().catch(() => null) : null;
 
   return (
     <Stack p="lg" gap="lg" maw={640}>
@@ -65,6 +69,7 @@ export default async function PreferencesPage() {
       {session.authenticated ? (
         <>
           <NotificationsSection />
+          {preferences && <BankHolidaysSection initial={preferences.bankHolidayDivision} />}
           <ClaudeKeySection />
           {connectedApps && (
             <PreferencesSection id="connected-apps-heading" title="Connected apps">

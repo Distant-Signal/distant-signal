@@ -70,18 +70,22 @@ function pickOnlyTrain() {
 }
 
 /** A fetch answering by URL: the station-buffer pre-fill from `buffers`
- * (by station code), each trip plan from `plans` (by origin), and the
- * create with `created`. Returns the calls other than the pre-fill. */
+ * (by station code), the preferences with `division` as the bank holiday
+ * division, each trip plan from `plans` (by origin), and the create with
+ * `created`. Returns the calls other than the two reads. */
 function routeFetch(
   buffers: Record<string, number | null>,
   plans: Record<string, Response>,
   created: () => Response,
+  division: string | null = 'england-and-wales',
 ): () => [string, RequestInit | undefined][] {
   const fetchMock = vi.mocked(fetch);
   fetchMock.mockImplementation(async (input) => {
     const url = String(input);
     const prefill = /station-buffer\?crs=([A-Z]{3})/.exec(url);
     if (prefill) return json({ minutes: buffers[prefill[1]!] ?? null });
+    if (url === '/api/preferences') return json({ bankHolidayDivision: division });
+    if (url === '/api/preferences/bank-holiday-division') return new Response(null, { status: 204 });
     const origin = /Trips\/plan\?origin=([A-Z]{3})/.exec(url);
     if (origin) return plans[origin[1]!]!.clone();
     return created();
@@ -89,7 +93,7 @@ function routeFetch(
   return () =>
     fetchMock.mock.calls
       .map(([input, init]) => [String(input), init] as [string, RequestInit | undefined])
-      .filter(([url]) => !url.includes('station-buffer'));
+      .filter(([url]) => !url.includes('station-buffer') && url !== '/api/preferences');
 }
 
 function fillOutbound() {
@@ -198,8 +202,60 @@ describe('RegularJourneyForm', () => {
       target: { kind: 'arrive_by', time: '08:30' },
       // Nothing used from Woking before: no leave-by.
       stationBufferMinutes: null,
+      skipBankHolidays: true,
     });
     expect(window.sessionStorage.getItem('ds:regular-journey-draft')).toBeNull();
+  });
+
+  const DRAFT = JSON.stringify({
+    originCrs: 'WOK',
+    destinationCrs: 'WAT',
+    target: { kind: 'depart_after', time: '07:45', dayOffset: 0 },
+    planOptions: null,
+    usualItinerary: { legs: [{ kind: 'train', trainUid: 'W12345', departs: '07:48' }] },
+    usualSummary: '07:48 Woking to London Waterloo',
+  });
+
+  it('skips bank holidays by default, naming whose, with a link to change it', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }), 'scotland');
+    renderWithMantine(<RegularJourneyForm />);
+    expect(screen.getByRole('switch', { name: 'Skip bank holidays' })).toBeChecked();
+    expect(await screen.findByText(/^Scotland bank holidays\./)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Change' })).toHaveAttribute(
+      'href',
+      '/account/preferences#bank-holidays-heading',
+    );
+    expect(screen.queryByRole('combobox', { name: /Whose bank holidays/ })).toBeNull();
+  });
+
+  it('asks whose bank holidays once, inline, and saves the answer first', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    const calls = routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }), null);
+    renderWithMantine(<RegularJourneyForm />);
+    const select = await screen.findByRole('combobox', { name: /Whose bank holidays/ });
+    expect(select).toHaveValue('England and Wales');
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: 'Northern Ireland' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
+    expect(calls().map(([url]) => url)).toEqual(['/api/preferences/bank-holiday-division', '/api/JourneyTemplates']);
+    expect(JSON.parse(String(calls()[0]![1]!.body))).toEqual({ division: 'northern-ireland' });
+    expect(JSON.parse(String(calls()[1]![1]!.body))).toMatchObject({ skipBankHolidays: true });
+  });
+
+  it('with the switch off, asks nothing and saves the journey without skipping', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    const calls = routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }), null);
+    renderWithMantine(<RegularJourneyForm />);
+    // The inline question, until the switch goes off.
+    await screen.findByRole('combobox', { name: /Whose bank holidays/ });
+    fireEvent.click(screen.getByRole('switch', { name: 'Skip bank holidays' }));
+    expect(screen.queryByRole('combobox', { name: /Whose bank holidays/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
+    expect(calls().map(([url]) => url)).toEqual(['/api/JourneyTemplates']);
+    expect(JSON.parse(String(calls()[0]![1]!.body))).toMatchObject({ skipBankHolidays: false });
   });
 
   it("shows the api's refusal when saving fails", async () => {
