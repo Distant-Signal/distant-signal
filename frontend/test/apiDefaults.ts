@@ -233,6 +233,7 @@ export const TEMPLATE_TARGET_DEFAULTS = {
   intervalWeeks: 1,
   anchorWeek: null,
   extraDates: [],
+  dayOverrides: [],
 } satisfies Partial<Api.JourneyTemplateListItem>;
 
 /** A train leg of a trip plan, less its train, ends and times. */

@@ -31,6 +31,7 @@ const loggedOut = {
   groups: [] as string[],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 } as const;
 const loggedIn = {
@@ -41,6 +42,7 @@ const loggedIn = {
   groups: [] as string[],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 } as const;
 

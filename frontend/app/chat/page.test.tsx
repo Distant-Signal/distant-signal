@@ -24,6 +24,7 @@ const LOGGED_OUT = {
   groups: [],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 };
 const LOGGED_IN = {
@@ -34,6 +35,7 @@ const LOGGED_IN = {
   groups: [],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 };
 

@@ -470,6 +470,54 @@ test.describe('regular journeys', () => {
     expect(searches.at(-1)!.searchParams.get('arriveBy')).toBe('09:39:00');
   });
 
+  test('a different time on some days shows on the card and page, and the form offers it', async ({
+    page,
+    context,
+  }) => {
+    await logIn(context);
+    const created = await page.request.post('/api/JourneyTemplates', {
+      data: {
+        mode: 'plan',
+        originCrs: 'KGX',
+        destinationCrs: 'EUS',
+        target: { kind: 'depart_after', time: '06:15', dayOffset: 0 },
+        usualItinerary: {
+          legs: [{ trainUid: 'W90901', originCrs: 'KGX', destinationCrs: 'EUS', departs: '06:20' }],
+        },
+        daysOfWeek: 31,
+        skipBankHolidays: false,
+        dayOverrides: [
+          {
+            weekday: 5,
+            target: { kind: 'depart_after', time: '05:15', dayOffset: 0 },
+            usualItinerary: {
+              legs: [{ trainUid: 'W90902', originCrs: 'KGX', destinationCrs: 'EUS', departs: '05:20' }],
+            },
+          },
+        ],
+      },
+    });
+    expect(created.ok(), await created.text()).toBe(true);
+    const { templateId } = (await created.json()) as { templateId: number };
+
+    try {
+      await page.goto('/journeys/regular');
+      await expect(page.getByText('Fridays: leave after 05:15').first()).toBeVisible();
+
+      await page.goto(`/journeys/regular/${templateId}`);
+      await expect(page.getByText(/^Fridays: leave after 05:15\. Your usual train: 05:20 /)).toBeVisible();
+
+      await page.goto('/journeys/regular/new');
+      await page.getByRole('switch', { name: /Different time on some days/ }).check();
+      await expect(page.getByRole('combobox', { name: 'Day' })).toHaveValue('Fridays');
+      await expect(page.getByText('Choose a time first.')).toBeVisible();
+      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      expect(axe.violations).toEqual([]);
+    } finally {
+      await page.request.delete(`/api/JourneyTemplates/${templateId}`);
+    }
+  });
+
   test('a regular journey page passes axe', async ({ page, context }) => {
     await logIn(context);
     await page.goto('/journeys/regular/900201');

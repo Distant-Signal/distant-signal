@@ -37,6 +37,7 @@ const loggedOut: SessionInfo = {
   groups: [],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 };
 const loggedIn: SessionInfo = {
@@ -47,6 +48,7 @@ const loggedIn: SessionInfo = {
   groups: [],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 };
 

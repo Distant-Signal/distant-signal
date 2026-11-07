@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dayOverridesSummary,
   earlierTrainsBound,
   isUsualOption,
   laterTrainsBound,
@@ -242,5 +243,17 @@ describe('trainChoicesQuery', () => {
     );
     expect(query).toMatchObject({ waypointCrs: ['GLD'], results: 'options' });
     expect(query.count).toBeUndefined();
+  });
+});
+
+describe('dayOverridesSummary', () => {
+  it('reads each weekday and its target, or nothing for none', () => {
+    expect(dayOverridesSummary([])).toBeNull();
+    expect(
+      dayOverridesSummary([
+        { weekday: 5, target: { kind: 'depart_after', time: '06:45:00', dayOffset: 0 } },
+        { weekday: 7, target: { kind: 'arrive_by', time: '13:00:00', dayOffset: 0 } },
+      ]),
+    ).toBe('Fridays: leave after 06:45, Sundays: arrive by 13:00');
   });
 });

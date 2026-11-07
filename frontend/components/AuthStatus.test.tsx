@@ -23,6 +23,7 @@ const loggedOut: SessionInfo = {
   groups: [],
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
+  regularJourneyDayOverridesEnabled: false,
   analyticsOptIn: false,
 };
 
@@ -81,6 +82,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -106,6 +108,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -124,6 +127,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -147,6 +151,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -165,6 +170,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -183,6 +189,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -203,6 +210,7 @@ describe('AuthStatus', () => {
           groups: [],
           personalTokensEnabled: false,
           regularJourneyRecurrenceEnabled: false,
+          regularJourneyDayOverridesEnabled: false,
           analyticsOptIn: false,
         }}
       />,

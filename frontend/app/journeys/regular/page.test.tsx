@@ -271,4 +271,17 @@ describe('RegularJourneysPage', () => {
     expect(screen.getByText(byVisibleText('On 2 dates · Next: 1 Feb 2099'))).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Skip next' })).toHaveLength(2);
   });
+
+  it('reads a different time on some days under the days', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({
+        daysOfWeek: 31,
+        nextDate: '2099-01-05',
+        dayOverrides: [{ weekday: 5, target: { kind: 'depart_after', time: '06:45:00', dayOffset: 0 } }],
+      }),
+      template({ id: 2, daysOfWeek: 31, nextDate: '2099-01-05' }),
+    ]);
+    await renderPage();
+    expect(screen.getAllByText('Fridays: leave after 06:45')).toHaveLength(1);
+  });
 });

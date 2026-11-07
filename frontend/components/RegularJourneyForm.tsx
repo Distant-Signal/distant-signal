@@ -44,11 +44,18 @@ import {
 } from '@/lib/regularJourneys';
 import { getStationNames } from '@/lib/suggestions';
 import { collectTripPlanStationCodes, fetchTripPlan, TripPlanError, tripPlanStopNames } from '@/lib/tripPlan';
-import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
+import {
+  isoWeekdayOf,
+  isoWeekdayOfKey,
+  nextDateOnWeekday,
+  TEMPLATE_DAYS,
+  weekdayPlural,
+} from '@/lib/templateRecurrence';
 import { previewSentence } from '@/lib/upcomingDates';
 import type {
   BankHolidayDivision,
   CreateJourneyTemplateRequest,
+  DayOverrideRequest,
   PlanOptions,
   PreviewDatesRequest,
   PreviewDatesResponse,
@@ -331,6 +338,166 @@ function UsualTrainPicker({
   );
 }
 
+/** One weekday's different time (R3), as the form holds it until saved. */
+interface DayOverrideDraft {
+  /** A stable key for the list. */
+  key: number;
+  /** ISO weekday, 1 Monday to 7 Sunday; `null` until chosen. */
+  weekday: number | null;
+  kind: TargetKind;
+  time: string;
+  usual: UsualPick | null;
+}
+
+/** What one direction's "Find trains" searches, given a time. */
+interface DirectionQuery {
+  originCrs: string;
+  destinationCrs: string;
+  kind: TargetKind;
+  time: string;
+  options: PlanOptions | null;
+}
+
+/** "Different time on some days" for one direction (R3): a switch, then a
+ * row per weekday with its own "Leave after" or "Arrive by", time and usual
+ * train, found on that weekday's next date (`dateFor`). `days` are the ISO
+ * weekdays the journey runs on; a row's day is one of them, each once. */
+function DayOverridesField({
+  drafts,
+  onChange,
+  days,
+  dateFor,
+  queryFor,
+  baseKind,
+  trainLabel,
+  waitReason,
+}: {
+  drafts: DayOverrideDraft[];
+  onChange: (drafts: DayOverrideDraft[]) => void;
+  days: number[];
+  dateFor: (weekday: number) => string | null;
+  /** The search for a row's kind and time; `null` while the form can't say. */
+  queryFor: (kind: TargetKind, time: string) => DirectionQuery | null;
+  baseKind: TargetKind;
+  /** "Your usual train" or "Your usual train back". */
+  trainLabel: string;
+  /** Why no row can search yet (no stations, no usual train there). */
+  waitReason: string;
+}) {
+  const [nextKey, setNextKey] = useState(1);
+  const unused = (except: DayOverrideDraft | null) =>
+    days.filter((day) => !drafts.some((draft) => draft !== except && draft.weekday === day));
+
+  function add() {
+    const weekday = unused(null).at(-1) ?? null;
+    onChange([...drafts, { key: nextKey, weekday, kind: baseKind, time: '', usual: null }]);
+    setNextKey(nextKey + 1);
+  }
+
+  function update(draft: DayOverrideDraft, change: Partial<DayOverrideDraft>) {
+    onChange(drafts.map((item) => (item === draft ? { ...item, ...change } : item)));
+  }
+
+  return (
+    <Stack gap="sm">
+      <Switch
+        label="Different time on some days"
+        description="For example, an earlier train on Fridays."
+        checked={drafts.length > 0}
+        disabled={days.length === 0}
+        onChange={(event) => {
+          if (event.currentTarget.checked) add();
+          else onChange([]);
+        }}
+      />
+      {drafts.map((draft) => {
+        const weekday = draft.weekday !== null && days.includes(draft.weekday) ? draft.weekday : null;
+        const name = weekday === null ? null : weekdayPlural(weekday);
+        const date = weekday === null ? null : dateFor(weekday);
+        const base = draft.time === '' ? null : queryFor(draft.kind, draft.time);
+        const query = base && date ? { ...base, date } : null;
+        const reason =
+          weekday === null
+            ? 'Choose a day first.'
+            : draft.time === ''
+              ? 'Choose a time first.'
+              : !base
+                ? waitReason
+                : date === null
+                  ? `None of the ${name} is before the end date.`
+                  : null;
+        return (
+          <Stack key={draft.key} gap="xs" data-day-override>
+            <Group gap="sm" align="flex-end" wrap="wrap">
+              <Select
+                label="Day"
+                placeholder="Choose a day"
+                data={unused(draft).map((day) => ({ value: String(day), label: weekdayPlural(day) }))}
+                value={weekday === null ? null : String(weekday)}
+                onChange={(value) => update(draft, { weekday: value ? Number(value) : null, usual: null })}
+                allowDeselect={false}
+                maw={200}
+              />
+              <Button
+                variant="subtle"
+                onClick={() => onChange(drafts.filter((item) => item !== draft))}
+                aria-label={name ? `Remove the different time on ${name}` : 'Remove this day'}
+              >
+                Remove
+              </Button>
+            </Group>
+            <TargetFields
+              legend={name ? `On ${name}` : 'On that day'}
+              kind={draft.kind}
+              time={draft.time}
+              onKind={(kind) => update(draft, { kind, usual: null })}
+              onTime={(time) => update(draft, { time, usual: null })}
+            />
+            <UsualTrainPicker
+              label={name ? `${trainLabel} on ${name}` : trainLabel}
+              query={query}
+              usual={draft.usual}
+              onPick={(usual) => update(draft, { usual })}
+              disabledReason={reason}
+            />
+          </Stack>
+        );
+      })}
+      {drafts.length > 0 && unused(null).length > 0 && (
+        <Button variant="default" onClick={add} className="ds-self-start">
+          Add another day
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+/** Whether every row has a day the journey runs on, a time and a usual
+ * train, each day once. */
+function draftsComplete(drafts: DayOverrideDraft[], days: number[]): boolean {
+  const seen = new Set<number>();
+  return drafts.every((draft) => {
+    if (draft.weekday === null || !days.includes(draft.weekday) || seen.has(draft.weekday)) return false;
+    seen.add(draft.weekday);
+    return draft.time !== '' && draft.usual !== null;
+  });
+}
+
+/** The rows as `dayOverrides` sends them. */
+function overridesBody(drafts: DayOverrideDraft[]): DayOverrideRequest[] {
+  return drafts.flatMap((draft) =>
+    draft.weekday !== null && draft.usual
+      ? [
+          {
+            weekday: draft.weekday,
+            target: { kind: draft.kind, time: draft.time, dayOffset: 0 },
+            usualItinerary: draft.usual.itinerary,
+          },
+        ]
+      : [],
+  );
+}
+
 /** The regular journey form (regular journeys design §4.4): From, To,
  * "Leave after" or "Arrive by" with a time, the days (Monday to Friday to
  * start), optional start and end dates, "Add the return journey" with its
@@ -518,9 +685,12 @@ function DatesPreviewLine({ preview }: { preview: DatesPreview | null }) {
 
 export function RegularJourneyForm({
   recurrenceEnabled = false,
+  dayOverridesEnabled = false,
 }: {
   /** Offer every few weeks and chosen dates (`regularJourneyRecurrenceEnabled`). */
   recurrenceEnabled?: boolean;
+  /** Offer a different time on some days (`regularJourneyDayOverridesEnabled`). */
+  dayOverridesEnabled?: boolean;
 } = {}) {
   const router = useRouter();
   const [originCrs, setOriginCrs] = useState('');
@@ -545,6 +715,8 @@ export function RegularJourneyForm({
   const [planOptions, setPlanOptions] = useState<PlanOptions | null>(null);
   const [usual, setUsual] = useState<UsualPick | null>(null);
   const [returnUsual, setReturnUsual] = useState<UsualPick | null>(null);
+  const [overrides, setOverrides] = useState<DayOverrideDraft[]>([]);
+  const [returnOverrides, setReturnOverrides] = useState<DayOverrideDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const needsLoginState = useNeedsLogin();
@@ -604,18 +776,42 @@ export function RegularJourneyForm({
       ? { originCrs: destination, destinationCrs: origin, date, kind: returnKind, time: returnTime, options: null }
       : null;
 
+  // A different time on some days (R3): the weekdays it can be on are the
+  // days the journey runs, or for chosen dates the dates' weekdays. Each
+  // weekday's trains are found on its next date from the start date.
+  const firstDay = startsOn && startsOn > londonToday() ? startsOn : londonToday();
+  const overrideDays = !dayOverridesEnabled
+    ? []
+    : listed
+      ? [...new Set(chosenDates.filter((day) => day >= londonToday()).map(isoWeekdayOf))].sort((a, b) => a - b)
+      : savedRoute
+        ? []
+        : days.map(isoWeekdayOfKey).sort((a, b) => a - b);
+  function overrideDate(weekday: number): string | null {
+    const next = listed
+      ? ([...chosenDates].sort().find((day) => day >= firstDay && isoWeekdayOf(day) === weekday) ?? null)
+      : nextDateOnWeekday(firstDay, weekday);
+    return next && endsOn && next > endsOn ? null : next;
+  }
+
   // A changed route or time makes the picked train someone else's.
   function changeOutbound(apply: () => void) {
     apply();
     setUsual(null);
     setReturnUsual(null);
+    setOverrides((drafts) => drafts.map((draft) => ({ ...draft, usual: null })));
+    setReturnOverrides((drafts) => drafts.map((draft) => ({ ...draft, usual: null })));
   }
 
+  const sentOverrides = overrideDays.length > 0 ? overrides : [];
+  const sentReturnOverrides = withReturn && overrideDays.length > 0 ? returnOverrides : [];
   const canSave =
     !(listed && chosenDates.length === 0) &&
     outboundQuery !== null &&
     usual !== null &&
-    (!withReturn || (returnQuery !== null && returnUsual !== null));
+    (!withReturn || (returnQuery !== null && returnUsual !== null)) &&
+    draftsComplete(sentOverrides, overrideDays) &&
+    draftsComplete(sentReturnOverrides, overrideDays);
 
   async function handleSave() {
     if (!outboundQuery || !usual || !canSave) return;
@@ -657,12 +853,14 @@ export function RegularJourneyForm({
       defaultMatchMode: matchMode,
       stationBufferMinutes: buffer,
       skipBankHolidays,
+      ...(sentOverrides.length > 0 ? { dayOverrides: overridesBody(sentOverrides) } : {}),
       return:
         withReturn && returnUsual
           ? {
               target: { kind: returnKind, time: returnTime, dayOffset: 0 },
               usualItinerary: returnUsual.itinerary,
               stationBufferMinutes: returnBuffer,
+              ...(sentReturnOverrides.length > 0 ? { dayOverrides: overridesBody(sentReturnOverrides) } : {}),
             }
           : null,
     };
@@ -807,6 +1005,28 @@ export function RegularJourneyForm({
           disabledReason={searchReason}
         />
       </Stack>
+      {overrideDays.length > 0 && (
+        <DayOverridesField
+          drafts={overrides}
+          onChange={setOverrides}
+          days={overrideDays}
+          dateFor={overrideDate}
+          queryFor={(draftKind, draftTime) =>
+            stationsSet
+              ? {
+                  originCrs: origin,
+                  destinationCrs: destination,
+                  kind: draftKind,
+                  time: draftTime,
+                  options: planOptions,
+                }
+              : null
+          }
+          baseKind={kind}
+          trainLabel="Your usual train"
+          waitReason="Choose two different stations first."
+        />
+      )}
       <Switch
         label="Add the return journey"
         checked={withReturn}
@@ -835,6 +1055,22 @@ export function RegularJourneyForm({
             onPick={setReturnUsual}
             disabledReason={usual ? 'Choose a time for the return first.' : 'Pick your usual train there first.'}
           />
+          {overrideDays.length > 0 && (
+            <DayOverridesField
+              drafts={returnOverrides}
+              onChange={setReturnOverrides}
+              days={overrideDays}
+              dateFor={overrideDate}
+              queryFor={(draftKind, draftTime) =>
+                stationsSet && usual
+                  ? { originCrs: destination, destinationCrs: origin, kind: draftKind, time: draftTime, options: null }
+                  : null
+              }
+              baseKind={returnKind}
+              trainLabel="Your usual train back"
+              waitReason={stationsSet ? 'Pick your usual train there first.' : 'Choose two different stations first.'}
+            />
+          )}
         </Stack>
       )}
       <Radio.Group
