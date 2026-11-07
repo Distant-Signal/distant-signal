@@ -63,6 +63,10 @@ test.describe('Notifications, logged out', () => {
 
 test.describe('Notifications, logged in', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
+  // One at a time, in one worker: every test here changes the one seed
+  // user's settings and resets them all at the end, so with the config's
+  // fullyParallel one test's reset undid another's change before its reload.
+  test.describe.configure({ mode: 'default' });
 
   test.beforeEach(async ({ context }) => {
     await logIn(context);
@@ -98,6 +102,9 @@ test.describe('Notifications, logged in', () => {
       await expect(send.getByRole('combobox', { name: 'Delay threshold' })).toHaveValue('30 min');
 
       const quiet = page.getByRole('region', { name: 'Quiet hours' });
+      // Every control is disabled while the delay threshold saves, and a
+      // forced click on a disabled switch does nothing.
+      await expect(quiet.getByRole('switch', { name: 'Quiet hours' })).toBeEnabled();
       await quiet.getByRole('switch', { name: 'Quiet hours' }).setChecked(true, { force: true });
       await expect(quiet.getByRole('switch', { name: 'Quiet hours' })).toBeChecked();
 
