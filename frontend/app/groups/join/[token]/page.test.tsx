@@ -73,6 +73,7 @@ describe('JoinGroupPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -94,6 +95,7 @@ describe('JoinGroupPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -110,6 +112,7 @@ describe('JoinGroupPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -132,6 +135,7 @@ describe('JoinGroupPage', () => {
         name: 'Alex',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockResolvedValue({
@@ -165,6 +169,7 @@ describe('JoinGroupPage', () => {
         name: null,
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
 
@@ -182,6 +187,7 @@ describe('JoinGroupPage', () => {
         name: 'Alex',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new ApiUnauthorizedError('401'));
@@ -199,6 +205,7 @@ describe('JoinGroupPage', () => {
         name: 'Alex',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new Error('boom'));

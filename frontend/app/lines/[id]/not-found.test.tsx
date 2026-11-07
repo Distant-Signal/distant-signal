@@ -32,6 +32,7 @@ function session(authenticated: boolean) {
     name: null,
     groups: [],
     personalTokensEnabled: false,
+    regularJourneyRecurrenceEnabled: false,
     analyticsOptIn: false,
   };
 }
@@ -76,6 +77,7 @@ describe('LineNotFound', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await LineNotFound());

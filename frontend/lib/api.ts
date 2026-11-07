@@ -604,6 +604,7 @@ export const LOGGED_OUT_SESSION: SessionInfo = {
   analyticsOptIn: false,
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
 };
 
 /** The one place `getSession()`'s failure mode is turned into a UI-safe

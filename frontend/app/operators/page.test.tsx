@@ -82,6 +82,7 @@ const sessionInfo: SessionInfo = {
   name: null,
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
   analyticsOptIn: false,
 };
 

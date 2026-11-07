@@ -40,3 +40,48 @@ export function nextRunLabel(nextRunOn: string, now: Date = new Date()): string 
   // Midday UTC is the same calendar day in London all year.
   return formatWeekdayShortDate(`${nextRunOn}T12:00:00Z`);
 }
+
+/** A regular journey's pattern (R2): the fields `recurrenceSummary` needs
+ * beyond its days. */
+export interface TemplatePattern {
+  daysOfWeek: number | null;
+  /** `weekly`, `dates`, or a kind this page doesn't know yet. */
+  recurrenceKind: string;
+  intervalWeeks: number;
+  extraDates: readonly string[];
+}
+
+/** "every other week", "every 3 weeks", or nothing for every week. */
+function intervalWords(intervalWeeks: number): string | null {
+  if (intervalWeeks <= 1) return null;
+  if (intervalWeeks === 2) return 'every other week';
+  return `every ${intervalWeeks} weeks`;
+}
+
+/** How a regular journey's pattern reads on its card: "Mon, Wed, every
+ * other week", "Weekdays, and 2 more dates", "On 3 dates", or for a kind
+ * this page doesn't know, "On set dates" (its next dates say which). */
+export function patternSummary(pattern: TemplatePattern): string {
+  const extra = pattern.extraDates.length;
+  if (pattern.recurrenceKind === 'dates') {
+    return extra === 1 ? 'On 1 date' : `On ${extra} dates`;
+  }
+  if (pattern.recurrenceKind !== 'weekly') return 'On set dates';
+  if (pattern.daysOfWeek === null || pattern.daysOfWeek === 0) {
+    if (extra === 0) return 'Not recurring';
+    return extra === 1 ? 'On 1 date' : `On ${extra} dates`;
+  }
+  const parts = [recurrenceSummary(pattern.daysOfWeek)];
+  const interval = intervalWords(pattern.intervalWeeks);
+  if (interval) parts.push(interval);
+  if (extra > 0) parts.push(extra === 1 ? 'and 1 more date' : `and ${extra} more dates`);
+  return parts.join(', ');
+}
+
+/** Whether a regular journey runs on its own (its days, or dates of its
+ * own), so it has next dates, "Skip next" and "Pause". A saved route with
+ * neither only runs when you add a date. */
+export function runsByItself(pattern: TemplatePattern): boolean {
+  if (pattern.recurrenceKind !== 'weekly') return true;
+  return (pattern.daysOfWeek !== null && pattern.daysOfWeek !== 0) || pattern.extraDates.length > 0;
+}

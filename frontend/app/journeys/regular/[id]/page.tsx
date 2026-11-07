@@ -1,6 +1,6 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
-import { getJourneyTemplate, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
+import { getJourneyTemplate, getSessionOrLoggedOut, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import { DeleteJourneyTemplateButton } from '@/components/DeleteJourneyTemplateButton';
 import { EditJourneyTemplateForm } from '@/components/EditJourneyTemplateForm';
 import { LoginControl } from '@/components/LoginControl';
@@ -13,6 +13,7 @@ import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyNameInputFromLegs } from '@/lib/journeyName';
 import { REGULAR_JOURNEYS_HREF, regularJourneyHref, targetLabel, usualTrainSummary } from '@/lib/regularJourneys';
+import { runsByItself } from '@/lib/templateRecurrence';
 import type { JourneyTemplateDetail } from '@/lib/types';
 import { dueDates } from '@/lib/upcomingDates';
 import type { Metadata } from 'next';
@@ -60,8 +61,11 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
     throw err;
   }
 
+  // Whether "Add a date" can keep a later date for the evening before
+  // (R2's extra dates, `regularJourneyRecurrenceEnabled`).
+  const session = await getSessionOrLoggedOut();
   const paired = template.pairedTemplateId !== null;
-  const recurring = template.daysOfWeek !== null;
+  const recurring = runsByItself(template);
   const names = new Map<string, string>();
   if (template.originCrs && template.originName) names.set(template.originCrs, template.originName);
   if (template.destinationCrs && template.destinationName) names.set(template.destinationCrs, template.destinationName);
@@ -74,7 +78,7 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
       <Group justify="space-between" align="baseline">
         <Title order={1}>{title(template)}</Title>
         <Group gap="xs">
-          <RunTemplateNowButton templateId={template.id} />
+          <RunTemplateNowButton templateId={template.id} keepLaterDates={session.regularJourneyRecurrenceEnabled} />
           <DeleteJourneyTemplateButton templateId={template.id} />
         </Group>
       </Group>

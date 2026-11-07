@@ -253,4 +253,22 @@ describe('RegularJourneysPage', () => {
     expect(screen.getByRole('button', { name: 'Start again now' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pause until' })).toBeNull();
   });
+
+  it('summarises a pattern, and gives a list of dates its next dates and actions', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({ daysOfWeek: 5, intervalWeeks: 2, anchorWeek: '2099-01-05', nextDate: '2099-01-05' }),
+      template({
+        id: 2,
+        daysOfWeek: null,
+        recurrenceKind: 'dates',
+        extraDates: ['2099-02-01', '2099-03-01'],
+        nextDate: '2099-02-01',
+        upcomingDates: [{ date: '2099-02-01', skipReason: null }],
+      }),
+    ]);
+    await renderPage();
+    expect(screen.getByText(byVisibleText('Mon, Wed, every other week · Next: 5 Jan 2099'))).toBeInTheDocument();
+    expect(screen.getByText(byVisibleText('On 2 dates · Next: 1 Feb 2099'))).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Skip next' })).toHaveLength(2);
+  });
 });

@@ -36,6 +36,7 @@ const loggedOut: SessionInfo = {
   name: null,
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
   analyticsOptIn: false,
 };
 const loggedIn: SessionInfo = {
@@ -45,6 +46,7 @@ const loggedIn: SessionInfo = {
   name: 'Ada',
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
   analyticsOptIn: false,
 };
 

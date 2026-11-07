@@ -141,6 +141,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -199,6 +200,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -262,6 +264,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -331,6 +334,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -396,6 +400,7 @@ describe('GroupDetailPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -436,6 +441,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -473,6 +479,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -503,6 +510,7 @@ describe('GroupDetailPage', () => {
       name: 'Alex',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -599,6 +607,7 @@ describe('GroupDetailPage', () => {
         name: viewer.displayName,
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -714,6 +723,7 @@ describe('GroupDetailPage', () => {
         name: OWNER.displayName,
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -762,6 +772,7 @@ describe('GroupDetailPage', () => {
         name: OWNER.displayName,
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -846,6 +857,7 @@ describe('GroupDetailPage', () => {
         name: null,
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -988,6 +1000,7 @@ describe('GroupDetailPage', () => {
         name: null,
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
