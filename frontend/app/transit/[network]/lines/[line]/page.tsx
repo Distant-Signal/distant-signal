@@ -41,7 +41,13 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Per-user data fails closed, as on the station page: an outage or no
 // session reads as nothing pinned.
-const NO_PREFERENCES: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
+const NO_PREFERENCES: Preferences = {
+  pinnedLines: [],
+  pinnedStations: [],
+  pinnedOperators: [],
+  silentPinnedLines: [],
+  bankHolidayDivision: null,
+};
 
 async function load(network: string, line: string, date?: string) {
   if (!TRANSIT_ID.test(network) || !TRANSIT_ID.test(line)) notFound();

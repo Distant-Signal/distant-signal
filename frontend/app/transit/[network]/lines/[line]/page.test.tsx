@@ -41,6 +41,7 @@ describe('/transit/[network]/lines/[line]', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
   });
 
@@ -78,6 +79,7 @@ describe('/transit/[network]/lines/[line]', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     renderWithMantine(await TransitLinePage({ params: Promise.resolve({ network: 'tfl', line: 'victoria' }) }));
     expect(screen.getByText('Minor delays')).toBeTruthy();
@@ -147,6 +149,7 @@ describe('/transit/[network]/lines/[line]', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     renderWithMantine(await TransitLinePage(params('blue')));
     expect(screen.getByRole('button', { name: 'Unpin (currently pinned)' })).toBeTruthy();

@@ -225,6 +225,8 @@ export const TEMPLATE_TARGET_DEFAULTS = {
   pairedTemplateId: null,
   nextDate: null,
   skippedDates: [],
+  skipBankHolidays: false,
+  nextSkips: [],
 } satisfies Partial<Api.JourneyTemplateListItem>;
 
 /** A train leg of a trip plan, less its train, ends and times. */

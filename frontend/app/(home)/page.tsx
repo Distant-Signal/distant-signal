@@ -108,7 +108,13 @@ export const metadata: Metadata = {
 // fallback below is typed as `Preferences` rather than inferred with
 // `never[]` members. Per-user data fails closed during an outage (design
 // spec Decision 5) instead of being stale-served.
-const NO_PREFERENCES: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
+const NO_PREFERENCES: Preferences = {
+  pinnedLines: [],
+  pinnedStations: [],
+  pinnedOperators: [],
+  silentPinnedLines: [],
+  bankHolidayDivision: null,
+};
 
 function worstSeverityAcrossReports(reports: LineStatusReport[]): number {
   let worst = 10; // Good Service

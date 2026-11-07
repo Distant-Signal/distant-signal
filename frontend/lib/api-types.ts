@@ -116,6 +116,21 @@ export type AlternativesCause = "missed" | "cancelled" | "connection" | "choice"
 export type AutoCommitRule = "earliest" | "nearest_to_now";
 
 /**
+ * `users.bank_holiday_division` and `bank_holidays.division` (their CHECK
+ * constraints; `ds_store::bank_holidays::DIVISIONS`).
+ */
+export type BankHolidayDivision = "england-and-wales" | "scotland" | "northern-ireland";
+
+/**
+ * `PUT /preferences/bank-holiday-division` `{division}`: whose bank
+ * holidays the caller's regular journeys skip, `"england-and-wales"`,
+ * `"scotland"` or `"northern-ireland"`, or `null` to go back to the
+ * default (England and Wales). 204; 400 for another value. Unknown fields
+ * are refused.
+ */
+export type BankHolidayDivisionUpdate = { division: BankHolidayDivision | null, };
+
+/**
  * One `callingPoints` entry of [`StationDepartureJson`]. `st`/`et`/`at`
  * are LDBWS's own strings: `"HH:MM"` London local time, or for `et` a
  * status word ("On time", "Delayed", "Cancelled").
@@ -385,7 +400,12 @@ defaultMatchMode?: TemplateMatchMode | null, return?: ReturnJourneyRequest | nul
  * Minutes to get to `originCrs` (0 to 120), margin included: the
  * leave-by is the first departure less this. `null` for none.
  */
-stationBufferMinutes?: number | null, };
+stationBufferMinutes?: number | null, 
+/**
+ * Skip the bank holidays of the caller's division (phase 5),
+ * for the return journey too. Default true.
+ */
+skipBankHolidays?: boolean | null, };
 
 export type CreateJourneyTemplateResponse = { templateId: number, 
 /**
@@ -583,9 +603,9 @@ thresholdMinutes: number | null,
 provisional: boolean, disclaimer: string, };
 
 /**
- * The Delay Repay fields both `GET .../delay-repay` and
- * `GET /Train/tickets/mine` serve (flattened into each), so the two can
- * never disagree.
+ * The Delay Repay fields both a leg's `delayRepay` (`GET /Journeys/{id}`)
+ * and `GET /Journeys/reliability` serve (flattened into each), so the two
+ * can never disagree.
  */
 export type DelayRepayFields = { 
 /**
@@ -605,8 +625,9 @@ provisional: boolean,
  */
 delayBasis: DelayBasis | null, 
 /**
- * Where the delay was measured: the ticket's destination, else the
- * pin destination, else the terminus. Set when `delay_minutes` is, and
+ * Where the delay was measured: the leg's destination, else the pin
+ * destination, else the terminus (a journey's: its booked final
+ * station). Set when `delay_minutes` is, and
  * when `outcome` is `notReached` (the destination not reached).
  */
 measuredAtCrs: string | null, 
@@ -1815,7 +1836,11 @@ originCrs: string | null, originName: string | null, destinationCrs: string | nu
  * Minutes to get to the station, for the leave-by (additive); `null`
  * for none.
  */
-stationBufferMinutes: number | null, };
+stationBufferMinutes: number | null, 
+/**
+ * Bank holidays (additive): see `JourneyTemplateListItem`.
+ */
+skipBankHolidays: boolean, nextSkips: Array<NextSkip>, };
 
 export type JourneyTemplateLegDetailResponse = { id: number, originCrs: string | null, originName: string | null, destinationCrs: string | null, destinationName: string | null, departAfter: string | null, departBefore: string | null, arriveAfter: string | null, arriveBefore: string | null, };
 
@@ -1861,7 +1886,14 @@ nextDate: string | null,
 /**
  * Skipped dates from today on, ascending.
  */
-skippedDates: Array<string>, };
+skippedDates: Array<string>, 
+/**
+ * Bank holidays (phase 5, additive): whether the template skips the
+ * bank holidays of its owner's division (default true), and the dates
+ * it passes over before `nextDate`, ascending, with why
+ * (`regular_journeys::next_skips`).
+ */
+skipBankHolidays: boolean, nextSkips: Array<NextSkip>, };
 
 export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]: JsonValue } | null;
 
@@ -2025,8 +2057,9 @@ provisional: boolean,
  */
 delayBasis: DelayBasis | null, 
 /**
- * Where the delay was measured: the ticket's destination, else the
- * pin destination, else the terminus. Set when `delay_minutes` is, and
+ * Where the delay was measured: the leg's destination, else the pin
+ * destination, else the terminus (a journey's: its booked final
+ * station). Set when `delay_minutes` is, and
  * when `outcome` is `notReached` (the destination not reached).
  */
 measuredAtCrs: string | null, 
@@ -2530,6 +2563,21 @@ export type NearbyStation = { code: string, name: string, distanceKm: number, };
 export type NewJourneyLegRequest = { "mode": "knownTrain", trainUid: string, serviceDate: string, originCrs?: string | null, destinationCrs?: string | null, } | { "mode": "window", originCrs: string, destinationCrs: string, serviceDate: string, departWindow?: TimeWindow, arriveWindow?: TimeWindow, filters?: LegSearchFilters | null, } | { "mode": "untracked" } & UntrackedLegRequest;
 
 /**
+ * One date a template passes over before its next date.
+ */
+export type NextSkip = { date: string, 
+/**
+ * `"skipped"` or `"bank_holiday"`; `"skipped"` when both apply.
+ */
+reason: NextSkipReason, };
+
+/**
+ * Why a regular journey passes over a date before its next one
+ * (`regular_journeys::next_skips`).
+ */
+export type NextSkipReason = "skipped" | "bank_holiday";
+
+/**
  * Which constraint made a trip-plan segment infeasible:
  * `trip_planning_itinerary::NoResultReason::constraint`.
  */
@@ -2966,7 +3014,13 @@ export type Preferences = { pinnedLines: Array<string>, pinnedStations: Array<st
  * Of `pinned_lines`, the ones whose status pushes are off
  * (`PUT /preferences/pinned-lines/{lineId}/alerts`, DS-153). Additive.
  */
-silentPinnedLines: Array<string>, };
+silentPinnedLines: Array<string>, 
+/**
+ * Whose bank holidays the caller's regular journeys skip
+ * (`PUT /preferences/bank-holiday-division`; regular journeys phase
+ * 5). `null` until chosen, when England and Wales's are used. Additive.
+ */
+bankHolidayDivision: BankHolidayDivision | null, };
 
 /**
  * `predictedStart.previousWorking`: the incoming train the prediction
@@ -3178,7 +3232,12 @@ originCrs?: string, destinationCrs?: string, target?: TemplateTarget, planOption
  * Minutes to get to the station (0 to 120); `null` clears it, absent
  * keeps it (additive, leave by).
  */
-stationBufferMinutes?: number | null, };
+stationBufferMinutes?: number | null, 
+/**
+ * Whether it skips the bank holidays of the caller's division; absent
+ * keeps it (additive, bank holidays).
+ */
+skipBankHolidays?: boolean, };
 
 export type QuietHours = { start: string, end: string, timezone: string, };
 
@@ -3311,8 +3370,9 @@ provisional: boolean,
  */
 delayBasis: DelayBasis | null, 
 /**
- * Where the delay was measured: the ticket's destination, else the
- * pin destination, else the terminus. Set when `delay_minutes` is, and
+ * Where the delay was measured: the leg's destination, else the pin
+ * destination, else the terminus (a journey's: its booked final
+ * station). Set when `delay_minutes` is, and
  * when `outcome` is `notReached` (the destination not reached).
  */
 measuredAtCrs: string | null, 

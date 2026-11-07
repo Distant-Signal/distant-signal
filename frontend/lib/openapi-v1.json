@@ -38,6 +38,15 @@
         ],
         "type": "object"
       },
+      "BankHolidayDivision": {
+        "description": "`users.bank_holiday_division` and `bank_holidays.division` (their CHECK\nconstraints; `ds_store::bank_holidays::DIVISIONS`).",
+        "enum": [
+          "england-and-wales",
+          "scotland",
+          "northern-ireland"
+        ],
+        "type": "string"
+      },
       "BreakCause": {
         "description": "`journey_breaks.cause` (its CHECK constraint).",
         "enum": [
@@ -2037,7 +2046,7 @@
             "type": "boolean"
           },
           "measuredAtCrs": {
-            "description": "Where the delay was measured: the ticket's destination, else the\npin destination, else the terminus. Set when `delay_minutes` is, and\nwhen `outcome` is `notReached` (the destination not reached).",
+            "description": "Where the delay was measured: the leg's destination, else the pin\ndestination, else the terminus (a journey's: its booked final\nstation). Set when `delay_minutes` is, and\nwhen `outcome` is `notReached` (the destination not reached).",
             "type": [
               "string",
               "null"
@@ -2937,6 +2946,17 @@
       },
       "PreferencesResponse": {
         "properties": {
+          "bankHolidayDivision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BankHolidayDivision"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whose bank holidays the caller's regular journeys skip\n(`PUT /preferences/bank-holiday-division`; regular journeys phase\n5). `null` until chosen, when England and Wales's are used. Additive."
+          },
           "pinnedLines": {
             "items": {
               "type": "string"

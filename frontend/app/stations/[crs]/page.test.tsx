@@ -90,6 +90,7 @@ describe('StationDisruptionPage -- outage behaviour', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([report('ecml', 'East Coast Main Line')]);
     vi.mocked(api.getStationSampleStats).mockResolvedValue([]);
@@ -201,6 +202,7 @@ describe('StationDisruptionPage -- line-coverage distinction', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStationSampleStats).mockResolvedValue([]);
     vi.mocked(api.getStationAccessibility).mockResolvedValue({});
@@ -248,6 +250,7 @@ describe('StationDisruptionPage -- sample stats by operator', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
     vi.mocked(api.getStationAccessibility).mockResolvedValue({});
@@ -374,6 +377,7 @@ describe('StationDisruptionPage -- accessibility & facilities', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
     vi.mocked(api.getStationSampleStats).mockResolvedValue([]);
@@ -561,6 +565,7 @@ describe('structured data', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
     vi.mocked(api.getStationSampleStats).mockResolvedValue([]);

@@ -101,6 +101,7 @@ beforeEach(() => {
     pinnedStations: [],
     pinnedOperators: [],
     silentPinnedLines: [],
+    bankHolidayDivision: null,
   });
   vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
   vi.mocked(api.getMyTrackedTrains).mockResolvedValue(null);
@@ -146,6 +147,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
@@ -162,6 +164,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue({
@@ -192,6 +195,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
@@ -231,6 +235,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
@@ -252,6 +257,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
@@ -288,6 +294,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
@@ -322,6 +329,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
     renderWithMantine(await DashboardPage());
@@ -350,6 +358,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getTransitNetwork).mockResolvedValue({
       ...TRAM_NETWORK,
@@ -383,6 +392,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
@@ -421,6 +431,7 @@ describe('DashboardPage', () => {
       pinnedStations: ['WAT'],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
@@ -444,6 +455,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
     renderWithMantine(await DashboardPage());
@@ -469,6 +481,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
@@ -494,6 +507,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
@@ -525,6 +539,7 @@ describe('DashboardPage', () => {
         pinnedStations: ['WAT'],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       renderWithMantine(await DashboardPage());
@@ -551,6 +566,7 @@ describe('DashboardPage', () => {
         pinnedStations: [],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
       renderWithMantine(await DashboardPage());
@@ -574,6 +590,7 @@ describe('DashboardPage', () => {
         pinnedStations: [],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
       renderWithMantine(await DashboardPage());
@@ -598,6 +615,7 @@ describe('DashboardPage', () => {
         pinnedStations: ['WAT'],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       renderWithMantine(await DashboardPage());
@@ -634,6 +652,7 @@ describe('DashboardPage', () => {
         pinnedStations: [],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
       renderWithMantine(await DashboardPage());
@@ -658,6 +677,7 @@ describe('DashboardPage', () => {
         pinnedStations: ['WAT'],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -689,6 +709,7 @@ describe('DashboardPage', () => {
         pinnedStations: [],
         pinnedOperators: ['VT'],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT' })]);
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -714,6 +735,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({
@@ -880,6 +902,7 @@ describe('DashboardPage', () => {
         pinnedStations: [],
         pinnedOperators: [],
         silentPinnedLines: [],
+        bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(7));
       renderWithMantine(await DashboardPage());
@@ -914,6 +937,7 @@ describe('DashboardPage', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await DashboardPage());
@@ -986,6 +1010,7 @@ describe('DashboardPage -- outage behaviour', () => {
       pinnedStations: ['KGX'],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getStopPointDisruption).mockRejectedValue(new Error('connect ECONNREFUSED'));
@@ -1022,6 +1047,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       pinnedStations: ['RAY'],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getStationName).mockResolvedValue('Raynes Park');
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
@@ -1184,6 +1210,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'custom-my-commute', name: 'My Commute' })]);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1205,6 +1232,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1278,6 +1306,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: ['VT'],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT', name: 'Avanti West Coast' })]);
     renderWithMantine(await DashboardPage());
@@ -1293,6 +1322,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: ['VT'],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([
       operator({ code: 'VT', name: 'Avanti West Coast' }),
@@ -1311,6 +1341,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     renderWithMantine(await DashboardPage());
 
@@ -1325,6 +1356,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: ['VT'],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT' })]);
     renderWithMantine(await DashboardPage());
@@ -1368,6 +1400,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: ['VT'],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockRejectedValue(new Error('network error'));
     renderWithMantine(await DashboardPage());
@@ -1387,6 +1420,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockRejectedValue(new Error('network error'));
     renderWithMantine(await DashboardPage());
@@ -1406,6 +1440,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: ['VT'],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT', name: 'Avanti West Coast' })]);
     const { container } = renderWithMantine(await DashboardPage());
@@ -1425,6 +1460,7 @@ describe('DashboardPage -- Your Operators section', () => {
       pinnedStations: [],
       pinnedOperators: ['LN'],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([
       report({

@@ -537,6 +537,7 @@ describe('api client', () => {
       pinnedStations: [],
       pinnedOperators: [],
       silentPinnedLines: [],
+      bankHolidayDivision: null,
     });
   });
 

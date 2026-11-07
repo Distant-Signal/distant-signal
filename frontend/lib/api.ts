@@ -546,7 +546,13 @@ export async function getPreferences(): Promise<Preferences> {
     ...(await cookieForwardInit()),
   });
   if (response.status === 401) {
-    return { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
+    return {
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+      bankHolidayDivision: null,
+    };
   }
   if (!response.ok) {
     throw errorForResponse(url, response);
