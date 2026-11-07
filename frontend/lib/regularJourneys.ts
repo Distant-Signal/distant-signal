@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { addCalendarDays, LONDON_TZ, londonToday } from './londonWallClock';
+import { LONDON_TZ, londonToday } from './londonWallClock';
 import { operatorFilterParam, setListParams, trainLegsForTracking, type TripPlanQuery } from './tripPlan';
 import { itineraryLegsForSaving } from './tripPlanSave';
 import type {
@@ -31,26 +31,6 @@ export function targetLabel(target: TemplateTarget): string {
   const time = target.time.slice(0, 5);
   const words = target.kind === 'arrive_by' ? `arrive by ${time}` : `leave after ${time}`;
   return target.dayOffset === 1 ? `${words} the next day` : words;
-}
-
-/** The next London date on or after `from` (default today) that
- * `daysOfWeek` (Mon = 1 to Sun = 64) includes and `startsOn` allows, or
- * `null` when none does before `endsOn` (or within two weeks). */
-export function nextMatchingDate(
-  daysOfWeek: number,
-  startsOn: string | null,
-  endsOn: string | null,
-  from: string = londonToday(),
-): string | null {
-  let date = startsOn && startsOn > from ? startsOn : from;
-  for (let step = 0; step < 14; step += 1) {
-    if (endsOn && date > endsOn) return null;
-    // Midday UTC is the same calendar day in London all year.
-    const weekday = (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
-    if ((daysOfWeek & (1 << weekday)) !== 0) return date;
-    date = addCalendarDays(date, 1);
-  }
-  return null;
 }
 
 /** A London instant as a clock time and the days after `date` it falls. */

@@ -220,4 +220,27 @@ describe('RegularJourneysPage', () => {
     expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Skip next' })).not.toBeInTheDocument();
   });
+
+  it('shows the next dates, each on or off, and no strip when paused', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({
+        daysOfWeek: 31,
+        nextDate: '2099-01-05',
+        upcomingDates: [
+          { date: '2099-01-05', skipReason: null },
+          { date: '2099-01-06', skipReason: 'skipped' },
+        ],
+      }),
+      template({
+        id: 2,
+        daysOfWeek: 31,
+        active: false,
+        upcomingDates: [{ date: '2099-01-05', skipReason: null }],
+      }),
+    ]);
+    await renderPage();
+    expect(screen.getAllByRole('group', { name: 'Next dates' })).toHaveLength(1);
+    expect(screen.getByRole('checkbox', { name: 'Mon 5 Jan' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Tue 6 Jan' })).not.toBeChecked();
+  });
 });

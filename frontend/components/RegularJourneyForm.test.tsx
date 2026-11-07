@@ -59,6 +59,18 @@ function json(body: unknown) {
   return new Response(JSON.stringify(body), { status: 200 });
 }
 
+/** The api's preview of Monday to Friday from Monday 5 Jan 2099, with a
+ * bank holiday on the Tuesday. */
+const PREVIEW = {
+  nextDate: '2099-01-05',
+  upcomingDates: [
+    { date: '2099-01-05', skipReason: null },
+    { date: '2099-01-06', skipReason: 'bank_holiday' },
+    { date: '2099-01-07', skipReason: null },
+    { date: '2099-01-08', skipReason: null },
+  ],
+};
+
 /** Picks the last train option shown: every radio but the form's own
  * ("Leave after" / "Arrive by" and "Each day"). */
 const FORM_RADIOS = ['depart_after', 'arrive_by', 'manual', 'auto'];
@@ -71,13 +83,15 @@ function pickOnlyTrain() {
 
 /** A fetch answering by URL: the station-buffer pre-fill from `buffers`
  * (by station code), the preferences with `division` as the bank holiday
- * division, each trip plan from `plans` (by origin), and the create with
- * `created`. Returns the calls other than the two reads. */
+ * division, the dates preview with `preview`, each trip plan from `plans`
+ * (by origin), and the create with `created`. Returns the calls other than
+ * the three reads. */
 function routeFetch(
   buffers: Record<string, number | null>,
   plans: Record<string, Response>,
   created: () => Response,
   division: string | null = 'england-and-wales',
+  preview: () => Response = () => json(PREVIEW),
 ): () => [string, RequestInit | undefined][] {
   const fetchMock = vi.mocked(fetch);
   fetchMock.mockImplementation(async (input) => {
@@ -86,6 +100,7 @@ function routeFetch(
     if (prefill) return json({ minutes: buffers[prefill[1]!] ?? null });
     if (url === '/api/preferences') return json({ bankHolidayDivision: division });
     if (url === '/api/preferences/bank-holiday-division') return new Response(null, { status: 204 });
+    if (url.endsWith('/preview-dates')) return preview();
     const origin = /Trips\/plan\?origin=([A-Z]{3})/.exec(url);
     if (origin) return plans[origin[1]!]!.clone();
     return created();
@@ -93,7 +108,9 @@ function routeFetch(
   return () =>
     fetchMock.mock.calls
       .map(([input, init]) => [String(input), init] as [string, RequestInit | undefined])
-      .filter(([url]) => !url.includes('station-buffer') && url !== '/api/preferences');
+      .filter(
+        ([url]) => !url.includes('station-buffer') && url !== '/api/preferences' && !url.endsWith('/preview-dates'),
+      );
 }
 
 function fillOutbound() {
@@ -132,11 +149,11 @@ describe('RegularJourneyForm', () => {
     fillOutbound();
     // Pre-filled from the last time used from Woking.
     await waitFor(() => expect(screen.getAllByLabelText(/^Minutes to get to the station/)[0]).toHaveValue('12'));
+    // The api's next date, once it has answered.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Find trains' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
     await screen.findByText(/Pick the one you usually take\./);
-    expect(calls()[0]![0]).toMatch(
-      /^\/api\/Trips\/plan\?origin=WOK&destination=WAT&date=\d{4}-\d{2}-\d{2}&results=options/,
-    );
+    expect(calls()[0]![0]).toMatch(/^\/api\/Trips\/plan\?origin=WOK&destination=WAT&date=2099-01-05&results=options/);
     expect(calls()[0]![0]).toContain('departAfter=07%3A45%3A00');
     pickOnlyTrain();
     expect(await screen.findByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
@@ -194,6 +211,7 @@ describe('RegularJourneyForm', () => {
     renderWithMantine(<RegularJourneyForm />);
     expect(await screen.findByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Arrive by' })).toBeChecked();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
     const body = JSON.parse(String(calls()[0]![1]!.body)) as Record<string, unknown>;
@@ -237,6 +255,7 @@ describe('RegularJourneyForm', () => {
     expect(select).toHaveValue('England and Wales');
     fireEvent.click(select);
     fireEvent.click(await screen.findByRole('option', { name: 'Northern Ireland' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
     expect(calls().map(([url]) => url)).toEqual(['/api/preferences/bank-holiday-division', '/api/JourneyTemplates']);
@@ -252,6 +271,7 @@ describe('RegularJourneyForm', () => {
     await screen.findByRole('combobox', { name: /Whose bank holidays/ });
     fireEvent.click(screen.getByRole('switch', { name: 'Skip bank holidays' }));
     expect(screen.queryByRole('combobox', { name: /Whose bank holidays/ })).toBeNull();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
     expect(calls().map(([url]) => url)).toEqual(['/api/JourneyTemplates']);
@@ -269,6 +289,15 @@ describe('RegularJourneyForm', () => {
     expect(
       screen.getByText('No days: a saved route. Start a journey from it whenever you travel.'),
     ).toBeInTheDocument();
+    // Its trains come from the next day of any day of the week, with no
+    // dates to preview.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
+    expect(screen.queryByText(/^Next dates: /)).toBeNull();
+    const previews = vi
+      .mocked(fetch)
+      .mock.calls.filter(([input]) => String(input).endsWith('/preview-dates'))
+      .map(([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+    expect(previews.at(-1)).toMatchObject({ daysOfWeek: 127, skipBankHolidays: false });
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
     const saved = calls().find(([url]) => url === '/api/JourneyTemplates');
@@ -287,10 +316,59 @@ describe('RegularJourneyForm', () => {
         usualSummary: null,
       }),
     );
-    vi.mocked(fetch).mockResolvedValue(new Response('', { status: 500 }));
+    routeFetch({}, {}, () => new Response('', { status: 500 }));
     renderWithMantine(<RegularJourneyForm />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
     expect(await screen.findByText("Couldn't save this regular journey. Try again.")).toBeInTheDocument();
+  });
+
+  it('previews the next dates from the api, and asks again when the days or the switch change', async () => {
+    routeFetch({}, {}, () => json({}));
+    renderWithMantine(<RegularJourneyForm />);
+    expect(
+      await screen.findByText('Next dates: Mon 5 Jan, Tue 6 Jan (bank holiday), Wed 7 Jan and Thu 8 Jan.'),
+    ).toBeInTheDocument();
+    const previews = () =>
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([input]) => String(input).endsWith('/preview-dates'))
+        .map(([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+    expect(previews()).toEqual([{ daysOfWeek: 31, startsOn: null, endsOn: null, skipBankHolidays: true, count: 4 }]);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sat' }));
+    await waitFor(() => expect(previews()).toHaveLength(2));
+    expect(previews()[1]).toMatchObject({ daysOfWeek: 63 });
+    fireEvent.click(screen.getByRole('switch', { name: 'Skip bank holidays' }));
+    await waitFor(() => expect(previews()).toHaveLength(3));
+    expect(previews()[2]).toMatchObject({ daysOfWeek: 63, skipBankHolidays: false });
+  });
+
+  it('asks to log in for the dates, and says why trains cannot be found yet', async () => {
+    routeFetch(
+      {},
+      {},
+      () => json({}),
+      'england-and-wales',
+      () => new Response('', { status: 401 }),
+    );
+    renderWithMantine(<RegularJourneyForm />);
+    fillOutbound();
+    expect(await screen.findByText('Log in to see the dates this runs on.')).toBeInTheDocument();
+    expect(screen.getByText('Log in to find trains for your days.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Find trains' })).toBeDisabled();
+  });
+
+  it('says when no chosen day comes before the end date', async () => {
+    routeFetch(
+      {},
+      {},
+      () => json({}),
+      'england-and-wales',
+      () => json({ nextDate: null, upcomingDates: [] }),
+    );
+    renderWithMantine(<RegularJourneyForm />);
+    fillOutbound();
+    expect(await screen.findAllByText('None of the chosen days is before the end date.')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Find trains' })).toBeDisabled();
   });
 });

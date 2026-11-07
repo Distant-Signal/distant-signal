@@ -7,11 +7,13 @@ import { PauseRegularJourneyButton } from '@/components/PauseRegularJourneyButto
 import { SkipNextButton } from '@/components/SkipNextButton';
 import { TextLink } from '@/components/TextLink';
 import { bankHolidayNote } from '@/lib/bankHolidays';
+import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyRouteLabel, type JourneyNameInput } from '@/lib/journeyName';
 import { NEW_REGULAR_JOURNEY_HREF, regularJourneyCards, regularJourneyHref, targetLabel } from '@/lib/regularJourneys';
 import { recurrenceSummary } from '@/lib/templateRecurrence';
 import type { JourneyTemplateListItem } from '@/lib/types';
+import { dueDates } from '@/lib/upcomingDates';
 import type { Metadata } from 'next';
 
 export const revalidate = 0;
@@ -139,17 +141,32 @@ function PausedBadge() {
   );
 }
 
-/** "Skip next" and "Pause" or "Resume", for a recurring regular journey.
- * On a pair they act for the outbound and offer, or do, the return too. */
+/** The next dates, each one on or off, then "Skip next" and "Pause" or
+ * "Resume", for a recurring regular journey. On a pair they act for the
+ * outbound and offer, or do, the return too. */
 function TemplateActions({ template, paired }: { template: JourneyTemplateListItem; paired: boolean }) {
   if (template.daysOfWeek === null) return null;
   return (
-    <Group gap="xs" wrap="wrap">
-      {template.active && template.nextDate && (
-        <SkipNextButton templateId={template.id} date={template.nextDate} paired={paired} />
+    <Stack gap="xs">
+      {template.active && (
+        <UpcomingDatesStrip
+          templateId={template.id}
+          pairedTemplateId={paired ? template.pairedTemplateId : null}
+          upcoming={template.upcomingDates}
+        />
       )}
-      <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
-    </Group>
+      <Group gap="xs" wrap="wrap">
+        {template.active && template.nextDate && (
+          <SkipNextButton
+            templateId={template.id}
+            date={template.nextDate}
+            dates={dueDates(template.upcomingDates)}
+            paired={paired}
+          />
+        )}
+        <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
+      </Group>
+    </Stack>
   );
 }
 
@@ -185,7 +202,11 @@ function PairCard({ outbound, back }: { outbound: JourneyTemplateListItem; back:
             {[outbound, back].map((template) => (
               <Stack key={template.id} gap={2}>
                 <Text fw={600}>
-                  <TextLink href={regularJourneyHref(template.id)}>{regularJourneyTitle(template)}</TextLink>
+                  {/* Inline: a paragraph can't hold the link's own paragraph,
+                      and the browser's repair of one broke hydration. */}
+                  <TextLink href={regularJourneyHref(template.id)} inline>
+                    {regularJourneyTitle(template)}
+                  </TextLink>
                 </Text>
                 <TemplateFacts template={template} />
               </Stack>

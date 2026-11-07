@@ -30,7 +30,6 @@ import { formatDate, PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { londonToday } from '@/lib/londonWallClock';
 import {
-  nextMatchingDate,
   queryOptionsFromPlan,
   REGULAR_JOURNEYS_HREF,
   takeRegularJourneyDraft,
@@ -41,10 +40,13 @@ import { getStationNames } from '@/lib/suggestions';
 import { collectTripPlanStationCodes, fetchTripPlan, TripPlanError, tripPlanStopNames } from '@/lib/tripPlan';
 import { apiQuery } from '@/lib/tripPlanTiming';
 import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
+import { previewSentence } from '@/lib/upcomingDates';
 import type {
   BankHolidayDivision,
   CreateJourneyTemplateRequest,
   PlanOptions,
+  PreviewDatesRequest,
+  PreviewDatesResponse,
   StationBufferPrefill,
   TemplateTarget,
   TripPlanItinerary,
@@ -262,7 +264,8 @@ function UsualTrainPicker({
  * "Leave after" or "Arrive by" with a time, the days (Monday to Friday to
  * start), optional start and end dates, "Add the return journey" with its
  * own time, and "Each day": remind me to pick my train (the default) or
- * pick my usual train for me. "Find trains" plans the next matching date
+ * pick my usual train for me. "Find trains" plans the next date the api
+ * previews for the chosen days (`POST /JourneyTemplates/preview-dates`)
  * and the picked option becomes the usual train, then the return's.
  * "Save regular journey" sends `POST /JourneyTemplates` `mode: "plan"`.
  *
@@ -301,6 +304,105 @@ function useStationBuffer(crs: string): [number | null, (minutes: number | null)
       setMinutes(next);
     },
   ];
+}
+
+/** How many dates the form previews. */
+const PREVIEW_COUNT = 4;
+
+/** What `POST /JourneyTemplates/preview-dates` said about the form's days. */
+type DatesPreview =
+  | { status: 'loading' }
+  | { status: 'ready'; result: PreviewDatesResponse }
+  | { status: 'login' }
+  | { status: 'error'; message: string };
+
+/** The next dates the chosen days and start and end run on, from the api
+ * (the rule the evening mint uses, with the caller's bank holidays when
+ * the switch is on), so "Find trains" plans the first of them and the
+ * form shows the next few. Asked again a moment after the days, dates or
+ * switch stop changing. */
+function useDatesPreview(
+  mask: number,
+  startsOn: string | null,
+  endsOn: string | null,
+  skipBankHolidays: boolean,
+): DatesPreview | null {
+  const [preview, setPreview] = useState<DatesPreview | null>(null);
+  useEffect(() => {
+    if (mask === 0 || (startsOn && endsOn && startsOn > endsOn)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- nothing to ask: clear the last answer
+      setPreview(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+    setPreview({ status: 'loading' });
+    const timer = setTimeout(() => {
+      void (async () => {
+        const body: PreviewDatesRequest = {
+          daysOfWeek: mask,
+          startsOn,
+          endsOn,
+          skipBankHolidays,
+          count: PREVIEW_COUNT,
+        };
+        try {
+          const response = await fetch('/api/JourneyTemplates/preview-dates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (isCancelled()) return;
+          if (response.status === 401) {
+            setPreview({ status: 'login' });
+          } else if (!response.ok) {
+            setPreview({ status: 'error', message: await failureFromResponse('check', 'the dates', response) });
+          } else {
+            const result = (await response.json()) as PreviewDatesResponse;
+            if (!isCancelled()) setPreview({ status: 'ready', result });
+          }
+        } catch {
+          if (!isCancelled()) setPreview({ status: 'error', message: describeFailure('check', 'the dates') });
+        }
+      })();
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mask, startsOn, endsOn, skipBankHolidays]);
+  return preview;
+}
+
+/** The form's line under the dates: the next few, or why there are none. */
+function DatesPreviewLine({ preview }: { preview: DatesPreview | null }) {
+  if (!preview || preview.status === 'loading') return null;
+  if (preview.status === 'login') {
+    return (
+      <Text size="sm" c="dimmed">
+        Log in to see the dates this runs on.
+      </Text>
+    );
+  }
+  if (preview.status === 'error') {
+    return (
+      <Text size="sm" c="red">
+        {preview.message}
+      </Text>
+    );
+  }
+  if (preview.result.upcomingDates.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        None of the chosen days is before the end date.
+      </Text>
+    );
+  }
+  return (
+    <Text size="sm" data-dates-preview>
+      Next dates: {previewSentence(preview.result.upcomingDates)}.
+    </Text>
+  );
 }
 
 export function RegularJourneyForm() {
@@ -345,8 +447,16 @@ export function RegularJourneyForm() {
   const [buffer, setBuffer] = useStationBuffer(originCrs.trim().toUpperCase());
   const [returnBuffer, setReturnBuffer] = useStationBuffer(withReturn ? destinationCrs.trim().toUpperCase() : '');
   const mask = daysMask(days);
-  // No days is a saved route: its trains are picked from the next day.
-  const date = nextMatchingDate(mask === 0 ? ALL_DAYS_MASK : mask, startsOn, endsOn, londonToday());
+  // No days is a saved route: its trains are picked from the next day
+  // of any day of the week, with no bank holiday passed over.
+  const savedRoute = mask === 0;
+  const preview = useDatesPreview(
+    savedRoute ? ALL_DAYS_MASK : mask,
+    startsOn,
+    endsOn,
+    savedRoute ? false : skipBankHolidays,
+  );
+  const date = preview?.status === 'ready' ? preview.result.nextDate : null;
   const origin = originCrs.trim().toUpperCase();
   const destination = destinationCrs.trim().toUpperCase();
   const stationsSet = /^[A-Z]{3}$/.test(origin) && /^[A-Z]{3}$/.test(destination) && origin !== destination;
@@ -354,9 +464,15 @@ export function RegularJourneyForm() {
     ? 'Choose two different stations first.'
     : time === ''
       ? 'Choose a time first.'
-      : date === null
-        ? 'None of the chosen days is before the end date.'
-        : null;
+      : preview?.status === 'login'
+        ? 'Log in to find trains for your days.'
+        : preview === null
+          ? 'Choose a start and end date in order first.'
+          : preview.status === 'loading'
+            ? 'Working out the next date.'
+            : date === null
+              ? 'None of the chosen days is before the end date.'
+              : null;
   const outboundQuery =
     stationsSet && time !== '' && date !== null
       ? { originCrs: origin, destinationCrs: destination, date, kind, time, options: planOptions }
@@ -507,6 +623,7 @@ export function RegularJourneyForm() {
         division={division}
         ask={askDivision ? { value: divisionChoice, onChange: setDivisionChoice } : undefined}
       />
+      {!savedRoute && <DatesPreviewLine preview={preview} />}
       <Stack gap="xs">
         <Title order={2} size="h4">
           Your usual train
