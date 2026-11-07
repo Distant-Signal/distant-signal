@@ -7,13 +7,8 @@ import { SectionTitle } from './SectionTitle';
 import { LoginControl } from './LoginControl';
 import { useNeedsLogin } from './useNeedsLogin';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
-import {
-  planDayPhrase,
-  planOptionDetail,
-  planOptionTitle,
-  summarisePlanOption,
-  type PlanOptionSummary,
-} from '@/lib/regularPlan';
+import { planDayPhrase, planOptionDetail, planOptionTitle, summarisePlanOption } from '@/lib/regularPlan';
+import { PlanOptionRow } from './PlanOptionRow';
 import type { RegularPlan, RegularPlanAcceptRequest, RegularPlanOption } from '@/lib/types';
 
 /** The day's train on a regular journey in "remind me" mode (regular
@@ -92,53 +87,18 @@ export function RegularPlanCard({
               Other trains
             </Title>
             {others.map((other, offset) => (
-              <OtherTrain
+              <PlanOptionRow
                 key={`${other.departs}-${offset}`}
                 summary={other}
+                actionLabel="Track this train"
                 busy={busy === offset + 1}
                 disabled={busy !== null && busy !== offset + 1}
-                onTrack={() => void track(offset + 1)}
+                onAction={() => void track(offset + 1)}
               />
             ))}
           </Stack>
         )}
       </Stack>
     </Card>
-  );
-}
-
-function OtherTrain({
-  summary,
-  busy,
-  disabled,
-  onTrack,
-}: {
-  summary: PlanOptionSummary;
-  busy: boolean;
-  disabled: boolean;
-  onTrack: () => void;
-}) {
-  const title = planOptionTitle(summary);
-  return (
-    <Group justify="space-between" wrap="wrap" gap="xs">
-      <Stack gap={0}>
-        <Text size="sm" fw={500}>
-          {title}
-        </Text>
-        <Text size="sm" c="dimmed">
-          {planOptionDetail(summary)}
-        </Text>
-      </Stack>
-      <Button
-        variant="light"
-        size="xs"
-        onClick={onTrack}
-        loading={busy}
-        disabled={disabled}
-        aria-label={`Track this train, the ${title}`}
-      >
-        Track this train
-      </Button>
-    </Group>
   );
 }

@@ -867,6 +867,59 @@ CROSS JOIN (VALUES
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------
+-- A two-leg route on London's tomorrow and the day after, for "Track
+-- this journey again" and "Move this journey" (journey-repeat.spec.ts),
+-- changing at ZRB. Each day's timetable is published
+-- (`schedule_destination_departures`), which the repeat route checks
+-- before it plans. Not today: /trains (the `trains-searched` baseline)
+-- would find today's timetable published. Just after midnight, so "track
+-- again" starts on tomorrow, whenever the spec runs. Made-up codes (ZRA,
+-- ZRB, ZRC) and TIPLOCs in `stanox_crs` only, as the /plan fixture above.
+--   E2ERP1  ZRA 00:05 -> ZRB 00:35  (SW)   E2ERP2  ZRB 00:45 -> ZRC 01:15  (SN)
+--   E2ERP3  ZRA 01:05 -> ZRB 01:35  (SW)   E2ERP4  ZRB 01:45 -> ZRC 02:15  (SN)
+-- ---------------------------------------------------------------------
+INSERT INTO stanox_crs (stanox, crs, tiploc, station_name, source_sequence)
+VALUES
+  ('E2ERP-ZRA', 'ZRA', 'E2ERPA', 'Fixture Again', 1),
+  ('E2ERP-ZRB', 'ZRB', 'E2ERPB', 'Fixture Change', 1),
+  ('E2ERP-ZRC', 'ZRC', 'E2ERPC', 'Fixture End', 1)
+ON CONFLICT (stanox) DO NOTHING;
+
+WITH days AS (
+  SELECT (NOW() AT TIME ZONE 'Europe/London')::date + n AS service_date
+  FROM (VALUES (1), (2)) AS o (n)
+), trains (uid, origin_tiploc, origin_crs, destination_tiploc, destination_crs, dep, arr, operator) AS (
+  VALUES
+    ('E2ERP1', 'E2ERPA', 'ZRA', 'E2ERPB', 'ZRB', '00:05', '00:35', 'SW'),
+    ('E2ERP2', 'E2ERPB', 'ZRB', 'E2ERPC', 'ZRC', '00:45', '01:15', 'SN'),
+    ('E2ERP3', 'E2ERPA', 'ZRA', 'E2ERPB', 'ZRB', '01:05', '01:35', 'SW'),
+    ('E2ERP4', 'E2ERPB', 'ZRB', 'E2ERPC', 'ZRC', '01:45', '02:15', 'SN')
+), points AS (
+  INSERT INTO schedule_calling_points_full
+    (service_date, uid, seq, tiploc, kind, booked_arrival, booked_departure,
+     public_arrival, public_departure, day_offset, can_board, can_alight)
+  SELECT d.service_date, t.uid, p.seq, p.tiploc, p.kind, p.arr::time, p.dep::time, p.arr::time,
+         p.dep::time, 0, TRUE, TRUE
+  FROM days d CROSS JOIN trains t
+  CROSS JOIN LATERAL (VALUES
+    (0, t.origin_tiploc, 'origin', NULL, t.dep),
+    (1, t.destination_tiploc, 'terminate', t.arr, NULL)
+  ) AS p (seq, tiploc, kind, arr, dep)
+  ON CONFLICT DO NOTHING
+), services AS (
+  INSERT INTO schedule_services (service_date, uid, mode, operator_atoc, stp)
+  SELECT d.service_date, t.uid, 'train', t.operator, 'P' FROM days d CROSS JOIN trains t
+  ON CONFLICT DO NOTHING
+)
+INSERT INTO schedule_destination_departures
+  (service_date, destination_crs, scheduled, train_uid, origin_crs, true_origin_crs,
+   day_offset, public_departure, destination_arrival, public_destination_arrival, operator_atoc)
+SELECT d.service_date, t.destination_crs, t.dep::time, t.uid, t.origin_crs, t.origin_crs, 0,
+       t.dep::time, t.arr::time, t.arr::time, t.operator
+FROM days d CROSS JOIN trains t
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
 -- The train finder's operator filter and train day (list-filters.spec.ts):
 -- at a station nothing else uses (ZFX), on the seed's 2099-01-05, two c2c
 -- departures either side of midnight -- the 00:30 is still 2099-01-05's

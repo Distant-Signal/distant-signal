@@ -245,7 +245,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
           afterFollowHref={`/journeys/${journey.id}`}
         />
       )}
-      <JourneyDetailView journey={journey} fetchedAt={fetchedAt} origin={origin} />
+      <JourneyDetailView journey={journey} fetchedAt={fetchedAt} origin={origin} viaShareLink />
       <DataCredits credits={journeyCredits(journey.legs)} />
     </Stack>
   );
