@@ -21,12 +21,16 @@ export function ConnectedApps({
   data,
   headingOrder = 2,
   showTitle = true,
+  landmark = true,
 }: {
   data: ConnectedAppsData;
   /** The level of this component's headings, below the page's own. */
   headingOrder?: 2 | 3;
   /** `false` on `/account/connected-apps`, whose page title already says it. */
   showTitle?: boolean;
+  /** `false` inside a card that is already the Connected apps region (the
+   * Preferences page), so the page has one landmark of that name, not two. */
+  landmark?: boolean;
 }) {
   const connected = new Set(data.grants.map((grant) => grant.client));
   const connectable = data.available.filter((app) => !connected.has(app.name));
@@ -39,8 +43,12 @@ export function ConnectedApps({
     <Stack gap="lg">
       <Stack
         gap="sm"
-        component="section"
-        {...(showTitle ? { 'aria-labelledby': 'connected-apps-heading' } : { 'aria-label': 'Connected apps' })}
+        component={landmark ? 'section' : 'div'}
+        {...(!landmark
+          ? {}
+          : showTitle
+            ? { 'aria-labelledby': 'connected-apps-heading' }
+            : { 'aria-label': 'Connected apps' })}
       >
         {showTitle && (
           <SectionTitle order={headingOrder} id="connected-apps-heading">

@@ -132,6 +132,8 @@ describe('PreferencesPage', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Recently deleted by the assistant' })).toBeInTheDocument();
     expect(claude.compareDocumentPosition(apps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText('No apps are connected.')).toBeInTheDocument();
+    // One Connected apps landmark (the card), not a second inside it.
+    expect(screen.getAllByRole('region', { name: 'Connected apps' })).toHaveLength(1);
   });
 
   it('leaves Connected apps out for a logged-out visitor, or when it cannot load', async () => {
