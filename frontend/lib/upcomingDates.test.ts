@@ -6,8 +6,9 @@ describe('skip reasons', () => {
     expect(skipReasonLabel(null)).toBeNull();
     expect(skipReasonLabel('skipped')).toBe('Skipped');
     expect(skipReasonLabel('bank_holiday')).toBe('Bank holiday');
+    expect(skipReasonLabel('away')).toBe('Away');
+    expect(skipReasonLabel('paused')).toBe('Paused');
     // A reason a newer api sends before this page knows it.
-    expect(skipReasonLabel('away')).toBe('Skipped');
     expect(skipReasonLabel('something_new')).toBe('Skipped');
   });
 

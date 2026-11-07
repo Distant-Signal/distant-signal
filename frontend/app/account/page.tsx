@@ -45,8 +45,8 @@ export default async function AccountPage() {
           <SectionTitle id="download-heading">Download my data</SectionTitle>
           <Text>
             A JSON file of everything Distant Signal holds about you: your account details, tracked trains, tickets,
-            journeys, regular journeys, pins, custom lines, groups, share links, notification subscriptions and
-            sessions.
+            journeys, regular journeys, time away, pins, custom lines, groups, share links, notification subscriptions
+            and sessions.
           </Text>
           <Button component="a" href="/api/account/export" download variant="light">
             Download my data
