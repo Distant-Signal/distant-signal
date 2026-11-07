@@ -72,6 +72,49 @@ const KGX_EUS_PLAN: TripPlanResponse = {
   ],
 };
 
+/** `/Trips/plan?results=fastest&count=5`'s answer for KGX to EUS: a train
+ * every 15 minutes from `first` (minutes after midnight), in departure
+ * order. */
+function kgxEusTrains(date: string, first: number): TripPlanResponse {
+  const clock = (minutes: number) =>
+    `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  const rows = [0, 15, 30, 45, 60].map((offset) => first + offset);
+  return {
+    ...TRIP_PLAN_DEFAULTS,
+    results: 'fastest',
+    count: 5,
+    segments: [
+      {
+        ...SEGMENT_DEFAULTS,
+        originCrs: 'KGX',
+        destinationCrs: 'EUS',
+        itineraries: rows.map((departs) => ({
+          ...ITINERARY_DEFAULTS,
+          changeCount: 0,
+          totalDurationMinutes: 25,
+          legs: [
+            plannedTrainLeg({
+              trainUid: `W9${clock(departs).replace(':', '')}`,
+              serviceDate: date,
+              originCrs: 'KGX',
+              destinationCrs: 'EUS',
+              scheduledDeparture: `${clock(departs)}:00`,
+              scheduledArrival: `${clock(departs + 25)}:00`,
+            }),
+          ],
+        })),
+      },
+    ],
+    journeys: rows.map((departs) => ({
+      changeCount: 0,
+      accessChangeCount: 0,
+      departure: { time: `${clock(departs)}:00`, dayOffset: 0 },
+      arrival: { time: `${clock(departs + 25)}:00`, dayOffset: 0 },
+      totalDurationMinutes: 25,
+    })),
+  };
+}
+
 test.describe('the old journey templates pages', () => {
   test('redirect to Regular journeys for good', async ({ request }) => {
     for (const [path, expected] of [
@@ -389,6 +432,42 @@ test.describe('regular journeys', () => {
     } finally {
       await page.request.delete(`/api/JourneyTemplates/${templateId}`);
     }
+  });
+
+  test('finds five trains to pick the usual one from, and pages later and earlier', async ({ page, context }) => {
+    await logIn(context);
+    const searches: URL[] = [];
+    await page.route('**/api/Trips/plan?*', async (route) => {
+      const url = new URL(route.request().url());
+      searches.push(url);
+      const date = url.searchParams.get('date')!;
+      const later = url.searchParams.get('departAfter') === '09:01:00';
+      await route.fulfill({ json: kgxEusTrains(date, later ? 9 * 60 + 15 : 8 * 60) });
+    });
+    await page.goto('/journeys/regular/new');
+    await page.getByRole('combobox', { name: 'From' }).fill('KGX');
+    await page.getByRole('combobox', { name: 'To' }).fill('EUS');
+    await page.getByLabel('Time').first().fill('07:55');
+    await page.getByRole('button', { name: 'Find trains' }).click();
+    await expect(page.getByText(/Pick the one you usually take\.$/)).toBeVisible();
+    expect(searches[0]!.searchParams.get('results')).toBe('fastest');
+    expect(searches[0]!.searchParams.get('count')).toBe('5');
+    expect(searches[0]!.searchParams.get('departAfter')).toBe('07:55:00');
+    for (const departs of ['08:00', '08:15', '08:30', '08:45', '09:00']) {
+      await expect(page.getByRole('radio', { name: new RegExp(`^${departs} `) })).toBeAttached();
+    }
+    // The card's stretched label covers its radio (a clickable card).
+    await page.getByRole('radio', { name: /^08:15 / }).check({ force: true });
+    await expect(page.getByText('Your usual train: 08:15 London Kings Cross to London Euston')).toBeVisible();
+    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    expect(axe.violations).toEqual([]);
+
+    await page.getByRole('button', { name: 'Later trains' }).click();
+    await expect(page.getByRole('radio', { name: /^10:15 / })).toBeAttached();
+    expect(searches.at(-1)!.searchParams.get('departAfter')).toBe('09:01:00');
+    await page.getByRole('button', { name: 'Earlier trains' }).click();
+    await expect(page.getByRole('radio', { name: /^08:15 / })).toBeChecked();
+    expect(searches.at(-1)!.searchParams.get('arriveBy')).toBe('09:39:00');
   });
 
   test('a regular journey page passes axe', async ({ page, context }) => {

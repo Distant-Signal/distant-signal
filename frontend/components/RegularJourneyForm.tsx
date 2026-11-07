@@ -31,15 +31,19 @@ import { formatDate, PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import {
+  earlierTrainsBound,
+  isUsualOption,
+  laterTrainsBound,
   queryOptionsFromPlan,
   REGULAR_JOURNEYS_HREF,
   takeRegularJourneyDraft,
+  trainChoicesQuery,
   usualItineraryFromPlan,
   usualTrainSummary,
+  type TrainSearchBound,
 } from '@/lib/regularJourneys';
 import { getStationNames } from '@/lib/suggestions';
 import { collectTripPlanStationCodes, fetchTripPlan, TripPlanError, tripPlanStopNames } from '@/lib/tripPlan';
-import { apiQuery } from '@/lib/tripPlanTiming';
 import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
 import { previewSentence } from '@/lib/upcomingDates';
 import type {
@@ -72,8 +76,6 @@ function daysMask(keys: string[]): number {
 interface UsualPick {
   itinerary: UsualItinerary;
   summary: string | null;
-  /** The option picked in this form's own search, to mark it selected. */
-  option?: TripPlanItinerary | undefined;
 }
 
 /** "Leave after" or "Arrive by" with a time: one direction's target. */
@@ -121,20 +123,31 @@ function TargetFields({
   );
 }
 
-/** The trains `/Trips/plan` found for one direction, to pick the usual
- * one from (`ItineraryOption`, as on Plan a journey). */
+/** The trains `/Trips/plan` found for one direction, in departure
+ * order, to pick the usual one from (`ItineraryOption`, as on Plan a
+ * journey), with Earlier trains and Later trains to page. The usual
+ * train is marked by its trains and times (`isUsualOption`), so it stays
+ * selected after another search. */
 function TrainChoices({
   plan,
   date,
   stationNames,
-  selected,
+  usual,
   onSelect,
+  onPage,
+  paging,
+  note,
 }: {
   plan: TripPlanResponse;
   date: string;
   stationNames: Map<string, string>;
-  selected: TripPlanItinerary | undefined;
+  usual: UsualItinerary | undefined;
   onSelect: (itinerary: TripPlanItinerary) => void;
+  /** Searches again from this bound; absent when the plan can't page. */
+  onPage?: ((bound: TrainSearchBound, direction: 'earlier' | 'later') => void) | undefined;
+  paging: boolean;
+  /** Why the last Earlier or Later search changed nothing. */
+  note: string | null;
 }) {
   const segment = plan.segments.length === 1 ? plan.segments[0] : undefined;
   if (!segment) {
@@ -147,21 +160,50 @@ function TrainChoices({
   if (segment.itineraries.length === 0) {
     return <Alert color="yellow">No trains found for {formatDate(`${date}T12:00:00Z`)}. Try another time.</Alert>;
   }
+  const earlier = onPage ? earlierTrainsBound(plan.journeys) : null;
+  const later = onPage ? laterTrainsBound(plan.journeys) : null;
   return (
     <Stack gap="xs">
       <Text size="sm" c="dimmed">
         Trains on {formatDate(`${date}T12:00:00Z`)}. Pick the one you usually take.
       </Text>
+      {earlier && (
+        <Button
+          variant="default"
+          size="xs"
+          className="ds-self-start"
+          disabled={paging}
+          onClick={() => onPage?.(earlier, 'earlier')}
+        >
+          Earlier trains
+        </Button>
+      )}
       {segment.itineraries.map((itinerary, index) => (
         <ItineraryOption
           key={index}
           itinerary={itinerary}
-          selected={selected === itinerary}
+          selected={isUsualOption(itinerary, usual)}
           onSelect={() => onSelect(itinerary)}
           stationNames={stationNames}
           stopAccess={plan.access}
         />
       ))}
+      {later && (
+        <Button
+          variant="default"
+          size="xs"
+          className="ds-self-start"
+          disabled={paging}
+          onClick={() => onPage?.(later, 'later')}
+        >
+          Later trains
+        </Button>
+      )}
+      {note && (
+        <Text size="sm" c="dimmed" role="status">
+          {note}
+        </Text>
+      )}
     </Stack>
   );
 }
@@ -192,33 +234,58 @@ function UsualTrainPicker({
   const [planDate, setPlanDate] = useState<string | null>(null);
   const [stationNames, setStationNames] = useState<Map<string, string>>(new Map());
   const [searching, setSearching] = useState(false);
+  const [paging, setPaging] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  async function fetchTrains(date: string, bound: TrainSearchBound): Promise<TripPlanResponse> {
+    if (!query) throw new Error('no query');
+    const result = await fetchTripPlan(
+      trainChoicesQuery(
+        { originCrs: query.originCrs, destinationCrs: query.destinationCrs, date },
+        bound,
+        queryOptionsFromPlan(query.options),
+      ),
+    );
+    const names = await getStationNames(collectTripPlanStationCodes(result)).catch(() => new Map<string, string>());
+    setStationNames((known) => new Map([...known, ...names, ...tripPlanStopNames(result)]));
+    return result;
+  }
 
   async function search() {
     if (!query) return;
     setSearching(true);
     setError(null);
+    setNote(null);
     setPlan(null);
     try {
-      const result = await fetchTripPlan(
-        apiQuery({
-          originCrs: query.originCrs,
-          destinationCrs: query.destinationCrs,
-          waypointCrs: [],
-          date: query.date,
-          ...(query.kind === 'arrive_by' ? { arriveBy: query.time } : { departAfter: query.time }),
-          results: 'options',
-          ...queryOptionsFromPlan(query.options),
-        }),
-      );
+      const result = await fetchTrains(query.date, { kind: query.kind, time: query.time, dayOffset: 0 });
       setPlan(result);
       setPlanDate(query.date);
-      const names = await getStationNames(collectTripPlanStationCodes(result)).catch(() => new Map<string, string>());
-      setStationNames(new Map([...names, ...tripPlanStopNames(result)]));
     } catch (caught) {
       setError(caught instanceof TripPlanError ? caught.message : describeFailure('find', 'trains'));
     } finally {
       setSearching(false);
+    }
+  }
+
+  /** Earlier trains or Later trains: the next few, in place of these. */
+  async function page(bound: TrainSearchBound, direction: 'earlier' | 'later') {
+    if (!query || !planDate) return;
+    setPaging(true);
+    setError(null);
+    setNote(null);
+    try {
+      const result = await fetchTrains(planDate, bound);
+      if ((result.segments[0]?.itineraries.length ?? 0) === 0) {
+        setNote(direction === 'earlier' ? 'No earlier trains that day.' : 'No later trains that day.');
+      } else {
+        setPlan(result);
+      }
+    } catch (caught) {
+      setError(caught instanceof TripPlanError ? caught.message : describeFailure('find', 'trains'));
+    } finally {
+      setPaging(false);
     }
   }
 
@@ -250,11 +317,14 @@ function UsualTrainPicker({
           plan={plan}
           date={planDate}
           stationNames={stationNames}
-          selected={usual?.option}
+          usual={usual?.itinerary}
           onSelect={(option) => {
             const itinerary = usualItineraryFromPlan([option], (code) => stationNames.get(code));
-            onPick({ itinerary, summary: usualTrainSummary(itinerary, (code) => stationNames.get(code)), option });
+            onPick({ itinerary, summary: usualTrainSummary(itinerary, (code) => stationNames.get(code)) });
           }}
+          onPage={plan.count !== undefined ? (bound, direction) => void page(bound, direction) : undefined}
+          paging={paging}
+          note={note}
         />
       )}
     </Stack>
