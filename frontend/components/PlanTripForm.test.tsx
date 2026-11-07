@@ -21,6 +21,21 @@ import { PlanTripForm } from './PlanTripForm';
 const FIXED_NOW = '2026-09-05T14:32:00.000Z';
 
 describe('PlanTripForm', () => {
+  it('fills From and To from a recent route', () => {
+    renderWithMantine(
+      <PlanTripForm
+        onSubmit={vi.fn()}
+        routeShortcuts={{
+          saved: [],
+          recent: [{ key: 'recent-GLD-WOK', label: 'Guildford to Woking', originCrs: 'GLD', destinationCrs: 'WOK' }],
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Guildford to Woking' }));
+    expect(screen.getByRole('combobox', { name: 'From' })).toHaveValue('GLD');
+    expect(screen.getByRole('combobox', { name: 'To' })).toHaveValue('WOK');
+  });
+
   it('disables Find routes until both origin and destination are entered', () => {
     renderWithMantine(<PlanTripForm onSubmit={vi.fn()} />);
     // `getByRole('button', { name })`, not `getByText` -- Mantine's

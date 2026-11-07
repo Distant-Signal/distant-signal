@@ -1,5 +1,6 @@
 'use client';
 
+import type { RouteShortcuts } from '@/lib/routeShortcuts';
 import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { Alert, Button, Card, Group, SegmentedControl, Stack, Text, VisuallyHidden } from '@mantine/core';
@@ -89,6 +90,7 @@ export function JourneyCreationFlow({
   planSearchDates,
   planOperators,
   untrackedOrigin,
+  routeShortcuts,
 }: {
   initialEntryMode?: JourneyEntryMode;
   knownRouteMode?: KnownRouteMode | undefined;
@@ -104,6 +106,9 @@ export function JourneyCreationFlow({
   /** `/plan?fromTflStop=...` (a TfL stop page's "Add as a journey leg"):
    * opens on the "Tube, bus or walk" form, starting at that stop. */
   untrackedOrigin?: UntrackedLegOrigin | null | undefined;
+  /** The visitor's saved and recent routes, read by the page on the
+   * server: they fill the first form's stations. */
+  routeShortcuts?: RouteShortcuts | undefined;
 } = {}) {
   const [journeyId, setJourneyId] = useState<number | null>(null);
   const [journey, setJourney] = useState<JourneyDetail | null>(null);
@@ -201,6 +206,7 @@ export function JourneyCreationFlow({
         {entryMode === 'known' && (
           <TrackTrainForm
             onCreated={handleLegOneCreated}
+            routeShortcuts={routeShortcuts}
             {...(knownRouteMode === undefined ? {} : { initialMode: knownRouteMode })}
           />
         )}
@@ -211,6 +217,7 @@ export function JourneyCreationFlow({
             initialQuery={planQuery}
             searchDates={planSearchDates}
             operatorCatalogue={planOperators}
+            routeShortcuts={routeShortcuts}
             syncUrl
           />
         )}
