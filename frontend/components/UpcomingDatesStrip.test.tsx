@@ -15,8 +15,8 @@ const UPCOMING: UpcomingDate[] = [
   { date: '2026-11-09', skipReason: null },
   { date: '2026-11-10', skipReason: 'skipped' },
   { date: '2026-11-11', skipReason: 'bank_holiday' },
-  // A reason added by a newer api.
-  { date: '2026-11-12', skipReason: 'away' as UpcomingDate['skipReason'] },
+  // Time away: switched off in Preferences, not here.
+  { date: '2026-11-12', skipReason: 'away' },
 ];
 
 describe('UpcomingDatesStrip', () => {
@@ -36,7 +36,8 @@ describe('UpcomingDatesStrip', () => {
     expect(screen.getByRole('checkbox', { name: 'Wed 11 Nov' })).toBeDisabled();
     expect(screen.getByText('Bank holiday')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Thu 12 Nov' })).toBeDisabled();
-    expect(screen.getAllByText('Skipped')).toHaveLength(2);
+    expect(screen.getByText('Away')).toBeInTheDocument();
+    expect(screen.getAllByText('Skipped')).toHaveLength(1);
   });
 
   it('skips a date for the pair, and puts a skipped one back on both', async () => {

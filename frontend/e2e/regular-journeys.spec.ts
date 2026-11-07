@@ -257,6 +257,80 @@ test.describe('regular journeys', () => {
     }
   });
 
+  test('pauses until a date, and time away in Preferences skips every regular journey', async ({ page, context }) => {
+    await logIn(context);
+    const created = await page.request.post('/api/JourneyTemplates', {
+      data: {
+        mode: 'plan',
+        originCrs: 'KGX',
+        destinationCrs: 'EUS',
+        target: { kind: 'depart_after', time: '06:30', dayOffset: 0 },
+        usualItinerary: {
+          legs: [{ trainUid: 'W90701', originCrs: 'KGX', destinationCrs: 'EUS', departs: '06:35' }],
+        },
+        daysOfWeek: 127,
+        skipBankHolidays: false,
+      },
+    });
+    expect(created.ok(), await created.text()).toBe(true);
+    const { templateId } = (await created.json()) as { templateId: number };
+    const detail = async () =>
+      (await (await page.request.get(`/api/JourneyTemplates/${templateId}`)).json()) as {
+        pausedUntil: string | null;
+        upcomingDates: { date: string; skipReason: string | null }[];
+      };
+    const awayIds: number[] = [];
+
+    try {
+      // Pause until the third upcoming date: the first two show "Paused".
+      const { upcomingDates } = await detail();
+      const restart = upcomingDates[2]!.date;
+      const res = await page.request.put(`/api/JourneyTemplates/${templateId}/paused-until`, {
+        data: { pausedUntil: restart },
+      });
+      expect(res.ok()).toBe(true);
+      await page.goto(`/journeys/regular/${templateId}`);
+      await expect(page.getByText(/^Paused until \d{1,2} [A-Z][a-z]{2} \d{4}\.$/)).toBeVisible();
+      await expect(page.getByRole('group', { name: 'Next dates' }).getByText('Paused')).toHaveCount(2);
+      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      expect(axe.violations).toEqual([]);
+      await page.getByRole('button', { name: 'Start again now' }).click();
+      await expect(page.getByRole('button', { name: 'Pause until' })).toBeVisible();
+      await expect.poll(async () => (await detail()).pausedUntil).toBeNull();
+
+      // The Pause until dialog passes axe too.
+      await page.getByRole('button', { name: 'Pause until' }).click();
+      await expect(page.getByRole('dialog', { name: 'Pause until a date?' })).toBeVisible();
+      // Once it has faded in: mid-transition, axe reads its colours half-mixed.
+      await expect(page.locator('.mantine-Modal-content')).toHaveCSS('opacity', '1');
+      const dialogAxe = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+      expect(dialogAxe.violations).toEqual([]);
+      await page.getByRole('button', { name: 'Cancel' }).click();
+
+      // Time away, added in Preferences, skips this regular journey's dates.
+      const away = await page.request.post('/api/preferences/time-away', {
+        data: { startsOn: upcomingDates[1]!.date, endsOn: upcomingDates[1]!.date, label: 'E2E away' },
+      });
+      expect(away.ok(), await away.text()).toBe(true);
+      awayIds.push(((await away.json()) as { period: { id: number } }).period.id);
+      await page.goto('/account/preferences');
+      const section = page.getByRole('region', { name: 'Time away' });
+      await expect(section.getByText(/^E2E away: /)).toBeVisible();
+      // The new card only: the page's own sweep is accessibility.spec.ts's.
+      const prefsAxe = await new AxeBuilder({ page }).include('[aria-labelledby="time-away-heading"]').analyze();
+      expect(prefsAxe.violations).toEqual([]);
+      await expect.poll(async () => (await detail()).upcomingDates[1]!.skipReason).toBe('away');
+
+      await section.getByRole('button', { name: /^Delete time away, E2E away/ }).click();
+      await expect(section.getByText(/Journeys for those dates are added again as usual\./)).toBeVisible();
+      awayIds.length = 0;
+      await expect.poll(async () => (await detail()).upcomingDates[1]!.skipReason).toBeNull();
+    } finally {
+      for (const id of awayIds) await page.request.delete(`/api/preferences/time-away/${id}`);
+      await page.request.delete(`/api/JourneyTemplates/${templateId}`);
+    }
+  });
+
   test('a regular journey page passes axe', async ({ page, context }) => {
     await logIn(context);
     await page.goto('/journeys/regular/900201');

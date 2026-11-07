@@ -243,4 +243,14 @@ describe('RegularJourneysPage', () => {
     expect(screen.getByRole('checkbox', { name: 'Mon 5 Jan' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Tue 6 Jan' })).not.toBeChecked();
   });
+
+  it('says until when a regular journey is paused, and offers to start it again', async () => {
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      template({ daysOfWeek: 31, nextDate: '2099-01-05', pausedUntil: '2099-01-05' }),
+    ]);
+    await renderPage();
+    expect(screen.getByText('Paused until 5 Jan 2099.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start again now' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pause until' })).toBeNull();
+  });
 });

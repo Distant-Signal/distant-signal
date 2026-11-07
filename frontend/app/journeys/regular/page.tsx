@@ -4,6 +4,7 @@ import { ButtonLink } from '@/components/ButtonLink';
 import { getMyJourneyTemplates } from '@/lib/api';
 import { LoginControl } from '@/components/LoginControl';
 import { PauseRegularJourneyButton } from '@/components/PauseRegularJourneyButton';
+import { PauseUntilButton } from '@/components/PauseUntilButton';
 import { SkipNextButton } from '@/components/SkipNextButton';
 import { TextLink } from '@/components/TextLink';
 import { bankHolidayNote } from '@/lib/bankHolidays';
@@ -163,6 +164,9 @@ function TemplateActions({ template, paired }: { template: JourneyTemplateListIt
             dates={dueDates(template.upcomingDates)}
             paired={paired}
           />
+        )}
+        {template.active && (
+          <PauseUntilButton templateId={template.id} pausedUntil={template.pausedUntil} paired={paired} />
         )}
         <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
       </Group>

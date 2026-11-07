@@ -10,17 +10,21 @@ import type { UpcomingDate } from './types';
  * string is accepted and an unknown one reads as plain "Skipped". */
 export type SkipReason = string;
 
-/** "Skipped", "Bank holiday", or "Skipped" for a reason this page doesn't
+/** "Skipped", "Bank holiday", "Away" (the traveller's time away), "Paused"
+ * (paused until a later date), or "Skipped" for a reason this page doesn't
  * know yet. `null` (the date runs) has no label. */
 export function skipReasonLabel(reason: SkipReason | null): string | null {
   if (reason === null) return null;
   if (reason === 'bank_holiday') return 'Bank holiday';
+  if (reason === 'away') return 'Away';
+  if (reason === 'paused') return 'Paused';
   return 'Skipped';
 }
 
 /** Whether the strip can switch a date on or off: a date that runs can be
  * skipped, and a date the user skipped can be put back. A bank holiday,
- * or a reason this page doesn't know, is decided elsewhere. */
+ * time away, a pause, or a reason this page doesn't know, is changed
+ * elsewhere. */
 export function canToggle(reason: SkipReason | null): boolean {
   return reason === null || reason === 'skipped';
 }
