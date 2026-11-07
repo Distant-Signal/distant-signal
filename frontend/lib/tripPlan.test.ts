@@ -15,6 +15,7 @@ import {
   satisfiedStationLabel,
   viaSatisfiedLabel,
   waypointSatisfiedLabel,
+  type TripPlanQuery,
 } from './tripPlan';
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse } from './types';
 import { RAIL_TRAM_RAIL, TUBE_LEG, WALK_TO_TUBE } from '@/test/transitPlanFixtures';
@@ -35,6 +36,24 @@ describe('buildTripPlanQuery', () => {
     expect(params.get('results')).toBe('fastest');
     expect(params.has('waypoints')).toBe(false);
     expect(params.has('departAfter')).toBe(false);
+  });
+
+  it('asks for a count of trains, every direct one when asked', () => {
+    const base: TripPlanQuery = {
+      originCrs: 'WOK',
+      destinationCrs: 'WAT',
+      waypointCrs: [],
+      date: '2026-09-23',
+      departAfter: '07:45',
+      results: 'fastest',
+    };
+    const listed = new URLSearchParams(buildTripPlanQuery({ ...base, count: 5, direct: 'all' }));
+    expect(listed.get('count')).toBe('5');
+    expect(listed.get('direct')).toBe('all');
+    const fastest = new URLSearchParams(buildTripPlanQuery({ ...base, count: 5 }));
+    expect(fastest.has('direct')).toBe(false);
+    // `direct` means nothing without a count.
+    expect(new URLSearchParams(buildTripPlanQuery({ ...base, direct: 'all' })).has('direct')).toBe(false);
   });
 
   it('joins ordered waypoints with a comma, uppercased', () => {
