@@ -117,10 +117,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Tracked trains, journeys and regular journeys',
-      what: 'The date, origin, destination and operator of trains and journeys you track, any names you give them, how late each of your trains arrived and whether it was cancelled, the minutes you say you need to get to the station, and whose bank holidays your regular journeys skip (England and Wales, Scotland or Northern Ireland).',
+      what: 'The date, origin, destination and operator of trains and journeys you track, any names you give them, how late each of your trains arrived and whether it was cancelled, the minutes you say you need to get to the station, whose bank holidays your regular journeys skip (England and Wales, Scotland or Northern Ireland), the date a paused regular journey starts again, and any time away you add (its dates and a name if you give one).',
       why: 'To track your trains and journeys and tell you about delays.',
       basis: CONTRACT,
-      retention: `Tracked trains and journeys: until you delete them or delete your account${travel}.${regular} Regular journeys: until you delete them or delete your account.`,
+      retention: `Tracked trains and journeys: until you delete them or delete your account${travel}.${regular} Regular journeys: until you delete them or delete your account. Time away: until the day after it ends, or until you delete it or your account.`,
     },
     {
       title: 'Tickets',

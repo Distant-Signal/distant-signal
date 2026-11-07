@@ -228,6 +228,7 @@ export const TEMPLATE_TARGET_DEFAULTS = {
   skipBankHolidays: true,
   nextSkips: [],
   upcomingDates: [],
+  pausedUntil: null,
 } satisfies Partial<Api.JourneyTemplateListItem>;
 
 /** A train leg of a trip plan, less its train, ends and times. */

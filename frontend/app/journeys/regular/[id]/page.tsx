@@ -5,6 +5,7 @@ import { DeleteJourneyTemplateButton } from '@/components/DeleteJourneyTemplateB
 import { EditJourneyTemplateForm } from '@/components/EditJourneyTemplateForm';
 import { LoginControl } from '@/components/LoginControl';
 import { PauseRegularJourneyButton } from '@/components/PauseRegularJourneyButton';
+import { PauseUntilButton } from '@/components/PauseUntilButton';
 import { RunTemplateNowButton } from '@/components/RunTemplateNowButton';
 import { SkipNextButton } from '@/components/SkipNextButton';
 import { TextLink } from '@/components/TextLink';
@@ -108,6 +109,9 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
                   dates={dueDates(template.upcomingDates)}
                   paired={paired}
                 />
+              )}
+              {template.active && (
+                <PauseUntilButton templateId={template.id} pausedUntil={template.pausedUntil} paired={paired} />
               )}
               <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
             </Group>

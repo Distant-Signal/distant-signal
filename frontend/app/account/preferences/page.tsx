@@ -1,12 +1,13 @@
 import { Stack, Title } from '@mantine/core';
 import type { Metadata } from 'next';
 import { ConnectedApps } from '@/components/ConnectedApps';
-import { getConnectedApps, getPreferences, getSessionOrLoggedOut } from '@/lib/api';
+import { getConnectedApps, getPreferences, getSessionOrLoggedOut, getTimeAway } from '@/lib/api';
 import { legalPagesVisible } from '@/lib/legal';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { AccountSettingsLoginPrompt } from './AccountSettingsLoginPrompt';
 import { AppearanceSection } from './AppearanceSection';
 import { BankHolidaysSection } from './BankHolidaysSection';
+import { TimeAwaySection } from './TimeAwaySection';
 import { ClaudeKeySection } from './ClaudeKeySection';
 import { NotificationsSection } from './NotificationsSection';
 import { PreferencesSection } from './PreferencesSection';
@@ -35,6 +36,7 @@ export const metadata: Metadata = {
  *   when not.
  * - Account-backed, logged in only: `NotificationsSection`,
  *   `BankHolidaysSection` (whose bank holidays regular journeys skip),
+ *   `TimeAwaySection` (dates none of their regular journeys runs on),
  *   `ClaudeKeySection`, then Connected apps (`ConnectedApps`, the apps
  *   that can work with the visitor's journeys; also at
  *   `/account/connected-apps`, docs/connected-apps.md). A logged-out
@@ -56,6 +58,8 @@ export default async function PreferencesPage() {
   const connectedApps = session.authenticated ? await getConnectedApps().catch(() => null) : null;
   // The bank holidays choice; a failure drops only that section.
   const preferences = session.authenticated ? await getPreferences().catch(() => null) : null;
+  // Time away; a failure drops only that section.
+  const timeAway = session.authenticated ? await getTimeAway().catch(() => null) : null;
 
   return (
     <Stack p="lg" gap="lg" maw={640}>
@@ -70,6 +74,7 @@ export default async function PreferencesPage() {
         <>
           <NotificationsSection />
           {preferences && <BankHolidaysSection initial={preferences.bankHolidayDivision} />}
+          {timeAway && <TimeAwaySection initial={timeAway} />}
           <ClaudeKeySection />
           {connectedApps && (
             <PreferencesSection id="connected-apps-heading" title="Connected apps">

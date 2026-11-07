@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import PreferencesPage, { metadata } from './page';
-import { getConnectedApps, getPreferences, getSessionOrLoggedOut } from '@/lib/api';
+import { getConnectedApps, getPreferences, getSessionOrLoggedOut, getTimeAway } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
   getSessionOrLoggedOut: vi.fn(),
@@ -14,6 +14,7 @@ vi.mock('@/lib/api', () => ({
     silentPinnedLines: [],
     bankHolidayDivision: null,
   })),
+  getTimeAway: vi.fn(async () => []),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -143,5 +144,26 @@ describe('PreferencesPage', () => {
     renderWithMantine(await PreferencesPage());
     expect(screen.queryByRole('heading', { name: 'Connected apps' })).toBeNull();
     expect(screen.getByLabelText('Claude API key')).toBeInTheDocument();
+  });
+
+  it('lists time away for a logged-in account, and drops only that card when it cannot load', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
+    vi.mocked(getTimeAway).mockResolvedValueOnce([
+      { id: 1, startsOn: '2026-12-21', endsOn: '2026-12-24', label: 'Christmas' },
+    ]);
+    const { unmount } = renderWithMantine(await PreferencesPage());
+    expect(screen.getByRole('region', { name: 'Time away' })).toBeInTheDocument();
+    expect(screen.getByText('Christmas: 21 Dec 2026 to 24 Dec 2026')).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(getTimeAway).mockRejectedValueOnce(new Error('down'));
+    renderWithMantine(await PreferencesPage());
+    expect(screen.queryByRole('region', { name: 'Time away' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'Bank holidays' })).toBeInTheDocument();
+
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedOut);
+    vi.mocked(getTimeAway).mockClear();
+    renderWithMantine(await PreferencesPage());
+    expect(getTimeAway).not.toHaveBeenCalled();
   });
 });
