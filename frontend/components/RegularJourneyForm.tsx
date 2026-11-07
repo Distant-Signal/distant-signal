@@ -54,6 +54,9 @@ import type {
 
 type TargetKind = TemplateTarget['kind'];
 
+/** Every day: where the next date of a saved route (no days) is found. */
+const ALL_DAYS_MASK = 127;
+
 /** Mon to Fri, the form's starting days (§4.4). */
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
 
@@ -342,7 +345,8 @@ export function RegularJourneyForm() {
   const [buffer, setBuffer] = useStationBuffer(originCrs.trim().toUpperCase());
   const [returnBuffer, setReturnBuffer] = useStationBuffer(withReturn ? destinationCrs.trim().toUpperCase() : '');
   const mask = daysMask(days);
-  const date = mask === 0 ? null : nextMatchingDate(mask, startsOn, endsOn, londonToday());
+  // No days is a saved route: its trains are picked from the next day.
+  const date = nextMatchingDate(mask === 0 ? ALL_DAYS_MASK : mask, startsOn, endsOn, londonToday());
   const origin = originCrs.trim().toUpperCase();
   const destination = destinationCrs.trim().toUpperCase();
   const stationsSet = /^[A-Z]{3}$/.test(origin) && /^[A-Z]{3}$/.test(destination) && origin !== destination;
@@ -405,7 +409,7 @@ export function RegularJourneyForm() {
       target: { kind, time, dayOffset: 0 },
       planOptions,
       usualItinerary: usual.itinerary,
-      daysOfWeek: mask,
+      daysOfWeek: mask === 0 ? null : mask,
       startsOn,
       endsOn,
       defaultMatchMode: matchMode,
@@ -474,8 +478,8 @@ export function RegularJourneyForm() {
           </Group>
         </Chip.Group>
         {mask === 0 && (
-          <Text size="sm" c="red">
-            Choose at least one day.
+          <Text size="sm" c="dimmed">
+            No days: a saved route. Start a journey from it whenever you travel.
           </Text>
         )}
       </Stack>

@@ -12,6 +12,7 @@ import {
   GROUP_TRAIN_DEFAULTS,
   JOURNEY_LIST_ITEM_DEFAULTS,
   RELIABILITY_TRAIN_DEFAULTS,
+  TEMPLATE_TARGET_DEFAULTS,
   TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
 } from '@/test/apiDefaults';
 
@@ -92,6 +93,7 @@ describe('JourneysPage', () => {
   beforeEach(() => {
     vi.mocked(api.getSharedGroupTrains).mockResolvedValue([]);
     vi.mocked(api.getMyJourneys).mockResolvedValue([]);
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([]);
     vi.mocked(api.getMyReliability).mockResolvedValue({ trains: [], journeys: [] });
     // The page puts rows from a past London day under "Past". Pin
     // "today" to the fixtures' own service date so they stay active.
@@ -315,6 +317,33 @@ describe('JourneysPage', () => {
     // Tickets are a journey leg's details now, added on the journey page.
     expect(screen.queryByRole('link', { name: 'Add a ticket' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
+  });
+
+  it('starts a journey from a saved route: Plan a journey with its stations', async () => {
+    vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
+    vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([
+      {
+        ...TEMPLATE_TARGET_DEFAULTS,
+        id: 5,
+        customName: 'Office',
+        createdAt: '2026-08-01T00:00:00Z',
+        legCount: 1,
+        firstOriginCrs: 'WOK',
+        firstOriginName: 'Woking',
+        lastDestinationCrs: 'WAT',
+        lastDestinationName: 'London Waterloo',
+        active: true,
+        daysOfWeek: null,
+        defaultMatchMode: 'manual',
+        nextRunOn: null,
+        hasOpenLegs: false,
+        startsOn: null,
+        endsOn: null,
+      },
+    ]);
+    renderWithMantine(await JourneysPage());
+    expect(screen.getByText('Start from a saved route')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Office' })).toHaveAttribute('href', '/plan?origin=WOK&destination=WAT');
   });
 
   // The reported bug: a train another member shared into a group the

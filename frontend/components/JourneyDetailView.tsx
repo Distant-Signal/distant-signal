@@ -19,6 +19,8 @@ import { SaveAsTemplateButton } from './SaveAsTemplateButton';
 import { ShareJourneyButton } from './ShareJourneyButton';
 import { ShareJourneyLinkButton } from './ShareJourneyLinkButton';
 import { TrackJourneyAgainButton } from './TrackJourneyAgainButton';
+import { MoveJourneyButton } from './MoveJourneyButton';
+import { canPlanAgain } from '@/lib/journeyRepeat';
 import { instantLateDepartureTimes, LateDepartureNote } from './LateDepartureNote';
 import {
   connectionText,
@@ -171,6 +173,7 @@ export function JourneyDetailView({
   origin,
   openBreakOnLoad = false,
   fromPush = false,
+  viaShareLink = false,
 }: {
   journey: JourneyDetail;
   fetchedAt: string;
@@ -179,6 +182,8 @@ export function JourneyDetailView({
   openBreakOnLoad?: boolean;
   /** The page was opened from the break's push notification. */
   fromPush?: boolean;
+  /** Opened through a share link, with no session (`/journeys/shared`). */
+  viaShareLink?: boolean;
 }) {
   // Review §2.5/M16: "Add a leg" used to be offered at the same visual
   // weight as the status badge even while the CURRENT leg still needs a
@@ -252,12 +257,17 @@ export function JourneyDetailView({
               one destructive action on this page sits at the end of the
               owner-only run rather than between two non-destructive
               ones. */}
+          {/* Move: the owner's, until the journey starts, for a journey
+              whose route can be planned again. */}
+          {journey.isOwner && canPlanAgain(journey) && !regularOccurrenceStarted(journey.legs, new Date(fetchedAt)) && (
+            <MoveJourneyButton journeyId={journey.id} serviceDate={journey.legs[0]?.serviceDate ?? null} />
+          )}
           {journey.isOwner && <DeleteJourneyButton journeyId={journey.id} />}
           {/* Deliberately NOT gated on journey.isOwner -- see
               docs/superpowers/plans/2026-09-22-reusable-journeys-phaseA-track-again-plan.md's
               Judgment Call 7. Placed last so the owner-only controls
               above stay visually adjacent to each other. */}
-          <TrackJourneyAgainButton journey={journey} />
+          <TrackJourneyAgainButton journey={journey} viaShareLink={viaShareLink} />
         </Group>
       </Group>
       {/* Made from a regular journey: a link to it, and "Skip" while

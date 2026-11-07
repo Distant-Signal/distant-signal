@@ -1,5 +1,6 @@
 import { addCalendarDays, londonToday } from './londonWallClock';
 import { formatDate, formatTime } from './dateFormat';
+import type { ItineraryLegBody } from './tripPlanSave';
 import type { RegularPlan, RegularPlanOption } from './types';
 
 /** One planned option as the suggestion card names it: "08:12 Woking to
@@ -56,4 +57,30 @@ export function showsSuggestion(plan: RegularPlan | null | undefined): plan is R
   choice: RegularPlanOption;
 } {
   return plan?.status === 'suggested' && plan.choice !== null;
+}
+
+/** A planned option's legs as `POST /Journeys/itinerary` (and `POST
+ * /Journeys/{id}/move`) take them, leaving out what is unknown. */
+export function planOptionLegBodies(option: RegularPlanOption): ItineraryLegBody[] {
+  return option.legs.map((leg): ItineraryLegBody => {
+    if (leg.kind === 'train') {
+      return {
+        trainUid: leg.trainUid,
+        serviceDate: leg.serviceDate,
+        ...(leg.originCrs ? { originCrs: leg.originCrs } : {}),
+        ...(leg.destinationCrs ? { destinationCrs: leg.destinationCrs } : {}),
+      };
+    }
+    return {
+      kind: 'untracked',
+      transitMode: leg.transitMode,
+      ...(leg.originName ? { originName: leg.originName } : {}),
+      ...(leg.destinationName ? { destinationName: leg.destinationName } : {}),
+      ...(leg.lineName ? { lineName: leg.lineName } : {}),
+      ...(leg.originStopId ? { originStopId: leg.originStopId } : {}),
+      ...(leg.destinationStopId ? { destinationStopId: leg.destinationStopId } : {}),
+      plannedDeparture: leg.plannedDeparture,
+      plannedArrival: leg.plannedArrival,
+    };
+  });
 }

@@ -258,6 +258,23 @@ describe('RegularJourneyForm', () => {
     expect(JSON.parse(String(calls()[0]![1]!.body))).toMatchObject({ skipBankHolidays: false });
   });
 
+  it('saves a route with no days as a saved route', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    const calls = routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }), 'scotland');
+    renderWithMantine(<RegularJourneyForm />);
+    await screen.findByText('Your usual train: 07:48 Woking to London Waterloo');
+    for (const day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']) {
+      fireEvent.click(screen.getByRole('checkbox', { name: day }));
+    }
+    expect(
+      screen.getByText('No days: a saved route. Start a journey from it whenever you travel.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
+    const saved = calls().find(([url]) => url === '/api/JourneyTemplates');
+    expect(JSON.parse(String(saved![1]!.body))).toMatchObject({ mode: 'plan', daysOfWeek: null });
+  });
+
   it("shows the api's refusal when saving fails", async () => {
     window.sessionStorage.setItem(
       'ds:regular-journey-draft',

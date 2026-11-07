@@ -1,5 +1,7 @@
 'use client';
 
+import { RouteShortcutPicker } from './RouteShortcutPicker';
+import { NO_ROUTE_SHORTCUTS, type RouteShortcuts } from '@/lib/routeShortcuts';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { londonToday, nowInLondon } from '@/lib/londonWallClock';
 import { Button, Group, InputLabel, SegmentedControl, Stack, Text, ActionIcon, VisuallyHidden } from '@mantine/core';
@@ -147,6 +149,7 @@ export function PlanTripForm({
   operatorCatalogue,
   operatorPatch,
   advancedOpenRequest = 0,
+  routeShortcuts = NO_ROUTE_SHORTCUTS,
 }: {
   onSubmit: (query: TripPlanQuery) => void;
   searching?: boolean;
@@ -171,6 +174,9 @@ export function PlanTripForm({
   /** Each change opens Advanced options and moves focus to the operator
    * field (the results' filter banner's "Change"). */
   advancedOpenRequest?: number | undefined;
+  /** The visitor's saved and recent routes: picking one fills From and
+   * To. */
+  routeShortcuts?: RouteShortcuts | undefined;
 }) {
   const maxDate = searchDates === undefined ? undefined : searchDateBounds(searchDates, londonToday()).maxDate;
   const [originCrs, setOriginCrs] = useState(initial.originCrs ?? initialOriginCrs);
@@ -374,6 +380,13 @@ export function PlanTripForm({
 
   return (
     <Stack gap="md">
+      <RouteShortcutPicker
+        shortcuts={routeShortcuts}
+        onPick={(origin, destination) => {
+          setOriginCrs(origin);
+          setDestinationCrs(destination);
+        }}
+      />
       <StationField
         label="From"
         value={originCrs}

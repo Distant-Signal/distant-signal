@@ -1,5 +1,6 @@
 'use client';
 
+import type { RouteShortcuts } from '@/lib/routeShortcuts';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Anchor, Button, Group, List, ListItem, Stack, Text } from '@mantine/core';
 import { useRouter } from 'next/navigation';
@@ -104,6 +105,7 @@ export function PlanTripFlow({
   syncUrl = false,
   searchDates,
   operatorCatalogue,
+  routeShortcuts,
 }: {
   onCreated: (result: CreateJourneyResponse) => void;
   /** Pre-fills the From field (`/plan?from=CRS`). */
@@ -120,6 +122,8 @@ export function PlanTripFlow({
   /** `GET /Trips/operators`, for the operator filter and the legs'
    * operator names; `null` when the read failed. */
   operatorCatalogue?: PlannerOperatorCatalogue | null | undefined;
+  /** Saved and recent routes for the form's From and To. */
+  routeShortcuts?: RouteShortcuts | undefined;
 }) {
   const router = useRouter();
   const nameOfOperator = useMemo(() => (entry: string) => operatorName(entry, operatorCatalogue), [operatorCatalogue]);
@@ -479,6 +483,7 @@ export function PlanTripFlow({
         operatorCatalogue={operatorCatalogue}
         operatorPatch={operatorPatch}
         advancedOpenRequest={advancedOpenRequest}
+        routeShortcuts={routeShortcuts}
       />
       {planError && (
         <Alert color="red" title="Couldn't plan this trip">

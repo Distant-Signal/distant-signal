@@ -1,5 +1,7 @@
 'use client';
 
+import { RouteShortcutPicker } from './RouteShortcutPicker';
+import { NO_ROUTE_SHORTCUTS, type RouteShortcuts } from '@/lib/routeShortcuts';
 import { useId, useState, type SubmitEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Group, SegmentedControl, SimpleGrid, Stack, Text, VisuallyHidden } from '@mantine/core';
@@ -81,6 +83,7 @@ export function TrackTrainForm({
   initialArriveAfter = '',
   initialArriveBefore = '',
   onCreated,
+  routeShortcuts = NO_ROUTE_SHORTCUTS,
 }: {
   initialOrigin?: string | undefined;
   // "Track this journey again" (docs/superpowers/plans/2026-09-22-reusable-journeys-phaseA-track-again-plan.md)
@@ -128,6 +131,9 @@ export function TrackTrainForm({
    * behaviour -- the redirect fires unconditionally, same as before this
    * prop existed. */
   onCreated?: (result: CreateJourneyResponse) => void;
+  /** The visitor's saved and recent routes: picking one fills Origin and
+   * Destination. */
+  routeShortcuts?: RouteShortcuts | undefined;
 }) {
   const router = useRouter();
   const [originCrs, setOriginCrs] = useState(initialOrigin);
@@ -605,6 +611,13 @@ export function TrackTrainForm({
           : 'Track a specific train to see its live position, delay and next stop.'}
       </Text>
       <Stack gap="md" component="form" onSubmit={handleSubmit} maw={640}>
+        <RouteShortcutPicker
+          shortcuts={routeShortcuts}
+          onPick={(origin, destination) => {
+            setOriginCrs(origin);
+            setDestinationCrs(destination);
+          }}
+        />
         <StationField
           label="Origin station"
           placeholder="e.g. Woking or WOK"

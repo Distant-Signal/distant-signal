@@ -202,6 +202,22 @@ describe('TrackTrainForm', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalled());
   });
 
+  it('fills Origin and Destination from a saved route', async () => {
+    renderWithMantine(
+      <TrackTrainForm
+        initialMode="window"
+        routeShortcuts={{
+          saved: [{ key: 'saved-1', label: 'Office', originCrs: 'WOK', destinationCrs: 'WAT' }],
+          recent: [],
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Office' }));
+    expect(screen.getByRole('combobox', { name: /Origin station/ })).toHaveValue('WOK');
+    expect(screen.getByRole('combobox', { name: /^Destination station$/ })).toHaveValue('WAT');
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+  });
+
   it('pre-fills the pin-mode destination field from initialDestination', () => {
     renderWithMantine(<TrackTrainForm initialOrigin="WAT" initialDestination="RDG" />);
     expect(screen.getByRole('combobox', { name: /Destination station \(optional\)/ })).toHaveValue('RDG');

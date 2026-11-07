@@ -2,7 +2,15 @@ import { Group, Stack, Text, Title } from '@mantine/core';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
 import { SectionTitle } from '@/components/SectionTitle';
 import { CardTitleLink, ClickableCard, StaticCard } from '@/components/ClickableCard';
-import { getMyTrackedTrains, getMyReliability, getSharedGroupTrains, getMyJourneys } from '@/lib/api';
+import {
+  getMyTrackedTrains,
+  getMyReliability,
+  getSharedGroupTrains,
+  getMyJourneys,
+  getMyJourneyTemplates,
+} from '@/lib/api';
+import { SavedRouteLinks } from '@/components/SavedRouteLinks';
+import { savedRoutes, type RouteShortcut } from '@/lib/routeShortcuts';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { ButtonLink } from '@/components/ButtonLink';
@@ -97,7 +105,7 @@ export const metadata: Metadata = {
  * order under one cap. It replaced a separate `getSharedGroupJourneys()`
  * whose rows were listed in a block after the caller's own. */
 export default async function JourneysPage() {
-  const [trains, reliability, sharedTrains, journeys] = await Promise.all([
+  const [trains, reliability, sharedTrains, journeys, templates] = await Promise.all([
     getMyTrackedTrains(),
     getMyReliability().catch(() => null),
     getSharedGroupTrains().catch(() => null),
@@ -105,6 +113,8 @@ export default async function JourneysPage() {
     // members shared into their groups (since DS-124 a shared tracked
     // train is its one-leg journey, so most shares arrive here): one list.
     getMyJourneys({ includeFollowed: true, includeShared: true }).catch(() => null),
+    // Saved routes, to start a journey from.
+    getMyJourneyTemplates().catch(() => null),
   ]);
 
   if (trains === null) {
@@ -192,7 +202,7 @@ export default async function JourneysPage() {
 
   return (
     <Stack p="lg" gap="xl">
-      <JourneysHeader authenticated />
+      <JourneysHeader authenticated savedRoutes={savedRoutes(templates)} />
       {nothingToShow ? (
         <Text c="dimmed">
           You have no journeys yet. Plan a journey, or find a train first, and it will show here.
@@ -233,7 +243,14 @@ export default async function JourneysPage() {
  * logged-out visitor to log in when they save, and is reached from here and
  * the home page, not the nav (DS-194). The rest are links: a train search
  * for everyone and, logged in, regular journeys. */
-function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) {
+function JourneysHeader({
+  authenticated = false,
+  savedRoutes: saved = [],
+}: {
+  authenticated?: boolean;
+  /** Logged in: the saved routes to start from. */
+  savedRoutes?: RouteShortcut[];
+}) {
   return (
     <Stack gap="sm">
       <Title order={1}>Journeys</Title>
@@ -246,6 +263,7 @@ function JourneysHeader({ authenticated = false }: { authenticated?: boolean }) 
           </>
         )}
       </Group>
+      <SavedRouteLinks routes={saved} />
     </Stack>
   );
 }

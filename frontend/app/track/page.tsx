@@ -1,4 +1,5 @@
 import { Stack, Title, Text } from '@mantine/core';
+import { loadRouteShortcuts } from '@/lib/routeShortcutsServer';
 import type { Metadata } from 'next';
 import { TrackTrainForm } from '@/components/TrackTrainForm';
 import { pageMetadata } from '@/lib/pageMetadata';
@@ -106,6 +107,8 @@ export default async function TrackPage({
   // `TrackTrainForm`'s state (and from there, submit) in a shape no normal
   // user interacting with the form could ever produce by hand.
   const validTimeParam = (v: string | undefined): string | undefined => (v && /^\d{2}:\d{2}$/.test(v) ? v : undefined);
+  // Saved and recent routes fill Origin and Destination.
+  const routeShortcuts = await loadRouteShortcuts();
 
   return (
     <Stack p="lg" gap="md">
@@ -137,6 +140,7 @@ export default async function TrackPage({
         initialDepartBefore={validTimeParam(departBeforeParam)}
         initialArriveAfter={validTimeParam(arriveAfterParam)}
         initialArriveBefore={validTimeParam(arriveBeforeParam)}
+        routeShortcuts={routeShortcuts}
       />
       <DataCredits credits={TRAIN_CREDITS} />
     </Stack>

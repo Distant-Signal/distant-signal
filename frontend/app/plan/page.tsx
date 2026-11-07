@@ -1,4 +1,5 @@
 import { Stack, Text, Title } from '@mantine/core';
+import { loadRouteShortcuts } from '@/lib/routeShortcutsServer';
 import type { Metadata } from 'next';
 import { JourneyCreationFlow } from '@/components/JourneyCreationFlow';
 import type { UntrackedLegOrigin } from '@/components/UntrackedLegStartForm';
@@ -82,10 +83,11 @@ export default async function PlanPage({
   // The operator filter's choices (`GET /Trips/operators`, cached for a
   // few minutes); `null` on failure, and the field says it can't offer
   // them.
-  const [searchDates, untrackedOrigin, operators] = await Promise.all([
+  const [searchDates, untrackedOrigin, operators, routeShortcuts] = await Promise.all([
     getTrainSearchDates().catch(() => null),
     untrackedOriginFrom(params[JOURNEY_FROM_TFL_STOP_PARAM]),
     getPlannerOperators().catch(() => null),
+    loadRouteShortcuts(),
   ]);
 
   return (
@@ -106,6 +108,7 @@ export default async function PlanPage({
         planSearchDates={searchDates}
         planOperators={operators}
         untrackedOrigin={untrackedOrigin}
+        routeShortcuts={routeShortcuts}
       />
       <DataCredits credits={[...TRAIN_CREDITS, 'tfl']} />
     </Stack>
