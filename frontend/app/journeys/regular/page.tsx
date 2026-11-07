@@ -6,6 +6,7 @@ import { LoginControl } from '@/components/LoginControl';
 import { PauseRegularJourneyButton } from '@/components/PauseRegularJourneyButton';
 import { SkipNextButton } from '@/components/SkipNextButton';
 import { TextLink } from '@/components/TextLink';
+import { bankHolidayNote } from '@/lib/bankHolidays';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyRouteLabel, type JourneyNameInput } from '@/lib/journeyName';
 import { NEW_REGULAR_JOURNEY_HREF, regularJourneyCards, regularJourneyHref, targetLabel } from '@/lib/regularJourneys';
@@ -91,6 +92,8 @@ function TemplateFacts({ template }: { template: JourneyTemplateListItem }) {
   const recurring = template.daysOfWeek !== null;
   const paused = recurring && !template.active;
   const next = recurring && !paused && template.nextDate ? formatDate(`${template.nextDate}T12:00:00Z`) : null;
+  // "Next: 1 Jun 2027 (31 May 2027 is a bank holiday)" (§8.3).
+  const holidays = next ? bankHolidayNote(template.nextSkips) : null;
   return (
     <>
       {template.customName?.trim() && (
@@ -105,7 +108,10 @@ function TemplateFacts({ template }: { template: JourneyTemplateListItem }) {
         {next && (
           <>
             {' · '}
-            <span>Next: {next}</span>
+            <span>
+              Next: {next}
+              {holidays && ` (${holidays})`}
+            </span>
           </>
         )}
       </Text>

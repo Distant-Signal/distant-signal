@@ -44,6 +44,13 @@ VALUES
   ('fixture-member', 'Rider Fixture', 'rider-fixture', '{}', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
+-- fixture-owner has chosen England and Wales's bank holidays (regular
+-- journeys phase 5), so the regular journey form shows its "Change" line,
+-- not the one-time question, and the visual baselines don't depend on
+-- whether an earlier test answered it. e2e/regular-journeys.spec.ts asks
+-- the question by answering GET /api/preferences itself.
+UPDATE users SET bank_holiday_division = 'england-and-wales' WHERE id = 'fixture-owner';
+
 -- Session for fixture-owner. Cookie value is the RAW token (E2E_SESSION_COOKIE,
 -- set on the browser via Playwright storageState); this row stores its
 -- SHA-256 hex digest, per auth::hash_session_token.

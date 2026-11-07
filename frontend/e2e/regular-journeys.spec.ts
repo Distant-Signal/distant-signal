@@ -93,6 +93,15 @@ test.describe('regular journeys', () => {
     await page.route('**/api/Trips/plan?*', async (route) => {
       await route.fulfill({ json: KGX_EUS_PLAN });
     });
+    // As for someone who hasn't chosen whose bank holidays to skip (the
+    // seed's user has: England and Wales), so the form asks once, inline.
+    await page.route('**/api/preferences', async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({ response, json: { ...(await response.json()), bankHolidayDivision: null } });
+    });
+    const divisionSaved = page.waitForRequest(
+      (request) => request.method() === 'PUT' && request.url().endsWith('/api/preferences/bank-holiday-division'),
+    );
     try {
       // The date picker's first day is today: keep the query's date in range.
       await page.clock.setFixedTime(new Date('2026-09-17T06:00:00Z'));
@@ -107,10 +116,14 @@ test.describe('regular journeys', () => {
       await expect(page).toHaveURL(/\/journeys\/regular\/new$/);
       await expect(page.getByRole('heading', { level: 1, name: 'New regular journey' })).toBeVisible();
       await expect(page.getByText('Your usual train: 08:10 London Kings Cross to London Euston')).toBeVisible();
+      await expect(page.getByRole('switch', { name: 'Skip bank holidays' })).toBeChecked();
+      await expect(page.getByRole('combobox', { name: /Whose bank holidays/ })).toHaveValue('England and Wales');
       const axe = await new AxeBuilder({ page }).include('main').analyze();
       expect(axe.violations).toEqual([]);
 
       await page.getByRole('button', { name: 'Save regular journey' }).click();
+      // The answer is saved to Preferences (the seed's own choice again).
+      expect((await divisionSaved).postDataJSON()).toEqual({ division: 'england-and-wales' });
       await expect(page).toHaveURL(/\/journeys\/regular$/);
       await expect(
         page.getByRole('link', { name: 'London Kings Cross to London Euston, leave after 08:00' }),

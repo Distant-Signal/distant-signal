@@ -36,7 +36,8 @@ export { NationalRailCredit } from './NationalRailCredit';
  *   - NRIL's statement and "Source: RSP" have no placement rule in this
  *     app's record, and sit beside TRUST and timetable data anyway;
  *   - OGL v3.0 (OpenDataNI, the delay attribution glossary, CORPUS, BODS,
- *     NaPTAN, the Traveline National Dataset) and CC BY 4.0 (the NTA) both
+ *     NaPTAN, the Traveline National Dataset, GOV.UK's bank holidays) and
+ *     CC BY 4.0 (the NTA) both
  *     accept a link to a page carrying the statements, which `/attribution`
  *     is, and the Irish and tram pages carry theirs in place as well;
  *   - Knowledgebase incidents and TOC data need credit by name "in any
@@ -210,7 +211,8 @@ interface DataSource {
 }
 
 /** Every third-party source, with its required statement. Exported for
- * tests. Order: GB rail, London, Ireland, Northern Ireland, development. */
+ * tests. Order: GB rail, London, UK bank holidays, Ireland, Northern Ireland,
+ * development. */
 export const DATA_SOURCES: readonly DataSource[] = [
   {
     id: 'national-rail',
@@ -260,6 +262,22 @@ export const DATA_SOURCES: readonly DataSource[] = [
         Licence v2.0).
       </>
     ),
+  },
+  {
+    // Regular journeys skip bank holidays (regular journeys design §8):
+    // the api fetches GOV.UK's bank holidays JSON once a day. OGL v3's
+    // default statement, as for the delay attribution glossary.
+    id: 'gov-uk-bank-holidays',
+    title: 'GOV.UK (UK bank holidays)',
+    use: 'The bank holidays of England and Wales, Scotland and Northern Ireland, which regular journeys skip.',
+    statement: (
+      <>
+        Contains public sector information licensed under the{' '}
+        <ExternalLink href={OGL_V3_URL}>Open Government Licence v3.0</ExternalLink>. Bank holidays:{' '}
+        <ExternalLink href="https://www.gov.uk/bank-holidays">GOV.UK</ExternalLink>.
+      </>
+    ),
+    licence: <ExternalLink href={OGL_V3_URL}>Open Government Licence v3.0</ExternalLink>,
   },
   {
     id: 'nta-gtfs',

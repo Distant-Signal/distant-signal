@@ -2,11 +2,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import PreferencesPage, { metadata } from './page';
-import { getConnectedApps, getSessionOrLoggedOut } from '@/lib/api';
+import { getConnectedApps, getPreferences, getSessionOrLoggedOut } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
   getSessionOrLoggedOut: vi.fn(),
   getConnectedApps: vi.fn(async () => ({ grants: [], available: [], recentDeletions: [] })),
+  getPreferences: vi.fn(async () => ({
+    pinnedLines: [],
+    pinnedStations: [],
+    pinnedOperators: [],
+    silentPinnedLines: [],
+    bankHolidayDivision: null,
+  })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -92,6 +99,27 @@ describe('PreferencesPage', () => {
     vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     renderWithMantine(await PreferencesPage());
     expect(screen.getByRole('heading', { name: 'Ask about trains' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Claude API key')).toBeInTheDocument();
+  });
+
+  it('lets a logged-in account choose whose bank holidays to skip', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedOut);
+    const { unmount } = renderWithMantine(await PreferencesPage());
+    expect(screen.queryByRole('heading', { name: 'Bank holidays' })).toBeNull();
+    unmount();
+
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
+    renderWithMantine(await PreferencesPage());
+    expect(screen.getByRole('heading', { name: 'Bank holidays' })).toHaveAttribute('id', 'bank-holidays-heading');
+    // Not chosen yet: England and Wales, which the api uses then.
+    expect(screen.getByRole('combobox', { name: 'Whose bank holidays' })).toHaveValue('England and Wales');
+  });
+
+  it('drops only the bank holidays card when the preferences cannot load', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
+    vi.mocked(getPreferences).mockRejectedValueOnce(new Error('down'));
+    renderWithMantine(await PreferencesPage());
+    expect(screen.queryByRole('heading', { name: 'Bank holidays' })).toBeNull();
     expect(screen.getByLabelText('Claude API key')).toBeInTheDocument();
   });
 

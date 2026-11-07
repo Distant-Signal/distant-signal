@@ -259,6 +259,7 @@ describe('EditJourneyTemplateForm', () => {
             defaultMatchMode: 'manual',
             autoCommitRule: null,
             stationBufferMinutes: null,
+            skipBankHolidays: true,
           }),
         }),
       );
@@ -324,6 +325,7 @@ describe('EditJourneyTemplateForm', () => {
             defaultMatchMode: 'manual',
             autoCommitRule: null,
             stationBufferMinutes: null,
+            skipBankHolidays: true,
           }),
         }),
       );
@@ -582,6 +584,29 @@ describe('EditJourneyTemplateForm', () => {
       await waitFor(() => expect(putCalls()).toHaveLength(1));
       expect(sentBody().active).toBe(false);
     });
+  });
+
+  it('turns skipping bank holidays off for a recurring regular journey', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) =>
+      String(input) === '/api/preferences'
+        ? new Response(JSON.stringify({ bankHolidayDivision: 'northern-ireland' }), { status: 200 })
+        : new Response(null, { status: 204 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const puts = () => fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT');
+    renderWithMantine(<EditJourneyTemplateForm template={template({ daysOfWeek: 31 })} />);
+    const toggle = screen.getByRole('switch', { name: 'Skip bank holidays' });
+    expect(toggle).toBeChecked();
+    expect(await screen.findByText(/^Northern Ireland bank holidays\./)).toBeInTheDocument();
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(puts()).toHaveLength(1));
+    expect(JSON.parse(String(puts()[0]![1]!.body))).toMatchObject({ skipBankHolidays: false });
+  });
+
+  it('has no bank holidays switch for a journey that does not recur', () => {
+    renderWithMantine(<EditJourneyTemplateForm template={template({ daysOfWeek: null })} />);
+    expect(screen.queryByRole('switch', { name: 'Skip bank holidays' })).toBeNull();
   });
 
   it('saves the minutes to get to the station, and clears them', async () => {

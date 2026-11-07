@@ -187,6 +187,8 @@ export type LegCandidatesResponse = Api.LegCandidatesResponse;
 // the helpers that read them also take rows of routes not generated yet.
 type Loose<T> = { [K in keyof T]?: T[K] | null | undefined };
 export type Preferences = Api.Preferences;
+export type BankHolidayDivision = Api.BankHolidayDivision;
+export type NextSkip = Api.NextSkip;
 export type DataFreshness = Api.DataFreshness;
 export type HistoryRetention = Api.HistoryRetention;
 export type TflStopLine = Api.TflStopLine;

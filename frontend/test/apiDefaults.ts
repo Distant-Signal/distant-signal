@@ -225,7 +225,7 @@ export const TEMPLATE_TARGET_DEFAULTS = {
   pairedTemplateId: null,
   nextDate: null,
   skippedDates: [],
-  skipBankHolidays: false,
+  skipBankHolidays: true,
   nextSkips: [],
 } satisfies Partial<Api.JourneyTemplateListItem>;
 

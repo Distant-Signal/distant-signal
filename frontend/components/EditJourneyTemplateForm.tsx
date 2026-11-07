@@ -9,6 +9,7 @@ import { TimeFilterInput } from './TimeFilterInput';
 import type { JourneyTemplateDetail, PutJourneyTemplateRequest, TemplateLegRequest } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { resolveStationCode } from '@/lib/suggestionAutocomplete';
+import { BankHolidaySwitch, useBankHolidayDivision } from './BankHolidaySwitch';
 import { StationBufferField } from './StationBufferField';
 import { StationField } from './StationField';
 import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
@@ -161,6 +162,8 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
   const [matchMode, setMatchMode] = useState<'manual' | 'auto'>(template.defaultMatchMode);
   const [paused, setPaused] = useState(!template.active);
   const [buffer, setBuffer] = useState<number | null>(template.stationBufferMinutes);
+  const [skipBankHolidays, setSkipBankHolidays] = useState(template.skipBankHolidays);
+  const division = useBankHolidayDivision();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -271,6 +274,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
         autoCommitRule: matchMode === 'auto' ? 'nearest_to_now' : null,
         // null clears it: no leave-by. Days already added keep their own.
         stationBufferMinutes: buffer,
+        skipBankHolidays,
       };
       const response = await fetch(`/api/JourneyTemplates/${template.id}`, {
         method: 'PUT',
@@ -363,6 +367,16 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
         }}
         description="Include a few minutes to spare. Journeys already added keep the time they had."
       />
+      {selectedDays.length > 0 && (
+        <BankHolidaySwitch
+          checked={skipBankHolidays}
+          onChange={(checked) => {
+            setSaved(false);
+            setSkipBankHolidays(checked);
+          }}
+          division={division}
+        />
+      )}
       <Switch
         label="Paused"
         description="A paused regular journey adds no new journeys until you resume it."

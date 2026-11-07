@@ -17,6 +17,7 @@ import {
 } from '@mantine/core';
 import { TimeInput } from '@mantine/dates';
 import { DateInput } from '@/components/LazyDateFields';
+import { BankHolidaySwitch, useBankHolidayDivision } from './BankHolidaySwitch';
 import { ItineraryOption } from './ItineraryOption';
 import { LoginPromptModal } from './LoginPromptModal';
 import { StationBufferField } from './StationBufferField';
@@ -24,6 +25,7 @@ import { StationField } from './StationField';
 import { CLOCK_HINT } from './TimeFilterInput';
 import { useNeedsLogin } from './useNeedsLogin';
 import { ButtonSpinner } from '@/components/LoadingText';
+import { DEFAULT_BANK_HOLIDAY_DIVISION, saveBankHolidayDivision } from '@/lib/bankHolidays';
 import { formatDate, PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { londonToday } from '@/lib/londonWallClock';
@@ -40,6 +42,7 @@ import { collectTripPlanStationCodes, fetchTripPlan, TripPlanError, tripPlanStop
 import { apiQuery } from '@/lib/tripPlanTiming';
 import { TEMPLATE_DAYS } from '@/lib/templateRecurrence';
 import type {
+  BankHolidayDivision,
   CreateJourneyTemplateRequest,
   PlanOptions,
   StationBufferPrefill,
@@ -310,6 +313,11 @@ export function RegularJourneyForm() {
   const [returnKind, setReturnKind] = useState<TargetKind>('depart_after');
   const [returnTime, setReturnTime] = useState('');
   const [matchMode, setMatchMode] = useState<'manual' | 'auto'>('manual');
+  const [skipBankHolidays, setSkipBankHolidays] = useState(true);
+  const division = useBankHolidayDivision();
+  const [divisionChoice, setDivisionChoice] = useState<BankHolidayDivision>(DEFAULT_BANK_HOLIDAY_DIVISION);
+  // Asked once, inline: only while no division is saved (§8.3).
+  const askDivision = division === null;
   const [planOptions, setPlanOptions] = useState<PlanOptions | null>(null);
   const [usual, setUsual] = useState<UsualPick | null>(null);
   const [returnUsual, setReturnUsual] = useState<UsualPick | null>(null);
@@ -369,6 +377,27 @@ export function RegularJourneyForm() {
     setSaving(true);
     setError(null);
     needsLoginState.reset();
+    if (askDivision && skipBankHolidays) {
+      // The inline answer is the traveller's choice for every regular
+      // journey, so it is saved first, to Preferences.
+      try {
+        const response = await saveBankHolidayDivision(divisionChoice);
+        if (response.status === 401) {
+          needsLoginState.markNeedsLogin();
+          setSaving(false);
+          return;
+        }
+        if (!response.ok) {
+          setError(await failureFromResponse('save', 'your bank holidays', response));
+          setSaving(false);
+          return;
+        }
+      } catch {
+        setError(describeFailure('save', 'your bank holidays'));
+        setSaving(false);
+        return;
+      }
+    }
     const body: CreateJourneyTemplateRequest = {
       mode: 'plan',
       originCrs: origin,
@@ -381,6 +410,7 @@ export function RegularJourneyForm() {
       endsOn,
       defaultMatchMode: matchMode,
       stationBufferMinutes: buffer,
+      skipBankHolidays,
       return:
         withReturn && returnUsual
           ? {
@@ -467,6 +497,12 @@ export function RegularJourneyForm() {
           clearable
         />
       </Group>
+      <BankHolidaySwitch
+        checked={skipBankHolidays}
+        onChange={setSkipBankHolidays}
+        division={division}
+        ask={askDivision ? { value: divisionChoice, onChange: setDivisionChoice } : undefined}
+      />
       <Stack gap="xs">
         <Title order={2} size="h4">
           Your usual train
