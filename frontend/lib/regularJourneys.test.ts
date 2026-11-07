@@ -225,6 +225,7 @@ describe('trainChoicesQuery', () => {
       viaCrs: ['CLJ'],
       results: 'fastest',
       count: 5,
+      direct: 'all',
     });
     expect(
       trainChoicesQuery(
@@ -232,7 +233,14 @@ describe('trainChoicesQuery', () => {
         { kind: 'depart_after', time: '07:45', dayOffset: 0 },
         { operatorMode: 'only', operators: ['SW'] },
       ),
-    ).toMatchObject({ departAfter: '07:45', operatorMode: 'only', operators: ['SW'], results: 'fastest', count: 5 });
+    ).toMatchObject({
+      departAfter: '07:45',
+      operatorMode: 'only',
+      operators: ['SW'],
+      results: 'fastest',
+      count: 5,
+      direct: 'all',
+    });
   });
 
   it('keeps the options search for a route with stops to call at', () => {
@@ -243,6 +251,7 @@ describe('trainChoicesQuery', () => {
     );
     expect(query).toMatchObject({ waypointCrs: ['GLD'], results: 'options' });
     expect(query.count).toBeUndefined();
+    expect(query.direct).toBeUndefined();
   });
 });
 

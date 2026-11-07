@@ -194,8 +194,10 @@ export function earlierTrainsBound(
 }
 
 /** The `/Trips/plan` search behind "Find trains" for `bound`: up to
- * [`TRAIN_CHOICES_COUNT`] `fastest` trains in departure order, on the
- * date's own trains and clock, as the plan sweep searches them. A route
+ * [`TRAIN_CHOICES_COUNT`] trains in departure order (`direct=all`: every
+ * direct train, a stopping one overtaken by a faster one too, with the
+ * connecting journeys between), on the date's own trains and clock, as
+ * the plan sweep searches them. A route
  * with stops to call at can't be searched that way, so it keeps its
  * options search (and is picked on Plan a journey). `preferOperator`
  * only labels an option there, so it is left out. */
@@ -219,7 +221,7 @@ export function trainChoicesQuery(
     ...(bound.dayOffset === 1 ? { dayOffset: 1 as const } : {}),
     ...(waypoints.length > 0
       ? { results: 'options' as const }
-      : { results: 'fastest' as const, count: TRAIN_CHOICES_COUNT }),
+      : { results: 'fastest' as const, count: TRAIN_CHOICES_COUNT, direct: 'all' as const }),
   };
 }
 

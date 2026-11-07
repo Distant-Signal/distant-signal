@@ -179,6 +179,9 @@ export interface TripPlanQuery {
    * `acrossMidnight`: up to this many trains (1 to 8), in departure
    * order, each from a minute after the last (2026-11-07, DS-398). */
   count?: number | undefined;
+  /** With `count`: every direct train, stopping ones too, with the
+   * connecting journeys between (2026-11-08, DS-398). */
+  direct?: 'all' | undefined;
 }
 
 /** `GET /Trips/plan`'s own limits (`crates/api/src/routes/trips.rs`:
@@ -255,6 +258,7 @@ export function buildTripPlanQuery(query: TripPlanQuery): string {
   }
   if (query.count !== undefined) {
     params.set('count', String(query.count));
+    if (query.direct) params.set('direct', query.direct);
   }
   const operatorFilter = operatorFilterParam(query);
   if (operatorFilter) params.set(...operatorFilter);

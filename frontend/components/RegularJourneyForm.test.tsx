@@ -200,7 +200,7 @@ describe('RegularJourneyForm', () => {
     await screen.findByText(/Pick the one you usually take\./);
     expect(calls()[0]![0]).toMatch(/^\/api\/Trips\/plan\?origin=WOK&destination=WAT&date=2099-01-05&results=fastest/);
     expect(calls()[0]![0]).toContain('departAfter=07%3A45%3A00');
-    expect(calls()[0]![0]).toContain('count=5');
+    expect(calls()[0]![0]).toContain('count=5&direct=all');
     expect(calls()[0]![0]).not.toContain('dayOffset');
     pickOnlyTrain();
     expect(await screen.findByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
@@ -516,7 +516,7 @@ describe('RegularJourneyForm', () => {
     const later = calls().at(-1)![0];
     expect(later).toContain('results=fastest');
     expect(later).toContain('departAfter=08%3A49%3A00');
-    expect(later).toContain('count=5');
+    expect(later).toContain('count=5&direct=all');
     expect(later).not.toContain('arriveBy');
     expect(screen.queryByRole('radio', { name: /^08:03/ })).not.toBeInTheDocument();
     // Still the usual train.
@@ -528,7 +528,7 @@ describe('RegularJourneyForm', () => {
     await screen.findByRole('radio', { name: /^08:03/ });
     const earlier = calls().at(-1)![0];
     expect(earlier).toContain('arriveBy=09%3A34%3A00');
-    expect(earlier).toContain('count=5');
+    expect(earlier).toContain('count=5&direct=all');
     expect(earlier).not.toContain('departAfter');
     expect(trainAt('08:03')).toBeChecked();
 

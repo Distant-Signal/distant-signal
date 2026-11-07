@@ -452,6 +452,7 @@ test.describe('regular journeys', () => {
     await expect(page.getByText(/Pick the one you usually take\.$/)).toBeVisible();
     expect(searches[0]!.searchParams.get('results')).toBe('fastest');
     expect(searches[0]!.searchParams.get('count')).toBe('5');
+    expect(searches[0]!.searchParams.get('direct')).toBe('all');
     expect(searches[0]!.searchParams.get('departAfter')).toBe('07:55:00');
     for (const departs of ['08:00', '08:15', '08:30', '08:45', '09:00']) {
       await expect(page.getByRole('radio', { name: new RegExp(`^${departs} `) })).toBeAttached();
