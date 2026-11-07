@@ -8,10 +8,12 @@ import { PauseRegularJourneyButton } from '@/components/PauseRegularJourneyButto
 import { RunTemplateNowButton } from '@/components/RunTemplateNowButton';
 import { SkipNextButton } from '@/components/SkipNextButton';
 import { TextLink } from '@/components/TextLink';
+import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyNameInputFromLegs } from '@/lib/journeyName';
 import { REGULAR_JOURNEYS_HREF, regularJourneyHref, targetLabel, usualTrainSummary } from '@/lib/regularJourneys';
 import type { JourneyTemplateDetail } from '@/lib/types';
+import { dueDates } from '@/lib/upcomingDates';
 import type { Metadata } from 'next';
 
 export const revalidate = 0;
@@ -90,10 +92,22 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
           {template.pairedTemplateId !== null && (
             <TextLink href={regularJourneyHref(template.pairedTemplateId)}>The return journey</TextLink>
           )}
+          {recurring && template.active && (
+            <UpcomingDatesStrip
+              templateId={template.id}
+              pairedTemplateId={template.pairedTemplateId}
+              upcoming={template.upcomingDates}
+            />
+          )}
           {recurring && (
             <Group gap="xs" mt={4}>
               {template.active && template.nextDate && (
-                <SkipNextButton templateId={template.id} date={template.nextDate} paired={paired} />
+                <SkipNextButton
+                  templateId={template.id}
+                  date={template.nextDate}
+                  dates={dueDates(template.upcomingDates)}
+                  paired={paired}
+                />
               )}
               <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
             </Group>

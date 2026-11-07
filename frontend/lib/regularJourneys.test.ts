@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  nextMatchingDate,
   planOptionsFromQuery,
   queryOptionsFromPlan,
   regularJourneyCards,
@@ -16,23 +15,6 @@ describe('targetLabel', () => {
   it('says leave after or arrive by, with the next day when it is', () => {
     expect(targetLabel({ kind: 'depart_after', time: '07:45:00', dayOffset: 0 })).toBe('leave after 07:45');
     expect(targetLabel({ kind: 'arrive_by', time: '00:30', dayOffset: 1 })).toBe('arrive by 00:30 the next day');
-  });
-});
-
-describe('nextMatchingDate', () => {
-  // Monday 9 Nov 2026.
-  const monday = '2026-11-09';
-  it('finds the next chosen day on or after the start', () => {
-    expect(nextMatchingDate(31, null, null, monday)).toBe(monday);
-    // Saturdays only.
-    expect(nextMatchingDate(32, null, null, monday)).toBe('2026-11-14');
-    // Weekdays, starting on a Saturday.
-    expect(nextMatchingDate(31, '2026-11-14', null, monday)).toBe('2026-11-16');
-  });
-
-  it('is null past the end, or with no day chosen', () => {
-    expect(nextMatchingDate(32, null, '2026-11-13', monday)).toBeNull();
-    expect(nextMatchingDate(0, null, null, monday)).toBeNull();
   });
 });
 

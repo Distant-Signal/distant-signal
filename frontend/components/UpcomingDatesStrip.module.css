@@ -1,0 +1,8 @@
+/* Every date chip the same width, wider than its longest label ("Wed 30
+ * Sep" with its check mark), so the strip wraps the same way whichever
+ * dates it shows (and the visual screenshots, which mask the dates, keep
+ * their layout from day to day). */
+.label {
+  min-width: 7.25rem;
+  justify-content: center;
+}

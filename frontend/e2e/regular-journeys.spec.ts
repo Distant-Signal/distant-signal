@@ -87,6 +87,10 @@ test.describe('the old journey templates pages', () => {
 
 test.describe('regular journeys', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
+  // One at a time: each test's clean-up deletes the regular journeys the
+  // seed user has made, so a test running beside another would delete
+  // that one's mid-test.
+  test.describe.configure({ mode: 'serial' });
 
   test('makes a regular journey from Plan a journey', async ({ page, context }) => {
     await logIn(context);
@@ -187,6 +191,67 @@ test.describe('regular journeys', () => {
         const detail = await page.request.get(`/api/JourneyTemplates/${id}`);
         expect(((await detail.json()) as { skippedDates: string[] }).skippedDates).toEqual([]);
       }
+    } finally {
+      await deleteOwn(page);
+    }
+  });
+
+  test('switches its next dates off and on, skips several at once, and previews dates', async ({ page, context }) => {
+    await logIn(context);
+    const created = await page.request.post('/api/JourneyTemplates', {
+      data: {
+        mode: 'plan',
+        originCrs: 'KGX',
+        destinationCrs: 'EUS',
+        target: { kind: 'depart_after', time: '06:45', dayOffset: 0 },
+        usualItinerary: {
+          legs: [{ trainUid: 'W90501', originCrs: 'KGX', destinationCrs: 'EUS', departs: '06:50' }],
+        },
+        daysOfWeek: 127,
+        skipBankHolidays: false,
+      },
+    });
+    expect(created.ok(), await created.text()).toBe(true);
+    const { templateId } = (await created.json()) as { templateId: number };
+    const skipped = async () => {
+      const detail = await page.request.get(`/api/JourneyTemplates/${templateId}`);
+      return ((await detail.json()) as { skippedDates: string[] }).skippedDates;
+    };
+
+    try {
+      await page.goto(`/journeys/regular/${templateId}`);
+      const dates = page.getByRole('group', { name: 'Next dates' });
+      // Every day: the next 8 days, each on.
+      await expect(dates.getByRole('checkbox')).toHaveCount(8);
+      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      expect(axe.violations).toEqual([]);
+
+      const second = dates.getByRole('checkbox').nth(1);
+      // Mantine's chip hides its input: the label is what a person taps.
+      const secondLabel = dates.locator('label').nth(1);
+      await expect(second).toBeChecked();
+      await secondLabel.click();
+      await expect(second).not.toBeChecked();
+      await expect(dates.getByText('Skipped')).toBeVisible();
+      await expect.poll(skipped).toHaveLength(1);
+      await secondLabel.click();
+      await expect(second).toBeChecked();
+      await expect.poll(skipped).toEqual([]);
+
+      await page.getByRole('button', { name: 'Skip next' }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('combobox', { name: 'How many dates' }).selectOption('3');
+      await expect(dialog).toHaveAccessibleName('Skip 3 dates?');
+      await dialog.getByRole('button', { name: 'Skip 3 dates' }).click();
+      await expect(page.getByText(/^Skipped 3 dates, from /)).toBeVisible();
+      expect(await skipped()).toHaveLength(3);
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(page.getByRole('button', { name: 'Skip next' })).toBeVisible();
+      expect(await skipped()).toEqual([]);
+
+      // The form's preview comes from the same rule.
+      await page.goto('/journeys/regular/new');
+      await expect(page.getByText(/^Next dates: /)).toBeVisible();
     } finally {
       await deleteOwn(page);
     }

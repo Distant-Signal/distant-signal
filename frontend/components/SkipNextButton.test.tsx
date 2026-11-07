@@ -11,10 +11,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
-function skipped(templateIds: number[]) {
-  return new Response(JSON.stringify({ serviceDate: '2026-11-10', templateIds, deletedJourneyIds: [] }), {
-    status: 200,
-  });
+function skipped(templateIds: number[], serviceDates: string[] = ['2026-11-10']) {
+  return new Response(
+    JSON.stringify({ serviceDate: serviceDates[0], serviceDates, templateIds, deletedJourneyIds: [] }),
+    { status: 200 },
+  );
 }
 
 describe('SkipNextButton', () => {
@@ -93,5 +94,35 @@ describe('SkipNextButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip next' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Skip 10 Nov 2026' }));
     expect(await screen.findByText("Couldn't skip this journey. Try again.")).toBeInTheDocument();
+  });
+
+  it('skips the next few dates at once, and undoes them all', async () => {
+    const fetchMock = vi.mocked(fetch);
+    const dates = ['2026-11-10', '2026-11-11', '2026-11-12'];
+    fetchMock.mockResolvedValueOnce(skipped([5, 6], dates));
+    renderWithMantine(<SkipNextButton templateId={5} date="2026-11-10" dates={dates} paired />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip next' }));
+    const howMany = await screen.findByRole('combobox', { name: 'How many dates' });
+    expect(screen.getByRole('option', { name: 'Only 10 Nov 2026' })).toBeInTheDocument();
+    fireEvent.change(howMany, { target: { value: '3' } });
+    expect(screen.getByRole('dialog', { name: 'Skip 3 dates?' })).toBeInTheDocument();
+    expect(screen.getByText('From 10 Nov 2026 up to 12 Nov 2026.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip 3 dates' }));
+
+    expect(await screen.findByText('Skipped 3 dates, from 10 Nov 2026 up to 12 Nov 2026.')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/JourneyTemplates/5/skip',
+      expect.objectContaining({ body: JSON.stringify({ serviceDates: dates, pair: true }) }),
+    );
+
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Skip next' })).toBeInTheDocument());
+    for (const id of [5, 6]) {
+      for (const date of dates) {
+        expect(fetchMock).toHaveBeenCalledWith(`/api/JourneyTemplates/${id}/skip/${date}`, { method: 'DELETE' });
+      }
+    }
   });
 });
