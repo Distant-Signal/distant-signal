@@ -78,7 +78,7 @@ export default async function PreferencesPage() {
           <ClaudeKeySection />
           {connectedApps && (
             <PreferencesSection id="connected-apps-heading" title="Connected apps">
-              <ConnectedApps data={connectedApps} headingOrder={3} showTitle={false} />
+              <ConnectedApps data={connectedApps} headingOrder={3} showTitle={false} landmark={false} />
             </PreferencesSection>
           )}
         </>

@@ -316,8 +316,8 @@ test.describe('regular journeys', () => {
       await page.goto('/account/preferences');
       const section = page.getByRole('region', { name: 'Time away' });
       await expect(section.getByText(/^E2E away: /)).toBeVisible();
-      // The new card only: the page's own sweep is accessibility.spec.ts's.
-      const prefsAxe = await new AxeBuilder({ page }).include('[aria-labelledby="time-away-heading"]').analyze();
+      // The whole page, with the new card's period and Connected apps on it.
+      const prefsAxe = await new AxeBuilder({ page }).analyze();
       expect(prefsAxe.violations).toEqual([]);
       await expect.poll(async () => (await detail()).upcomingDates[1]!.skipReason).toBe('away');
 
