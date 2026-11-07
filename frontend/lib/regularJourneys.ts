@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { LONDON_TZ, londonToday } from './londonWallClock';
+import { weekdayPlural } from './templateRecurrence';
 import { operatorFilterParam, setListParams, trainLegsForTracking, type TripPlanQuery } from './tripPlan';
 import { itineraryLegsForSaving } from './tripPlanSave';
 import type {
@@ -22,6 +23,14 @@ export const NEW_REGULAR_JOURNEY_HREF = '/journeys/regular/new';
 
 export function regularJourneyHref(id: number): string {
   return `${REGULAR_JOURNEYS_HREF}/${id}`;
+}
+
+/** A regular journey's different times on some days (R3), as its card and
+ * page read them: "Fridays: leave after 06:45, Sundays: arrive by 13:00";
+ * `null` for none. */
+export function dayOverridesSummary(overrides: readonly { weekday: number; target: TemplateTarget }[]): string | null {
+  if (overrides.length === 0) return null;
+  return overrides.map((item) => `${weekdayPlural(item.weekday)}: ${targetLabel(item.target)}`).join(', ');
 }
 
 /** "leave after 07:45" or "arrive by 08:30" (a target's own words, lower

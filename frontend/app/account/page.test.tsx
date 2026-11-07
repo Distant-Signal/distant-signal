@@ -24,6 +24,7 @@ describe('AccountPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -41,6 +42,7 @@ describe('AccountPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -59,6 +61,7 @@ describe('AccountPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());

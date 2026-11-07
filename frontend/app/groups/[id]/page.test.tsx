@@ -142,6 +142,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -201,6 +202,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -265,6 +267,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -335,6 +338,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -401,6 +405,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -442,6 +447,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -480,6 +486,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -511,6 +518,7 @@ describe('GroupDetailPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -608,6 +616,7 @@ describe('GroupDetailPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -724,6 +733,7 @@ describe('GroupDetailPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -773,6 +783,7 @@ describe('GroupDetailPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -858,6 +869,7 @@ describe('GroupDetailPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -1001,6 +1013,7 @@ describe('GroupDetailPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));

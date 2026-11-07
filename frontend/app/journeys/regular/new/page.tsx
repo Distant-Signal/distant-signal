@@ -12,7 +12,9 @@ export const metadata: Metadata = { title: 'New regular journey', robots: { inde
  * journey from scratch, or from Plan a journey's "Make this a regular
  * journey" with its route and train filled in. Planning needs no account;
  * saving asks to log in. Every few weeks and chosen dates are offered
- * once the api has them on (`regularJourneyRecurrenceEnabled`). */
+ * once the api has them on (`regularJourneyRecurrenceEnabled`), and a
+ * different time on some days once it has that on
+ * (`regularJourneyDayOverridesEnabled`). */
 export default async function NewRegularJourneyPage() {
   const session = await getSessionOrLoggedOut();
   return (
@@ -22,7 +24,10 @@ export default async function NewRegularJourneyPage() {
       </TextLink>
       <Title order={1}>New regular journey</Title>
       <Text c="dimmed">A journey you make often. We add it to your journeys the evening before each day it runs.</Text>
-      <RegularJourneyForm recurrenceEnabled={session.regularJourneyRecurrenceEnabled} />
+      <RegularJourneyForm
+        recurrenceEnabled={session.regularJourneyRecurrenceEnabled}
+        dayOverridesEnabled={session.regularJourneyDayOverridesEnabled}
+      />
       <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );

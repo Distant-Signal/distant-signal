@@ -13,6 +13,7 @@ import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyNameInputFromLegs } from '@/lib/journeyName';
 import { REGULAR_JOURNEYS_HREF, regularJourneyHref, targetLabel, usualTrainSummary } from '@/lib/regularJourneys';
+import { weekdayPlural } from '@/lib/templateRecurrence';
 import { runsByItself } from '@/lib/templateRecurrence';
 import type { JourneyTemplateDetail } from '@/lib/types';
 import { dueDates } from '@/lib/upcomingDates';
@@ -70,6 +71,12 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
   if (template.originCrs && template.originName) names.set(template.originCrs, template.originName);
   if (template.destinationCrs && template.destinationName) names.set(template.destinationCrs, template.destinationName);
   const usual = usualTrainSummary(template.usualItinerary, (code) => names.get(code));
+  // A different time on some days (R3): each weekday's target and train.
+  const otherTimes = template.dayOverrides.map((item) => ({
+    weekday: item.weekday,
+    target: targetLabel(item.target),
+    usual: usualTrainSummary(item.usualItinerary, (code) => names.get(code)),
+  }));
   return (
     <Stack p="lg" gap="md">
       <TextLink href={REGULAR_JOURNEYS_HREF} underline="always">
@@ -82,7 +89,7 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
           <DeleteJourneyTemplateButton templateId={template.id} />
         </Group>
       </Group>
-      {(recurring || usual || paired) && (
+      {(recurring || usual || paired || otherTimes.length > 0) && (
         <Stack gap={4}>
           {recurring && (
             <Text size="sm">
@@ -94,6 +101,12 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
             </Text>
           )}
           {usual && <Text size="sm">Your usual train: {usual}</Text>}
+          {otherTimes.map((item) => (
+            <Text key={item.weekday} size="sm" data-day-override>
+              {weekdayPlural(item.weekday)}: {item.target}
+              {item.usual && `. Your usual train: ${item.usual}`}
+            </Text>
+          ))}
           {template.pairedTemplateId !== null && (
             <TextLink href={regularJourneyHref(template.pairedTemplateId)}>The return journey</TextLink>
           )}

@@ -11,7 +11,13 @@ import { bankHolidayNote } from '@/lib/bankHolidays';
 import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyRouteLabel, type JourneyNameInput } from '@/lib/journeyName';
-import { NEW_REGULAR_JOURNEY_HREF, regularJourneyCards, regularJourneyHref, targetLabel } from '@/lib/regularJourneys';
+import {
+  dayOverridesSummary,
+  NEW_REGULAR_JOURNEY_HREF,
+  regularJourneyCards,
+  regularJourneyHref,
+  targetLabel,
+} from '@/lib/regularJourneys';
 import { patternSummary, runsByItself } from '@/lib/templateRecurrence';
 import type { JourneyTemplateListItem } from '@/lib/types';
 import { dueDates } from '@/lib/upcomingDates';
@@ -97,6 +103,8 @@ function TemplateFacts({ template }: { template: JourneyTemplateListItem }) {
   const next = recurring && !paused && template.nextDate ? formatDate(`${template.nextDate}T12:00:00Z`) : null;
   // "Next: 1 Jun 2027 (31 May 2027 is a bank holiday)" (§8.3).
   const holidays = next ? bankHolidayNote(template.nextSkips) : null;
+  // "Fridays: leave after 06:45" (R3).
+  const otherTimes = recurring ? dayOverridesSummary(template.dayOverrides) : null;
   return (
     <>
       {template.customName?.trim() && (
@@ -118,6 +126,11 @@ function TemplateFacts({ template }: { template: JourneyTemplateListItem }) {
           </>
         )}
       </Text>
+      {otherTimes && (
+        <Text size="sm" c="dimmed" data-day-overrides>
+          {otherTimes}
+        </Text>
+      )}
       {!template.target && (
         <Text size="xs" c="dimmed">
           {template.legCount} {template.legCount === 1 ? 'leg' : 'legs'} · saved {formatDate(template.createdAt)}

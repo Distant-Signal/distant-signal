@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { nextRunLabel, patternSummary, recurrenceSummary, runsByItself } from './templateRecurrence';
+import {
+  isoWeekdayOf,
+  isoWeekdayOfKey,
+  nextDateOnWeekday,
+  nextRunLabel,
+  patternSummary,
+  recurrenceSummary,
+  runsByItself,
+  weekdayPlural,
+} from './templateRecurrence';
 
 describe('recurrenceSummary', () => {
   it('names the common patterns', () => {
@@ -58,5 +67,23 @@ describe('patternSummary', () => {
     expect(runsByItself({ ...weekly, daysOfWeek: null })).toBe(false);
     expect(runsByItself({ ...weekly, daysOfWeek: null, extraDates: ['a'] })).toBe(true);
     expect(runsByItself({ ...weekly, daysOfWeek: null, recurrenceKind: 'dates', extraDates: ['a'] })).toBe(true);
+  });
+});
+
+describe('ISO weekdays (a different time on some days)', () => {
+  it('names and numbers them Monday 1 to Sunday 7', () => {
+    expect([1, 5, 7].map(weekdayPlural)).toEqual(['Mondays', 'Fridays', 'Sundays']);
+    expect(['mon', 'fri', 'sun'].map(isoWeekdayOfKey)).toEqual([1, 5, 7]);
+    // Fri 13 Nov 2026, Sun 25 Oct 2026 (the clock change), Mon 29 Mar 2027.
+    expect(['2026-11-13', '2026-10-25', '2027-03-29'].map(isoWeekdayOf)).toEqual([5, 7, 1]);
+  });
+
+  it('finds the next date on a weekday, today included', () => {
+    expect(nextDateOnWeekday('2026-11-10', 5)).toBe('2026-11-13');
+    expect(nextDateOnWeekday('2026-11-13', 5)).toBe('2026-11-13');
+    expect(nextDateOnWeekday('2026-11-14', 5)).toBe('2026-11-20');
+    // Across the October clock change and a year end.
+    expect(nextDateOnWeekday('2026-10-24', 7)).toBe('2026-10-25');
+    expect(nextDateOnWeekday('2026-12-30', 1)).toBe('2027-01-04');
   });
 });

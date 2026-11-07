@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { RegularJourneyForm } from './RegularJourneyForm';
 import { londonToday } from '@/lib/londonWallClock';
+import { nextDateOnWeekday } from '@/lib/templateRecurrence';
 import type { TripPlanResponse } from '@/lib/types';
 import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
@@ -568,5 +569,67 @@ describe('RegularJourneyForm', () => {
     const search = calls()[0]![0];
     expect(search).toContain('maxChanges=1');
     expect(search).not.toContain('preferOperator');
+  });
+
+  it('offers no different time on some days unless the api has it on', () => {
+    routeFetch({}, {}, () => json({}));
+    renderWithMantine(<RegularJourneyForm />);
+    expect(screen.queryByRole('switch', { name: /Different time on some days/ })).toBeNull();
+  });
+
+  it('takes Fridays an hour earlier, with their own train, and saves it', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    const calls = routeFetch({}, { WOK: json(plan('W11111', 'WOK', 'WAT', '06:48')) }, () =>
+      json({ templateId: 5, returnTemplateId: null }),
+    );
+    renderWithMantine(<RegularJourneyForm dayOverridesEnabled />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('switch', { name: /Different time on some days/ }));
+    // The last of the days, Friday, to start; one row can't be saved yet.
+    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveValue('Fridays');
+    expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeDisabled();
+    expect(screen.getByText('Choose a time first.')).toBeInTheDocument();
+    fireEvent.change(screen.getAllByLabelText('Time')[1]!, { target: { value: '06:45' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
+    await screen.findByText(/Pick the one you usually take\./);
+    // The next Friday's trains.
+    const friday = nextDateOnWeekday(londonToday(), 5);
+    expect(calls()[0]![0]).toContain(`origin=WOK&destination=WAT&date=${friday}`);
+    expect(calls()[0]![0]).toContain('departAfter=06%3A45%3A00');
+    pickOnlyTrain();
+    expect(await screen.findByText('Your usual train on Fridays: 06:48 Woking to London Waterloo')).toBeInTheDocument();
+
+    // Every day is offered once: Monday to Thursday are left to add.
+    fireEvent.click(screen.getByRole('button', { name: 'Add another day' }));
+    expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the different time on Thursdays' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
+    const saved = calls().find(([url]) => url === '/api/JourneyTemplates');
+    expect(JSON.parse(String(saved![1]!.body))).toMatchObject({
+      target: { kind: 'depart_after', time: '07:45' },
+      dayOverrides: [
+        {
+          weekday: 5,
+          target: { kind: 'depart_after', time: '06:45', dayOffset: 0 },
+          usualItinerary: { legs: [expect.objectContaining({ trainUid: 'W11111', departs: '06:48' })] },
+        },
+      ],
+    });
+  });
+
+  it('sends no different time when the switch is off', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    const calls = routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }));
+    renderWithMantine(<RegularJourneyForm dayOverridesEnabled />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('switch', { name: /Different time on some days/ }));
+    fireEvent.click(screen.getByRole('switch', { name: /Different time on some days/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
+    const saved = calls().find(([url]) => url === '/api/JourneyTemplates');
+    expect(JSON.parse(String(saved![1]!.body))).not.toHaveProperty('dayOverrides');
   });
 });

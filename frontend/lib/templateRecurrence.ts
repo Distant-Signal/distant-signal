@@ -85,3 +85,31 @@ export function runsByItself(pattern: TemplatePattern): boolean {
   if (pattern.recurrenceKind !== 'weekly') return true;
   return (pattern.daysOfWeek !== null && pattern.daysOfWeek !== 0) || pattern.extraDates.length > 0;
 }
+
+/** "Mondays" to "Sundays" for an ISO weekday, 1 Monday to 7 Sunday (a
+ * day override's `weekday`, R3; not `daysOfWeek`'s bits). */
+export function weekdayPlural(weekday: number): string {
+  return (
+    ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'][weekday - 1] ?? 'Sundays'
+  );
+}
+
+/** The ISO weekday (1 Monday to 7 Sunday) of a `TEMPLATE_DAYS` key. */
+export function isoWeekdayOfKey(key: string): number {
+  return TEMPLATE_DAYS.findIndex((day) => day.key === key) + 1;
+}
+
+/** The ISO weekday of a London date (`YYYY-MM-DD`). */
+export function isoWeekdayOf(date: string): number {
+  // Midday UTC is the same calendar day in London all year.
+  return ((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7) + 1;
+}
+
+/** The first date on or after `from` (`YYYY-MM-DD`) that falls on ISO
+ * weekday `weekday`. */
+export function nextDateOnWeekday(from: string, weekday: number): string {
+  const ahead = (weekday - isoWeekdayOf(from) + 7) % 7;
+  const day = new Date(`${from}T12:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + ahead);
+  return day.toISOString().slice(0, 10);
+}

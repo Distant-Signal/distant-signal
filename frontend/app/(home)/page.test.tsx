@@ -95,6 +95,7 @@ beforeEach(() => {
     groups: [],
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
+    regularJourneyDayOverridesEnabled: false,
     analyticsOptIn: false,
   });
   vi.mocked(api.getPreferences).mockResolvedValue({
@@ -142,6 +143,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -177,6 +179,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await DashboardPage());
@@ -192,6 +195,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -223,6 +227,7 @@ describe('DashboardPage', () => {
             groups: [],
             personalTokensEnabled: false,
             regularJourneyRecurrenceEnabled: false,
+            regularJourneyDayOverridesEnabled: false,
             analyticsOptIn: false,
           }
         : {
@@ -233,6 +238,7 @@ describe('DashboardPage', () => {
             groups: [],
             personalTokensEnabled: false,
             regularJourneyRecurrenceEnabled: false,
+            regularJourneyDayOverridesEnabled: false,
             analyticsOptIn: false,
           },
     );
@@ -257,6 +263,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -295,6 +302,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -331,6 +339,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -361,6 +370,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -396,6 +406,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -436,6 +447,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -461,6 +473,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -488,6 +501,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -515,6 +529,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -548,6 +563,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -576,6 +592,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -601,6 +618,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -627,6 +645,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -665,6 +684,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -691,6 +711,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -724,6 +745,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -751,6 +773,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -919,6 +942,7 @@ describe('DashboardPage', () => {
         groups: [],
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
+        regularJourneyDayOverridesEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -955,6 +979,7 @@ describe('DashboardPage', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -993,6 +1018,7 @@ describe('DashboardPage -- outage behaviour', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
@@ -1012,6 +1038,7 @@ describe('DashboardPage -- outage behaviour', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -1031,6 +1058,7 @@ describe('DashboardPage -- outage behaviour', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1069,6 +1097,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1158,6 +1187,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     groups: [],
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
+    regularJourneyDayOverridesEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1179,6 +1209,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1328,6 +1359,7 @@ describe('DashboardPage -- Your Operators section', () => {
     groups: [],
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
+    regularJourneyDayOverridesEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1411,6 +1443,7 @@ describe('DashboardPage -- Your Operators section', () => {
       groups: [],
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
       analyticsOptIn: false,
     });
     // This mock's call count accumulates across every earlier test in this
@@ -1539,6 +1572,7 @@ describe('DashboardPage -- journey sections', () => {
     groups: [],
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
+    regularJourneyDayOverridesEnabled: false,
     analyticsOptIn: false,
   };
 
