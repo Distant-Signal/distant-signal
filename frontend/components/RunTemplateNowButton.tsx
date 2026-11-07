@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, Button, Modal, Stack } from '@mantine/core';
+import { Alert, Button, Modal, Stack, Text } from '@mantine/core';
 import { DateInput } from '@/components/LazyDateFields';
 import { useDisclosure } from '@mantine/hooks';
-import { nowInLondon } from '@/lib/londonWallClock';
-import { PICKER_DATE_FORMAT } from '@/lib/dateFormat';
+import { addCalendarDays, nowInLondon } from '@/lib/londonWallClock';
+import { PICKER_DATE_FORMAT, formatDate } from '@/lib/dateFormat';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
-import type { MaterializeTemplateRequest, MaterializeTemplateResponse } from '@/lib/types';
+import type { AddTemplateExtraDateRequest, MaterializeTemplateRequest, MaterializeTemplateResponse } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 
 /** "Add a date" (was "Run now") — the manual, on-demand materialization trigger
@@ -24,9 +24,21 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
  * Call 7 — so this component adds no "already ran today" guard of its
  * own. On success, navigates straight to the freshly-minted journey's own
  * detail page (`/journeys/{journeyId}`) — the natural next step is
- * picking a candidate for each newly-unmatched leg there. */
-export function RunTemplateNowButton({ templateId }: { templateId: number }) {
+ * picking a candidate for each newly-unmatched leg there.
+ *
+ * With `keepLaterDates` (R2, decision 6), a date after tomorrow is kept
+ * instead (`POST /JourneyTemplates/{id}/extra-dates`): the journey is
+ * added the evening before, like the regular journey's other dates, and
+ * the page says so. */
+export function RunTemplateNowButton({
+  templateId,
+  keepLaterDates = false,
+}: {
+  templateId: number;
+  keepLaterDates?: boolean;
+}) {
   const router = useRouter();
+  const [kept, setKept] = useState<string | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [serviceDate, setServiceDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +47,7 @@ export function RunTemplateNowButton({ templateId }: { templateId: number }) {
 
   function handleOpen() {
     setServiceDate(nowInLondon().format('YYYY-MM-DD'));
+    setKept(null);
     setError(null);
     needsLoginState.reset();
     open();
@@ -49,6 +62,11 @@ export function RunTemplateNowButton({ templateId }: { templateId: number }) {
     setSubmitting(true);
     setError(null);
     needsLoginState.reset();
+    const tomorrow = addCalendarDays(nowInLondon().format('YYYY-MM-DD'), 1);
+    if (keepLaterDates && serviceDate > tomorrow) {
+      await keepDate();
+      return;
+    }
     try {
       const body: MaterializeTemplateRequest = { serviceDate };
       const response = await fetch(`/api/JourneyTemplates/${templateId}/materialize`, {
@@ -75,9 +93,37 @@ export function RunTemplateNowButton({ templateId }: { templateId: number }) {
     }
   }
 
+  async function keepDate() {
+    try {
+      const body: AddTemplateExtraDateRequest = { serviceDate };
+      const response = await fetch(`/api/JourneyTemplates/${templateId}/extra-dates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        if (response.status === 401) needsLoginState.markNeedsLogin();
+        else setError(await failureFromResponse('add', 'this date', response));
+        return;
+      }
+      close();
+      setKept(serviceDate);
+      router.refresh();
+    } catch {
+      setError(describeFailure('add', 'this date'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <>
       <Button onClick={handleOpen}>Add a date</Button>
+      {kept && (
+        <Text size="sm" role="status">
+          Added {formatDate(`${kept}T12:00:00Z`)}. The journey is added the evening before.
+        </Text>
+      )}
       <Modal opened={opened} onClose={close} title="Add a date">
         <Stack>
           {/* Was free text with a "YYYY-MM-DD" placeholder, which showed

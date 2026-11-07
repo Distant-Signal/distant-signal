@@ -23,6 +23,7 @@ describe('AccountPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -39,6 +40,7 @@ describe('AccountPage', () => {
       name: 'Ada',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -56,6 +58,7 @@ describe('AccountPage', () => {
       name: 'Ada',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());

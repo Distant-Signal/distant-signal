@@ -331,6 +331,66 @@ test.describe('regular journeys', () => {
     }
   });
 
+  test('repeats every other week or on chosen dates, and keeps a later date', async ({ page, context }) => {
+    await logIn(context);
+    const created = await page.request.post('/api/JourneyTemplates', {
+      data: {
+        mode: 'plan',
+        originCrs: 'KGX',
+        destinationCrs: 'EUS',
+        target: { kind: 'depart_after', time: '06:15', dayOffset: 0 },
+        usualItinerary: {
+          legs: [{ trainUid: 'W90901', originCrs: 'KGX', destinationCrs: 'EUS', departs: '06:20' }],
+        },
+        daysOfWeek: 5,
+        intervalWeeks: 2,
+        anchorWeek: new Date().toISOString().slice(0, 10),
+        skipBankHolidays: false,
+      },
+    });
+    expect(created.ok(), await created.text()).toBe(true);
+    const { templateId } = (await created.json()) as { templateId: number };
+
+    try {
+      await page.goto('/journeys/regular');
+      await expect(page.getByText(/^Mon, Wed, every other week/).first()).toBeVisible();
+
+      // "Add a date" ten days ahead keeps the date for the evening before.
+      await page.goto(`/journeys/regular/${templateId}`);
+      await page.getByRole('button', { name: 'Add a date' }).click();
+      const later = new Date(Date.now() + 10 * 24 * 3600 * 1000);
+      const shown = later.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Europe/London',
+      });
+      const field = page.getByRole('dialog', { name: 'Add a date' }).getByLabel('Date');
+      await field.fill(shown);
+      await field.blur();
+      await page.getByRole('button', { name: 'Add journey' }).click();
+      await expect(page.getByText(/The journey is added the evening before\.$/)).toBeVisible();
+      const detail = (await (await page.request.get(`/api/JourneyTemplates/${templateId}`)).json()) as {
+        extraDates: string[];
+      };
+      expect(detail.extraDates).toHaveLength(1);
+
+      // The form: every other week asks which week, a list of dates asks for dates.
+      await page.goto('/journeys/regular/new');
+      await page.getByRole('combobox', { name: 'Repeats' }).click();
+      await page.getByRole('option', { name: 'Every other week' }).click();
+      await expect(page.getByRole('radio', { name: 'Starting this week' })).toBeChecked();
+      await expect(page.getByText(/^Next dates: /)).toBeVisible();
+      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      expect(axe.violations).toEqual([]);
+      await page.getByRole('combobox', { name: 'Repeats' }).click();
+      await page.getByRole('option', { name: 'On dates I choose' }).click();
+      await expect(page.getByText('Choose at least one date.')).toBeVisible();
+    } finally {
+      await page.request.delete(`/api/JourneyTemplates/${templateId}`);
+    }
+  });
+
   test('a regular journey page passes axe', async ({ page, context }) => {
     await logIn(context);
     await page.goto('/journeys/regular/900201');

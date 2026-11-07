@@ -10,13 +10,14 @@ import {
   InputLabel,
   Radio,
   SegmentedControl,
+  Select,
   Stack,
   Switch,
   Text,
   Title,
 } from '@mantine/core';
 import { TimeInput } from '@mantine/dates';
-import { DateInput } from '@/components/LazyDateFields';
+import { DateInput, DatePickerInput } from '@/components/LazyDateFields';
 import { BankHolidaySwitch, useBankHolidayDivision } from './BankHolidaySwitch';
 import { ItineraryOption } from './ItineraryOption';
 import { LoginPromptModal } from './LoginPromptModal';
@@ -28,7 +29,7 @@ import { ButtonSpinner } from '@/components/LoadingText';
 import { DEFAULT_BANK_HOLIDAY_DIVISION, saveBankHolidayDivision } from '@/lib/bankHolidays';
 import { formatDate, PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
-import { londonToday } from '@/lib/londonWallClock';
+import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import {
   queryOptionsFromPlan,
   REGULAR_JOURNEYS_HREF,
@@ -306,6 +307,36 @@ function useStationBuffer(crs: string): [number | null, (minutes: number | null)
   ];
 }
 
+/** How a regular journey repeats (R2), as the form offers it: every week,
+ * every 2 to 4 weeks, or on dates chosen one by one. */
+type Repeat = '1' | '2' | '3' | '4' | 'dates';
+
+const REPEAT_OPTIONS: { value: Repeat; label: string }[] = [
+  { value: '1', label: 'Every week' },
+  { value: '2', label: 'Every other week' },
+  { value: '3', label: 'Every 3 weeks' },
+  { value: '4', label: 'Every 4 weeks' },
+  { value: 'dates', label: 'On dates I choose' },
+];
+
+/** The pattern fields `POST /JourneyTemplates` and the preview take; empty
+ * for every week, so a form without the option sends nothing new. */
+type PatternFields = Pick<PreviewDatesRequest, 'recurrenceKind' | 'intervalWeeks' | 'anchorWeek' | 'extraDates'>;
+
+/** London's Monday of this week, or of next week. */
+function mondayOf(week: 'this' | 'next'): string {
+  const today = londonToday();
+  // Midday UTC is the same calendar day in London all year.
+  const sinceMonday = (new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7;
+  return addCalendarDays(today, (week === 'next' ? 7 : 0) - sinceMonday);
+}
+
+function patternFields(repeat: Repeat, startWeek: 'this' | 'next', dates: string[]): PatternFields {
+  if (repeat === 'dates') return { recurrenceKind: 'dates', extraDates: [...dates].sort() };
+  if (repeat === '1') return {};
+  return { intervalWeeks: Number(repeat), anchorWeek: mondayOf(startWeek) };
+}
+
 /** How many dates the form previews. */
 const PREVIEW_COUNT = 4;
 
@@ -326,10 +357,18 @@ function useDatesPreview(
   startsOn: string | null,
   endsOn: string | null,
   skipBankHolidays: boolean,
+  pattern: PatternFields,
 ): DatesPreview | null {
   const [preview, setPreview] = useState<DatesPreview | null>(null);
+  // The pattern by value, so a new object with the same fields asks nothing.
+  const patternKey = JSON.stringify(pattern);
   useEffect(() => {
-    if (mask === 0 || (startsOn && endsOn && startsOn > endsOn)) {
+    const listed = pattern.recurrenceKind === 'dates';
+    if (
+      (mask === 0 && !listed) ||
+      (listed && (pattern.extraDates ?? []).length === 0) ||
+      (startsOn && endsOn && startsOn > endsOn)
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- nothing to ask: clear the last answer
       setPreview(null);
       return undefined;
@@ -340,11 +379,12 @@ function useDatesPreview(
     const timer = setTimeout(() => {
       void (async () => {
         const body: PreviewDatesRequest = {
-          daysOfWeek: mask,
+          daysOfWeek: listed ? null : mask,
           startsOn,
           endsOn,
           skipBankHolidays,
           count: PREVIEW_COUNT,
+          ...pattern,
         };
         try {
           const response = await fetch('/api/JourneyTemplates/preview-dates', {
@@ -370,7 +410,8 @@ function useDatesPreview(
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [mask, startsOn, endsOn, skipBankHolidays]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `patternKey` stands for `pattern`
+  }, [mask, startsOn, endsOn, skipBankHolidays, patternKey]);
   return preview;
 }
 
@@ -405,13 +446,21 @@ function DatesPreviewLine({ preview }: { preview: DatesPreview | null }) {
   );
 }
 
-export function RegularJourneyForm() {
+export function RegularJourneyForm({
+  recurrenceEnabled = false,
+}: {
+  /** Offer every few weeks and chosen dates (`regularJourneyRecurrenceEnabled`). */
+  recurrenceEnabled?: boolean;
+} = {}) {
   const router = useRouter();
   const [originCrs, setOriginCrs] = useState('');
   const [destinationCrs, setDestinationCrs] = useState('');
   const [kind, setKind] = useState<TargetKind>('depart_after');
   const [time, setTime] = useState('');
   const [days, setDays] = useState<string[]>(WEEKDAY_KEYS);
+  const [repeat, setRepeat] = useState<Repeat>('1');
+  const [startWeek, setStartWeek] = useState<'this' | 'next'>('this');
+  const [chosenDates, setChosenDates] = useState<string[]>([]);
   const [startsOn, setStartsOn] = useState<string | null>(null);
   const [endsOn, setEndsOn] = useState<string | null>(null);
   const [withReturn, setWithReturn] = useState(false);
@@ -447,14 +496,17 @@ export function RegularJourneyForm() {
   const [buffer, setBuffer] = useStationBuffer(originCrs.trim().toUpperCase());
   const [returnBuffer, setReturnBuffer] = useStationBuffer(withReturn ? destinationCrs.trim().toUpperCase() : '');
   const mask = daysMask(days);
+  const listed = recurrenceEnabled && repeat === 'dates';
+  const pattern = recurrenceEnabled ? patternFields(repeat, startWeek, chosenDates) : {};
   // No days is a saved route: its trains are picked from the next day
   // of any day of the week, with no bank holiday passed over.
-  const savedRoute = mask === 0;
+  const savedRoute = mask === 0 && !listed;
   const preview = useDatesPreview(
     savedRoute ? ALL_DAYS_MASK : mask,
     startsOn,
     endsOn,
     savedRoute ? false : skipBankHolidays,
+    savedRoute ? {} : pattern,
   );
   const date = preview?.status === 'ready' ? preview.result.nextDate : null;
   const origin = originCrs.trim().toUpperCase();
@@ -490,7 +542,10 @@ export function RegularJourneyForm() {
   }
 
   const canSave =
-    outboundQuery !== null && usual !== null && (!withReturn || (returnQuery !== null && returnUsual !== null));
+    !(listed && chosenDates.length === 0) &&
+    outboundQuery !== null &&
+    usual !== null &&
+    (!withReturn || (returnQuery !== null && returnUsual !== null));
 
   async function handleSave() {
     if (!outboundQuery || !usual || !canSave) return;
@@ -525,7 +580,8 @@ export function RegularJourneyForm() {
       target: { kind, time, dayOffset: 0 },
       planOptions,
       usualItinerary: usual.itinerary,
-      daysOfWeek: mask === 0 ? null : mask,
+      daysOfWeek: mask === 0 || listed ? null : mask,
+      ...pattern,
       startsOn,
       endsOn,
       defaultMatchMode: matchMode,
@@ -580,25 +636,70 @@ export function RegularJourneyForm() {
         clockHint
       />
       <StationBufferField value={buffer} onChange={setBuffer} />
-      <Stack gap={4}>
-        <Text size="sm" fw={500} id={`${daysLabelId}-days`}>
-          Days
-        </Text>
-        <Chip.Group multiple value={days} onChange={setDays}>
-          <Group gap="xs" role="group" aria-labelledby={`${daysLabelId}-days`}>
-            {TEMPLATE_DAYS.map((day) => (
-              <Chip key={day.key} value={day.key}>
-                {day.label}
-              </Chip>
-            ))}
-          </Group>
-        </Chip.Group>
-        {mask === 0 && (
-          <Text size="sm" c="dimmed">
-            No days: a saved route. Start a journey from it whenever you travel.
+      {recurrenceEnabled && (
+        <Select
+          label="Repeats"
+          data={REPEAT_OPTIONS}
+          value={repeat}
+          onChange={(value) => {
+            const next = REPEAT_OPTIONS.find((option) => option.value === value);
+            if (next) setRepeat(next.value);
+          }}
+          allowDeselect={false}
+          maw={320}
+        />
+      )}
+      {listed ? (
+        <Stack gap={4}>
+          <DatePickerInput
+            type="multiple"
+            label="Dates"
+            valueFormat={PICKER_DATE_FORMAT}
+            value={chosenDates}
+            onChange={(value) => setChosenDates(value.filter((day): day is string => typeof day === 'string'))}
+            minDate={londonToday()}
+            maxDate={addCalendarDays(londonToday(), 400)}
+            clearable
+          />
+          {chosenDates.length === 0 && (
+            <Text size="sm" c="red">
+              Choose at least one date.
+            </Text>
+          )}
+        </Stack>
+      ) : (
+        <Stack gap={4}>
+          <Text size="sm" fw={500} id={`${daysLabelId}-days`}>
+            Days
           </Text>
-        )}
-      </Stack>
+          <Chip.Group multiple value={days} onChange={setDays}>
+            <Group gap="xs" role="group" aria-labelledby={`${daysLabelId}-days`}>
+              {TEMPLATE_DAYS.map((day) => (
+                <Chip key={day.key} value={day.key}>
+                  {day.label}
+                </Chip>
+              ))}
+            </Group>
+          </Chip.Group>
+          {mask === 0 && (
+            <Text size="sm" c="dimmed">
+              No days: a saved route. Start a journey from it whenever you travel.
+            </Text>
+          )}
+        </Stack>
+      )}
+      {recurrenceEnabled && repeat !== '1' && repeat !== 'dates' && (
+        <Radio.Group
+          label="Starting"
+          value={startWeek}
+          onChange={(value) => setStartWeek(value === 'next' ? 'next' : 'this')}
+        >
+          <Group gap="md" mt={4}>
+            <Radio value="this" label="Starting this week" />
+            <Radio value="next" label="Starting next week" />
+          </Group>
+        </Radio.Group>
+      )}
       <Group gap="sm" grow align="flex-start">
         <DateInput
           label="Starts (optional)"

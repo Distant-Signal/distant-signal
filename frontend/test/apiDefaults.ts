@@ -229,6 +229,10 @@ export const TEMPLATE_TARGET_DEFAULTS = {
   nextSkips: [],
   upcomingDates: [],
   pausedUntil: null,
+  recurrenceKind: 'weekly',
+  intervalWeeks: 1,
+  anchorWeek: null,
+  extraDates: [],
 } satisfies Partial<Api.JourneyTemplateListItem>;
 
 /** A train leg of a trip plan, less its train, ends and times. */

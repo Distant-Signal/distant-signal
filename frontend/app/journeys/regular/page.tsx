@@ -12,7 +12,7 @@ import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyRouteLabel, type JourneyNameInput } from '@/lib/journeyName';
 import { NEW_REGULAR_JOURNEY_HREF, regularJourneyCards, regularJourneyHref, targetLabel } from '@/lib/regularJourneys';
-import { recurrenceSummary } from '@/lib/templateRecurrence';
+import { patternSummary, runsByItself } from '@/lib/templateRecurrence';
 import type { JourneyTemplateListItem } from '@/lib/types';
 import { dueDates } from '@/lib/upcomingDates';
 import type { Metadata } from 'next';
@@ -92,7 +92,7 @@ function legsName(template: JourneyTemplateListItem): JourneyNameInput {
 /** The lines under a regular journey's name: a custom name's route, its
  * days and next date, and the phase 0 nudge to add times. */
 function TemplateFacts({ template }: { template: JourneyTemplateListItem }) {
-  const recurring = template.daysOfWeek !== null;
+  const recurring = runsByItself(template);
   const paused = recurring && !template.active;
   const next = recurring && !paused && template.nextDate ? formatDate(`${template.nextDate}T12:00:00Z`) : null;
   // "Next: 1 Jun 2027 (31 May 2027 is a bank holiday)" (§8.3).
@@ -107,7 +107,7 @@ function TemplateFacts({ template }: { template: JourneyTemplateListItem }) {
         </Text>
       )}
       <Text size="sm">
-        {recurrenceSummary(template.daysOfWeek)}
+        {patternSummary(template)}
         {next && (
           <>
             {' · '}
@@ -146,7 +146,7 @@ function PausedBadge() {
  * "Resume", for a recurring regular journey. On a pair they act for the
  * outbound and offer, or do, the return too. */
 function TemplateActions({ template, paired }: { template: JourneyTemplateListItem; paired: boolean }) {
-  if (template.daysOfWeek === null) return null;
+  if (!runsByItself(template)) return null;
   return (
     <Stack gap="xs">
       {template.active && (
@@ -175,7 +175,7 @@ function TemplateActions({ template, paired }: { template: JourneyTemplateListIt
 }
 
 function SingleCard({ template }: { template: JourneyTemplateListItem }) {
-  const paused = template.daysOfWeek !== null && !template.active;
+  const paused = runsByItself(template) && !template.active;
   return (
     <ClickableCard>
       <Stack gap="xs">
@@ -197,7 +197,7 @@ function SingleCard({ template }: { template: JourneyTemplateListItem }) {
 /** A journey and its return: two rows, each linking to its own page, so
  * a flat card (two targets, not one). The actions act for both. */
 function PairCard({ outbound, back }: { outbound: JourneyTemplateListItem; back: JourneyTemplateListItem }) {
-  const paused = outbound.daysOfWeek !== null && !outbound.active;
+  const paused = runsByItself(outbound) && !outbound.active;
   return (
     <StaticCard data-regular-pair>
       <Stack gap="sm">

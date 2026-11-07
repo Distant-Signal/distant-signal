@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { RegularJourneyForm } from './RegularJourneyForm';
+import { londonToday } from '@/lib/londonWallClock';
 import type { TripPlanResponse } from '@/lib/types';
 import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '@/test/apiDefaults';
 
@@ -370,5 +371,53 @@ describe('RegularJourneyForm', () => {
     fillOutbound();
     expect(await screen.findAllByText('None of the chosen days is before the end date.')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Find trains' })).toBeDisabled();
+  });
+
+  it('offers no repeat options unless the api has them on', () => {
+    routeFetch({}, {}, () => json({}));
+    renderWithMantine(<RegularJourneyForm />);
+    expect(screen.queryByRole('combobox', { name: 'Repeats' })).toBeNull();
+    expect(screen.queryByText('Repeats')).toBeNull();
+  });
+
+  it('repeats every other week from this week or next, and previews and saves that', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    const calls = routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }));
+    renderWithMantine(<RegularJourneyForm recurrenceEnabled />);
+    fireEvent.click(screen.getByRole('combobox', { name: 'Repeats' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Every other week' }));
+    expect(screen.getByRole('radio', { name: 'Starting this week' })).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', { name: 'Starting next week' }));
+    const previews = () =>
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([input]) => String(input).endsWith('/preview-dates'))
+        .map(([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+    await waitFor(() => expect(previews().at(-1)).toMatchObject({ intervalWeeks: 2 }));
+    const anchor = String(previews().at(-1)!.anchorWeek);
+    // A Monday, next week's.
+    expect(new Date(`${anchor}T12:00:00Z`).getUTCDay()).toBe(1);
+    expect(anchor > londonToday()).toBe(true);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Save regular journey' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
+    const saved = calls().find(([url]) => url === '/api/JourneyTemplates');
+    expect(JSON.parse(String(saved![1]!.body))).toMatchObject({
+      daysOfWeek: 31,
+      intervalWeeks: 2,
+      anchorWeek: anchor,
+    });
+  });
+
+  it('runs on chosen dates only, and needs one', async () => {
+    window.sessionStorage.setItem('ds:regular-journey-draft', DRAFT);
+    routeFetch({}, {}, () => json({ templateId: 5, returnTemplateId: null }));
+    renderWithMantine(<RegularJourneyForm recurrenceEnabled />);
+    fireEvent.click(screen.getByRole('combobox', { name: 'Repeats' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'On dates I choose' }));
+    expect(screen.queryByRole('checkbox', { name: 'Mon' })).toBeNull();
+    expect(screen.getByText('Choose at least one date.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeDisabled();
   });
 });

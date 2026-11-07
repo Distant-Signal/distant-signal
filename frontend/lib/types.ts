@@ -118,6 +118,7 @@ export type TimeAwayPeriod = Api.TimeAwayPeriod;
 export type TimeAwayRequest = Api.TimeAwayRequest;
 export type TimeAwayResponse = Api.TimeAwayResponse;
 export type SetTemplatePausedUntilRequest = Api.SetTemplatePausedUntilRequest;
+export type AddTemplateExtraDateRequest = Api.AddTemplateExtraDateRequest;
 export type RegularPlan = Api.RegularPlan;
 export type RegularPlanOption = Api.RegularPlanOption;
 export type JourneyRepeat = Api.JourneyRepeatResponse;

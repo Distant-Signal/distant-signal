@@ -22,6 +22,7 @@ const loggedOut: SessionInfo = {
   name: null,
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
   analyticsOptIn: false,
 };
 
@@ -79,6 +80,7 @@ describe('AuthStatus', () => {
           name: 'Ada',
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -103,6 +105,7 @@ describe('AuthStatus', () => {
           name: 'Ada',
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -120,6 +123,7 @@ describe('AuthStatus', () => {
           name: null,
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -142,6 +146,7 @@ describe('AuthStatus', () => {
           name: '   ',
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -159,6 +164,7 @@ describe('AuthStatus', () => {
           name: '',
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -176,6 +182,7 @@ describe('AuthStatus', () => {
           name: null,
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -195,6 +202,7 @@ describe('AuthStatus', () => {
           name: 'Ada',
           groups: [],
           personalTokensEnabled: false,
+          regularJourneyRecurrenceEnabled: false,
           analyticsOptIn: false,
         }}
       />,

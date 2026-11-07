@@ -94,6 +94,7 @@ beforeEach(() => {
     name: null,
     groups: [],
     personalTokensEnabled: false,
+    regularJourneyRecurrenceEnabled: false,
     analyticsOptIn: false,
   });
   vi.mocked(api.getPreferences).mockResolvedValue({
@@ -140,6 +141,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -174,6 +176,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await DashboardPage());
@@ -188,6 +191,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -218,6 +222,7 @@ describe('DashboardPage', () => {
             name: 'Ada',
             groups: [],
             personalTokensEnabled: false,
+            regularJourneyRecurrenceEnabled: false,
             analyticsOptIn: false,
           }
         : {
@@ -227,6 +232,7 @@ describe('DashboardPage', () => {
             name: null,
             groups: [],
             personalTokensEnabled: false,
+            regularJourneyRecurrenceEnabled: false,
             analyticsOptIn: false,
           },
     );
@@ -250,6 +256,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -287,6 +294,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -322,6 +330,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -351,6 +360,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -385,6 +395,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -424,6 +435,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -448,6 +460,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -474,6 +487,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -500,6 +514,7 @@ describe('DashboardPage', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -532,6 +547,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -559,6 +575,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -583,6 +600,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -608,6 +626,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -645,6 +664,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -670,6 +690,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -702,6 +723,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -728,6 +750,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -895,6 +918,7 @@ describe('DashboardPage', () => {
         name: 'A',
         groups: [],
         personalTokensEnabled: false,
+        regularJourneyRecurrenceEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -930,6 +954,7 @@ describe('DashboardPage', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -967,6 +992,7 @@ describe('DashboardPage -- outage behaviour', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
@@ -985,6 +1011,7 @@ describe('DashboardPage -- outage behaviour', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -1003,6 +1030,7 @@ describe('DashboardPage -- outage behaviour', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1040,6 +1068,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       name: 'A',
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1128,6 +1157,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     name: 'A',
     groups: [],
     personalTokensEnabled: false,
+    regularJourneyRecurrenceEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1148,6 +1178,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1296,6 +1327,7 @@ describe('DashboardPage -- Your Operators section', () => {
     name: 'A',
     groups: [],
     personalTokensEnabled: false,
+    regularJourneyRecurrenceEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1378,6 +1410,7 @@ describe('DashboardPage -- Your Operators section', () => {
       name: null,
       groups: [],
       personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
       analyticsOptIn: false,
     });
     // This mock's call count accumulates across every earlier test in this
@@ -1505,6 +1538,7 @@ describe('DashboardPage -- journey sections', () => {
     name: 'A',
     groups: [],
     personalTokensEnabled: false,
+    regularJourneyRecurrenceEnabled: false,
     analyticsOptIn: false,
   };
 

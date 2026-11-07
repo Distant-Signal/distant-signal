@@ -23,6 +23,7 @@ const LOGGED_OUT = {
   username: null,
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
   analyticsOptIn: false,
 };
 const LOGGED_IN = {
@@ -32,6 +33,7 @@ const LOGGED_IN = {
   name: 'Ada',
   groups: [],
   personalTokensEnabled: false,
+  regularJourneyRecurrenceEnabled: false,
   analyticsOptIn: false,
 };
 
