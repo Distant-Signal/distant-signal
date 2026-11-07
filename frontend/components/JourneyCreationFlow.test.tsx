@@ -129,12 +129,12 @@ describe('JourneyCreationFlow', () => {
   });
 
   // DS-194: the ways in with a page of their own, under the options.
-  it('links to a train search, a ticket and regular journeys before leg 1 exists', () => {
+  it('links to a train search and regular journeys before leg 1 exists', () => {
     vi.stubGlobal('fetch', mockFetchByUrl());
     renderWithMantine(<JourneyCreationFlow />);
     expect(screen.getByText('Other ways to start:')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Find a train' })).toHaveAttribute('href', '/trains');
-    expect(screen.getByRole('link', { name: 'Add a ticket' })).toHaveAttribute('href', '/track/mine/add-ticket');
+    expect(screen.queryByRole('link', { name: 'Add a ticket' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
   });
 

@@ -13,12 +13,10 @@ import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
  * Static rather than an async `generateMetadata()` despite this route
  * reading `searchParams`, for exactly the reason `/trains` gives: Next
  * hands `generateMetadata` the same `searchParams` the component below
- * gets, and `?ticketId=` here is one visitor's own saved ticket -- putting
- * it (or their `?origin=`) into a title would leak per-visitor state into
- * a cached, shared unfurl card for no gain whatsoever. The `<h1>`'s
- * subtitle below DOES vary with `attachTicketId`; this deliberately
- * describes the page's ordinary, shareable purpose instead, which is also
- * the branch an unfurler bot (never carrying either param) actually gets.
+ * gets, and putting a visitor's own `?origin=` into a title would leak
+ * per-visitor state into a cached, shared unfurl card for no gain
+ * whatsoever. It describes the page's ordinary, shareable purpose
+ * instead.
  *
  * Title matches the page's own `<h1>` ("Track a Train"). This route has no
  * nav label of its own to agree with: it sits under the nav's one "Journeys"
@@ -26,7 +24,7 @@ import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
  * to `/plan` because several narrower flows still land here on
  * purpose, each wanting exactly this single pre-filled leg-1 form and
  * nothing past it -- `/trains`' manual-fallback link, `/stations/[crs]`,
- * `TicketEntryForm`, and `trackAgainHref`'s "Track this journey again" --
+ * and `trackAgainHref`'s "Track this journey again" --
  * so the heading remains the only name this route has.
  *
  * The description's second half is the page's own default subtitle below,
@@ -48,7 +46,6 @@ export default async function TrackPage({
 }: {
   searchParams: Promise<{
     origin?: string | string[];
-    ticketId?: string | string[];
     mode?: string | string[];
     destination?: string | string[];
     serviceDate?: string | string[];
@@ -58,19 +55,12 @@ export default async function TrackPage({
     arriveBefore?: string | string[];
   }>;
 }) {
-  const { origin, ticketId, mode, destination, serviceDate, departAfter, departBefore, arriveAfter, arriveBefore } =
+  const { origin, mode, destination, serviceDate, departAfter, departBefore, arriveAfter, arriveBefore } =
     await searchParams;
   // Next.js supplies a `string[]` for a repeated query param (e.g.
   // `?origin=a&origin=b`) -- fall back to the first value rather than
   // letting `.toUpperCase()` throw on an array.
   const originParam = Array.isArray(origin) ? origin[0] : origin;
-  // Set by `TicketEntryForm`'s own "find or track the train this ticket is
-  // for" link (Part A of the upload-first plan) -- a standalone ticket's
-  // id, carried forward so `TrackTrainForm` can attach it automatically
-  // once a pin is created here. A malformed/non-numeric value is treated
-  // the same as absent, rather than passing NaN through.
-  const ticketIdParam = Array.isArray(ticketId) ? ticketId[0] : ticketId;
-  const attachTicketId = ticketIdParam && /^\d+$/.test(ticketIdParam) ? Number(ticketIdParam) : undefined;
   // Review §2.1/I21: previously nothing in the app could link straight to
   // window mode -- it lived only in `TrackTrainForm`'s own `useState`, not
   // URL-addressable at all (unlike `?origin=` just above, which already had
@@ -87,21 +77,18 @@ export default async function TrackPage({
   // specifically wants "I know the train" up front (none exist in this
   // app today, but the query-param contract stays symmetric with the
   // pre-existing `?mode=window` one rather than becoming write-only).
-  // Same "malformed means absent" posture `ticketIdParam` takes above --
-  // "absent" now resolves to the new default, window, not the old one.
+  // A malformed value means absent, which resolves to the default, window.
   const modeParam = Array.isArray(mode) ? mode[0] : mode;
   const initialMode = modeParam === 'pick' ? 'pick' : 'window';
-  // Same "repeated query param -> first value" unwrapping `origin`/
-  // `ticketId`/`mode` already use just above -- applied uniformly to the
+  // Same "repeated query param -> first value" unwrapping `origin`/`mode`
+  // already use just above -- applied uniformly to the
   // five new params `TrackJourneyAgainButton`/`trackAgainHref`
   // (docs/superpowers/plans/2026-09-22-reusable-journeys-phaseA-track-again-plan.md)
   // introduce, so a malformed/repeated value degrades the same way a
   // malformed `?origin=` already does rather than throwing.
   const destinationParam = Array.isArray(destination) ? destination[0] : destination;
-  // `CreateJourneyLegFromTicketButton.tsx`'s own deep link -- see
-  // `TrackTrainForm`'s `initialServiceDate` prop for why this one field has
-  // no equivalent in `TrackJourneyAgainButton`/`trackAgainHref`'s five
-  // params. Same "malformed means absent" posture as every param here:
+  // A date to search on. Same "malformed means absent" posture as every
+  // param here:
   // shape-only, not full calendar validity (matching `departAfter`/etc.'s
   // own bare `/^\d{2}:\d{2}$/` check just below) -- `TrackTrainForm`'s own
   // `DatePickerInput` degrades a value it can't parse to empty rather than
@@ -113,8 +100,7 @@ export default async function TrackPage({
   const departBeforeParam = Array.isArray(departBefore) ? departBefore[0] : departBefore;
   const arriveAfterParam = Array.isArray(arriveAfter) ? arriveAfter[0] : arriveAfter;
   const arriveBeforeParam = Array.isArray(arriveBefore) ? arriveBefore[0] : arriveBefore;
-  // Malformed means absent, same posture `ticketIdParam` above already
-  // takes for its own format check -- a native `<input type="time">`
+  // Malformed means absent -- a native `<input type="time">`
   // sanitizes an invalid value to an empty DISPLAY while React state would
   // still hold the raw garbage, so an unvalidated value here could reach
   // `TrackTrainForm`'s state (and from there, submit) in a shape no normal
@@ -128,14 +114,7 @@ export default async function TrackPage({
           which train yet?" sentence now lives inside `TrackTrainForm`
           itself, where it can react to the client-side mode toggle -- a
           visitor who switches modes without reloading the page used to
-          keep seeing copy that only described pick mode. The ticket-attach
-          sentence stays here: it's mode-independent (attaching a ticket
-          only ever follows the pin-mode path) and needs no reactivity. */}
-      {attachTicketId !== undefined && (
-        <Text c="dimmed">
-          Find or track the train your saved ticket is for. It&apos;ll be attached automatically once you do.
-        </Text>
-      )}
+          keep seeing copy that only described pick mode. */}
       {/* Review §2.16: `TrackTrainForm`'s own "Track this train" button is
           shown to every visitor, logged in or not (the Tier-2 "show the
           control, gate on the real 401" pattern `useNeedsLogin.ts`
@@ -152,7 +131,6 @@ export default async function TrackPage({
       <TrackTrainForm
         initialOrigin={originParam?.toUpperCase()}
         initialDestination={destinationParam?.toUpperCase()}
-        attachTicketId={attachTicketId}
         initialMode={initialMode}
         initialServiceDate={validServiceDateParam}
         initialDepartAfter={validTimeParam(departAfterParam)}

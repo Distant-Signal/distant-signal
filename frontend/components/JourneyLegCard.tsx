@@ -11,6 +11,8 @@ import { TextLink } from './TextLink';
 import { RemoveJourneyLegButton } from './RemoveJourneyLegButton';
 import { LegReplanActions, type LegReplanContext } from './LegReplanActions';
 import { UntrackedLegCard } from './UntrackedLegCard';
+import { LegDelayRepay } from './LegDelayRepay';
+import { LegTicketDetails } from './LegTicketDetails';
 import { isUntrackedLeg, type UntrackedLegNeighbours } from '@/lib/untrackedLeg';
 import { legRouteAndTime } from '@/lib/journeyLegLabel';
 import { formatDate } from '@/lib/dateFormat';
@@ -367,6 +369,18 @@ export function JourneyLegCard({
         />
         {isOwner && state.notificationsEnabled !== undefined && (
           <TrainNotificationsSwitch trackingId={state.id} initiallyEnabled={state.notificationsEnabled} />
+        )}
+        {/* The owner's Delay Repay estimate (no ticket needed) and ticket
+            details (2026-11-06). Delay Repay is a GB scheme: an Irish
+            train has neither. */}
+        {isOwner && leg.delayRepay && <LegDelayRepay delayRepay={leg.delayRepay} />}
+        {isOwner && !state.irishTrain && (
+          <LegTicketDetails
+            journeyId={journeyId}
+            legId={leg.id}
+            ticket={leg.ticket}
+            operatorName={state.operatorName}
+          />
         )}
         {isOwner && changingTrain && (
           <LegTrainPicker

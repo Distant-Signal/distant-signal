@@ -952,23 +952,6 @@ describe('TrainSearchForm', () => {
     }
   });
 
-  // A row has two controls: the destination link to the train's page and
-  // the "Track this train" button in the row's actions slot. The button
-  // must never sit inside the link (nested interactive content), and both
-  // belong to the same row.
-  it("puts the ticket flow's track button beside the row's link, never inside it", async () => {
-    vi.stubGlobal('fetch', mockFetchByUrl());
-    renderWithMantine(<TrainSearchForm initialStation="MAN" attachTicketId={7} />);
-
-    await clickSearch();
-    const link = await screen.findByRole('link', { name: rowName('08:22', 'WAT') });
-    const row = link.closest('li') as HTMLElement;
-    const button = within(row).getByRole('button', { name: 'Track this train' });
-    expect(button.closest('a')).toBeNull();
-    expect(link).not.toContainElement(button);
-    expect(within(row).getAllByRole('link')).toHaveLength(1);
-  });
-
   it('leaves the origin out when it is unknown, rather than a "?"', async () => {
     vi.stubGlobal(
       'fetch',
@@ -1016,33 +999,6 @@ describe('TrainSearchForm', () => {
     expect(screen.queryByRole('button', { name: /^Track this/ })).not.toBeInTheDocument();
   });
 
-  it('renders a Track this train action on every row in the ticket flow', async () => {
-    vi.stubGlobal('fetch', mockFetchByUrl());
-    renderWithMantine(<TrainSearchForm initialStation="MAN" attachTicketId={7} />);
-
-    await clickSearch();
-
-    const buttons = await screen.findAllByRole('button', { name: 'Track this train' });
-    expect(buttons).toHaveLength(2);
-  });
-
-  it("passes attachTicketId through, so the row's track action attaches the ticket", async () => {
-    const fetchMock = mockFetchByUrl();
-    vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<TrainSearchForm initialStation="MAN" attachTicketId={7} />);
-
-    await clickSearch();
-    const buttons = await screen.findAllByRole('button', { name: 'Track this train' });
-    fireEvent.click(buttons[0]!);
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/Train/tickets/7/attach',
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ trackingId: 42 }) }),
-      ),
-    );
-  });
-
   it('distinguishes "nothing published for today" from "no matches"', async () => {
     const fetchMock = mockFetchByUrl({ search: () => new Response('not found', { status: 404 }) });
     vi.stubGlobal('fetch', fetchMock);
@@ -1086,14 +1042,7 @@ describe('TrainSearchForm', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers the manual /track fallback, carrying any ticketId through', () => {
-    vi.stubGlobal('fetch', mockFetchByUrl());
-    renderWithMantine(<TrainSearchForm attachTicketId={7} />);
-
-    expect(screen.getByRole('link', { name: 'Track it manually' })).toHaveAttribute('href', '/track?ticketId=7');
-  });
-
-  it('offers no tracking fallback outside the ticket flow', () => {
+  it('offers no manual tracking fallback', () => {
     vi.stubGlobal('fetch', mockFetchByUrl());
     renderWithMantine(<TrainSearchForm />);
 
@@ -1765,7 +1714,7 @@ describe('TrainSearchForm', () => {
 });
 
 describe('TrainSearchForm: buses and ferries', () => {
-  it('a bus row has its badge, reads "Timetable only" and, in the ticket flow, a "Track this bus" button', async () => {
+  it('a bus row has its badge and reads "Timetable only"', async () => {
     const body = JSON.stringify({
       results: [
         {
@@ -1784,7 +1733,7 @@ describe('TrainSearchForm: buses and ferries', () => {
       nextCursor: null,
     });
     vi.stubGlobal('fetch', mockFetchByUrl({ search: () => new Response(body, { status: 200 }) }));
-    renderWithMantine(<TrainSearchForm initialStation="MAN" attachTicketId={7} />);
+    renderWithMantine(<TrainSearchForm initialStation="MAN" />);
     await clickSearch();
 
     expect(await screen.findByText('Bus service')).toBeInTheDocument();
@@ -1793,12 +1742,10 @@ describe('TrainSearchForm: buses and ferries', () => {
     const busRow = bus.closest('li') as HTMLElement;
     expect(busRow).toHaveTextContent('Timetable only');
     expect(busRow).toHaveTextContent('Starts here');
-    expect(within(busRow).getByRole('button', { name: 'Track this bus' })).toBeInTheDocument();
     const train = screen.getByRole('link', { name: rowName('10:05', 'WAT') });
     expect(train.getAttribute('href')).toMatch(/^\/train\/C10002\//);
     const trainRow = train.closest('li') as HTMLElement;
     expect(trainRow).toHaveTextContent('Scheduled');
-    expect(within(trainRow).getByRole('button', { name: 'Track this train' })).toBeInTheDocument();
   });
 });
 

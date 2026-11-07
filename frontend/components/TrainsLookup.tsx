@@ -87,7 +87,6 @@ export function TrainsLookup({
           seedFromUrl={!switched}
           {...(switched
             ? {
-                attachTicketId: searchForm.attachTicketId,
                 operatorNames: searchForm.operatorNames,
                 unnamedOperatorCodes: searchForm.unnamedOperatorCodes,
                 searchDates: searchForm.searchDates,

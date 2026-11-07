@@ -84,7 +84,7 @@ describe('TrackThisTrainButton', () => {
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
   });
 
-  it('makes no ticket-attach call when attachTicketId is absent', async () => {
+  it('makes no ticket-attach call', async () => {
     const fetchMock = mockFetchByUrl();
     vi.stubGlobal('fetch', fetchMock);
     renderWithGroups(<TrackThisTrainButton uid="C11052" date="2026-09-07" />);
@@ -94,48 +94,6 @@ describe('TrackThisTrainButton', () => {
     await waitFor(() => expect(pushMock).toHaveBeenCalled());
     const attachCalls = fetchMock.mock.calls.filter((args: unknown[]) => String(args[0]).includes('/attach'));
     expect(attachCalls).toHaveLength(0);
-  });
-
-  it('attaches the ticket after a successful track when attachTicketId is given', async () => {
-    const fetchMock = mockFetchByUrl();
-    vi.stubGlobal('fetch', fetchMock);
-    renderWithGroups(<TrackThisTrainButton uid="C11052" date="2026-09-07" attachTicketId={7} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/Train/tickets/7/attach',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ trackingId: 42 }),
-        }),
-      );
-    });
-  });
-
-  // The parity requirement's real substance: a failed attach must not block
-  // navigation, exactly as TrackTrainForm.tsx:321-335 already behaves.
-  it('still navigates when the ticket-attach follow-up rejects', async () => {
-    const fetchMock = mockFetchByUrl({ attach: () => Promise.reject(new Error('network blip')) });
-    vi.stubGlobal('fetch', fetchMock);
-    renderWithGroups(<TrackThisTrainButton uid="C11052" date="2026-09-07" attachTicketId={7} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
-
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
-  });
-
-  it('still navigates when the ticket-attach follow-up returns a 409', async () => {
-    const fetchMock = mockFetchByUrl({
-      attach: () => new Response('ticket is already attached to a tracked train', { status: 409 }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    renderWithGroups(<TrackThisTrainButton uid="C11052" date="2026-09-07" attachTicketId={7} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
-
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
   });
 
   it('opens the login prompt and does not navigate on a 401', async () => {

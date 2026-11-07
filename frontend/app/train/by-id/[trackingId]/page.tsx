@@ -2,7 +2,6 @@ import { Stack, Title, Text, Group } from '@mantine/core';
 import { notFound, redirect } from 'next/navigation';
 import { getTrackedTrainById, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import { TrainJourneyPanel } from '@/components/TrainJourneyPanel';
-import { TicketPanel } from '@/components/TicketPanel';
 import { LoginControl } from '@/components/LoginControl';
 import { TrackedTrainOwnerControls } from '@/components/TrackedTrainOwnerControls';
 import { TrainNotificationsSwitch } from '@/components/TrainNotificationsSwitch';
@@ -124,7 +123,6 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
           · refreshes every {REFRESH_INTERVAL_MS / 1000}s · {TIMES_IN_UK_LOCAL_TIME}
         </Text>
       </Group>
-      <TicketPanel trackingId={state.id} />
       <DataCredits credits={TRAIN_CREDITS} />
     </Stack>
   );

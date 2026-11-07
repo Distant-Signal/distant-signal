@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { DelayRepayEstimate } from './DelayRepayEstimate';
-import type { DelayRepayEstimate as DelayRepayEstimateType, DelayRepayEstimateResponse } from '@/lib/types';
-import { DELAY_REPAY_ESTIMATE_DEFAULTS, DELAY_REPAY_RESPONSE_DEFAULTS } from '@/test/apiDefaults';
+import type { DelayRepayEstimate as DelayRepayEstimateType, LegDelayRepay } from '@/lib/types';
+import { DELAY_REPAY_ESTIMATE_DEFAULTS, LEG_DELAY_REPAY_DEFAULTS } from '@/test/apiDefaults';
 
 const TOP_LEVEL_DISCLAIMER =
   'This is a rough, community-sourced estimate, not a guarantee of compensation and not proof you travelled. Distant Signal never submits a claim on your behalf. Verify eligibility and claim directly from the operator using the link above.';
 const ESTIMATE_DISCLAIMER =
   'This is a rough, community-sourced estimate, not a guarantee of compensation and not proof you travelled. Always verify eligibility and submit any claim directly with the operator. Distant Signal never submits a claim on your behalf.';
 
-function response(overrides: Partial<DelayRepayEstimateResponse> = {}): DelayRepayEstimateResponse {
+function response(overrides: Partial<LegDelayRepay> = {}): LegDelayRepay {
   return {
-    ...DELAY_REPAY_RESPONSE_DEFAULTS,
+    ...LEG_DELAY_REPAY_DEFAULTS,
     claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
     disclaimer: TOP_LEVEL_DISCLAIMER,
     ...overrides,

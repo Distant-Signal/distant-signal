@@ -28,7 +28,7 @@ export interface NavDestination {
  * It was "Track" on `/track/mine` (round 2, 12 Oct 2026), which had folded
  * four tracking entries into one; `/track/mine` now redirects here
  * (`next.config.mjs`). The page lists your journeys, upcoming then past,
- * with "Plan a journey", "Find a train", "Add a ticket" and journey
+ * with "Plan a journey", "Find a train" and journey
  * templates one tap away. The other tracking pages, the planner included,
  * keep their URLs (deep links and pre-fill query params depend on them) and
  * mark this entry as the current section: `/track`, `/plan`, and a tracked

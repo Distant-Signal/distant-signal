@@ -36,14 +36,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/train/W12345/2026-08-31',
   useSearchParams: () => new URLSearchParams(''),
 }));
-// `TicketPanel` is itself an async Server Component (its own `getSession()`/
-// ownership-probe fetches) -- React's plain DOM test renderer, used via
-// `renderWithMantine` here, can't render an async function component at all
-// (an RSC-only capability) -- same workaround
-// app/train/by-id/[trackingId]/page.test.tsx already uses.
-vi.mock('@/components/TicketPanel', () => ({
-  TicketPanel: () => null,
-}));
 
 // Logged-out by default -- individual tests in the "tracking overlay"
 // describe block below override this per case.
@@ -254,9 +246,8 @@ describe('TrackedTrainByUidPage success path', () => {
     );
   });
 
-  // The spec's own §5 exclusion, asserted rather than assumed: this page's
-  // CTA must never make a ticket-attach call, because this page has no
-  // ticketId convention to source one from.
+  // Tickets are a journey leg's details now: tracking from here makes no
+  // other call.
   it('makes no ticket-attach call after tracking', async () => {
     const fetchMock = vi.fn(
       async () =>

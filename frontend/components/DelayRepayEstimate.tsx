@@ -1,22 +1,20 @@
 import { Alert, Stack, Text } from '@mantine/core';
 import { TextLink } from './TextLink';
 import { isTimetableOnly, serviceModeLabel } from '@/lib/serviceMode';
-import type { DelayRepayEstimate as Estimate, DelayRepayEstimateResponse, DelayRepayFields } from '@/lib/types';
+import type { DelayRepayEstimate as Estimate, DelayRepayFields, LegDelayRepay } from '@/lib/types';
 import { formatDate } from '@/lib/dateFormat';
 
-/** Renders one ticket's Delay Repay estimate, per
- * docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md
- * Decision 3. Pure presentational -- takes an already-fetched response, no
- * fetch of its own (the per-ticket fetch lives in `TicketPanel`).
+/** Renders one journey leg's Delay Repay estimate (`delayRepay` on each of
+ * the owner's train legs, `GET /Journeys/{id}`; no ticket needed since
+ * 2026-11-06). Pure presentational -- takes an already-fetched response, no
+ * fetch of its own (`LegDelayRepaySection` gives it the leg's).
  *
  * Deliberately does NOT render `response.disclaimer` (the TOP-LEVEL field,
  * always populated regardless of `estimate`) verbatim any more -- Task
- * 3.6.11 found the same ~120-word disclaimer repeated up to three times
- * across `/journeys` (once per attached ticket, via this component,
- * PLUS the aggregate rollup) and one more time on the train detail page,
- * which reads as noise rather than caution. The one FULL disclaimer now
+ * 3.6.11 found the same ~120-word disclaimer repeated once per estimate
+ * plus the aggregate rollup, which reads as noise rather than caution. The one FULL disclaimer now
  * lives once, at the card level, in `ReliabilityDigest.tsx`'s
- * `DelayRepaySection` (`CARRIED_FORWARD_DISCLAIMER`); every per-ticket
+ * `DelayRepaySection` (`CARRIED_FORWARD_DISCLAIMER`); every per-leg
  * instance -- this component -- keeps only the short anti-CTA reminder
  * ("this app never submits a claim on your behalf") next to its own claim
  * link, since that specific caveat is the one fact that varies per link
@@ -39,11 +37,11 @@ import { formatDate } from '@/lib/dateFormat';
  * The summary sits in a polite live region, so a screen reader hears a
  * change of state (provisional to final, say) when the response refreshes. */
 
-/** What the component renders: the Delay Repay fields `GET .../delay-repay`
- * and `GET /Train/tickets/mine` both serve, and the delay-repay route's
- * service fields, which a ticket list row doesn't have. */
+/** What the component renders: the Delay Repay fields a leg's
+ * `delayRepay` and `GET /Journeys/reliability` both serve, and the leg's
+ * service fields, which a reliability row doesn't have. */
 export type DelayRepayView = DelayRepayFields &
-  Partial<Pick<DelayRepayEstimateResponse, 'serviceMode' | 'liveTracking' | 'unmeasurableReason'>>;
+  Partial<Pick<LegDelayRepay, 'serviceMode' | 'liveTracking' | 'unmeasurableReason' | 'ticketKnown'>>;
 
 /** Shown for a bus or ferry when the backend sends no `unmeasurableReason`
  * of its own. */
@@ -88,7 +86,7 @@ function destinationLabel(response: DelayRepayView): string {
   return response.measuredAtName ?? response.measuredAtCrs ?? 'your destination';
 }
 
-/** Before the train reaches the ticket's destination the delay (and any
+/** Before the train reaches the leg's destination the delay (and any
  * band) is a projection from its current delay to the public timetable
  * arrival there, and says so; it becomes final once the train arrives
  * (design doc §9 decision 3). A departure-only station is final on the

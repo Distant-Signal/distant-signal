@@ -68,7 +68,13 @@ const operators: OperatorSummary[] = [
 ];
 // `Preferences` requires `pinnedLines`, `pinnedStations`, and `pinnedOperators` --
 // this page defines its own NO_PREFERENCES constant already in this shape.
-const preferences: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
+const preferences: Preferences = {
+  pinnedLines: [],
+  pinnedStations: [],
+  pinnedOperators: [],
+  silentPinnedLines: [],
+  bankHolidayDivision: null,
+};
 const sessionInfo: SessionInfo = {
   authenticated: false,
   id: null,

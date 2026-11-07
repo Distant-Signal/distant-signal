@@ -173,7 +173,7 @@ describe('ConnectivityMonitor', () => {
   // update" is untrue on a route whose whole content is a form -- there was
   // never any live data on screen to have last updated.
   describe('on a form route', () => {
-    it.each(['/track', '/trains', '/track/mine/add-ticket', '/lines/new', '/lines/some-line/edit'])(
+    it.each(['/track', '/trains', '/lines/new', '/lines/some-line/edit'])(
       'shows entry-safety copy instead of "showing the last update" on %s',
       (route) => {
         pathname = route;

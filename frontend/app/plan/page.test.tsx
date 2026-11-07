@@ -122,10 +122,10 @@ describe('PlanPage (/plan, Plan a journey)', () => {
     expect(screen.queryByRole('button', { name: 'Track this train' })).not.toBeInTheDocument();
   });
 
-  it('links to the ways in that have a page of their own: a train search, a ticket and templates', async () => {
+  it('links to the ways in that have a page of their own: a train search and templates', async () => {
     await renderPage();
     expect(screen.getByRole('link', { name: 'Find a train' })).toHaveAttribute('href', '/trains');
-    expect(screen.getByRole('link', { name: 'Add a ticket' })).toHaveAttribute('href', '/track/mine/add-ticket');
+    expect(screen.queryByRole('link', { name: 'Add a ticket' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
   });
 

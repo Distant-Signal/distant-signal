@@ -37,22 +37,7 @@ import {
  * Decision 1 (no public API exposes individual departures today, so a
  * departure-row action can't be built). `initialOrigin` is set by
  * `/track`'s page when arriving via the "Track a train from here" link on
- * `/stations/[crs]` (Decision 1's honest station-page shortcut), OR from
- * `TicketEntryForm`'s own standalone-ticket "next step" link (Part A of the
- * upload-first plan) -- same mechanism, different origin.
- *
- * `attachTicketId`, when given, is a standalone ticket (created via
- * `POST /Train/tickets`, no tracked train yet) the caller is looking for/
- * creating a tracked train for. Once `submitTrack`'s `POST /Journeys`
- * (`pin`-mode leg) call succeeds, this form makes one best-effort follow-up
- * call, `POST /Train/tickets/{attachTicketId}/attach`, before navigating to
- * the new journey's page -- if that call fails for any reason (network
- * blip, the ticket having since been attached elsewhere), tracking the
- * train has ALREADY succeeded and this form still navigates on; the ticket
- * just stays standalone and attachable later from the merged trains/tickets
- * list, rather than the whole flow failing over a non-essential follow-up.
- * `submitWindow`'s open-window leg has no bound train at all yet, so it has
- * no equivalent ticket-attach step.
+ * `/stations/[crs]` (Decision 1's honest station-page shortcut).
  *
  * Journey tracking Phase 1 (this task) moved both submit paths off the
  * legacy `POST /Train/track` route onto `POST /Journeys`: `submitTrack`
@@ -82,14 +67,13 @@ import {
  * divergent submit path) is safe. Sharing the new pin into the chosen
  * group (`shareTrackedTrainToGroup`) is a further best-effort follow-up
  * `submitTrack` performs once the track call itself has already
- * succeeded, same swallow-every-failure posture as the `attachTicketId`
- * block right below it -- `submitWindow` has no such follow-up yet (see
+ * succeeded, swallowing every failure -- `submitWindow` has no such
+ * follow-up yet (see
  * that function's own doc comment on why `groupId` is currently unused
  * there). */
 export function TrackTrainForm({
   initialOrigin = '',
   initialDestination = '',
-  attachTicketId,
   initialMode = 'pick',
   initialServiceDate,
   initialDepartAfter = '',
@@ -108,7 +92,6 @@ export function TrackTrainForm({
   // `useState` initial values, same as `initialOrigin` already is -- no
   // new prop changes this component's submit behaviour.
   initialDestination?: string | undefined;
-  attachTicketId?: number | undefined;
   // Review §2.1/I21: the mode toggle used to live only in `useState`, so
   // nothing in the app could send a user straight to window mode.
   // `track/page.tsx` reads this off `?mode=window`, the same pattern its
@@ -119,10 +102,8 @@ export function TrackTrainForm({
   /** "YYYY-MM-DD" -- window mode's own service-date field
    * (`windowServiceDate`, below), which otherwise always defaults to
    * today. `undefined` (the default) preserves that exact pre-existing
-   * behaviour. `CreateJourneyLegFromTicketButton.tsx`
-   * (`/track?serviceDate=...`) is the first caller of this prop: a
-   * ticket's proposed leg is dated by the ticket's own extracted departure
-   * date, not necessarily today. Deliberately has no pin-mode equivalent --
+   * behaviour (`/track?serviceDate=...`). Deliberately has no pin-mode
+   * equivalent --
    * pin mode's `scheduledDeparture` is a single full date+time field with
    * its own "now" default, not a bare date, so there is nothing for this
    * prop to feed there. */
@@ -142,7 +123,7 @@ export function TrackTrainForm({
    * still wants, and gets, by leaving this prop unset. When given, this
    * replaces `submitTrack`/`submitWindow`'s own final `router.push` with a
    * call to this instead; every other success side effect (the
-   * ticket-attach/group-share follow-ups below) is unaffected. `undefined`
+   * group-share follow-up below) is unaffected. `undefined`
    * (the default) preserves this component's exact pre-existing
    * behaviour -- the redirect fires unconditionally, same as before this
    * prop existed. */
@@ -433,17 +414,6 @@ export function TrackTrainForm({
       if (response.ok) {
         trackFeature('track_train', 'succeeded');
         const result = (await response.json()) as CreateJourneyResponse;
-        if (attachTicketId !== undefined && result.trackingId !== null) {
-          try {
-            await fetch(`/api/Train/tickets/${attachTicketId}/attach`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ trackingId: result.trackingId }),
-            });
-          } catch {
-            // Deliberately swallowed -- see this block's own comment above.
-          }
-        }
         if (groupId !== null) {
           // Shares the train's new one-leg journey (DS-124).
           await shareTrackedTrainToGroup(groupId, result.journeyId);
@@ -510,7 +480,7 @@ export function TrackTrainForm({
       if (response.ok) {
         const result = (await response.json()) as CreateJourneyResponse;
         // No trackingId yet (an open leg has no train bound) -- so no
-        // ticket-attach or group-share follow-up is possible here, unlike
+        // group-share follow-up is possible here, unlike
         // submitTrack/pin mode. The journey view itself (Task 17) is where
         // a candidate gets picked next.
         // `_groupId` is reserved for a future group-share-on-window-search follow-up.
@@ -628,16 +598,12 @@ export function TrackTrainForm({
           mode only -- a visitor who switched to window mode was still told
           the page was for a *specific* train. Lives here, not there, so it
           can react to the client-side mode toggle instead of only the
-          initial `?mode=` a page load saw. The ticket-attach case keeps its
-          own mode-independent copy from the caller (`track/page.tsx`),
-          since attaching a ticket only ever follows the pin-mode path. */}
-      {attachTicketId === undefined && (
-        <Text c="dimmed">
-          {mode === 'window'
-            ? "Not sure which train yet? Tell us roughly when you're travelling (Origin, Destination and at least one of the times below) and we'll show you the matches to choose from. You can change your pick later."
-            : 'Track a specific train to see its live position, delay and next stop.'}
-        </Text>
-      )}
+          initial `?mode=` a page load saw. */}
+      <Text c="dimmed">
+        {mode === 'window'
+          ? "Not sure which train yet? Tell us roughly when you're travelling (Origin, Destination and at least one of the times below) and we'll show you the matches to choose from. You can change your pick later."
+          : 'Track a specific train to see its live position, delay and next stop.'}
+      </Text>
       <Stack gap="md" component="form" onSubmit={handleSubmit} maw={640}>
         <StationField
           label="Origin station"

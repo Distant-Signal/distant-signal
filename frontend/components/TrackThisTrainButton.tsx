@@ -26,22 +26,6 @@ import { ButtonSpinner } from '@/components/LoadingText';
  * entry point; the response now carries a `journeyId` alongside the
  * underlying `trackingId`.
  *
- * Two call sites, deliberately different:
- * * `/trains` result rows pass `attachTicketId`, giving the listing page's
- *   action full parity with `/track?ticketId=...`'s existing flow
- *   (docs/superpowers/specs/2026-09-07-train-listing-page-design.md §4).
- * * `/train/[uid]/[date]`'s page-level CTA does NOT -- that page has no
- *   `ticketId` query-param convention and inventing one is explicitly out
- *   of scope (§5 of the same doc).
- *
- * The ticket-attach follow-up mirrors `TrackTrainForm.tsx`'s own
- * (`handleSubmit`, the `attachTicketId !== undefined` block) exactly,
- * including swallowing every failure: tracking the train has ALREADY
- * succeeded by then, so a network blip or a `409 Conflict` (the ticket
- * having since been attached elsewhere) must not block navigation. The
- * ticket simply stays standalone and reattachable from the merged
- * trains/tickets list.
- *
  * Calls the same-origin `/api/*` proxy rather than `lib/api.ts` -- this is
  * a Client Component and cannot read the server-only `API_BASE_URL` env var
  * (same reasoning as `PinToggle` and `TrackTrainForm`).
@@ -69,9 +53,9 @@ import { ButtonSpinner } from '@/components/LoadingText';
  * is the single place that actually calls `POST /Journeys`, so the
  * zero-groups code path an existing test locks down is untouched. Once
  * tracking succeeds, sharing into the chosen group
- * (`shareTrackedTrainToGroup`) is a second best-effort follow-up, same
- * swallow-every-failure posture as the `attachTicketId` block right below
- * it -- see that helper's own doc comment.
+ * (`shareTrackedTrainToGroup`) is a best-effort follow-up: tracking has
+ * already succeeded by then, so a failure must not block navigation --
+ * see that helper's own doc comment.
  *
  * An Iarnród Éireann train (`irish`, from its page) has no CIF identity:
  * it is tracked by its code and service date through
@@ -83,7 +67,6 @@ export function TrackThisTrainButton({
   uid,
   date,
   irish,
-  attachTicketId,
   size = 'sm',
   variant = 'filled',
   noun = 'train',
@@ -96,7 +79,6 @@ export function TrackThisTrainButton({
       irish: TrackIrishTrainRequest;
     }
 ) & {
-  attachTicketId?: number | undefined;
   size?: 'xs' | 'sm' | 'md';
   /** `light` where tracking is a secondary action on the page (a train's
    * own page, which is for its timetable first); `filled` (the default)
@@ -135,24 +117,9 @@ export function TrackThisTrainButton({
 
       if (response.ok) {
         const result = (await response.json()) as CreateJourneyResponse | TrackIrishTrainResponse;
-        if (attachTicketId !== undefined) {
-          // Best-effort, exactly as before -- tracking has already
-          // succeeded above. Still keyed on `trackingId`, not the new
-          // `journeyId`: ticket attachment is scoped to the underlying
-          // `train_subscriptions` row, unchanged by this feature.
-          try {
-            await fetch(`/api/Train/tickets/${attachTicketId}/attach`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ trackingId: result.trackingId }),
-            });
-          } catch {
-            // Deliberately swallowed.
-          }
-        }
         if (groupId !== null) {
-          // Best-effort, same posture as the ticket-attach block above.
-          // Shares the train's new one-leg journey (DS-124).
+          // Best-effort: tracking has already succeeded above. Shares the
+          // train's new one-leg journey (DS-124).
           await shareTrackedTrainToGroup(groupId, result.journeyId);
         }
         router.push(`/journeys/${result.journeyId}`);

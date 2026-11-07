@@ -22,7 +22,13 @@ export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPT
 // Fails closed to "nothing pinned" on a preferences-fetch failure, the
 // exact shape a 401 already returns (design spec Decision 5) -- same
 // posture as app/lines/page.tsx's own NO_PREFERENCES.
-const NO_PREFERENCES: Preferences = { pinnedLines: [], pinnedStations: [], pinnedOperators: [], silentPinnedLines: [] };
+const NO_PREFERENCES: Preferences = {
+  pinnedLines: [],
+  pinnedStations: [],
+  pinnedOperators: [],
+  silentPinnedLines: [],
+  bankHolidayDivision: null,
+};
 
 /** Worst-first, then alphabetical -- the same sort `app/page.tsx`'s "Your
  * Operators" section already applies to the caller's own pinned subset

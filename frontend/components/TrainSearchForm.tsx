@@ -5,7 +5,6 @@ import { Button, Checkbox, Group, Loader, SegmentedControl, Stack, Text, Visuall
 import { DatePickerInput } from '@/components/LazyDateFields';
 import { PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { nowInLondon } from '@/lib/londonWallClock';
-import { TextLink } from './TextLink';
 import { TimeFilterInput } from './TimeFilterInput';
 import { TrainSearchResults } from './TrainSearchResults';
 import { ListFilterBar, SearchIcon, type ListNoun } from './ListFilterBar';
@@ -121,11 +120,8 @@ const CRS_PATTERN = STATION_CODE_PATTERN;
  * `avoid_stop`. Starts at moved there from the main form under the same
  * `origin`, so an old link keeps its meaning.
  *
- * The rows are the timetable, each a link to the train's page. Only in the
- * ticket flow (`attachTicketId`, from the Journeys page) does a row carry
- * a "Track this train" action and the form offer the manual tracking
- * fallback: anywhere else, tracking is a secondary action on the train's
- * own page.
+ * The rows are the timetable, each a link to the train's page: tracking
+ * is a secondary action on the train's own page.
  *
  * Fetches through the same-origin `/api/*` proxy, like every other Client
  * Component in this app (`API_BASE_URL` is server-only). */
@@ -146,7 +142,6 @@ export function TrainSearchForm({
   initialOperator: initialOperatorProp = '',
   initialStopFilters: initialStopFiltersProp = NO_STOP_FILTERS,
   seedFromUrl = true,
-  attachTicketId,
   operatorNames,
   unnamedOperatorCodes,
   searchDates,
@@ -181,7 +176,6 @@ export function TrainSearchForm({
   /** `false` when the view was switched to on the page, so the address
    * bar (just cleared) seeds nothing. */
   seedFromUrl?: boolean | undefined;
-  attachTicketId?: number | undefined;
   operatorNames?: Readonly<Record<string, string>> | undefined;
   unnamedOperatorCodes?: readonly string[] | undefined;
   searchDates?: TrainSearchDates | null | undefined;
@@ -467,7 +461,7 @@ export function TrainSearchForm({
   // §3.1). `history.replaceState` through `useUrlFilterSync`, not
   // `router.replace`, which re-ran this page's server render on every
   // search. Only once the search is live: a form nobody has searched with
-  // yet leaves the URL alone. `ticketId` and any other param are kept.
+  // yet leaves the URL alone. Any other param is kept.
   useUrlFilterSync(live && query !== null ? urlState() : null, (current, state) =>
     state === null ? current : replaceUrlParams(current, TRAIN_URL_PARAMS, state),
   );
@@ -707,25 +701,9 @@ export function TrainSearchForm({
         loadingMore={loadingMore}
         onLoadMore={() => void handleLoadMore()}
         operatorLookup={operatorLookup}
-        attachTicketId={attachTicketId}
       />
     </Stack>
   );
-
-  // Only in the ticket flow: there, tracking the train is the point, and a
-  // train missing from the published timetable still has a way in.
-  // `inline`/`underline="always"`: this link sits mid-sentence in body
-  // text, so colour alone can't be what marks it (WCAG 1.4.1).
-  const manualFallback =
-    attachTicketId !== undefined ? (
-      <Text size="sm" c="dimmed">
-        Can&apos;t find your train?{' '}
-        <TextLink href={`/track?ticketId=${attachTicketId}`} inline underline="always">
-          Track it manually
-        </TextLink>{' '}
-        by entering its origin station and departure time.
-      </Text>
-    ) : null;
 
   // The station view's Departures/Arrivals switch, above the form or bar.
   // Switching keeps every filter and, once live, searches at once.
@@ -814,7 +792,6 @@ export function TrainSearchForm({
             still hears that a search is running. */}
         <VisuallyHidden role="status">{pending ? 'Searching' : ''}</VisuallyHidden>
         {resultsSection}
-        {manualFallback}
       </Stack>
     );
   }
@@ -860,7 +837,6 @@ export function TrainSearchForm({
           </Button>
         </Group>
         {resultsSection}
-        {manualFallback}
       </Stack>
     </Stack>
   );

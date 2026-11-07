@@ -23,7 +23,6 @@
     "@mantine/charts": "9.7.3",
     "@mantine/core": "9.7.3",
     "@mantine/dates": "9.7.3",
-    "@mantine/dropzone": "9.7.3",
     "@mantine/hooks": "9.7.3",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "dayjs": "^1.11.13",
