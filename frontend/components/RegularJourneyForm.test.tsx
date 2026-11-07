@@ -56,6 +56,46 @@ function plan(uid: string, from: string, to: string, departs: string): TripPlanR
   };
 }
 
+/** `GET /Trips/plan?results=fastest&count=5`'s answer: one direct train
+ * per `[uid, departs, arrives]`, in departure order, with the journeys. */
+function trains(rows: [string, string, string][]): TripPlanResponse {
+  return {
+    ...TRIP_PLAN_DEFAULTS,
+    results: 'fastest',
+    count: 5,
+    segments: [
+      {
+        ...SEGMENT_DEFAULTS,
+        originCrs: 'WOK',
+        destinationCrs: 'WAT',
+        itineraries: rows.map(([uid, departs, arrives]) => ({
+          ...ITINERARY_DEFAULTS,
+          changeCount: 0,
+          totalDurationMinutes: 30,
+          legs: [
+            plannedTrainLeg({
+              trainUid: uid,
+              serviceDate: '2099-01-05',
+              originCrs: 'WOK',
+              destinationCrs: 'WAT',
+              scheduledDeparture: `${departs}:00`,
+              scheduledArrival: `${arrives}:00`,
+              operator: 'SW',
+            }),
+          ],
+        })),
+      },
+    ],
+    journeys: rows.map(([, departs, arrives]) => ({
+      changeCount: 0,
+      accessChangeCount: 0,
+      departure: { time: `${departs}:00`, dayOffset: 0 },
+      arrival: { time: `${arrives}:00`, dayOffset: 0 },
+      totalDurationMinutes: 30,
+    })),
+  };
+}
+
 function json(body: unknown) {
   return new Response(JSON.stringify(body), { status: 200 });
 }
@@ -89,7 +129,7 @@ function pickOnlyTrain() {
  * the three reads. */
 function routeFetch(
   buffers: Record<string, number | null>,
-  plans: Record<string, Response>,
+  plans: Record<string, Response | ((url: string) => Response)>,
   created: () => Response,
   division: string | null = 'england-and-wales',
   preview: () => Response = () => json(PREVIEW),
@@ -103,7 +143,10 @@ function routeFetch(
     if (url === '/api/preferences/bank-holiday-division') return new Response(null, { status: 204 });
     if (url.endsWith('/preview-dates')) return preview();
     const origin = /Trips\/plan\?origin=([A-Z]{3})/.exec(url);
-    if (origin) return plans[origin[1]!]!.clone();
+    if (origin) {
+      const answer = plans[origin[1]!]!;
+      return typeof answer === 'function' ? answer(url) : answer.clone();
+    }
     return created();
   });
   return () =>
@@ -154,8 +197,10 @@ describe('RegularJourneyForm', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Find trains' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
     await screen.findByText(/Pick the one you usually take\./);
-    expect(calls()[0]![0]).toMatch(/^\/api\/Trips\/plan\?origin=WOK&destination=WAT&date=2099-01-05&results=options/);
+    expect(calls()[0]![0]).toMatch(/^\/api\/Trips\/plan\?origin=WOK&destination=WAT&date=2099-01-05&results=fastest/);
     expect(calls()[0]![0]).toContain('departAfter=07%3A45%3A00');
+    expect(calls()[0]![0]).toContain('count=5');
+    expect(calls()[0]![0]).not.toContain('dayOffset');
     pickOnlyTrain();
     expect(await screen.findByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeEnabled();
@@ -169,6 +214,8 @@ describe('RegularJourneyForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
     await waitFor(() => expect(calls()).toHaveLength(2));
     expect(calls()[1]![0]).toContain('origin=WAT&destination=WOK');
+    expect(calls()[1]![0]).toContain('results=fastest');
+    expect(calls()[1]![0]).toContain('count=5');
     await screen.findByText(/17:35/);
     pickOnlyTrain();
     await screen.findByText('Your usual train back: 17:35 London Waterloo to Woking');
@@ -419,5 +466,107 @@ describe('RegularJourneyForm', () => {
     expect(screen.queryByRole('checkbox', { name: 'Mon' })).toBeNull();
     expect(screen.getByText('Choose at least one date.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save regular journey' })).toBeDisabled();
+  });
+
+  /** The radio of the train option leaving at `departs`. */
+  function trainAt(departs: string) {
+    return screen.getByRole('radio', { name: new RegExp(`^${departs}`) });
+  }
+
+  const MORNING: [string, string, string][] = [
+    ['W0748', '07:48', '08:20'],
+    ['W0803', '08:03', '08:35'],
+    ['W0818', '08:18', '08:50'],
+    ['W0833', '08:33', '09:05'],
+    ['W0848', '08:48', '09:20'],
+  ];
+  const LATER: [string, string, string][] = [
+    ['W0903', '09:03', '09:35'],
+    ['W0918', '09:18', '09:50'],
+  ];
+
+  it('lists five trains in departure order, pages earlier and later, and keeps the usual one picked', async () => {
+    const calls = routeFetch(
+      {},
+      {
+        WOK: (url) => {
+          if (url.includes('departAfter=08%3A49')) return json(trains(LATER));
+          if (url.includes('departAfter=09%3A19')) return json(trains([]));
+          return json(trains(MORNING));
+        },
+      },
+      () => json({ templateId: 5, returnTemplateId: null }),
+    );
+    renderWithMantine(<RegularJourneyForm />);
+    fillOutbound();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Find trains' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Find trains' }));
+    await screen.findByText(/Pick the one you usually take\./);
+    const shown = MORNING.map(([, departs]) => trainAt(departs));
+    expect(shown).toHaveLength(5);
+    fireEvent.click(trainAt('08:03'));
+    expect(await screen.findByText('Your usual train: 08:03 Woking to London Waterloo')).toBeInTheDocument();
+    expect(trainAt('08:03')).toBeChecked();
+    expect(trainAt('07:48')).not.toBeChecked();
+
+    // Later: a minute after the last one shown left.
+    fireEvent.click(screen.getByRole('button', { name: 'Later trains' }));
+    await screen.findByRole('radio', { name: /^09:03/ });
+    const later = calls().at(-1)![0];
+    expect(later).toContain('results=fastest');
+    expect(later).toContain('departAfter=08%3A49%3A00');
+    expect(later).toContain('count=5');
+    expect(later).not.toContain('arriveBy');
+    expect(screen.queryByRole('radio', { name: /^08:03/ })).not.toBeInTheDocument();
+    // Still the usual train.
+    expect(screen.getByText('Your usual train: 08:03 Woking to London Waterloo')).toBeInTheDocument();
+
+    // Earlier: arriving a minute before the first one shown arrived. The
+    // usual train is picked again in the new list.
+    fireEvent.click(screen.getByRole('button', { name: 'Earlier trains' }));
+    await screen.findByRole('radio', { name: /^08:03/ });
+    const earlier = calls().at(-1)![0];
+    expect(earlier).toContain('arriveBy=09%3A34%3A00');
+    expect(earlier).toContain('count=5');
+    expect(earlier).not.toContain('departAfter');
+    expect(trainAt('08:03')).toBeChecked();
+
+    // Past the last train of the day: the list stays, and says so.
+    fireEvent.click(screen.getByRole('button', { name: 'Later trains' }));
+    await screen.findByRole('radio', { name: /^09:18/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Later trains' }));
+    expect(await screen.findByText('No later trains that day.')).toBeInTheDocument();
+    expect(trainAt('09:18')).toBeInTheDocument();
+  });
+
+  it('shows the usual train from Plan a journey picked among the trains found', async () => {
+    window.sessionStorage.setItem(
+      'ds:regular-journey-draft',
+      JSON.stringify({
+        originCrs: 'WOK',
+        destinationCrs: 'WAT',
+        target: { kind: 'depart_after', time: '07:45', dayOffset: 0 },
+        planOptions: { preferOperator: 'SW', maxChanges: 1 },
+        // Planned on another day: the service date doesn't matter.
+        usualItinerary: {
+          legs: [
+            { kind: 'train', trainUid: 'w0803', serviceDate: '2098-12-01', departs: '08:03', departsDayOffset: 0 },
+          ],
+        },
+        usualSummary: '08:03 Woking to London Waterloo',
+      }),
+    );
+    const calls = routeFetch({}, { WOK: json(trains(MORNING)) }, () => json({ templateId: 5, returnTemplateId: null }));
+    renderWithMantine(<RegularJourneyForm />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Find other trains' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Find other trains' }));
+    await screen.findByText(/Pick the one you usually take\./);
+    expect(trainAt('08:03')).toBeChecked();
+    expect(trainAt('08:18')).not.toBeChecked();
+    // The plan's other options apply; "prefer" only labels an option, so
+    // it isn't asked for.
+    const search = calls()[0]![0];
+    expect(search).toContain('maxChanges=1');
+    expect(search).not.toContain('preferOperator');
   });
 });

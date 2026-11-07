@@ -118,6 +118,102 @@ export function usualTrainLegs(itinerary: UsualItinerary | null | undefined): Us
   return (itinerary?.legs ?? []).filter((leg) => leg.kind === 'train');
 }
 
+/** Whether `option` (from "Find trains") rides the usual itinerary's
+ * trains: the same train UIDs, in order, each leaving at the same booked
+ * time. Not the service date, so a usual train picked on another day is
+ * still found. */
+export function isUsualOption(option: TripPlanItinerary, usual: UsualItinerary | null | undefined): boolean {
+  const wanted = usualTrainLegs(usual);
+  if (wanted.length === 0) return false;
+  const found = usualTrainLegs(usualItineraryFromPlan([option], () => undefined));
+  return (
+    found.length === wanted.length &&
+    found.every((leg, index) => {
+      const other = wanted[index];
+      return (
+        other !== undefined &&
+        (leg.trainUid ?? '').toUpperCase() === (other.trainUid ?? '').toUpperCase() &&
+        Boolean(leg.departs) &&
+        hhmm(leg.departs ?? '') === hhmm(other.departs ?? '') &&
+        leg.departsDayOffset === other.departsDayOffset
+      );
+    })
+  );
+}
+
+/** How many trains "Find trains" asks for (`/Trips/plan`'s `count`). */
+export const TRAIN_CHOICES_COUNT = 5;
+
+/** One "Find trains" search: leave after, or arrive by, `time` (`HH:MM`)
+ * on the search date's clock, `dayOffset` days on. */
+export interface TrainSearchBound {
+  kind: TemplateTarget['kind'];
+  time: string;
+  dayOffset: 0 | 1;
+}
+
+/** `minutes` from the service date's midnight as a bound of `kind`, or
+ * `null` outside the planner's two days. */
+function boundAt(kind: TemplateTarget['kind'], minutes: number): TrainSearchBound | null {
+  if (minutes < 0 || minutes >= 2 * 1440) return null;
+  const clock = minutes % 1440;
+  const time = `${String(Math.floor(clock / 60)).padStart(2, '0')}:${String(clock % 60).padStart(2, '0')}`;
+  return { kind, time, dayOffset: minutes >= 1440 ? 1 : 0 };
+}
+
+function planMinutes(at: { time: string; dayOffset: number }): number {
+  const [hours = 0, minutes = 0] = at.time.split(':').map(Number);
+  return at.dayOffset * 1440 + hours * 60 + minutes;
+}
+
+/** "Later trains": leave a minute after the last train shown left
+ * (`journeys` are in departure order), or `null` with none. */
+export function laterTrainsBound(
+  journeys: readonly { departure: { time: string; dayOffset: number } }[],
+): TrainSearchBound | null {
+  const last = journeys.at(-1);
+  return last ? boundAt('depart_after', planMinutes(last.departure) + 1) : null;
+}
+
+/** "Earlier trains": arrive a minute before the first train shown
+ * arrived, or `null` with none. */
+export function earlierTrainsBound(
+  journeys: readonly { arrival: { time: string; dayOffset: number } }[],
+): TrainSearchBound | null {
+  const first = journeys[0];
+  return first ? boundAt('arrive_by', planMinutes(first.arrival) - 1) : null;
+}
+
+/** The `/Trips/plan` search behind "Find trains" for `bound`: up to
+ * [`TRAIN_CHOICES_COUNT`] `fastest` trains in departure order, on the
+ * date's own trains and clock, as the plan sweep searches them. A route
+ * with stops to call at can't be searched that way, so it keeps its
+ * options search (and is picked on Plan a journey). `preferOperator`
+ * only labels an option there, so it is left out. */
+export function trainChoicesQuery(
+  route: { originCrs: string; destinationCrs: string; date: string },
+  bound: TrainSearchBound,
+  options: Partial<TripPlanQuery>,
+): TripPlanQuery {
+  const { operatorMode, operators, ...rest } = options;
+  const operator = operatorMode && operatorMode !== 'prefer' ? { operatorMode, operators } : {};
+  const timing = bound.kind === 'arrive_by' ? { arriveBy: bound.time } : { departAfter: bound.time };
+  const waypoints = rest.waypointCrs ?? [];
+  return {
+    ...rest,
+    ...operator,
+    originCrs: route.originCrs,
+    destinationCrs: route.destinationCrs,
+    waypointCrs: waypoints,
+    date: route.date,
+    ...timing,
+    ...(bound.dayOffset === 1 ? { dayOffset: 1 as const } : {}),
+    ...(waypoints.length > 0
+      ? { results: 'options' as const }
+      : { results: 'fastest' as const, count: TRAIN_CHOICES_COUNT }),
+  };
+}
+
 /** "07:48 Woking to London Waterloo" for the usual itinerary's first
  * train (`lib/trainName.ts`'s naming), or `null` without one. */
 export function usualTrainSummary(

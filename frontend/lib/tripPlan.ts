@@ -147,7 +147,8 @@ export interface TripPlanQuery {
   /** "HH:MM"; the backend rejects it together with `departAfter`. */
   arriveBy?: string | undefined;
   /** `1`: the time is on the morning after `date`, on `date`'s trains
-   * (2026-10-19). Only ever set by `apiQuery` (`lib/tripPlanTiming.ts`);
+   * (2026-10-19). Set by `apiQuery` (`lib/tripPlanTiming.ts`), and by a
+   * regular journey's "Later trains" past midnight (`trainChoicesQuery`);
    * the form and the `/plan` URL hold the visitor's own calendar date. */
   dayOffset?: 1 | undefined;
   /** With `dayOffset: 1`: search the next service date's trains too and
@@ -174,6 +175,10 @@ export interface TripPlanQuery {
    * [`MAX_OPERATORS`]. */
   operators?: string[] | undefined;
   results: 'fastest' | 'options';
+  /** With `results: 'fastest'` and a time, no waypoints and no
+   * `acrossMidnight`: up to this many trains (1 to 8), in departure
+   * order, each from a minute after the last (2026-11-07, DS-398). */
+  count?: number | undefined;
 }
 
 /** `GET /Trips/plan`'s own limits (`crates/api/src/routes/trips.rs`:
@@ -247,6 +252,9 @@ export function buildTripPlanQuery(query: TripPlanQuery): string {
   }
   if (query.maxChanges !== undefined) {
     params.set('maxChanges', String(query.maxChanges));
+  }
+  if (query.count !== undefined) {
+    params.set('count', String(query.count));
   }
   const operatorFilter = operatorFilterParam(query);
   if (operatorFilter) params.set(...operatorFilter);
