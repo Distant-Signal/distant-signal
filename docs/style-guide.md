@@ -3,10 +3,10 @@
 How the Distant Signal frontend looks, reads and behaves. This is the
 versioned, plain-text copy of the illustrated guide published at
 <https://claude.ai/code/artifact/5fa075dc-fa7e-43b9-a94b-2a43393ac77d>,
-which was derived from the code at `a04c9696` on 29 Sep 2026. The
-illustrated guide has rendered specimens of every component; this file has
-the rules. Where they disagree, this file is newer: it includes the
-consistency fixes made after the guide was written (see
+first derived from the code at `a04c9696` on 29 Sep 2026 and redrawn from
+`main` at `80b1a8a8` on 8 Nov 2026. The illustrated guide has rendered
+specimens of every component; this file has the rules. Where they
+disagree, the code wins, then this file (see
 [Changes since the illustrated guide](#changes-since-the-illustrated-guide)).
 
 Every value here is the product's own: Mantine 9 with a grape primary, the
@@ -28,9 +28,9 @@ design change are in [the frontend design guide](frontend-design-guide.md).
 - **Colour means status.** Grape is the brand and the only accent. Green,
   yellow, orange, red, blue, teal and gray carry meaning about trains and
   lines, never decoration.
-- **Honest data.** Show when data was fetched, say where it came from, and
-  omit a value rather than invent one. Every feed gets its licence-mandated
-  credit.
+- **Honest data.** Show when data was fetched, say where it came from
+  beside the data itself, and omit a value rather than invent one. Every
+  feed gets its licence-mandated credit ([Data credits](#data-credits)).
 
 ## Colour
 
@@ -79,8 +79,8 @@ later-injected `:root` block on specificity.
 
 | Colour | Means | Used for |
 | --- | --- | --- |
-| green | Good service, on time, arrived, **success** | Severity `good`; "On time"; "Arrived"; every success Alert ("Saved.", "Ticket saved", "Added to …") |
-| gray | Informational, neutral, unknown | Severity `informational`; unchanged platform; "Awaiting first report"; provenance badges; "Affected line"/"Affected station" tags; the trip planner's "N changes" |
+| green | Good service, on time, arrived, **success** | Severity `good`; "On time"; "Arrived"; every success Alert ("Saved.", "Added to …") |
+| gray | Informational, neutral, unknown | Severity `informational`; unchanged platform; "Awaiting first report"; provenance badges; "Affected line"/"Affected station" tags; the trip planner's "N changes"; a paused regular journey's "Paused" |
 | blue | **A planned or changed arrangement, not a fault** | Severity `planned` (Planned Closure, Part Closure); incident "Planned work"; a changed platform |
 | yellow | Minor disruption, caution, partial data | Severity `mild`; journey leg "Delayed"; "Some of this range isn't available" |
 | orange | Running late, skipped stop, draft | "12 min late"; "Not stopping at your station"; draft legal page |
@@ -136,7 +136,7 @@ list-row titles 500.
 - Elevation: borders do the work. `shadow="sm"` only on a clickable card
   (`ClickableCard`: journey and train rows, `LineStatusCard`, the linked
   /status tiles); a card that only holds content or its own controls
-  (`OperatorStatusCard`, a ticket) is flat. No
+  (`OperatorStatusCard`, a regular journey and its return) is flat. No
   coloured left-border accents (the open-leg card's is its one,
   deliberate, non-colour-only exception; see Accessibility). Mantine drops
   shadows in dark mode.
@@ -184,8 +184,10 @@ used, rather than as a literal in a component.
   `/journeys/new` redirects there) is a button on the Journeys page and at
   the top of the home page's "Upcoming journeys", and a link on station
   and stop pages. It plans a route, or starts from a train you know or a
-  Tube, bus or walk leg (a segmented control), and links to "Find a
-  train", "Add a ticket" and "Journey templates" under it. Logged out,
+  Tube, bus or walk leg (a segmented control: "Plan a route for me", "I
+  know my route", "Tube, bus or walk"), and under it "Other ways to
+  start:" links "Find a train" (`/trains`) and "Regular journeys"
+  (`/journeys/regular`). Logged out,
   "Upcoming journeys" is a teaser in the same
   frame: one flat card saying what tracking a journey gives you, a "Log
   in or sign up" `LoginControl` button and a "Plan a journey" link
@@ -269,9 +271,9 @@ used, rather than as a literal in a component.
   demote). One trigger style: `size="xs"`, red outline for `tone="danger"`
   (the default), default variant for a reversible `tone="neutral"` change.
   The modal's confirm button is named "Confirm <actionName>" ("Confirm
-  delete ticket"), so it never shares a name with the trigger and still
+  delete journey"), so it never shares a name with the trigger and still
   contains its visible text. A 401 shows `loginPrompt` ("Log in to delete
-  this ticket") as a `LoginControl` link; any other failure reads through
+  this journey") as a `LoginControl` link; any other failure reads through
   `failureFromResponse`/`describeFailure`. The `Delete*Button`/`Remove*Button`
   components are thin wrappers that pass the request, copy and
   `onSuccess`. Never hand-roll a confirm `Modal`.
@@ -312,8 +314,8 @@ used, rather than as a literal in a component.
   `aria-label`s and `Select` options. Never "→" in copy.
 - **Journey names**: one rule, `lib/journeyName.ts`, wherever a journey
   is listed, headed or previewed (the Journeys list, the journey page, group
-  rows, templates, share-link previews, Connected apps). The name is the
-  owner's custom name, verbatim. Without one it is the whole route and the
+  rows, regular journeys, share-link previews, Connected apps). The name
+  is the owner's custom name, verbatim. Without one it is the whole route and the
   first day: the FIRST leg's origin to the LAST leg's destination,
   "London Kings Cross (KGX) to Edinburgh (EDB), 17 Sep 2026", through
   `routeLabel`, so both ends fall back to codes together ("KGX to EDB").
@@ -329,8 +331,10 @@ used, rather than as a literal in a component.
   origin to name, the first leg's train stands in ("Train W12345, 17 Sep
   2026", "Train W12345 to York (YRK), 17 Sep 2026"), else "Journey on 17
   Sep 2026"; a train leg's card is titled by its train, or "Train leg"
-  before it has one. No legs: "Journey with no legs yet". A template has
-  no day, so its name is the route alone. A share-link preview leaves the
+  before it has one. No legs: "Journey with no legs yet". A regular
+  journey has no single day, so it has no date: its custom name, else its
+  route and target ("Woking to London Waterloo, leave after 07:45"), else
+  its legs' route. A share-link preview leaves the
   custom name out (it is the owner's private label) and uses the default
   name. Push notifications name a journey "'Custom
   name'" or "your journey to Edinburgh" and a leg by its position and
@@ -645,17 +649,9 @@ used, rather than as a literal in a component.
   of timetable ("Timetable: towards Upminster"), and each branch's
   timetable sits in a closed "Timetables by branch" panel. Stations too few
   trips call at to be a branch are named in a sentence after the strip.
-- **Data credits** (`DataCredits.tsx`): credit wording is licence text;
-  copy it exactly, including "NationalRail" as one word. Each provider is
-  credited beside its data, not in the footer: a page that shows a
-  provider's data renders `<DataCredits credits={[...]} />` at the foot of
-  that data (`lineCredits`, `journeyCredits` and `TRAIN_CREDITS` pick the
-  ids), with the Irish and tram pages' own notes built the same way.
-  `app/dataCredits.test.ts` fails for a page that renders none and isn't
-  listed as showing no third-party data. The footer keeps only its links
-  ("Data sources and licences", "Source code", "Developers") and the
-  non-affiliation note. A live link preview draws its credit as plain text
-  (`lib/creditText.ts`).
+- **Data credits** (`DataCredits`, `OpenDataAttribution`): each provider
+  is credited beside its data, never in the footer. See
+  [Data credits](#data-credits).
 - **Pride mode** (`PrideMode.tsx`): decorative, off by default. Each
   flag's stripes are one `--ds-pride-<flag>` variable in `globals.css`,
   read by the page bar, nav bar, site name and the picker's swatch. The nav
@@ -688,10 +684,10 @@ behaves the same and none is a `div` with an `onClick`.
   `selectableCardRadioProps` and the card `selected`.
 - **Stretched, not nested.** The target's `::after` covers the card, so a
   click anywhere on it follows the target. Every other control inside
-  (Follow, the row menu, Remove, a ticket's buttons, a text link, a badge
-  that explains itself) is lifted above that area by the stylesheet, so
-  it works on its own, never triggers the card and never sits inside the
-  link. A tooltip on something that isn't focusable takes
+  (Follow, the row menu, Remove, a regular journey's "Skip next" and
+  "Pause", a text link, a badge that explains itself) is lifted above that
+  area by the stylesheet, so it works on its own, never triggers the card
+  and never sits inside the link. A tooltip on something that isn't focusable takes
   `data-card-raise` to stay hoverable. Nothing between the card and its
   target may be positioned (the card is the containing block).
 - **Looks clickable at rest**: `tokens.card.link` (border plus the `sm`
@@ -714,15 +710,182 @@ behaves the same and none is a `div` with an `onClick`.
   train ID, a cancelled departure, a route with no train, an option while
   another is being taken) is a `StaticCard`: the same box, flat.
 - Not clickable cards: a card whose controls do separate things with no
-  one destination (a ticket, an operator card, an earlier plan) stays
-  flat, and so do section cards. Rows in a bordered list
-  (`ServiceRowList`: service rows, nearby stations) are whole-row links
-  with their own hover and inset focus ring, not cards.
+  one destination (a regular journey and its return, an operator card,
+  an earlier plan) stays flat, and so do section cards. Rows in a bordered
+  list (`ServiceRowList`: service rows, nearby stations) are whole-row
+  links with their own hover and inset focus ring, not cards.
 
 Do: `<ClickableCard><Text fw={500}><CardTitleLink href=…>{name}</CardTitleLink></Text>…</ClickableCard>`.
 Don't: a `<Link>` around a whole `Card` (one long link name, and any
 control inside is nested in it), `onClick` or `role="button"` on a `Card`,
 `Box` or `Group`, or a heading link alone in an otherwise dead card.
+
+## Regular journeys
+
+Journey templates are **regular journeys**, at `/journeys/regular`
+(`/journeys/templates` and `/journeys/templates/[id]` redirect there
+permanently). The api and some component names still say "template"
+(`/JourneyTemplates`, `SaveAsTemplateButton`); the copy never does: "Make
+this a regular journey", "New regular journey", "Save regular journey",
+"Delete regular journey". The list is one `ClickableCard` per regular
+journey, and a journey with its return is one flat `StaticCard` with a
+linked row each (two targets, not one). Its empty state is "No regular
+journeys yet. Make one here, or plan a route and choose "Make this a
+regular journey"."
+
+- **Usual train picker** (`RegularJourneyForm`, `lib/regularJourneys.ts`).
+  "Find trains" (filled; "Find other trains", default, once one is
+  picked; "Finding trains" while it searches) asks `/Trips/plan` for
+  `TRAIN_CHOICES_COUNT` (5) trains with `direct=all`, so a stopping train
+  that a faster one overtakes is offered too. The trains are
+  `ItineraryOption`s, as on Plan a journey, in departure order under
+  "Trains on 21 Dec 2026. Pick the one you usually take." An xs default
+  "Earlier trains" button sits above them and "Later trains" below: they
+  search again arriving a minute before the first train shown, or leaving
+  a minute after the last, and say "No earlier trains that day." when
+  there are none. The usual train is matched by its trains and times
+  (`isUsualOption`), so it stays selected after paging. The outbound and
+  the return each have a picker. A route with stops to call at can't be
+  searched this way and says so ("Pick its usual train from Plan a journey
+  instead."). "Each day" is a radio group: "Remind me to pick my train"
+  (the default) or "Pick my usual train for me", described "We'll pick
+  the train closest to your usual one each day."
+- **Next dates** (`UpcomingDatesStrip`, `lib/upcomingDates.ts`): on the
+  list card and the regular journey's page, the next dates the api sends
+  (8 today) as xs Mantine `Chip`s in a group labelled "Next dates". A chip
+  is on when a journey is made for that date ("Mon 21 Dec"). Turning one
+  off skips it, the return too on a pair; turning a skipped one back on
+  undoes the skip. A date skipped for any other reason shows it in xs
+  dimmed text beside the chip and can't be switched there: "Bank
+  holiday", "Away", "Paused", or plain "Skipped" for a reason the page
+  doesn't know. Every chip is one width (`min-width: 7.25rem` in
+  `UpcomingDatesStrip.module.css`), wider than "Wed 30 Sep" with its
+  check, so the strip wraps the same whatever dates it shows. A 401 shows
+  "Log in to change these dates". Beside it, "Skip next" opens a dialog
+  ("Skip 10 Nov 2026?", or a choice of how many of the next dates, "Skip 3
+  dates?"), then says "Skipped 10 Nov 2026." with "Undo". The new regular
+  journey form previews the next 4 dates in one sentence.
+- **Leave-by countdown** (`LeaveByCountdown`, `lib/leaveBy.ts`): a client
+  island on the home page's current journey and upcoming rows and on the
+  journey page. "Leave by 08:20" (sm, 600) then "in 12 min" (dimmed; "in 1
+  h 5 min" from an hour away), then "Leave now" (700), and nothing once
+  the train has left. It ticks every 30s and is not a live region: only
+  the change to "Leave now" is announced, once, and not when the page
+  opens already due. A late first train adds its lateness to the line
+  ("Leave by 08:20 · train expected 6 min late"; the leave-by time stays
+  put), and a suggestion names its train ("Leave by 08:35 for the 08:57").
+  On the journey page the owner, on the day, gets "Change"
+  (`JourneyLeaveBy`), which edits the minutes to get to the station for
+  that journey only.
+- **Suggestion card** (`RegularPlanCard`, `lib/regularPlan.ts`): on the
+  journey page of a regular journey in "Remind me" mode, the train picked
+  for the day, as a flat section card whose `SectionTitle` reads "Your
+  usual train: 08:12 Woking to London Waterloo", with one filled "Track
+  this train". When the usual train doesn't run, the heading starts
+  "Closest train:" and the card says "Your usual train doesn't run today.
+  This is the closest." ("tomorrow", or "on 9 Nov 2026"). The other trains
+  follow under an h3 "Other trains" (`<Title order={3} size="sm">`), each a
+  `PlanOptionRow` with its own "Track this train".
+- **Ticket details on a leg** (`LegTicketDetails`, `lib/legTicket.ts`): a
+  ticket is no longer a thing of its own but a few optional details on
+  each of the owner's train legs, beside its Delay Repay estimate
+  (`LegDelayRepay`, which needs no ticket; an Irish train has neither).
+  "Add ticket details" or "Edit ticket details" opens a section named
+  "Ticket details": "Ticket type" (Single, Return, Advance, Off-Peak,
+  Season, Not sure), "Only valid on LNER trains" (or "on this train
+  company") and an optional "Name", then "Save", "Cancel" and "Remove
+  ticket details". Saved, it reads as one line: "Ticket: Advance, LNER
+  trains only (Work)", ending ", from your Wallet pass" when it came from
+  one. "Fill in from an Apple Wallet pass" only fills in the fields (the
+  pass isn't kept, and the owner still saves): "Filled in from your pass.
+  Check the details, then save." A failed read says what to do instead
+  ("That isn't an Apple Wallet pass. Fill in the details yourself."). The
+  standalone ticket flow is gone: `/track/mine/add-ticket` redirects to
+  `/journeys`.
+- **Time away** (`TimeAwaySection` on `/account/preferences`, logged in):
+  dates none of the traveller's regular journeys runs on. Each period is
+  a row, "Holiday: 10 Nov 2026 to 14 Nov 2026" (`timeAwayLabel`), with a
+  subtle "Delete" named "Delete time away, ..." for that row. Below,
+  "First day away" and "Last day away" (`DateInput`s with
+  `PICKER_DATE_FORMAT`), "Name (optional)", and "Add time away". Empty, it
+  says "No time away." Adding one says "Added." and how many journeys
+  already added for those dates went ("Removed 2 journeys already added
+  for those dates."); deleting one says "Deleted. Journeys for those dates
+  are added again as usual." Those dates show "Away" on the chips.
+- **Pause until** (`PauseUntilButton`): beside "Skip next", an xs default
+  "Pause until" opens "Pause until a date?" with a "Starts again on" date
+  field, the consequence in one line ("No journeys are added before then.
+  Journeys already added that you haven't changed are removed.", plus
+  "Pauses the return journey too." on a pair), and "Cancel" and "Pause".
+  While paused it reads "Paused until 20 Nov 2026." (`role="status"`)
+  with a subtle "Start again now", and the paused dates show "Paused".
+  "Pause" and "Resume" (`PauseRegularJourneyButton`) stop and restart it
+  with no end date; pausing asks first, through `ConfirmActionButton`.
+
+## Data credits
+
+Credit wording is licence text: copy it exactly, including "NationalRail"
+as one word, and never paraphrase a statement. No provider logos anywhere;
+the site calls itself "an independent, unofficial service".
+
+- **Beside the data, not in the footer.** A page that shows a provider's
+  data renders `<DataCredits credits={[...]} />`
+  (`components/DataCredits.tsx`) directly under that data. `lineCredits`,
+  `journeyCredits` and `TRAIN_CREDITS` pick the ids; the Irish and tram
+  pages' notes (`IrelandAttributionNote`, `TransitAttributionNote`) are
+  built on it.
+- **Its look.** Each credit is its own xs dimmed line, then a "Data
+  credits" link to `/attribution`. Links inside use `TextLink
+  tone="inherit"` (the `ExternalLink` helper for an outside source), so
+  they keep the statement's colour and are marked by their underline.
+- **One source of wording.** The statements are the same entries
+  `/attribution` renders (`DATA_SOURCES` in `OpenDataAttribution.tsx`, the
+  strings in `lib/creditText.ts`), so the two can't drift.
+- **Checked.** `app/dataCredits.test.ts` fails for a page that renders no
+  credit note and isn't listed, with a reason, as showing no third-party
+  data.
+- **The footer** (`OpenDataAttribution`) keeps only "Independent and
+  unofficial." and its `nav aria-label="Site information"`: "Data sources
+  and licences", "Source code", "Developers" and "Preferences", plus the
+  legal pages' links once those are switched on.
+- A live link preview draws its credit as plain text (`lib/creditText.ts`).
+
+## Island of Ireland pages
+
+`/island-of-ireland` covers Iarnród Éireann and NI Railways
+(`lib/ireland.ts`; design in
+`docs/superpowers/specs/2026-11-04-island-of-ireland-pages-design.md`).
+
+- **Pages.** The overview, h1 "Ireland and Northern Ireland"
+  (`IRELAND_LABEL`; "Ireland" alone would read as the Republic only), is
+  one `ClickableCard` per network with its counts in a dimmed line. Then a
+  page per network, line and station, and an Iarnród Éireann train page
+  opened from its live boards.
+- **Names.** A network is named by its operator, "Iarnród Éireann" or "NI
+  Railways", and its URL slug follows (`iarnrod-eireann`, `ni-railways`).
+  "Irish Rail" appears only in source names: the credits and the nav
+  freshness panel's rows.
+- **No line status, said once and plainly.** No status badge, no "Good
+  service", no status colour anywhere in the section. The overview says
+  "We don't show line status for Irish trains."; a network page's notice
+  says what we have ("Lines and stations. We don't have live NI Railways
+  times or line status."); a line page says "We don't have line status
+  for this line." where the badge would be.
+- **The transit pages' parts.** Lines are `LineStatusRow`s without a badge,
+  a line's stops are a `TransitLineDiagram`, a station's lines are a
+  `LinkSentence`, and the live board (`IrelandDepartureBoard`) is a
+  `ServiceRowList` with "Updated 4 min ago" (`LastUpdated`) above it. A
+  board row's delay is the delay badge's words and tone ("5 min late"),
+  only when the feed vouches for it, else "No report yet"; its details line
+  is "Timetabled 22:39 · From Athlone · Train code A810". The feed's own
+  status words ("En Route", "No Information") are never shown. The train
+  page uses `DelayBadge`.
+- **Reached from** an "Ireland and Northern Ireland" link on `/lines` and
+  from `/stations` search; it is not a primary nav entry. While neither
+  network has any stations the section is not found and the link is left
+  out. The nav's data freshness panel has an "Ireland" group.
+- **Credits:** every page ends with `IrelandAttributionNote`, the
+  `/attribution` wording for its data.
 
 ## States
 
@@ -731,7 +894,7 @@ control inside is nested in it), `onClick` or `role="button"` on a `Card`,
 | Loading | A page whose fetch holds up the first paint: a `loading.tsx` skeleton of its real layout (`PageSkeleton`). Inside a page: `Skeleton` inside Suspense (`LoadingPlaceholder`); inline, `LoadingText` (a plain word beside an `aria-hidden` `Loader`) in `role="status" aria-busy` where it is the region's content. A busy button keeps a word label ("Saving") with `leftSection={<ButtonSpinner />}`. No "…". The nav's fallback is the full logged-out bar. | "Loading trends", "Searching" |
 | Empty | Dimmed text saying what would appear, with a route out. No illustrations. | "Nothing is affecting this line right now." |
 | Error (page) | `app/error.tsx`: h1 at h2 size, dimmed cause, "Try again", home link, xs "Reference:" digest | "Couldn't load this page" |
-| Error (inline) | Red Alert, title names the failed action | "Couldn't save this ticket" |
+| Error (inline) | Red Alert, title names the failed action | "Couldn't save your ticket details" |
 | Not found | h1 at h2 size, cause, three always-underlined way-out links | "There's no page at this address." |
 | Stale / offline | Bottom-centre `Notification loading`, `role="status" aria-live="polite"`. The offline page (`public/offline.html`) shows the last successful load as "Last connected 4 min ago." | "Reconnecting" |
 | Cancelled | Red badge "Cancelled", red Alert on the train page, struck-through platform | "Cancelled: the train no longer calls at this platform" |
@@ -808,6 +971,10 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
   title and glyph.
 - Landmarks: `main`, `nav aria-label="Main"`, footer
   `nav aria-label="Site information"`; sections use `aria-labelledby`.
+  Every landmark's name is unique on its page (axe's `landmark-unique`).
+  Preferences has one "Connected apps" region, its card, so the
+  `ConnectedApps` inside it takes `landmark={false}`; `/account/connected-apps`
+  keeps the component's own region.
 - New-tab links (`TextLink external`, and every link in sanitized feed
   HTML) say "(opens in a new tab)" in their accessible name.
 - `VisuallyHidden` repeats tooltip-only information. Icon buttons always
@@ -819,7 +986,9 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
   hover and keyboard focus (the theme's `Tooltip` default), and the open
   tooltip is the trigger's `aria-describedby`. One whose text is the only
   place a fact lives also turns on touch. A tooltip only reaches keyboard
-  and screen-reader users if its trigger is focusable.
+  and screen-reader users if its trigger is focusable. One repeated down a
+  long list is a `LazyTooltip` (see [Components](#components)), which
+  behaves the same once first hovered or focused.
 - A toggle has a fixed accessible name and states its value separately.
   A choice of several is a labelled radio group (the colour theme: a
   `SegmentedControl` named "Colour theme").
@@ -831,9 +1000,13 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
 
 ## Writing
 
-Copy rules are checked in CI: ESLint's `no-restricted-syntax` copy rules
-(`frontend/eslint.config.mjs`) and `scripts/check-copy.py` (banned
-phrases, Title Case headings, meta descriptions, pages without metadata).
+Two checks run in CI: ESLint's `no-restricted-syntax` copy rules
+(`COPY_RULES` in `frontend/eslint.config.mjs`) and `scripts/check-copy.py`
+(banned characters and phrases, Title Case h1s and h2s, meta descriptions
+over 160 characters, pages without metadata). [Banned
+phrases](#banned-phrases) lists exactly what they reject. The rest of this
+section is guidance: hold copy to it in review, but nothing fails a build
+over it.
 
 ### Who we write for
 
@@ -866,7 +1039,7 @@ never "this app".
   is sentence case ("Good service", `severityBadgeLabel`).
 - A page's h1 is its nav label: Journeys, Plan a journey, Trains, Status,
   Lines, Operators, Stations, Incidents, Ask about trains, Preferences. A
-  page linked from a hub takes the link's words ("Add a ticket").
+  page linked from a hub takes the link's words ("Regular journeys").
 - Helper text is one line. If the detail matters, put it behind a "How
   this is calculated" disclosure.
 - Meta descriptions: one plain sentence, 20 words or fewer, at most 160
@@ -880,7 +1053,7 @@ by `describeFailure(verb, noun, status)` in `lib/failure.ts`:
 | Case | Copy |
 | --- | --- |
 | Default, 5xx, network | "Couldn't load this train. Try again." |
-| 401 | "Couldn't save this ticket. Log in and try again." |
+| 401 | "Couldn't save your ticket details. Log in and try again." |
 | 403 | "Couldn't delete this group. You don't have access." |
 | 404 | "Couldn't load this journey. It may have been removed." |
 | 409 | "Couldn't rename this train. It changed in the meantime. Reload and try again." |
@@ -895,6 +1068,7 @@ exception: a 400/403/409/422 whose body is one of the API's own sentences
 | Say | Meaning | Don't say |
 | --- | --- | --- |
 | train | What a commuter catches; named by time and route | service (in headings), Train {UID} |
+| regular journey | A journey made again on chosen days | template, journey template |
 | service | A timetabled run, in explanations only ("a timetabled service") | schedule, CIF row |
 | headcode | The 4-character signalling ID ("1S00"), secondary text only | identity, train ID |
 | UID | The timetable's 6-character ID ("W12345"), secondary text only | id, uid |
@@ -924,18 +1098,63 @@ exception: a 400/403/409/422 whose body is one of the API's own sentences
 
 ### Banned phrases
 
-On screen, never: "—" (em dash), "…" (ellipsis), "→", "←", "↗", "--", "Something went wrong", "Please try again",
-"Could not", "Request failed", "this app", "ingest", "aggregator",
-"full coverage", "TOC", "deployment", "allowlist", "localStorage",
-"tracking pin", "propagated", "extraction", "sign in", "signed in",
-"sign-in", "CRS", "CRS code", "--:--", "seamless", "effortless",
-"powerful", "revolutionary", "supercharge", "unlock", "game-changer",
-"cutting-edge", "best-in-class", "delightful", "magic".
-`scripts/check-copy.py` holds the list. The em dash is banned in every
-string the app holds, not only the ones the checker recognises as copy,
-and ESLint flags it in any string literal or JSX text. So is the ellipsis.
+These are the checks' lists, word for word. Change a list and this section
+together.
+
+**Characters, in every string the app holds** (`BANNED_CHARACTERS`, the
+same list in `scripts/check-copy.py` and `frontend/eslint.config.mjs`):
+the em dash "—", the ellipsis "…" and the arrows "→", "←" and "↗". Not
+only copy: ESLint checks every JSX text, string literal and template
+string outside tests and the service worker, and the script every string
+the extractor finds outside its `SKIP_FILES` (the chat model's prompt,
+`lib/logger.ts` and the MCP OAuth plumbing).
+
+**Phrases in user-facing strings** (`BANNED` in `scripts/check-copy.py`;
+user-facing is defined in its docstring: JSX text, read-aloud attributes
+such as `label` and `aria-label`, and copy-named props and constants).
+Case-insensitive unless marked:
+
+- a free-standing "--" (not part of a word or a flag such as `--update`);
+- "this app";
+- "ingest", "ingested", "ingestion", "ingests";
+- "aggregator";
+- "full coverage", "full-coverage";
+- "TOC", "TOCs" (case-sensitive);
+- "deployment";
+- "allowlist", "allow-list";
+- "localStorage" (case-sensitive);
+- "CRS" (case-sensitive), which covers "CRS code";
+- "sign in" in any form: "sign in", "sign-in", "signin", "signed in",
+  "signing in", "signs in";
+- "--:--";
+- marketing words (`MARKETING`): "seamless", "seamlessly", "effortless",
+  "effortlessly", "powerful", "revolutionary", "supercharge",
+  "game-changer", "game changer", "cutting-edge", "best-in-class",
+  "world-class", "delightful", "magical", "blazing".
+
+**ESLint copy rules** (`COPY_RULES`), on JSX text and on string literals
+given as JSX attributes, outside tests:
+
+- "--" anywhere in JSX text;
+- failure copy (`FAILURE_COPY`): "Something went wrong", "Please try
+  again", "Could not " and "Request failed". Use `describeFailure`;
+- terminology (`TERMINOLOGY_COPY`, case-sensitive): "sign in" in the
+  forms above, starting "s" or "S", and "CRS";
+- JSX text that ends in "!";
+- a `DatePickerInput` without `valueFormat`.
+
+The same `no-restricted-syntax` list also rejects `toLocaleString`,
+`toLocaleDateString` and `toLocaleTimeString` outside `lib/dateFormat.ts`
+(`DATE_FORMAT_RULE`; see [Do and don't](#do-and-dont)).
+
+*Guidance, not checked:* "tracking pin", "propagated", "extraction",
+"unlock" and "magic" read as engineering or marketing; avoid them too. The
+Terminology table's "Don't say" column is guidance as well, apart from the
+words listed above.
 
 ### Other rules
+
+Guidance, except where marked *(checked)*.
 
 - Use rail terms people know ("platform", "calling point", "Delay
   Repay"). UK spelling.
@@ -943,9 +1162,9 @@ and ESLint flags it in any string literal or JSX text. So is the ellipsis.
   (Network Rail)".
 - Credits use each licence's exact wording; the site calls itself "an
   independent, unofficial service" and uses no provider logos.
-- No em dash "—" anywhere in UI copy, and never "--". Rewrite the
-  sentence: "Log in (needs a Distant Signal account)", "Cancelled. Last
-  confirmed at Woking.", "Country: showing all".
+- No em dash "—" anywhere in UI copy, and never "--" *(checked)*.
+  Rewrite the sentence: "Log in (needs a Distant Signal account)",
+  "Cancelled. Last confirmed at Woking.", "Country: showing all".
 - An en dash "–" only for ranges: "08:00–09:00", "15–29 minute delays".
 - A code with its name is "Name (CODE)" ("Woking (WOK)", `stationLabel`),
   or code first with a middle dot where the picker shows codes first
@@ -957,8 +1176,8 @@ and ESLint flags it in any string literal or JSX text. So is the ellipsis.
   (`NO_VALUE` in `app/lines/AllLinesTable.tsx`). A missing time on a
   service row is the same en dash with a visually hidden "No time"
   (`NO_TIME` in `lib/dateFormat.ts`), never "--:--".
-- No ellipsis "…" in copy. In-progress text is a plain word and a spinner
-  ("Saving", "Loading trains"); a menu item that opens a dialog is just
+- No ellipsis "…" in copy *(checked)*. In-progress text is a plain word
+  and a spinner ("Saving", "Loading trains"); a menu item that opens a dialog is just
   its action ("Delete line"); a select option is a noun ("Custom dates").
   Text cut short by CSS (`text-overflow: ellipsis`) is fine: that is
   layout, not copy.
@@ -984,6 +1203,14 @@ and ESLint flags it in any string literal or JSX text. So is the ellipsis.
 - **Do** format times with `lib/dateFormat.ts`. **Don't** call
   `toLocaleTimeString()` in rendered components (server UTC vs browser).
 - **Don't** put grape 6 text on white, or white-less text on filled grape.
+- **Do** render `DataCredits` under each provider's data, with the licence
+  wording unchanged. **Don't** add credit lines to the footer or reword a
+  statement.
+- **Do** use `LazyTooltip` for a tooltip repeated down a long list.
+  **Don't** mount hundreds of closed tooltips while a table hydrates.
+- **Do** give every landmark a unique name. **Don't** nest a component's
+  own region inside a card that is already that region (`landmark={false}`
+  on `ConnectedApps` in Preferences).
 
 ## Code conventions
 
@@ -1001,13 +1228,17 @@ and ESLint flags it in any string literal or JSX text. So is the ellipsis.
   there. The allowlist is per line, an
   `// eslint-disable-next-line react/forbid-component-props -- <why>` for a
   value only known at render time that CSS can't express. Today there are
-  three, all in `JourneyProgress`: the stop counts as CSS variables, the
+  four: three in `JourneyProgress` (the stop counts as CSS variables, the
   node-slot CSS variable, and each node circle's state-dependent size and
-  colours. One file is exempt as a whole, in `eslint.config.mjs`:
+  colours) and `LegStopsDisclosure`'s chevron, which turns with the open
+  state. One file is exempt as a whole, in `eslint.config.mjs`:
   `lib/previewImage.tsx`, whose JSX next/og renders to a PNG and which can
   only be styled with style objects.
 - Global CSS in `app/globals.css`, as BEM-ish classes or `data-*` hooks
   (`[data-text-link]`, `[data-clickable-card]`, `[data-status-badge]`).
+  A component's own one-off rules may sit in a CSS module beside it
+  (`UpcomingDatesStrip.module.css`, `ServiceRow.module.css`)
+  *(convention)*.
 - Theme config is one object in `lib/theme.ts`, shared by the app and tests.
 - Icons are hand-inlined 16px Feather-style SVGs (`stroke-width 2`,
   `currentColor`, `aria-hidden`); no icon library *(convention)*. No
@@ -1016,15 +1247,21 @@ and ESLint flags it in any string literal or JSX text. So is the ellipsis.
 
 ## Visual regression
 
-`frontend/e2e/visual.spec.ts` screenshots home, Status, Lines, a line,
-Stations, a station, Trains (empty and searched), a train, Incidents, the
-Plan a journey (Depart at, Arrive by, and opened on "I know my route"), Account (logged in),
-Preferences (logged out, logged in and with a pride flag), home logged in, a tracked train
-not in the timetable, a planned tracked train, a journey with an untracked
-walk, the Journeys page, the Regular journeys list and a group with shared
-trains and journeys (all logged in), the new regular journey form and the tram pages at 390 and 1366px, light and dark,
-plus the /lines filter bar's stuck and open states and the /incidents
-filters open: 184 images in `frontend/e2e/visual-baselines/`. It runs against the seeded e2e
+`frontend/e2e/visual.spec.ts` screenshots the main pages and states at
+390 and 1366px, light and dark: home (logged out and in), Status, Lines
+(with the filter bar stuck and open), a line, Stations (and its nearby
+list), a station, Trains (empty, searched, arrivals, headcode), a train
+and a part-cancelled one, tracked trains (planned, and not in the
+timetable), Incidents (and its
+filters open), Plan a journey's modes and results, Account, Preferences
+(logged out, logged in and with a pride flag), notifications, a journey,
+the Journeys page, Regular journeys (the list, the new regular journey
+form and a regular journey's day), a group, the TfL and tram pages and an
+Iarnród Éireann train. Every shot is four images in
+`frontend/e2e/visual-baselines/`, named `<shot>-<scheme>-<width>.png`, so
+that directory is the list: `ls frontend/e2e/visual-baselines | wc -l`
+counts them (rather than a number here, which goes stale with every new
+shot). It runs against the seeded e2e
 stack (`frontend/e2e/fixtures/seed.sql`), in its own Playwright project
 (`visual`), which the ordinary e2e run skips.
 
@@ -1148,3 +1385,20 @@ on red 9 in both schemes (was black on red 6 / red 8, Lc 45 / 34), and the
 "Stop tracking" menu item moved off red 6 (3.28:1). The light-variant
 pills (`StateBadge`, `DelayBadge`) clear 5.5:1 rather than 4.5:1: six
 status hues take a darker hex, red and blue included.
+
+Ireland and data credits (4 to 5 Nov 2026): the island of Ireland pages
+and the nav freshness panel's "Ireland" group; each provider's credit
+moved beside its data (`DataCredits`), and the footer kept only its links
+and the non-affiliation note.
+
+Regular journeys (6 to 7 Nov 2026): journey templates became regular
+journeys (`/journeys/regular`), with the next dates chips, "Skip next",
+the leave-by countdown, the suggestion card, the usual train picker's 5
+trains with Earlier and Later, time away and "Pause until". Tickets became
+a few details on a leg, with the Wallet fill-in, and the standalone ticket
+flow went. `LazyTooltip` keeps /lines' row tooltips from mounting until
+used, and Preferences has one Connected apps landmark.
+
+Style guide refresh (8 Nov 2026): this file caught up with the above, and
+[Banned phrases](#banned-phrases) now matches `scripts/check-copy.py` and
+the ESLint rules exactly.
