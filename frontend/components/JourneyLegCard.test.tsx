@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { JourneyLegCard } from './JourneyLegCard';
+import { UsualTrainProvider } from './UsualTrainContext';
 import type { JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
 import {
@@ -887,5 +888,51 @@ describe('JourneyLegCard: Edit search', () => {
       trainUid: 'C11052',
       serviceDate: '2026-09-22',
     });
+  });
+
+  // DS-398: a Remind-me regular day's leg is searched around the usual
+  // train (its window, five minutes either way), from half an hour before
+  // to an hour after, and the pick saves that search.
+  it('on a Remind-me regular day, looks from half an hour before to an hour after the usual train', async () => {
+    const fetchMock = mockApi();
+    const leg = openLeg({
+      id: 3,
+      serviceDate: '2026-09-22',
+      departAfter: '08:07:00',
+      departBefore: '08:17:00',
+      windowSearched: true,
+    });
+    renderWithMantine(
+      <UsualTrainProvider usual={{}} remindPick>
+        <JourneyLegCard journeyId={7} isOwner isOnlyLeg={false} leg={leg} />
+      </UsualTrainProvider>,
+    );
+    await waitFor(() =>
+      expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
+        '/api/Journeys/7/legs/3/candidates?origin=KGX&destination=EDB&serviceDate=2026-09-22&departAfter=07%3A42&departBefore=09%3A12',
+      ),
+    );
+    expect(screen.getByText('Departing between 07:42 and 09:12')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /^Track this train: 10:32/ }));
+    await waitFor(() => expect(calls(fetchMock, '/train')).toHaveLength(1));
+    const body = JSON.parse(String(calls(fetchMock, '/train')[0]![1]!.body)) as { search: Record<string, unknown> };
+    expect(body.search).toMatchObject({ departWindow: { after: '07:42', before: '09:12' } });
+  });
+
+  it("keeps the leg's own search on other days", async () => {
+    const fetchMock = mockApi();
+    renderWithMantine(
+      <JourneyLegCard
+        journeyId={7}
+        isOwner
+        isOnlyLeg={false}
+        leg={openLeg({ id: 3, departAfter: '08:07:00', departBefore: '08:17:00', windowSearched: true })}
+      />,
+    );
+    await waitFor(() =>
+      expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
+        '/api/Journeys/7/legs/3/candidates',
+      ),
+    );
   });
 });

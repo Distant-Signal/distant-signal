@@ -84,6 +84,48 @@ export function legSearchPrefill(leg: JourneyLegDetail): LegSearch | null {
   };
 }
 
+/** How far before and after the usual train a Remind-me day's pick
+ * looks (DS-398): the leg's own window is the usual train's departure
+ * five minutes either way, often one train. */
+export const REMIND_PICK_BEFORE_MINUTES = 30;
+export const REMIND_PICK_AFTER_MINUTES = 60;
+
+function clockMinutes(time: string): number {
+  const [hours = 0, minutes = 0] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function clockAt(minutes: number): string {
+  const clamped = Math.min(Math.max(minutes, 0), 23 * 60 + 59);
+  return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(clamped % 60).padStart(2, '0')}`;
+}
+
+/** The search a Remind-me regular day's pick starts from (DS-398): the
+ * leg's own stations, date and filters, leaving from
+ * [`REMIND_PICK_BEFORE_MINUTES`] before to [`REMIND_PICK_AFTER_MINUTES`]
+ * after the middle of its departure window (the usual train), within the
+ * day. `null` for a leg with no such narrow window (one never
+ * window-searched, an arrival window, or a window already wider), which
+ * keeps its own. */
+export function remindPickSearch(leg: JourneyLegDetail): LegSearch | null {
+  if (!leg.windowSearched || !leg.originCrs || !leg.destinationCrs) return null;
+  if (!leg.departAfter || !leg.departBefore || leg.arriveAfter || leg.arriveBefore) return null;
+  const after = clockMinutes(leg.departAfter);
+  const before = clockMinutes(leg.departBefore);
+  if (before < after || before - after >= REMIND_PICK_BEFORE_MINUTES + REMIND_PICK_AFTER_MINUTES) return null;
+  const usual = Math.round((after + before) / 2);
+  return {
+    originCrs: leg.originCrs.toUpperCase(),
+    destinationCrs: leg.destinationCrs.toUpperCase(),
+    serviceDate: leg.serviceDate,
+    departAfter: clockAt(usual - REMIND_PICK_BEFORE_MINUTES),
+    departBefore: clockAt(usual + REMIND_PICK_AFTER_MINUTES),
+    arriveAfter: null,
+    arriveBefore: null,
+    filters: leg.searchFilters,
+  };
+}
+
 const TIME = /^\d{2}:\d{2}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 

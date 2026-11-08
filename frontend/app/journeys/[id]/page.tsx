@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getJourney, getJourneyTemplate, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import { UsualTrainProvider } from '@/components/UsualTrainContext';
 import { usualTrainLegs } from '@/lib/regularJourneys';
-import type { JourneyDetail } from '@/lib/types';
+import type { JourneyDetail, JourneyTemplateDetail } from '@/lib/types';
 import { JourneyDetailView } from '@/components/JourneyDetailView';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
@@ -89,7 +89,16 @@ export default async function JourneyDetailPage({
   const origin = await getSiteOrigin();
   // The pick reminder of a regular journey links with `?pick=usual`
   // (regular journeys design §4.3): each leg's usual train goes first.
-  const usual = query.pick === 'usual' ? await usualTrainsByLeg(journey) : {};
+  // A regular journey's day: its template, for the usual trains and
+  // whether it reminds the traveller to pick (DS-398).
+  const template =
+    journey.isOwner && journey.sourceTemplateId !== null
+      ? await getJourneyTemplate(journey.sourceTemplateId).catch(() => null)
+      : null;
+  const usual = query.pick === 'usual' ? usualTrainsByLeg(journey, template) : {};
+  // Remind me to pick my train: each leg's pick looks from half an hour
+  // before to an hour after the usual train, not just at it.
+  const remindPick = template?.defaultMatchMode === 'manual';
 
   return (
     <Stack p="lg" gap="md">
@@ -119,7 +128,7 @@ export default async function JourneyDetailPage({
       ) : (
         journey.canFollow && <FollowJourneyButton journeyId={journey.id} following={false} />
       )}
-      <UsualTrainProvider usual={usual}>
+      <UsualTrainProvider usual={usual} remindPick={remindPick}>
         <JourneyDetailView
           journey={journey}
           fetchedAt={fetchedAt}
@@ -140,10 +149,9 @@ export default async function JourneyDetailPage({
  * legs. Empty for someone else's journey, one not made from a regular
  * journey, or one whose regular journey has no usual train or can't be
  * read. */
-async function usualTrainsByLeg(journey: JourneyDetail): Promise<Record<number, string>> {
-  if (!journey.isOwner || journey.sourceTemplateId === null) return {};
-  const template = await getJourneyTemplate(journey.sourceTemplateId).catch(() => null);
-  const trains = usualTrainLegs(template?.usualItinerary);
+function usualTrainsByLeg(journey: JourneyDetail, template: JourneyTemplateDetail | null): Record<number, string> {
+  if (!template) return {};
+  const trains = usualTrainLegs(template.usualItinerary);
   const legs = journey.legs.filter((leg) => leg.kind === 'train');
   const usual: Record<number, string> = {};
   legs.forEach((leg, index) => {

@@ -725,6 +725,10 @@ describe('JourneyDetailPage following', () => {
   });
 
   describe('made from a regular journey', () => {
+    beforeEach(() => {
+      vi.mocked(api.getJourneyTemplate).mockRejectedValue(new Error('offline'));
+    });
+
     function occurrence(overrides: Partial<JourneyLegDetail> = {}) {
       return baseJourney({
         isOwner: true,
@@ -753,14 +757,13 @@ describe('JourneyDetailPage following', () => {
       expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
     });
 
-    it('says nothing of it to someone else, and reads the usual train only for ?pick=usual', async () => {
+    it('says nothing of it to someone else, and reads it for the owner', async () => {
       vi.mocked(api.getJourney).mockResolvedValue({ ...occurrence(), isOwner: false });
       await renderPage();
       expect(screen.queryByRole('link', { name: 'Regular journey' })).not.toBeInTheDocument();
       expect(api.getJourneyTemplate).not.toHaveBeenCalled();
 
       vi.mocked(api.getJourney).mockResolvedValue(occurrence());
-      vi.mocked(api.getJourneyTemplate).mockRejectedValue(new Error('offline'));
       renderWithMantine(
         await JourneyDetailPage({
           params: Promise.resolve({ id: '167' }),
@@ -768,6 +771,35 @@ describe('JourneyDetailPage following', () => {
         }),
       );
       expect(api.getJourneyTemplate).toHaveBeenCalledWith(5);
+    });
+
+    // DS-398: Remind me to pick my train. The leg's window is the usual
+    // 09:00, five minutes either way; the pick looks from 08:30 to 10:00.
+    it.each([
+      ['manual', 'Departing between 08:30 and 10:00'],
+      ['auto', 'Departing between 08:55 and 09:05'],
+    ] as const)('on a %s day, the pick shows %s', async (mode, window) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.resolve(new Response(JSON.stringify({ results: [], nextCursor: null }), { status: 200 }))),
+      );
+      vi.mocked(api.getJourney).mockResolvedValue({
+        ...occurrence(),
+        legs: [
+          openLeg({
+            serviceDate: '2099-01-05',
+            departAfter: '08:55:00',
+            departBefore: '09:05:00',
+            windowSearched: true,
+          }),
+        ],
+      });
+      vi.mocked(api.getJourneyTemplate).mockResolvedValue({
+        defaultMatchMode: mode,
+        usualItinerary: null,
+      } as unknown as Awaited<ReturnType<typeof api.getJourneyTemplate>>);
+      await renderPage();
+      expect(await screen.findByText(window)).toBeInTheDocument();
     });
 
     it("shows the day's suggested train until one is tracked", async () => {
