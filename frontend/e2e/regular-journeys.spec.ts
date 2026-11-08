@@ -533,6 +533,22 @@ test.describe('regular journeys', () => {
     expect(axe.violations).toEqual([]);
   });
 
+  test('a Remind-me day looks for trains around the usual one', async ({ page, context }) => {
+    await logIn(context);
+    const searches: URL[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/legs/') && request.url().includes('/candidates'))
+        searches.push(new URL(request.url()));
+    });
+    await page.goto('/journeys/900203');
+    // The leg's own window is the usual 09:00, five minutes either way.
+    await expect(page.getByText('Departing between 08:30 and 10:00')).toBeVisible();
+    await expect.poll(() => searches.at(-1)?.searchParams.get('departBefore')).toBe('10:00');
+    expect(searches.at(-1)!.searchParams.get('departAfter')).toBe('08:30');
+    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    expect(axe.violations).toEqual([]);
+  });
+
   test("shows the day's suggested train and tracks it", async ({ page, context }) => {
     await logIn(context);
     // Answered here, so the seed's journey keeps its suggestion for the

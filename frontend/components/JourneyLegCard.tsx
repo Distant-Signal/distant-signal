@@ -13,11 +13,12 @@ import { LegReplanActions, type LegReplanContext } from './LegReplanActions';
 import { UntrackedLegCard } from './UntrackedLegCard';
 import { LegDelayRepay } from './LegDelayRepay';
 import { LegTicketDetails } from './LegTicketDetails';
+import { useRemindPick } from './UsualTrainContext';
 import { isUntrackedLeg, type UntrackedLegNeighbours } from '@/lib/untrackedLeg';
 import { legRouteAndTime } from '@/lib/journeyLegLabel';
 import { formatDate } from '@/lib/dateFormat';
 import { routeLabel, stationLabel } from '@/lib/stationLabel';
-import { legSearchPrefill, type LegSearch } from '@/lib/legSearch';
+import { legSearchPrefill, remindPickSearch, type LegSearch } from '@/lib/legSearch';
 import type { JourneyLegDetail } from '@/lib/types';
 import { irishTrainHref } from '@/lib/ireland';
 
@@ -175,6 +176,8 @@ export function JourneyLegCard({
   neighbours?: UntrackedLegNeighbours | undefined;
 }) {
   const router = useRouter();
+  // A Remind-me regular day (DS-398): the pick looks around the usual train.
+  const remindPick = useRemindPick();
   const [changingTrain, setChangingTrain] = useState(false);
   // Backend security/bug review fix (journeys area, Medium finding 1): this
   // used to be derived from the four window bounds directly (`departAfter
@@ -262,7 +265,13 @@ export function JourneyLegCard({
             // "Edit search" re-searches THIS leg in place (`LegTrainPicker`).
             // It used to link to `/track`, whose form starts a new journey
             // (and asks personal or group), and carried only the origin.
-            <LegTrainPicker journeyId={journeyId} leg={leg} criteria={criteria} onPicked={() => router.refresh()} />
+            <LegTrainPicker
+              journeyId={journeyId}
+              leg={leg}
+              criteria={criteria}
+              initialSearch={remindPick ? remindPickSearch(leg) : null}
+              onPicked={() => router.refresh()}
+            />
           ) : (
             <>
               {criteria && (
@@ -388,7 +397,7 @@ export function JourneyLegCard({
             leg={leg}
             // A leg never window-searched has no search of its own: one is
             // made from what it knows (`legSearchPrefill`).
-            initialSearch={hasWindow ? null : legSearchPrefill(leg)}
+            initialSearch={hasWindow ? (remindPick ? remindPickSearch(leg) : null) : legSearchPrefill(leg)}
             criteria={hasWindow ? windowSummary(leg) : null}
             onPicked={() => {
               setChangingTrain(false);

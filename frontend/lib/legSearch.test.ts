@@ -5,6 +5,7 @@ import {
   legSearchPickBody,
   legSearchPrefill,
   legSearchQuery,
+  remindPickSearch,
 } from './legSearch';
 import { trainLeg } from '@/test/journeyFixtures';
 
@@ -118,5 +119,53 @@ describe('legSearchPrefill: Change train on a leg never window-searched', () => 
   it('is null for a window-searched leg, which has its own search', () => {
     const leg = { ...trainLeg(1, KGX, YRK, '2026-09-17T09:00:00Z', '2026-09-17T11:00:00Z'), windowSearched: true };
     expect(legSearchPrefill(leg)).toBeNull();
+  });
+});
+
+describe('remindPickSearch', () => {
+  const KGX: [string, string] = ['KGX', 'London Kings Cross'];
+  const YRK: [string, string] = ['YRK', 'York'];
+  const window = (departAfter: string, departBefore: string) => ({
+    ...trainLeg(1, KGX, YRK, '2026-09-17T09:00:00Z', '2026-09-17T11:00:00Z'),
+    originCrs: 'kgx',
+    destinationCrs: 'YRK',
+    serviceDate: '2026-09-17',
+    windowSearched: true,
+    departAfter,
+    departBefore,
+    arriveAfter: null,
+    arriveBefore: null,
+    searchFilters: { operator: 'GR' },
+  });
+
+  it("looks from half an hour before to an hour after the usual train, with the leg's filters", () => {
+    expect(remindPickSearch(window('08:07:00', '08:17:00'))).toEqual({
+      originCrs: 'KGX',
+      destinationCrs: 'YRK',
+      serviceDate: '2026-09-17',
+      departAfter: '07:42',
+      departBefore: '09:12',
+      arriveAfter: null,
+      arriveBefore: null,
+      filters: { operator: 'GR' },
+    });
+  });
+
+  it('stays within the day', () => {
+    expect(remindPickSearch(window('00:00:00', '00:10:00'))).toMatchObject({
+      departAfter: '00:00',
+      departBefore: '01:05',
+    });
+    expect(remindPickSearch(window('23:30:00', '23:40:00'))).toMatchObject({
+      departAfter: '23:05',
+      departBefore: '23:59',
+    });
+  });
+
+  it("keeps a leg's own search when it isn't the usual train's narrow window", () => {
+    expect(remindPickSearch(window('07:00:00', '09:00:00'))).toBeNull();
+    expect(remindPickSearch({ ...window('08:07:00', '08:17:00'), arriveBefore: '09:00:00' })).toBeNull();
+    expect(remindPickSearch({ ...window('08:07:00', '08:17:00'), windowSearched: false })).toBeNull();
+    expect(remindPickSearch({ ...window('08:07:00', '08:17:00'), departBefore: null })).toBeNull();
   });
 });
