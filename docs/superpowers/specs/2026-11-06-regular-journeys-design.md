@@ -608,7 +608,7 @@ that hasn't started, has no break, and is due:
    own best: earliest arrival for `depart_after`, latest departure for
    `arrive_by`.
 5. **Keep.** In remind mode (decision 2) it stores the choice and up to
-   two alternatives on the occurrence and commits nothing. In auto mode it
+   four alternatives on the occurrence and commits nothing. In auto mode it
    commits the itinerary with `journey_replace::replace` over all the
    occurrence's legs. The journey is still planning, so revision 1 is
    refreshed and becomes the booked plan. Untracked and timetabled legs
@@ -652,6 +652,15 @@ Changelog entry, "Regular journeys: the day's train".
 - `POST /Journeys/{id}/regular-plan/accept` `{index}`: the one-tap pick.
   It replaces the legs with that choice, as auto mode would; 409 if the
   plan changed since it was read (`regularPlannedAt` echoed back).
+
+Update, 2026-11-08 (DS-398): the plan keeps the choice plus up to four
+alternatives, not two (ds-api `MAX_ALTERNATIVES`; the sweep already
+searches six trains). The alternatives are still the trains closest to
+the target, but are stored and listed by departure. An accept's `index`
+counts that stored order (0 the choice, then the alternatives as
+served), and the `api_regular_plan_accepted_total` `index` label covers
+0 to 3 and `4`. The usual-train picker and the journey page's pick
+widened too (the same ticket); this document's other numbers stand.
 
 ### 6.5 Notifier
 
