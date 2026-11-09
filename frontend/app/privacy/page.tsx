@@ -331,8 +331,11 @@ export default function PrivacyPage() {
             leaves.
           </ListItem>
           <ListItem>
-            After a journey that arrived 15 or more minutes late, or had a cancelled train, it adds a reminder shortly
-            before you would usually have to claim Delay Repay. We never make a claim for you.
+            After a journey that arrived late enough to claim Delay Repay under its train company&apos;s own rules, or
+            had a cancelled train, it adds a reminder shortly before the company&apos;s deadline for claiming (28 days
+            after the journey for every company we checked). We use the company that ran your last train, and a standard
+            15-minute, 28-day rule when we don&apos;t know it. Check the company&apos;s own page, which is the one that
+            counts. We never make a claim for you.
           </ListItem>
           <ListItem>It never shows the train, the ticket or any name you gave a journey.</ListItem>
         </List>

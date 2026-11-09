@@ -249,7 +249,13 @@ export function JourneyDetailView({
             <ShareJourneyLinkButton journeyId={journey.id} shareLink={journey.shareLink} origin={origin} />
           )}
           {journey.isOwner && calendarDownload && (
-            <Button component="a" href={`/api/Journeys/${journey.id}/calendar.ics`} download variant="default">
+            <Button
+              component="a"
+              href={`/api/Journeys/${journey.id}/calendar.ics`}
+              download
+              variant="default"
+              size="xs"
+            >
               Add to calendar
             </Button>
           )}
