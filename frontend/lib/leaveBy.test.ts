@@ -42,7 +42,7 @@ describe('leaveByLabel for a train nobody has picked', () => {
     // A delay is about a tracked train, so it is not named.
     expect(leaveByLabel(usual, 6)).toBe('Leave by 07:35 for your usual 07:50');
     expect(leaveByLabel({ ...usual, basis: 'closest', departure: '2026-11-10T07:53:00Z' })).toBe(
-      'Leave by 07:35 for the 07:53, closest to your usual',
+      'Leave by 07:35 for the 07:53, by your usual train company, within 5 minutes of your usual',
     );
     // British Summer Time.
     expect(leaveByLabel({ ...usual, at: '2026-07-01T07:35:00Z', departure: '2026-07-01T07:50:00Z' })).toBe(
