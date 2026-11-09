@@ -417,6 +417,8 @@ test.describe('accessibility: logged in', () => {
     ['/groups', '/groups'],
     ['/chat', '/chat'],
     ['/account/notifications', '/account/notifications'],
+    // Every account section, the calendar feed's when the api has it on.
+    ['/account/preferences (logged in)', '/account/preferences'],
   ] as const) {
     test(name, async ({ page }) => {
       // Next's error shell is itself accessible, so without this a route that
