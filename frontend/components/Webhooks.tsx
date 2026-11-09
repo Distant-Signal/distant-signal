@@ -7,7 +7,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
 import { CopyableLink } from './CopyableLink';
 import { SectionTitle } from './SectionTitle';
 import { formatDateTime } from '@/lib/dateFormat';
-import { describeFailure } from '@/lib/failure';
+import { asSentence, describeFailure } from '@/lib/failure';
 import type { CreatedWebhookResponse, WebhookDestination, WebhooksResponse } from '@/lib/api-types';
 
 /** What the visitor sees for each preset. A new preset is a row here. */
@@ -48,7 +48,6 @@ function describeCreateFailure(code: string | null, status: number, max: number)
   if (status === 400) {
     return "That address or secret isn't valid. Use a public https address, and check the type and token.";
   }
-  if (status === 401) return 'Your session has ended. Log in again, then reload this page.';
   return describeFailure('add', 'the destination', status);
 }
 
@@ -59,7 +58,9 @@ function DestinationStatus({ destination }: { destination: WebhookDestination })
         <Badge color="red" variant="light">
           Off
         </Badge>
-        <Text size="sm">{destination.disabledReason ?? 'You turned this destination off.'}</Text>
+        <Text size="sm">
+          {destination.disabledReason ? asSentence(destination.disabledReason) : 'You turned this destination off.'}
+        </Text>
       </Stack>
     );
   }
@@ -70,10 +71,10 @@ function DestinationStatus({ destination }: { destination: WebhookDestination })
       </Badge>
       <Text size="sm" c="dimmed">
         {destination.lastSuccessAt
-          ? `Last delivered ${formatDateTime(destination.lastSuccessAt)}.`
+          ? `Last accepted ${formatDateTime(destination.lastSuccessAt)}.`
           : 'Nothing sent yet.'}
         {destination.lastError && destination.lastFailureAt
-          ? ` Last problem ${formatDateTime(destination.lastFailureAt)}: ${destination.lastError}.`
+          ? ` Last problem ${formatDateTime(destination.lastFailureAt)}: ${asSentence(destination.lastError)}`
           : ''}
       </Text>
     </Stack>
@@ -159,7 +160,9 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
       <Text size="sm">
         Also send your notifications to a service or device you choose, such as ntfy or Gotify, or an address of your
         own. They follow the same settings as your browser notifications, including quiet hours and the trains you
-        turned off. We send only the notification&apos;s text and a link, never your account or journey details.
+        turned off. We send the notification&apos;s text, which includes your route, times and delays, and a link to the
+        page it opens. That link, and the tag in the generic message, contain the numbers we use for your journey, leg
+        or train. We never send your name, email or account ID.
       </Text>
 
       {created && (
@@ -181,11 +184,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
       )}
 
       {data.destinations.length === 0 && <Text c="dimmed">You have no webhook destinations.</Text>}
-      {rowError && (
-        <Alert color="red" title="Couldn't update the destination">
-          {rowError}
-        </Alert>
-      )}
+      {rowError && <Alert color="red">{rowError}</Alert>}
       {data.destinations.map((destination) => (
         <Card key={destination.id} withBorder>
           <Stack gap="xs" align="flex-start">
@@ -268,11 +267,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
                 Only public https addresses work. Private and local addresses are refused. If a destination keeps
                 failing we turn it off and say why here.
               </Text>
-              {error && (
-                <Alert color="red" title="Couldn't add the destination">
-                  {error}
-                </Alert>
-              )}
+              {error && <Alert color="red">{error}</Alert>}
               <Group>
                 <Button onClick={() => void create()} loading={busy} disabled={!canCreate}>
                   Add destination

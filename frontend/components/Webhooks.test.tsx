@@ -125,6 +125,44 @@ describe('Webhooks', () => {
     expect(await screen.findByText(/isn.t valid\. Use a public https address/)).toBeInTheDocument();
   });
 
+  it('words a logged-out add the usual way, once', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 401 }));
+    renderWithMantine(<Webhooks data={data} />);
+    fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Local' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://example.org/x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add destination' }));
+    expect(await screen.findByText("Couldn't add the destination. Log in and try again.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Couldn't add the destination/)).toHaveLength(1);
+  });
+
+  it('shows the last problem and the turned-off reason as sentences with one full stop', () => {
+    const failing = {
+      ...destination,
+      lastSuccessAt: '2026-11-09T08:00:00Z',
+      lastFailureAt: '2026-11-09T09:00:00Z',
+      lastError: 'The destination did not accept it',
+    };
+    const { unmount } = renderWithMantine(<Webhooks data={{ ...data, destinations: [failing] }} />);
+    expect(
+      screen.getByText(/Last accepted .*Last problem .*: The destination did not accept it\.$/),
+    ).toBeInTheDocument();
+    unmount();
+    const off = {
+      ...destination,
+      enabled: false,
+      disabledReason: 'Turned off after repeated failures. Last problem: x',
+    };
+    renderWithMantine(<Webhooks data={{ ...data, destinations: [off] }} />);
+    expect(screen.getByText('Turned off after repeated failures. Last problem: x.')).toBeInTheDocument();
+  });
+
+  it('says what a webhook message carries, not that it carries no journey details', () => {
+    renderWithMantine(<Webhooks data={data} />);
+    expect(screen.getByText(/which includes your route, times and delays/)).toBeInTheDocument();
+    expect(screen.getByText(/We never send your name, email or account ID/)).toBeInTheDocument();
+    expect(screen.queryByText(/never your account or journey details/)).not.toBeInTheDocument();
+  });
+
   it('offers no form at the limit', () => {
     renderWithMantine(<Webhooks data={{ ...data, maxDestinations: 1 }} />);
     expect(screen.queryByRole('button', { name: 'Add destination' })).not.toBeInTheDocument();
