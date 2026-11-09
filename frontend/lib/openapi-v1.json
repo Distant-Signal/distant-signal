@@ -1924,7 +1924,7 @@
             "$ref": "#/components/schemas/LeaveByBasis"
           },
           "departure": {
-            "description": "The departure it is timed from: the first timed leg's booked\ndeparture, or the suggestion's.",
+            "description": "The departure it is timed from: the first timed leg's booked\ndeparture, or the suggestion's (a cancelled train's replacement, or\nthe plan sweep's for a train nobody has picked).",
             "format": "date-time",
             "type": "string"
           }
@@ -1947,6 +1947,16 @@
           {
             "const": "suggestion",
             "description": "The first train is cancelled: the open break's best covered\nsuggestion.",
+            "type": "string"
+          },
+          {
+            "const": "usual",
+            "description": "A remind-me occurrence nobody has picked a train for: the plan\nsweep's suggestion, the usual train. Not tracked or booked.",
+            "type": "string"
+          },
+          {
+            "const": "closest",
+            "description": "As [`Self::Usual`], for the usual operator's nearest train (a retime\nor a new UID) rather than the usual train itself.",
             "type": "string"
           }
         ]

@@ -34,3 +34,26 @@ describe('leaveByLabel', () => {
     expect(leaveByLabel({ ...LEAVE_BY, at: '2026-07-01T07:20:00Z' })).toBe('Leave by 08:20');
   });
 });
+
+describe('leaveByLabel for a train nobody has picked', () => {
+  it('says whose train it is and never that it is booked or tracked', () => {
+    const usual: LeaveBy = { at: '2026-11-10T07:35:00Z', departure: '2026-11-10T07:50:00Z', basis: 'usual' };
+    expect(leaveByLabel(usual)).toBe('Leave by 07:35 for your usual 07:50');
+    // A delay is about a tracked train, so it is not named.
+    expect(leaveByLabel(usual, 6)).toBe('Leave by 07:35 for your usual 07:50');
+    expect(leaveByLabel({ ...usual, basis: 'closest', departure: '2026-11-10T07:53:00Z' })).toBe(
+      'Leave by 07:35 for the 07:53, closest to your usual',
+    );
+    // British Summer Time.
+    expect(leaveByLabel({ ...usual, at: '2026-07-01T07:35:00Z', departure: '2026-07-01T07:50:00Z' })).toBe(
+      'Leave by 08:35 for your usual 08:50',
+    );
+  });
+
+  it('counts down and goes once the train has left, as any other', () => {
+    const usual: LeaveBy = { at: '2026-11-10T07:35:00Z', departure: '2026-11-10T07:50:00Z', basis: 'usual' };
+    expect(leaveByPhase(usual, new Date('2026-11-10T07:25:00Z'))).toEqual({ kind: 'before', minutes: 10 });
+    expect(leaveByPhase(usual, new Date('2026-11-10T07:40:00Z'))).toEqual({ kind: 'now' });
+    expect(leaveByPhase(usual, new Date('2026-11-10T07:50:00Z'))).toEqual({ kind: 'gone' });
+  });
+});

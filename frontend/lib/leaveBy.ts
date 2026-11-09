@@ -29,11 +29,17 @@ export function minutesUntilLabel(minutes: number): string {
 
 /** The leave-by's line: "Leave by 08:20", with the first train's expected
  * lateness ("Leave by 08:20 · train expected 6 min late"; the leave-by
- * stays put, decision 5), or the suggestion it is for ("Leave by 08:35
- * for the 08:57"). */
+ * stays put, decision 5), the suggestion it is for ("Leave by 08:35
+ * for the 08:57"), or a train nobody has picked yet: "Leave by 07:35 for
+ * your usual 07:50", or "for the 07:53, closest to your usual" when it is
+ * the usual operator's nearest train. Neither says the train is booked or
+ * tracked, and neither names a delay (there is no tracked train to be
+ * late). */
 export function leaveByLabel(leaveBy: LeaveBy, delayMinutes: number | null = null): string {
   const base = `Leave by ${formatTime(leaveBy.at)}`;
   if (leaveBy.basis === 'suggestion') return `${base} for the ${formatTime(leaveBy.departure)}`;
+  if (leaveBy.basis === 'usual') return `${base} for your usual ${formatTime(leaveBy.departure)}`;
+  if (leaveBy.basis === 'closest') return `${base} for the ${formatTime(leaveBy.departure)}, closest to your usual`;
   if (delayMinutes !== null && delayMinutes > 0) return `${base} · train expected ${delayMinutes} min late`;
   return base;
 }
