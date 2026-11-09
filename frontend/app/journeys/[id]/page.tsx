@@ -105,7 +105,7 @@ export default async function JourneyDetailPage({
   // Remind me to pick my train: each leg's pick looks from half an hour
   // before to an hour after the usual train, not just at it.
   const remindPick = template?.defaultMatchMode === 'manual';
-  // "Add to calendar" (ds-api's docs/calendar-feed.md): the owner's, while
+  // "Download calendar file" (ds-api's docs/calendar-feed.md): the owner's, while
   // the api has the calendar feed on.
   const calendarDownload = journey.isOwner
     ? await getSessionOrLoggedOut()

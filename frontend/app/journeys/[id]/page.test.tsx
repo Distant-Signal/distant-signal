@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import JourneyDetailPage from './page';
 import * as api from '@/lib/api';
@@ -478,7 +478,7 @@ describe('JourneyDetailPage "Delete journey" button', () => {
   });
 });
 
-describe('JourneyDetailPage "Add to calendar" link', () => {
+describe('JourneyDetailPage "Download calendar file" button', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -487,18 +487,36 @@ describe('JourneyDetailPage "Add to calendar" link', () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValueOnce({ calendarFeedEnabled: true } as never);
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true }));
     await renderPage();
-    const link = screen.getByRole('link', { name: 'Add to calendar' });
-    expect(link).toHaveAttribute('href', `/api/Journeys/${baseJourney({ isOwner: true }).id}/calendar.ics`);
+    expect(screen.getByRole('button', { name: 'Download calendar file' })).toBeInTheDocument();
+  });
+
+  it("saves the file when the api has it, and says so when it hasn't", async () => {
+    vi.mocked(api.getSessionOrLoggedOut).mockResolvedValueOnce({ calendarFeedEnabled: true } as never);
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true }));
+    await renderPage();
+    const id = baseJourney({ isOwner: true }).id;
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('no journey with that id', { status: 404 }));
+    const createObjectURL = vi.fn(() => 'blob:x');
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download calendar file' }));
+    expect(
+      await screen.findByText("Couldn't download the calendar file. It may have been removed."),
+    ).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(`/api/Journeys/${id}/calendar.ics`);
+    expect(createObjectURL).not.toHaveBeenCalled();
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('BEGIN:VCALENDAR', { status: 200 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download calendar file' }));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
   });
 
   it('is not offered while the feed is off, or to a non-owner', async () => {
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true }));
     await renderPage();
-    expect(screen.queryByRole('link', { name: 'Add to calendar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download calendar file' })).not.toBeInTheDocument();
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValueOnce({ calendarFeedEnabled: true } as never);
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: false }));
     await renderPage();
-    expect(screen.queryByRole('link', { name: 'Add to calendar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download calendar file' })).not.toBeInTheDocument();
   });
 });
 

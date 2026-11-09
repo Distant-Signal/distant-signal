@@ -1,7 +1,7 @@
 import { test, expect, request as playwrightRequest, type BrowserContext, type Page } from '@playwright/test';
 
 // The opt-in calendar feed (app/account/preferences/CalendarFeedSection.tsx,
-// ds-api's docs/calendar-feed.md) and a journey's "Add to calendar" download.
+// ds-api's docs/calendar-feed.md) and a journey's "Download calendar file" button.
 // Needs the api started with CALENDAR_FEED_ENABLED=true, as CI's frontend-e2e
 // job does; without it the section is simply not offered and these skip.
 //
@@ -95,11 +95,11 @@ test.describe('Calendar feed', () => {
   test('a journey downloads as a calendar file', async ({ page }) => {
     test.skip(!(await feedEnabled(page)), 'the api has the calendar feed off');
     await page.goto(`/journeys/${JOURNEY_ID}`);
-    const add = page.getByRole('link', { name: 'Add to calendar' });
+    const add = page.getByRole('button', { name: 'Download calendar file' });
     await expect(add).toBeVisible();
-    const href = await add.getAttribute('href');
-    expect(href).toBe(`/api/Journeys/${JOURNEY_ID}/calendar.ics`);
-    const response = await page.request.get(href!);
+    const [download] = await Promise.all([page.waitForEvent('download'), add.click()]);
+    expect(download.suggestedFilename()).toBe(`journey-${JOURNEY_ID}.ics`);
+    const response = await page.request.get(`/api/Journeys/${JOURNEY_ID}/calendar.ics`);
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/calendar');
     expect(response.headers()['content-disposition']).toContain('attachment');

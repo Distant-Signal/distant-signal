@@ -1,5 +1,6 @@
-import { Box, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
+import { DownloadCalendarButton } from './DownloadCalendarButton';
 import { RegularJourneyLine } from './RegularJourneyLine';
 import { JourneyLeaveBy } from './JourneyLeaveBy';
 import { londonCalendarDay } from '@/lib/londonWallClock';
@@ -185,7 +186,7 @@ export function JourneyDetailView({
   fromPush?: boolean;
   /** Opened through a share link, with no session (`/journeys/shared`). */
   viaShareLink?: boolean;
-  /** Offer "Add to calendar", this journey as an `.ics` download (the
+  /** Offer "Download calendar file", this journey as an `.ics` download (the
    * owner's, while the api's calendar feed is on). */
   calendarDownload?: boolean;
 }) {
@@ -248,17 +249,7 @@ export function JourneyDetailView({
           {journey.isOwner && (
             <ShareJourneyLinkButton journeyId={journey.id} shareLink={journey.shareLink} origin={origin} />
           )}
-          {journey.isOwner && calendarDownload && (
-            <Button
-              component="a"
-              href={`/api/Journeys/${journey.id}/calendar.ics`}
-              download
-              variant="default"
-              size="xs"
-            >
-              Add to calendar
-            </Button>
-          )}
+          {journey.isOwner && calendarDownload && <DownloadCalendarButton journeyId={journey.id} />}
           {journey.isOwner && <SaveAsTemplateButton journeyId={journey.id} />}
           {/* Feature request: "journeys should be mutable ... you should
               be able to ... delete parts or even the whole journey."
