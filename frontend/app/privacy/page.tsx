@@ -145,7 +145,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Calendar feed link (only if you turn it on)',
-      what: 'If you turn on the calendar feed: a scrambled form of the secret link your calendar app uses, and when it was made or turned off. Anyone who has the link can see your calendar: for each journey in the last week and the days ahead, its two stations and when it leaves, and a reminder to claim Delay Repay after a late or cancelled one. Never the train, the ticket, or a name you gave a journey.',
+      what: 'If you turn on the calendar feed: a scrambled form of the secret link your calendar app uses, and when it was made or turned off. Anyone who has the link can see your calendar: for each journey in the last week and the days ahead, its two stations and when it leaves, and, after a journey that may have been late or had a cancelled train, a reminder to check Delay Repay that says so. The credits for our data go in every entry. Never the train, the ticket, or a name you gave a journey.',
       why: 'To show your journeys, and Delay Repay reminders, in your calendar app.',
       basis: CONTRACT,
       retention:
@@ -331,11 +331,12 @@ export default function PrivacyPage() {
             leaves.
           </ListItem>
           <ListItem>
-            After a journey that arrived late enough to claim Delay Repay under its train company&apos;s own rules, or
-            had a cancelled train, it adds a reminder shortly before the company&apos;s deadline for claiming (28 days
-            after the journey for every company we checked). We use the company that ran your last train, and a standard
-            15-minute, 28-day rule when we don&apos;t know it. Check the company&apos;s own page, which is the one that
-            counts. We never make a claim for you.
+            After a journey that may have been late enough to claim Delay Repay, or had a cancelled train, it adds a
+            reminder to check Delay Repay. The entry says the journey may have been late or had a cancelled train, so
+            anyone with the link can tell. It falls on about the last day we think your train company takes claims
+            (usually 28 days after the journey), with an alert a week before. We use the company that ran your last
+            train, and a standard 15-minute, 28-day rule when we don&apos;t know it. These are estimates. Check the
+            company&apos;s own page, which is the one that counts. We never make a claim for you.
           </ListItem>
           <ListItem>It never shows the train, the ticket or any name you gave a journey.</ListItem>
         </List>

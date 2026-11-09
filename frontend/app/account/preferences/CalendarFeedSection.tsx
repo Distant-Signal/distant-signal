@@ -72,12 +72,13 @@ export function CalendarFeedSection({ initialActive }: { initialActive: boolean 
     <PreferencesSection
       id="calendar-feed-heading"
       title="Calendar feed"
-      description="Show your journeys in your calendar app, with a reminder to claim Delay Repay after a late one."
+      description="Show your journeys in your calendar app, with a reminder to check Delay Repay after a late or cancelled one."
     >
       <Text size="sm">
-        Each journey shows its two stations and when it leaves, nothing else. Calendar apps refresh slowly, often only
-        every few hours or once a day, so it shows your plans, not live train times. Anyone who has the link can see
-        your journeys and where you travel, so keep it private.
+        Each journey shows its two stations and when it leaves. After a late or cancelled journey, a Delay Repay
+        reminder also shows that it may have been late or had a cancelled train. Calendar apps refresh slowly, often
+        only every few hours or once a day, so it shows your plans, not live train times. Anyone who has the link can
+        see your journeys and where you travel, so keep it private.
       </Text>
       {link && (
         <>
