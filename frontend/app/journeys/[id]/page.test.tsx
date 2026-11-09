@@ -17,6 +17,7 @@ vi.mock('@/lib/api', async () => {
     ...actual,
     getJourney: vi.fn(),
     getJourneyTemplate: vi.fn(),
+    getSessionOrLoggedOut: vi.fn(async () => ({ calendarFeedEnabled: false })),
   };
 });
 
@@ -474,6 +475,30 @@ describe('JourneyDetailPage "Delete journey" button', () => {
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: false }));
     await renderPage();
     expect(screen.queryByRole('button', { name: 'Delete journey' })).not.toBeInTheDocument();
+  });
+});
+
+describe('JourneyDetailPage "Add to calendar" link', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  it("downloads the owner's journey while the calendar feed is on", async () => {
+    vi.mocked(api.getSessionOrLoggedOut).mockResolvedValueOnce({ calendarFeedEnabled: true } as never);
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true }));
+    await renderPage();
+    const link = screen.getByRole('link', { name: 'Add to calendar' });
+    expect(link).toHaveAttribute('href', `/api/Journeys/${baseJourney({ isOwner: true }).id}/calendar.ics`);
+  });
+
+  it('is not offered while the feed is off, or to a non-owner', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true }));
+    await renderPage();
+    expect(screen.queryByRole('link', { name: 'Add to calendar' })).not.toBeInTheDocument();
+    vi.mocked(api.getSessionOrLoggedOut).mockResolvedValueOnce({ calendarFeedEnabled: true } as never);
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: false }));
+    await renderPage();
+    expect(screen.queryByRole('link', { name: 'Add to calendar' })).not.toBeInTheDocument();
   });
 });
 

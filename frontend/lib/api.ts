@@ -1391,6 +1391,17 @@ export async function getTimeAway(): Promise<Api.TimeAwayPeriod[] | null> {
   return response.json() as Promise<Api.TimeAwayPeriod[]>;
 }
 
+/** `GET /public/account/calendar-feed`: whether the visitor has a calendar
+ * feed link. `null` when not logged in or while the feed is off (`404
+ * feature_disabled`), so the section is simply not shown. */
+export async function getCalendarFeedStatus(): Promise<Api.CalendarFeedStatus | null> {
+  const url = `${baseUrl()}/public/account/calendar-feed`;
+  const response = await apiFetch(url, { cache: 'no-store', ...(await cookieForwardInit()) });
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return response.json() as Promise<Api.CalendarFeedStatus>;
+}
+
 /** `GET /public/account/personal-tokens`: the visitor's personal API
  * tokens (docs/personal-api-tokens.md). `null` when not logged in or when
  * the feature is off (`404 feature_disabled`), so the section is simply

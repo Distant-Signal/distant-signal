@@ -1,6 +1,12 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
-import { getJourney, getJourneyTemplate, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
+import {
+  getJourney,
+  getJourneyTemplate,
+  getSessionOrLoggedOut,
+  ApiNotFoundError,
+  ApiUnauthorizedError,
+} from '@/lib/api';
 import { UsualTrainProvider } from '@/components/UsualTrainContext';
 import { usualTrainLegs } from '@/lib/regularJourneys';
 import type { JourneyDetail, JourneyTemplateDetail } from '@/lib/types';
@@ -99,6 +105,13 @@ export default async function JourneyDetailPage({
   // Remind me to pick my train: each leg's pick looks from half an hour
   // before to an hour after the usual train, not just at it.
   const remindPick = template?.defaultMatchMode === 'manual';
+  // "Add to calendar" (ds-api's docs/calendar-feed.md): the owner's, while
+  // the api has the calendar feed on.
+  const calendarDownload = journey.isOwner
+    ? await getSessionOrLoggedOut()
+        .then((session) => session.calendarFeedEnabled)
+        .catch(() => false)
+    : false;
 
   return (
     <Stack p="lg" gap="md">
@@ -137,6 +150,7 @@ export default async function JourneyDetailPage({
           // still open break; an old link just shows the page.
           openBreakOnLoad={journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)}
           fromPush={query.src === 'push'}
+          calendarDownload={calendarDownload}
         />
       </UsualTrainProvider>
       <DataCredits credits={journeyCredits(journey.legs)} />
