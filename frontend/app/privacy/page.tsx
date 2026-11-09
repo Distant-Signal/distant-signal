@@ -164,7 +164,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Webhook destinations (only if you add one)',
-      what: 'For each destination you add: its name, the web address you gave us, any secret or access token you gave us or we made for you (kept encrypted), the kind (generic, ntfy or Gotify), whether it is on, when we last reached it, and a short reason if the last try failed. We send it only the text of a notification you would get anyway, when it was sent, and a link to our credits page. No account ID, no train or journey IDs.',
+      what: 'For each destination you add: its name, the web address you gave us, any secret or access token you gave us or we made for you (kept encrypted), the kind (generic, ntfy or Gotify), whether it is on, when we last reached it, and a short reason if the last try failed. We send it the text of a notification you would get anyway, which can include your route, times and delays, when it was sent, and a link to the page it opens. That link, and the tag in the generic message, contain the numbers we use for your journey, leg or train. A generic destination also gets a link to our credits page. We never send your account ID, name or email.',
       why: 'To send your notifications to a service or device you run or choose, as well as to your browser.',
       basis: CONTRACT,
       retention:
@@ -399,8 +399,10 @@ export default function PrivacyPage() {
         </Text>
         <List size="sm" spacing={4}>
           <ListItem>
-            We send the notification&apos;s title and text, when it was sent, whether it is urgent, and a link. We never
-            send your account ID, your name, or the IDs of your trains or journeys.
+            We send the notification&apos;s title and text, which can include your route, times and delays, when it was
+            sent, whether it is urgent, and a link to the page it opens. That link contains the number we use for your
+            journey or train, and so does the tag in a generic message (ntfy and Gotify get the link, not the tag). We
+            never send your account ID, your name or your email.
           </ListItem>
           <ListItem>
             We do not send the notices about your account, such as a new connected app or personal API token.
@@ -408,7 +410,7 @@ export default function PrivacyPage() {
           <ListItem>
             For a generic destination we sign each message with a secret we make for you and show once. Keep it private.
             For ntfy and Gotify you give us an access token or app token, which we store encrypted so we can send
-            notifications. We never show it again.
+            notifications. We never show a token again.
           </ListItem>
           <ListItem>
             We only send to public web addresses over https. We refuse private, local and internal addresses, and we do
