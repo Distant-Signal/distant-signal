@@ -1414,6 +1414,18 @@ export async function getPersonalTokens(): Promise<Api.PersonalTokensResponse | 
   return response.json() as Promise<Api.PersonalTokensResponse>;
 }
 
+/** `GET /public/account/webhooks` (DS-415): the visitor's outbound
+ * webhook destinations and the presets they can add. `null` when not logged
+ * in or when the feature is off (`404 feature_disabled`), so the section is
+ * simply not shown. */
+export async function getWebhooks(): Promise<Api.WebhooksResponse | null> {
+  const url = `${baseUrl()}/public/account/webhooks`;
+  const response = await apiFetch(url, { cache: 'no-store', ...(await cookieForwardInit()) });
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return response.json() as Promise<Api.WebhooksResponse>;
+}
+
 /** The account notices every page can show: the newest app connected,
  * and the newest personal API token created, each in the last 7 days. */
 export interface AccountNotices {
