@@ -53,10 +53,17 @@ function plan(overrides: Partial<RegularPlan> = {}): RegularPlan & { choice: Reg
 
 describe('RegularPlanCard', () => {
   beforeEach(() => {
+    // The card words the day against the real clock ("today", "tomorrow",
+    // else the date), so pin it a few days before the fixtures' 10 Nov.
+    vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-11-05T12:00:00Z'));
     vi.stubGlobal('fetch', vi.fn());
     refreshMock.mockClear();
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('offers the usual train first, then the others', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
