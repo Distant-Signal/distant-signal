@@ -174,6 +174,26 @@ faultNote: string | null, suggestions: SuggestionSet | null, stale: boolean, };
 export type BreakStatus = "open" | "accepted" | "dismissed" | "recovered" | "expired";
 
 /**
+ * `POST /public/account/calendar-feed`: the only response that carries
+ * the token.
+ */
+export type CalendarFeedCreated = { 
+/**
+ * The secret. The feed is `/api/calendar/{token}.ics` on the site.
+ */
+token: string, };
+
+/**
+ * `GET /public/account/calendar-feed`.
+ */
+export type CalendarFeedStatus = { 
+/**
+ * Whether the caller has a working feed link. The link itself is
+ * never shown again after it is made.
+ */
+active: boolean, };
+
+/**
  * A schedule calling point's `kind`, as `schedule-query` writes it.
  */
 export type CallingPointKind = "Origin" | "Intermediate" | "Terminate";
@@ -447,6 +467,8 @@ returnTemplateId: number | null, };
 
 export type CreatePersonalTokenRequest = { name: string, scopes: Array<string>, lifetimeDays: number, };
 
+export type CreateWebhookRequest = { kind: string, name: string, url: string, secret: string | null, };
+
 /**
  * `POST /public/account/personal-tokens`: the only response that ever
  * carries the token itself.
@@ -460,6 +482,17 @@ token: string, id: number, name: string,
  * The token's last 4 characters, shown as `dsp_...hint`.
  */
 hint: string, scopes: Array<string>, createdAt: string, expiresAt: string, lastUsedAt: string | null, };
+
+/**
+ * `POST /public/account/webhooks`: the only response that carries a
+ * generated signing secret.
+ */
+export type CreatedWebhookResponse = { 
+/**
+ * The generated signing secret of a `generic` destination, shown
+ * once. Absent for the other presets.
+ */
+secret: string | null, destination: WebhookDestination, };
 
 /**
  * Full custom-line record, returned by `GET /lines/{id}` to pre-populate
@@ -2109,14 +2142,15 @@ export type LeaveBy = {
 at: string, 
 /**
  * The departure it is timed from: the first timed leg's booked
- * departure, or the suggestion's.
+ * departure, or the suggestion's (a cancelled train's replacement, or
+ * the plan sweep's for a train nobody has picked).
  */
 departure: string, basis: LeaveByBasis, };
 
 /**
  * What a leave-by is timed from.
  */
-export type LeaveByBasis = "booked" | "suggestion";
+export type LeaveByBasis = "booked" | "suggestion" | "usual" | "closest";
 
 /**
  * One row of `GET .../legs/{legId}/candidates`: the shared calling-point
@@ -3966,7 +4000,18 @@ regularJourneyRecurrenceEnabled: boolean,
  * (`REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED`, R3), so the form offers
  * it; `false` when logged out.
  */
-regularJourneyDayOverridesEnabled: boolean, };
+regularJourneyDayOverridesEnabled: boolean, 
+/**
+ * Whether the journey calendar feed and downloads are on
+ * (`CALENDAR_FEED_ENABLED`), so Preferences offers them; `false`
+ * when logged out.
+ */
+calendarFeedEnabled: boolean, 
+/**
+ * Whether outbound webhooks can be set up (`WEBHOOKS_ENABLED`), so
+ * the notification settings offer them; `false` when logged out.
+ */
+webhooksEnabled: boolean, };
 
 export type SetTemplateActiveRequest = { active: boolean, };
 
@@ -6106,6 +6151,8 @@ skipReason: NextSkipReason | null, };
  */
 export type UpcomingDisruption = { from: string, to: string | null, summary: string, incidentId: string, };
 
+export type UpdateWebhookRequest = { enabled: boolean, };
+
 /**
  * The itinerary the user picked when they made the regular journey,
  * trimmed to what a later day needs: clock times, not instants, since the
@@ -6222,6 +6269,48 @@ segment: number,
  * is a member; see [`waypoints_at_ends`]).
  */
 how: WaypointHow, };
+
+/**
+ * A destination as the settings page shows it. Never carries the secret,
+ * only whether one is set.
+ */
+export type WebhookDestination = { id: number, 
+/**
+ * `generic`, `ntfy` or `gotify`.
+ */
+kind: string, name: string, url: string, 
+/**
+ * Whether a secret (a signing secret, or a token) is stored.
+ */
+hasSecret: boolean, enabled: boolean, 
+/**
+ * Why it was turned off, when the notifier did that after repeated
+ * failures.
+ */
+disabledReason: string | null, lastSuccessAt: string | null, lastFailureAt: string | null, 
+/**
+ * A short reason for the last failed delivery.
+ */
+lastError: string | null, createdAt: string, };
+
+/**
+ * A preset the page can offer.
+ */
+export type WebhookKindView = { 
+/**
+ * `generic`, `ntfy` or `gotify`.
+ */
+kind: string, 
+/**
+ * Whether a secret is asked for: `none` (a generated signing secret
+ * is shown once), `optional` or `required`.
+ */
+secret: string, };
+
+/**
+ * `GET /public/account/webhooks`.
+ */
+export type WebhooksResponse = { kinds: Array<WebhookKindView>, maxDestinations: number, destinations: Array<WebhookDestination>, };
 
 /**
  * One end of a board's window as applied: `"HH:MM"` on day `dayOffset`

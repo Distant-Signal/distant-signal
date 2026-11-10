@@ -422,6 +422,21 @@ never disagree:
 - the first train is cancelled: with an open break whose best suggestion
   is `covered`, it is that suggestion's first departure minus the buffer,
   basis `suggestion`; without one, there is no leave-by.
+- **A train nobody has picked** (added 2026-11-10, DS-425): a remind-me
+  occurrence's train leg stays unmatched until the owner taps "Track this
+  train", and a leave-by that needed a train never existed for it (the
+  reminder never fired in production). A leg with no train takes the
+  departure of the occurrence's `regular_plan` suggestion (status
+  `suggested`, not accepted) when it is the usual train (basis `usual`) or
+  the usual operator's nearest train inside the planner's 5 minute window
+  (basis `closest`); the day's `best` has none, nor does a cancelled
+  suggestion. The time is read from the suggested train's timetable, so a
+  retime the plan hasn't caught up with is in it. Tracking or accepting
+  binds the leg and the booked basis takes over at the same time, so
+  `regular_journey_push_state` keeps it from being sent twice. The
+  notifier's push for it is behind `notifier.leaveReminders.usualTrainEnabled`
+  (off by default); the page's countdown reads "Leave by 07:35 for your
+  usual 07:50" or "for the 07:53, closest to your usual".
 
 ### 5.2 API (ds-api)
 

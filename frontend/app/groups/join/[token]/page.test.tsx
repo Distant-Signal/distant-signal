@@ -75,6 +75,8 @@ describe('JoinGroupPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -98,6 +100,8 @@ describe('JoinGroupPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -116,6 +120,8 @@ describe('JoinGroupPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -140,6 +146,8 @@ describe('JoinGroupPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockResolvedValue({
@@ -175,6 +183,8 @@ describe('JoinGroupPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
 
@@ -194,6 +204,8 @@ describe('JoinGroupPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new ApiUnauthorizedError('401'));
@@ -213,6 +225,8 @@ describe('JoinGroupPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new Error('boom'));

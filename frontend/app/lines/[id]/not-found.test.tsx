@@ -34,6 +34,8 @@ function session(authenticated: boolean) {
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
     regularJourneyDayOverridesEnabled: false,
+    calendarFeedEnabled: false,
+    webhooksEnabled: false,
     analyticsOptIn: false,
   };
 }
@@ -80,6 +82,8 @@ describe('LineNotFound', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await LineNotFound());
