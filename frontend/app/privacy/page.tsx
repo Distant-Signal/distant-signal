@@ -386,16 +386,14 @@ export default function PrivacyPage() {
         </Text>
       </LegalSection>
 
-      {/* Outbound webhooks (DS-415). Worded to ship before production turns
-          the feature on (api.webhooks.enabled, notifier.webhooks.enabled): drop
-          "Once it is available" when it goes live. */}
+      {/* Outbound webhooks (DS-415). */}
       <LegalSection title="Sending notifications elsewhere">
         <Text>
-          This is optional and off unless you add an address. Once it is available, you can add a web address in
-          Notifications on your account page, and we send it the same notifications you get in your browser, under the
-          same settings (quiet hours, pauses and the trains you turned off). You choose where they go: another app or
-          device, such as ntfy or Gotify (both Unofficial), or an address of your own. Those services, and any address
-          you choose, are run by other people, not by us. They see what we send and handle it under their own terms.
+          This is optional and off unless you add an address. You can add a web address in Notifications on your account
+          page, and we send it the same notifications you get in your browser, under the same settings (quiet hours,
+          pauses and the trains you turned off). You choose where they go: another app or device, such as ntfy or Gotify
+          (both Unofficial), or an address of your own. Those services, and any address you choose, are run by other
+          people, not by us. They see what we send and handle it under their own terms.
         </Text>
         <List size="sm" spacing={4}>
           <ListItem>
