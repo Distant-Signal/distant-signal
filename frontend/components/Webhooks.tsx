@@ -10,15 +10,15 @@ import { formatDateTime } from '@/lib/dateFormat';
 import { asSentence, describeFailure } from '@/lib/failure';
 import type { CreatedWebhookResponse, WebhookDestination, WebhooksResponse } from '@/lib/api-types';
 
-/** What the visitor sees for each preset. A new preset is a row here. */
+/** What the visitor sees for each type. A new type is a row here. */
 const KIND_LABELS: Record<string, string> = {
-  generic: 'Signed JSON',
-  ntfy: 'ntfy',
-  gotify: 'Gotify',
+  generic: 'Your own address',
+  ntfy: 'ntfy (Unofficial)',
+  gotify: 'Gotify (Unofficial)',
 };
 
 const ADDRESS_HINTS: Record<string, string> = {
-  generic: 'The https address that receives each notification, for example https://example.org/hooks/trains.',
+  generic: 'The https address that should receive each notification, for example https://example.org/trains.',
   ntfy: 'The topic address, for example https://ntfy.sh/my-trains, or your own server.',
   gotify: 'Your Gotify server, for example https://gotify.example.org.',
 };
@@ -32,7 +32,7 @@ function kindLabel(kind: string): string {
   return KIND_LABELS[kind] ?? kind;
 }
 
-/** The JSON `{error, message}` the webhook routes answer with. */
+/** The JSON `{error, message}` the notification address routes answer with. */
 async function errorCode(response: Response): Promise<string | null> {
   try {
     const body = (await response.json()) as { error?: unknown };
@@ -43,12 +43,12 @@ async function errorCode(response: Response): Promise<string | null> {
 }
 
 function describeCreateFailure(code: string | null, status: number, max: number): string {
-  if (code === 'webhook_limit') return `You can have up to ${max} destinations. Delete one first.`;
-  if (code === 'webhook_exists') return 'You already have a destination at that address.';
+  if (code === 'webhook_limit') return `You can have up to ${max} addresses. Delete one first.`;
+  if (code === 'webhook_exists') return 'You already have that address.';
   if (status === 400) {
     return "That address or secret isn't valid. Use a public https address, and check the type and token.";
   }
-  return describeFailure('add', 'the destination', status);
+  return describeFailure('add', 'the address', status);
 }
 
 function DestinationStatus({ destination }: { destination: WebhookDestination }) {
@@ -59,7 +59,7 @@ function DestinationStatus({ destination }: { destination: WebhookDestination })
           Off
         </Badge>
         <Text size="sm">
-          {destination.disabledReason ? asSentence(destination.disabledReason) : 'You turned this destination off.'}
+          {destination.disabledReason ? asSentence(destination.disabledReason) : 'You turned this off.'}
         </Text>
       </Stack>
     );
@@ -81,10 +81,10 @@ function DestinationStatus({ destination }: { destination: WebhookDestination })
   );
 }
 
-/** The "Webhooks" section of the Notifications page: the visitor's own
- * destinations for the notifications they get in the browser, with a form
- * to add one. A generic destination's signing secret is shown once, here;
- * leaving the page drops it.
+/** The "Send notifications elsewhere" section of the Notifications page: the
+ * visitor's own addresses for the notifications they get in the browser, with
+ * a form to add one. The secret key of an address of their own is shown once,
+ * here; leaving the page drops it.
  *
  * Rendered only while the feature is on (`WebhooksSection` gets no data
  * otherwise). */
@@ -128,7 +128,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
       }
       setError(describeCreateFailure(await errorCode(response), response.status, data.maxDestinations));
     } catch {
-      setError(describeFailure('add', 'the destination'));
+      setError(describeFailure('add', 'the address'));
     } finally {
       setBusy(false);
     }
@@ -146,35 +146,35 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
         router.refresh();
         return;
       }
-      setRowError(describeFailure('update', 'the destination', response.status));
+      setRowError(describeFailure('update', 'the address', response.status));
     } catch {
-      setRowError(describeFailure('update', 'the destination'));
+      setRowError(describeFailure('update', 'the address'));
     }
   }
 
   return (
     <Stack gap="sm" component="section" aria-labelledby="webhooks-heading">
       <SectionTitle order={headingOrder} id="webhooks-heading">
-        Webhooks
+        Send notifications elsewhere
       </SectionTitle>
       <Text size="sm">
-        Also send your notifications to a service or device you choose, such as ntfy or Gotify, or an address of your
-        own. They follow the same settings as your browser notifications, including quiet hours and the trains you
-        turned off. We send the notification&apos;s text, which includes your route, times and delays, and a link to the
-        page it opens. That link, and the tag in the generic message, contain the numbers we use for your journey, leg
-        or train. We never send your name, email or account ID.
+        Also send your notifications to another app or device, such as ntfy or Gotify (both Unofficial), or to an
+        address of your own. They follow the same settings as your browser notifications, including quiet hours and the
+        trains you turned off. We send the notification&apos;s text, which includes your route, times and delays, and a
+        link to the page it opens. That link, and the tag in messages to your own address, contain the numbers we use
+        for your journey, leg or train. We never send your name, email or account ID.
       </Text>
 
       {created && (
-        <Alert color="green" title={`Destination "${created.destination.name}" added`}>
+        <Alert color="green" title={`"${created.destination.name}" added`}>
           <Stack gap="xs">
             {created.secret ? (
               <>
                 <Text size="sm">
-                  Copy the signing secret now. You won&apos;t see it again. Use it to check the signature on each
-                  message.
+                  Copy your secret key now. You won&apos;t see it again. Use it to check that each message really came
+                  from us.
                 </Text>
-                <CopyableLink value={created.secret} label="Your signing secret" monospace />
+                <CopyableLink value={created.secret} label="Your secret key" monospace />
               </>
             ) : (
               <Text size="sm">New notifications will be sent to it.</Text>
@@ -183,7 +183,9 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
         </Alert>
       )}
 
-      {data.destinations.length === 0 && <Text c="dimmed">You have no webhook destinations.</Text>}
+      {data.destinations.length === 0 && (
+        <Text c="dimmed">You haven&apos;t added anywhere to send notifications yet.</Text>
+      )}
       {rowError && <Alert color="red">{rowError}</Alert>}
       {data.destinations.map((destination) => (
         <Card key={destination.id} withBorder>
@@ -211,7 +213,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
                 actionName={`delete ${destination.name}`}
                 title={`Delete "${destination.name}"?`}
                 request={() => fetch(`/api/account/webhooks/${destination.id}`, { method: 'DELETE' })}
-                failure={['delete', 'the destination']}
+                failure={['delete', 'the address']}
                 loginPrompt="Log in to delete it"
               >
                 Notifications will stop going to it straight away.
@@ -223,10 +225,10 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
 
       <Card withBorder>
         <Stack gap="sm">
-          <Text fw={600}>Add a destination</Text>
+          <Text fw={600}>Add an address</Text>
           {atLimit ? (
             <Text size="sm">
-              You have {data.maxDestinations} destinations, the most you can have. Delete one to add another.
+              You have {data.maxDestinations} addresses, the most you can have. Delete one to add another.
             </Text>
           ) : (
             <>
@@ -264,13 +266,13 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
                 />
               )}
               <Text size="sm" c="dimmed">
-                Only public https addresses work. Private and local addresses are refused. If a destination keeps
-                failing we turn it off and say why here.
+                Only public https addresses work. Private and local addresses are refused. If an address keeps failing
+                we turn it off and say why here.
               </Text>
               {error && <Alert color="red">{error}</Alert>}
               <Group>
                 <Button onClick={() => void create()} loading={busy} disabled={!canCreate}>
-                  Add destination
+                  Add address
                 </Button>
               </Group>
             </>
