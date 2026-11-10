@@ -143,6 +143,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -203,6 +205,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -268,6 +272,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -339,6 +345,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -406,6 +414,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -448,6 +458,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -487,6 +499,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -519,6 +533,8 @@ describe('GroupDetailPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -617,6 +633,8 @@ describe('GroupDetailPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -734,6 +752,8 @@ describe('GroupDetailPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -784,6 +804,8 @@ describe('GroupDetailPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -870,6 +892,8 @@ describe('GroupDetailPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
@@ -1014,6 +1038,8 @@ describe('GroupDetailPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));

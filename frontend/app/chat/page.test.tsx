@@ -25,6 +25,8 @@ const LOGGED_OUT = {
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
   regularJourneyDayOverridesEnabled: false,
+  calendarFeedEnabled: false,
+  webhooksEnabled: false,
   analyticsOptIn: false,
 };
 const LOGGED_IN = {
@@ -36,6 +38,8 @@ const LOGGED_IN = {
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
   regularJourneyDayOverridesEnabled: false,
+  calendarFeedEnabled: false,
+  webhooksEnabled: false,
   analyticsOptIn: false,
 };
 

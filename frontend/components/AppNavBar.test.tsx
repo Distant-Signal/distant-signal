@@ -38,6 +38,8 @@ const loggedOut: SessionInfo = {
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
   regularJourneyDayOverridesEnabled: false,
+  calendarFeedEnabled: false,
+  webhooksEnabled: false,
   analyticsOptIn: false,
 };
 const loggedIn: SessionInfo = {
@@ -49,6 +51,8 @@ const loggedIn: SessionInfo = {
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
   regularJourneyDayOverridesEnabled: false,
+  calendarFeedEnabled: false,
+  webhooksEnabled: false,
   analyticsOptIn: false,
 };
 

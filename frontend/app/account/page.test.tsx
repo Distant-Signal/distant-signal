@@ -25,6 +25,8 @@ describe('AccountPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -43,6 +45,8 @@ describe('AccountPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -62,6 +66,8 @@ describe('AccountPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());

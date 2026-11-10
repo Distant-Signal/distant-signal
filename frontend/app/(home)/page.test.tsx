@@ -96,6 +96,8 @@ beforeEach(() => {
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
     regularJourneyDayOverridesEnabled: false,
+    calendarFeedEnabled: false,
+    webhooksEnabled: false,
     analyticsOptIn: false,
   });
   vi.mocked(api.getPreferences).mockResolvedValue({
@@ -144,6 +146,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -180,6 +184,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await DashboardPage());
@@ -196,6 +202,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -228,6 +236,8 @@ describe('DashboardPage', () => {
             personalTokensEnabled: false,
             regularJourneyRecurrenceEnabled: false,
             regularJourneyDayOverridesEnabled: false,
+            calendarFeedEnabled: false,
+            webhooksEnabled: false,
             analyticsOptIn: false,
           }
         : {
@@ -239,6 +249,8 @@ describe('DashboardPage', () => {
             personalTokensEnabled: false,
             regularJourneyRecurrenceEnabled: false,
             regularJourneyDayOverridesEnabled: false,
+            calendarFeedEnabled: false,
+            webhooksEnabled: false,
             analyticsOptIn: false,
           },
     );
@@ -264,6 +276,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -303,6 +317,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -340,6 +356,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -371,6 +389,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -407,6 +427,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -448,6 +470,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -474,6 +498,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -502,6 +528,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -530,6 +558,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -564,6 +594,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -593,6 +625,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -619,6 +653,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -646,6 +682,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -685,6 +723,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -712,6 +752,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -746,6 +788,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -774,6 +818,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -943,6 +989,8 @@ describe('DashboardPage', () => {
         personalTokensEnabled: false,
         regularJourneyRecurrenceEnabled: false,
         regularJourneyDayOverridesEnabled: false,
+        calendarFeedEnabled: false,
+        webhooksEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -980,6 +1028,8 @@ describe('DashboardPage', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1019,6 +1069,8 @@ describe('DashboardPage -- outage behaviour', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
@@ -1039,6 +1091,8 @@ describe('DashboardPage -- outage behaviour', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -1059,6 +1113,8 @@ describe('DashboardPage -- outage behaviour', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1098,6 +1154,8 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1188,6 +1246,8 @@ describe('DashboardPage -- Lines shared with you section', () => {
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
     regularJourneyDayOverridesEnabled: false,
+    calendarFeedEnabled: false,
+    webhooksEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1210,6 +1270,8 @@ describe('DashboardPage -- Lines shared with you section', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1360,6 +1422,8 @@ describe('DashboardPage -- Your Operators section', () => {
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
     regularJourneyDayOverridesEnabled: false,
+    calendarFeedEnabled: false,
+    webhooksEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1444,6 +1508,8 @@ describe('DashboardPage -- Your Operators section', () => {
       personalTokensEnabled: false,
       regularJourneyRecurrenceEnabled: false,
       regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
       analyticsOptIn: false,
     });
     // This mock's call count accumulates across every earlier test in this
@@ -1573,6 +1639,8 @@ describe('DashboardPage -- journey sections', () => {
     personalTokensEnabled: false,
     regularJourneyRecurrenceEnabled: false,
     regularJourneyDayOverridesEnabled: false,
+    calendarFeedEnabled: false,
+    webhooksEnabled: false,
     analyticsOptIn: false,
   };
 

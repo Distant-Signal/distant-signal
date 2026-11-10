@@ -32,6 +32,8 @@ const loggedOut = {
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
   regularJourneyDayOverridesEnabled: false,
+  calendarFeedEnabled: false,
+  webhooksEnabled: false,
   analyticsOptIn: false,
 } as const;
 const loggedIn = {
@@ -43,6 +45,8 @@ const loggedIn = {
   personalTokensEnabled: false,
   regularJourneyRecurrenceEnabled: false,
   regularJourneyDayOverridesEnabled: false,
+  calendarFeedEnabled: false,
+  webhooksEnabled: false,
   analyticsOptIn: false,
 } as const;
 
