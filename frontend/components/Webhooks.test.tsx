@@ -45,16 +45,16 @@ describe('Webhooks', () => {
     vi.unstubAllGlobals();
   });
 
-  it('lists each destination with its state', () => {
+  it('lists each address with its state', () => {
     renderWithMantine(<Webhooks data={data} />);
-    expect(screen.getByRole('heading', { name: 'Webhooks' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Send notifications elsewhere' })).toBeInTheDocument();
     expect(screen.getByText('My phone')).toBeInTheDocument();
     expect(screen.getByText('https://ntfy.example.org/trains')).toBeInTheDocument();
     expect(screen.getByText('On')).toBeInTheDocument();
     expect(screen.getByText('Nothing sent yet.')).toBeInTheDocument();
   });
 
-  it('shows why the notifier turned a destination off, and turns it back on', async () => {
+  it('shows why the notifier turned an address off, and turns it back on', async () => {
     const off = { ...destination, enabled: false, disabledReason: 'Turned off after repeated failures.' };
     renderWithMantine(<Webhooks data={{ ...data, destinations: [off] }} />);
     expect(screen.getByText('Off')).toBeInTheDocument();
@@ -70,11 +70,11 @@ describe('Webhooks', () => {
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
   });
 
-  it('adds a signed destination and shows its secret once', async () => {
+  it('adds an address of your own and shows its secret once', async () => {
     const created = { secret: 'whsec_' + 'a'.repeat(40), destination: { ...destination, id: 4, kind: 'generic' } };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(created), { status: 201 }));
     renderWithMantine(<Webhooks data={data} />);
-    const add = screen.getByRole('button', { name: 'Add destination' });
+    const add = screen.getByRole('button', { name: 'Add address' });
     expect(add).toBeDisabled();
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: ' Home ' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://example.org/h' } });
@@ -99,7 +99,7 @@ describe('Webhooks', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), { target: { value: 'gotify' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Server' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://g.example.org' } });
-    const add = screen.getByRole('button', { name: 'Add destination' });
+    const add = screen.getByRole('button', { name: 'Add address' });
     expect(add).toBeDisabled();
     fireEvent.change(screen.getByLabelText(/App token/), { target: { value: 'AppTok' } });
     expect(add).toBeEnabled();
@@ -121,7 +121,7 @@ describe('Webhooks', () => {
     renderWithMantine(<Webhooks data={data} />);
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Local' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://10.0.0.1/x' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add destination' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add address' }));
     expect(await screen.findByText(/isn.t valid\. Use a public https address/)).toBeInTheDocument();
   });
 
@@ -130,9 +130,9 @@ describe('Webhooks', () => {
     renderWithMantine(<Webhooks data={data} />);
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Local' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://example.org/x' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add destination' }));
-    expect(await screen.findByText("Couldn't add the destination. Log in and try again.")).toBeInTheDocument();
-    expect(screen.getAllByText(/Couldn't add the destination/)).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Add address' }));
+    expect(await screen.findByText("Couldn't add the address. Log in and try again.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Couldn't add the address/)).toHaveLength(1);
   });
 
   it('shows the last problem and the turned-off reason as sentences with one full stop', () => {
@@ -140,12 +140,10 @@ describe('Webhooks', () => {
       ...destination,
       lastSuccessAt: '2026-11-09T08:00:00Z',
       lastFailureAt: '2026-11-09T09:00:00Z',
-      lastError: 'The destination did not accept it',
+      lastError: 'The address did not accept it',
     };
     const { unmount } = renderWithMantine(<Webhooks data={{ ...data, destinations: [failing] }} />);
-    expect(
-      screen.getByText(/Last accepted .*Last problem .*: The destination did not accept it\.$/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Last accepted .*Last problem .*: The address did not accept it\.$/)).toBeInTheDocument();
     unmount();
     const off = {
       ...destination,
@@ -156,7 +154,7 @@ describe('Webhooks', () => {
     expect(screen.getByText('Turned off after repeated failures. Last problem: x.')).toBeInTheDocument();
   });
 
-  it('says what a webhook message carries, not that it carries no journey details', () => {
+  it('says what a notification sent elsewhere carries, not that it carries no journey details', () => {
     renderWithMantine(<Webhooks data={data} />);
     expect(screen.getByText(/which includes your route, times and delays/)).toBeInTheDocument();
     expect(screen.getByText(/We never send your name, email or account ID/)).toBeInTheDocument();
@@ -165,7 +163,7 @@ describe('Webhooks', () => {
 
   it('offers no form at the limit', () => {
     renderWithMantine(<Webhooks data={{ ...data, maxDestinations: 1 }} />);
-    expect(screen.queryByRole('button', { name: 'Add destination' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add address' })).not.toBeInTheDocument();
     expect(screen.getByText(/the most you can have/)).toBeInTheDocument();
   });
 
