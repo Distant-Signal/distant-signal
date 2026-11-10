@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getAllLines, getPreferences, getSessionOrLoggedOut } from '@/lib/api';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { AccountSettingsLoginPrompt } from '../preferences/AccountSettingsLoginPrompt';
+import { WebhooksSection } from '@/components/WebhooksSection';
 import { NotificationSettings, type PinnedLineAlert } from './NotificationSettings';
 
 // Session-dependent: never prerender (see app/page.tsx's own comment).
@@ -42,6 +43,7 @@ export default async function NotificationsPage() {
     <Stack p="lg" gap="lg" maw={640}>
       <Title order={1}>Notifications</Title>
       <NotificationSettings pinnedLines={pinnedLines} />
+      <WebhooksSection />
     </Stack>
   );
 }

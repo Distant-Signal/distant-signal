@@ -163,6 +163,14 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       }, or you delete your account.`,
     },
     {
+      title: 'Webhook destinations (only if you add one)',
+      what: 'For each destination you add: its name, the web address you gave us, any secret or access token you gave us or we made for you (kept encrypted), the kind (generic, ntfy or Gotify), whether it is on, when we last reached it, and a short reason if the last try failed. We send it the text of a notification you would get anyway, which can include your route, times and delays, when it was sent, and a link to the page it opens. That link, and the tag in the generic message, contain the numbers we use for your journey, leg or train. A generic destination also gets a link to our credits page. We never send your account ID, name or email.',
+      why: 'To send your notifications to a service or device you run or choose, as well as to your browser.',
+      basis: CONTRACT,
+      retention:
+        'Until you delete the destination or your account. We turn a destination off if it keeps failing, and keep it until you delete it. You can have up to 5.',
+    },
+    {
       title: 'Your location',
       what: 'If you use "near me", your browser sends your approximate location (rounded to about 100 metres) so we can find the nearest stations.',
       why: 'To find stations near you.',
@@ -378,6 +386,43 @@ export default function PrivacyPage() {
         </Text>
       </LegalSection>
 
+      {/* Outbound webhooks (DS-415). Worded to ship before production turns
+          the feature on (api.webhooks.enabled, notifier.webhooks.enabled): drop
+          "Once it is available" when it goes live. */}
+      <LegalSection title="Sending notifications to a webhook">
+        <Text>
+          This is optional and off unless you add a destination. Once it is available, you can add a web address in
+          Notifications on your account page, and we send it the same notifications you get in your browser, under the
+          same settings (quiet hours, pauses and the trains you turned off). You choose where they go: a service you run
+          yourself, or one you use, such as ntfy or Gotify. Those services, and any address you choose, are run by other
+          people, not by us. They see what we send and handle it under their own terms.
+        </Text>
+        <List size="sm" spacing={4}>
+          <ListItem>
+            We send the notification&apos;s title and text, which can include your route, times and delays, when it was
+            sent, whether it is urgent, and a link to the page it opens. That link contains the number we use for your
+            journey or train, and so does the tag in a generic message (ntfy and Gotify get the link, not the tag). We
+            never send your account ID, your name or your email.
+          </ListItem>
+          <ListItem>
+            We do not send the notices about your account, such as a new connected app or personal API token.
+          </ListItem>
+          <ListItem>
+            For a generic destination we sign each message with a secret we make for you and show once. Keep it private.
+            For ntfy and Gotify you give us an access token or app token, which we store encrypted so we can send
+            notifications. We never show a token again.
+          </ListItem>
+          <ListItem>
+            We only send to public web addresses over https. We refuse private, local and internal addresses, and we do
+            not follow redirects.
+          </ListItem>
+          <ListItem>
+            If a destination keeps failing we turn it off and tell you why in Notifications. Delete it there at any
+            time, and it takes effect straight away.
+          </ListItem>
+        </List>
+      </LegalSection>
+
       <LegalSection title="Who we share it with">
         <List size="sm" spacing={4}>
           <ListItem>
@@ -391,6 +436,10 @@ export default function PrivacyPage() {
             Your browser&apos;s push service (such as Google, Mozilla or Apple), if you turn on notifications. It
             carries the notifications but cannot read them, because they are encrypted.
           </ListItem>
+          <ListItem>
+            Any webhook destination you add, such as ntfy or Gotify (their own servers, or one you run), only if you add
+            one (see above).
+          </ListItem>
           <ListItem>Anthropic, only if you use the AI chat with your own key (see above).</ListItem>
           <ListItem>Your AI assistant&apos;s provider, only if you connect your assistant (see above).</ListItem>
           <ListItem>Members of groups you join, and anyone you give a share link to (see above).</ListItem>
@@ -403,9 +452,10 @@ export default function PrivacyPage() {
 
       <LegalSection title="International transfers">
         <Text>
-          Cloudflare, Discord, the push services and Anthropic may process data in the United States. Cloudflare
-          processes data for us under a data processing agreement that includes the UK International Data Transfer
-          Addendum. Discord, the push services and Anthropic process data under their own terms with you.
+          Cloudflare, Discord, the push services, any webhook destination you choose and Anthropic may process data in
+          the United States. Cloudflare processes data for us under a data processing agreement that includes the UK
+          International Data Transfer Addendum. Discord, the push services, your webhook destinations and Anthropic
+          process data under their own terms with you.
         </Text>
       </LegalSection>
 
