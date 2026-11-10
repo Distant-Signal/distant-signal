@@ -144,6 +144,14 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       retention: 'Deleted 30 days after you revoke them or they expire.',
     },
     {
+      title: 'Calendar feed link (only if you turn it on)',
+      what: 'If you turn on the calendar feed: a scrambled form of the secret link your calendar app uses, and when it was made or turned off. Anyone who has the link can see your calendar: for each journey in the last week and the days ahead, its two stations and when it leaves, and, after a journey that may have been late or had a cancelled train, a reminder to check Delay Repay that says so. The credits for our data go in every entry. Never the train, the ticket, or a name you gave a journey.',
+      why: 'To show your journeys, and Delay Repay reminders, in your calendar app.',
+      basis: CONTRACT,
+      retention:
+        'Until you turn it off or make a new link (the old one stops working straight away), or delete your account. The record of a link you turned off is deleted 30 days later.',
+    },
+    {
       title: 'Push notifications',
       what: 'If you turn on notifications: the address your browser gives us for sending them, its encryption keys, and when it was last used.',
       why: 'To send you the notifications you asked for.',
@@ -305,6 +313,42 @@ export default function PrivacyPage() {
           date, stations and train) for 30 days, shown in Connected apps so you can save them again. After a connection
           ends we keep a record of it (which app, what it could do, and when it was connected, last used and ended) for
           one year, then delete it.
+        </Text>
+      </LegalSection>
+
+      {/* Journey calendar feed (ds-api docs/calendar-feed.md). Worded to
+          ship before production turns it on: drop "Once it is available"
+          when api.calendarFeed.enabled goes live. */}
+      <LegalSection title="Your journey calendar">
+        <Text>
+          This is optional and off unless you turn it on. Once it is available, you can turn on a calendar feed in
+          Preferences. It gives you a private link to add to your calendar app, such as Google Calendar or Apple
+          Calendar, so your journeys appear there.
+        </Text>
+        <List size="sm" spacing={4}>
+          <ListItem>
+            It shows the journeys in your account, not ones shared with you: for each, its two stations and when it
+            leaves.
+          </ListItem>
+          <ListItem>
+            After a journey that may have been late enough to claim Delay Repay, or had a cancelled train, it adds a
+            reminder to check Delay Repay. The entry says the journey may have been late or had a cancelled train, so
+            anyone with the link can tell. It falls on about the last day we think your train company takes claims
+            (usually 28 days after the journey), with an alert a week before. We use the company that ran your last
+            train, and a standard 15-minute, 28-day rule when we don&apos;t know it. These are estimates. Check the
+            company&apos;s own page, which is the one that counts. We never make a claim for you.
+          </ListItem>
+          <ListItem>It never shows the train, the ticket or any name you gave a journey.</ListItem>
+        </List>
+        <Text>
+          Anyone who has the link can see these journeys, which show where you travel, so keep it private. We store only
+          a scrambled form of it, so we can&apos;t show it to you again. Turn it off, or make a new link, in
+          Preferences. That takes effect straight away.
+        </Text>
+        <Text>
+          Your calendar app&apos;s provider fetches the link and keeps a copy of your journeys under its own terms. That
+          provider isn&apos;t run by us, and turning the feed off does not delete what it has already kept. Calendar
+          apps refresh slowly, so it shows your plans, not live train times.
         </Text>
       </LegalSection>
 

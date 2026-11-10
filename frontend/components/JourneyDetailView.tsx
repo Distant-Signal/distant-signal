@@ -1,5 +1,6 @@
 import { Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
+import { DownloadCalendarButton } from './DownloadCalendarButton';
 import { RegularJourneyLine } from './RegularJourneyLine';
 import { JourneyLeaveBy } from './JourneyLeaveBy';
 import { londonCalendarDay } from '@/lib/londonWallClock';
@@ -174,6 +175,7 @@ export function JourneyDetailView({
   openBreakOnLoad = false,
   fromPush = false,
   viaShareLink = false,
+  calendarDownload = false,
 }: {
   journey: JourneyDetail;
   fetchedAt: string;
@@ -184,6 +186,9 @@ export function JourneyDetailView({
   fromPush?: boolean;
   /** Opened through a share link, with no session (`/journeys/shared`). */
   viaShareLink?: boolean;
+  /** Offer "Download calendar file", this journey as an `.ics` download (the
+   * owner's, while the api's calendar feed is on). */
+  calendarDownload?: boolean;
 }) {
   // Review §2.5/M16: "Add a leg" used to be offered at the same visual
   // weight as the status badge even while the CURRENT leg still needs a
@@ -244,6 +249,7 @@ export function JourneyDetailView({
           {journey.isOwner && (
             <ShareJourneyLinkButton journeyId={journey.id} shareLink={journey.shareLink} origin={origin} />
           )}
+          {journey.isOwner && calendarDownload && <DownloadCalendarButton journeyId={journey.id} />}
           {journey.isOwner && <SaveAsTemplateButton journeyId={journey.id} />}
           {/* Feature request: "journeys should be mutable ... you should
               be able to ... delete parts or even the whole journey."

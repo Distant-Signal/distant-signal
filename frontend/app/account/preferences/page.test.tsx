@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import PreferencesPage, { metadata } from './page';
-import { getConnectedApps, getPreferences, getSessionOrLoggedOut, getTimeAway } from '@/lib/api';
+import { getCalendarFeedStatus, getConnectedApps, getPreferences, getSessionOrLoggedOut, getTimeAway } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
   getSessionOrLoggedOut: vi.fn(),
@@ -15,6 +15,7 @@ vi.mock('@/lib/api', () => ({
     bankHolidayDivision: null,
   })),
   getTimeAway: vi.fn(async () => []),
+  getCalendarFeedStatus: vi.fn(async () => ({ active: false })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -51,6 +52,19 @@ const loggedIn = {
 } as const;
 
 describe('PreferencesPage', () => {
+  it('offers the calendar feed only while the api has it on', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
+    const { unmount } = renderWithMantine(await PreferencesPage());
+    expect(screen.queryByRole('heading', { name: 'Calendar feed' })).toBeNull();
+    expect(getCalendarFeedStatus).not.toHaveBeenCalled();
+    unmount();
+
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({ ...loggedIn, calendarFeedEnabled: true });
+    renderWithMantine(await PreferencesPage());
+    expect(screen.getByRole('heading', { name: 'Calendar feed' })).toHaveAttribute('id', 'calendar-feed-heading');
+    expect(screen.getByRole('button', { name: 'Turn on calendar feed' })).toBeInTheDocument();
+  });
+
   it('is titled Preferences', async () => {
     vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedOut);
     renderWithMantine(await PreferencesPage());

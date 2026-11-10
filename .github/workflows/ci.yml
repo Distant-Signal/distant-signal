@@ -165,6 +165,10 @@ jobs:
       # on here so the form offers it and regular-journeys.spec.ts's
       # override test runs against the api.
       REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED: "true"
+      # The opt-in journey calendar feed (ds-api's docs/calendar-feed.md),
+      # off by default in the chart: on here so Preferences offers it and
+      # calendar-feed.spec.ts runs against the api.
+      CALENDAR_FEED_ENABLED: "true"
       # frontend/e2e/fixtures/seed.sql's own fixture ids -- see that file's
       # header comment for what each backs and why the dates are fixed.
       E2E_REAL_LINE_ID: lner-ecml
@@ -239,7 +243,8 @@ jobs:
             INTERNAL_OAUTH_CLIENT_ID SSO_ISSUER_URL SSO_CLIENT_ID SSO_CLIENT_SECRET
             SSO_REDIRECT_URL SSO_POST_LOGIN_REDIRECT_URL VAPID_PUBLIC_KEY
             API_TRANSIT_NETWORKS API_TRIP_PLAN_TRANSIT_NETWORKS TFL_BASE_URL
-            REGULAR_JOURNEY_RECURRENCE_ENABLED REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED)
+            REGULAR_JOURNEY_RECURRENCE_ENABLED REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED
+            CALENDAR_FEED_ENABLED)
           args=()
           for name in "${names[@]}"; do args+=(-e "${name}"); done
           docker run -d --name api --network host "${args[@]}" "${REF}"
