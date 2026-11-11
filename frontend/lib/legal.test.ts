@@ -23,6 +23,12 @@ const FILLED: LegalConfig = {
 };
 
 describe('legal pages flag', () => {
+  it('does not count an unset optional ICO registration as a placeholder', () => {
+    const { ICO_REGISTRATION: _ico, ...withoutIco } = FILLED;
+    expect(unfilledLegalPlaceholders(withoutIco)).toEqual([]);
+    expect(legalPagesPublished({ LEGAL_PAGES_PUBLISHED: 'true' }, withoutIco)).toBe(true);
+  });
+
   beforeEach(() => {
     __resetLegalWarningForTests();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -51,12 +57,12 @@ describe('legal pages flag', () => {
     expect(vi.mocked(console.warn).mock.calls[0]![0]).toContain('CONTACT_EMAIL');
   });
 
-  it('ships with every operator-identity value still a placeholder, so the pages cannot go live by accident', () => {
-    // MINIMUM_AGE is the one value already decided (DQ1: 18).
+  it('ships with placeholders still in place, so the pages cannot go live by accident', () => {
+    // MINIMUM_AGE is decided (DQ1: 18). LAST_UPDATED is set to the go-live
+    // date at publish time; ICO_REGISTRATION is optional and unset.
     expect(LEGAL_CONFIG.MINIMUM_AGE).toBe('18');
-    expect(unfilledLegalPlaceholders(LEGAL_CONFIG)).toEqual(
-      Object.keys(LEGAL_CONFIG).filter((key) => key !== 'MINIMUM_AGE'),
-    );
+    expect(LEGAL_CONFIG.ICO_REGISTRATION).toBeUndefined();
+    expect(unfilledLegalPlaceholders(LEGAL_CONFIG)).toEqual(['LAST_UPDATED']);
     expect(legalPagesPublished({ LEGAL_PAGES_PUBLISHED: 'true' })).toBe(false);
   });
 
