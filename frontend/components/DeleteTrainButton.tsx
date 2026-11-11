@@ -107,9 +107,17 @@ export const DeleteTrainButton = forwardRef<
       actionName="stop tracking"
       title="Stop tracking this train?"
       request={() => fetch(`/api/Train/${trackingId}`, { method: 'DELETE' })}
-      failure={['remove', 'this train']}
+      failure={['stop tracking', 'this train']}
       loginPrompt="Log in to stop tracking this train"
-      onSuccess={(router) => (afterDelete === 'refresh' ? router.refresh() : router.push('/journeys'))}
+      deferred={{
+        kind: 'train',
+        id: trackingId,
+        message: 'Stopped tracking this train',
+        url: `/api/Train/${trackingId}`,
+        afterSchedule: (router) => {
+          if (afterDelete === 'redirect') router.push('/journeys');
+        },
+      }}
     >
       {deletesJourney && <Text>Its journey is deleted too.</Text>}
       {inJourney ? (
@@ -118,7 +126,7 @@ export const DeleteTrainButton = forwardRef<
           journey.
         </Text>
       ) : (
-        <Text>This cannot be undone.</Text>
+        <Text>You can undo for a few seconds, then it cannot be undone.</Text>
       )}
       {!inJourney && sharedGroupCount > 0 && (
         <Text>
