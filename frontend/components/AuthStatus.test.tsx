@@ -26,6 +26,7 @@ const loggedOut: SessionInfo = {
   regularJourneyDayOverridesEnabled: false,
   calendarFeedEnabled: false,
   webhooksEnabled: false,
+  recentlyDeletedEnabled: false,
   analyticsOptIn: false,
 };
 
@@ -87,6 +88,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -115,6 +117,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -136,6 +139,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -162,6 +166,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -183,6 +188,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -204,6 +210,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -227,6 +234,7 @@ describe('AuthStatus', () => {
           regularJourneyDayOverridesEnabled: false,
           calendarFeedEnabled: false,
           webhooksEnabled: false,
+          recentlyDeletedEnabled: false,
           analyticsOptIn: false,
         }}
       />,

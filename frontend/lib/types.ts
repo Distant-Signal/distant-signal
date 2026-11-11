@@ -268,6 +268,10 @@ export type ConnectedAppGrant = Api.ConnectedAppGrant;
 export type ConnectableApp = Api.ConnectableApp;
 export type ConnectedAppDeletion = Api.ConnectedAppDeletion;
 export type ConnectedAppsData = Api.ConnectedAppsData;
+export type RecentlyDeletedJourney = Api.RecentlyDeletedJourney;
+export type RecentlyDeletedData = Api.RecentlyDeletedResponse;
+export type RestoredLeg = Api.RestoredLeg;
+export type RestoreDeletedJourneyResponse = Api.RestoreDeletedJourneyResponse;
 export type ConnectAppConsent = Api.ConnectAppConsent;
 export type PlannerOperatorCatalogue = Api.PlannerOperatorCatalogue;
 

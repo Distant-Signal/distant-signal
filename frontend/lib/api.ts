@@ -608,6 +608,7 @@ export const LOGGED_OUT_SESSION: SessionInfo = {
   regularJourneyDayOverridesEnabled: false,
   calendarFeedEnabled: false,
   webhooksEnabled: false,
+  recentlyDeletedEnabled: false,
 };
 
 /** The one place `getSession()`'s failure mode is turned into a UI-safe
@@ -1378,6 +1379,17 @@ export async function getConnectedApps(): Promise<ConnectedAppsData | null> {
   if (response.status === 401) return null;
   if (!response.ok) throw errorForResponse(url, response);
   return response.json() as Promise<ConnectedAppsData>;
+}
+
+/** `GET /Journeys/recently-deleted`: the visitor's deleted journeys still
+ * kept to save again, newest first (ds-api's `routes::recently_deleted`).
+ * `null` when not logged in, or when the api has the feature off (a 404). */
+export async function getRecentlyDeletedJourneys(): Promise<Api.RecentlyDeletedResponse | null> {
+  const url = `${baseUrl()}/Journeys/recently-deleted`;
+  const response = await apiFetch(url, { cache: 'no-store', ...(await cookieForwardInit()) });
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw errorForResponse(url, response);
+  return response.json() as Promise<Api.RecentlyDeletedResponse>;
 }
 
 /** `GET /public/preferences/time-away`: the visitor's time away that

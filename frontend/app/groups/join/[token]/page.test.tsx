@@ -77,6 +77,7 @@ describe('JoinGroupPage', () => {
       regularJourneyDayOverridesEnabled: false,
       calendarFeedEnabled: false,
       webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -102,6 +103,7 @@ describe('JoinGroupPage', () => {
       regularJourneyDayOverridesEnabled: false,
       calendarFeedEnabled: false,
       webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -122,6 +124,7 @@ describe('JoinGroupPage', () => {
       regularJourneyDayOverridesEnabled: false,
       calendarFeedEnabled: false,
       webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -148,6 +151,7 @@ describe('JoinGroupPage', () => {
         regularJourneyDayOverridesEnabled: false,
         calendarFeedEnabled: false,
         webhooksEnabled: false,
+        recentlyDeletedEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockResolvedValue({
@@ -185,6 +189,7 @@ describe('JoinGroupPage', () => {
         regularJourneyDayOverridesEnabled: false,
         calendarFeedEnabled: false,
         webhooksEnabled: false,
+        recentlyDeletedEnabled: false,
         analyticsOptIn: false,
       });
 
@@ -206,6 +211,7 @@ describe('JoinGroupPage', () => {
         regularJourneyDayOverridesEnabled: false,
         calendarFeedEnabled: false,
         webhooksEnabled: false,
+        recentlyDeletedEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new ApiUnauthorizedError('401'));
@@ -227,6 +233,7 @@ describe('JoinGroupPage', () => {
         regularJourneyDayOverridesEnabled: false,
         calendarFeedEnabled: false,
         webhooksEnabled: false,
+        recentlyDeletedEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new Error('boom'));

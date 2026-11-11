@@ -27,6 +27,7 @@ describe('AccountPage', () => {
       regularJourneyDayOverridesEnabled: false,
       calendarFeedEnabled: false,
       webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -47,6 +48,7 @@ describe('AccountPage', () => {
       regularJourneyDayOverridesEnabled: false,
       calendarFeedEnabled: false,
       webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -68,6 +70,7 @@ describe('AccountPage', () => {
       regularJourneyDayOverridesEnabled: false,
       calendarFeedEnabled: false,
       webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());

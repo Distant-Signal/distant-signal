@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
 import { SectionTitle } from '@/components/SectionTitle';
@@ -37,6 +38,7 @@ import { journeyDisplayName, journeyListItemNameInput, journeyPreviewLine } from
 import type { TrackedTrainListItem, JourneyListItem } from '@/lib/types';
 import type { Metadata } from 'next';
 import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
+import { RecentlyDeletedLink } from '@/components/RecentlyDeletedLink';
 
 // See app/page.tsx's own `revalidate = 0` comment for the rationale: this
 // route has no dynamic segment, so without this Next.js treats it as
@@ -277,6 +279,11 @@ function JourneysHeader({
         {authenticated && (
           <>
             <TextLink href="/journeys/regular">Regular journeys</TextLink>
+            {/* Its own session read, streamed in: nothing while the
+                feature is off. */}
+            <Suspense fallback={null}>
+              <RecentlyDeletedLink />
+            </Suspense>
           </>
         )}
       </Group>
