@@ -23,6 +23,12 @@ const FILLED: LegalConfig = {
 };
 
 describe('legal pages flag', () => {
+  it('does not count an unset optional ICO registration as a placeholder', () => {
+    const { ICO_REGISTRATION: _ico, ...withoutIco } = FILLED;
+    expect(unfilledLegalPlaceholders(withoutIco)).toEqual([]);
+    expect(legalPagesPublished({ LEGAL_PAGES_PUBLISHED: 'true' }, withoutIco)).toBe(true);
+  });
+
   beforeEach(() => {
     __resetLegalWarningForTests();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -53,9 +59,10 @@ describe('legal pages flag', () => {
 
   it('ships with placeholders still in place, so the pages cannot go live by accident', () => {
     // MINIMUM_AGE is decided (DQ1: 18). LAST_UPDATED is set to the go-live
-    // date at publish time; ICO_REGISTRATION awaits the self-assessment.
+    // date at publish time; ICO_REGISTRATION is optional and unset.
     expect(LEGAL_CONFIG.MINIMUM_AGE).toBe('18');
-    expect(unfilledLegalPlaceholders(LEGAL_CONFIG)).toContain('LAST_UPDATED');
+    expect(LEGAL_CONFIG.ICO_REGISTRATION).toBeUndefined();
+    expect(unfilledLegalPlaceholders(LEGAL_CONFIG)).toEqual(['LAST_UPDATED']);
     expect(legalPagesPublished({ LEGAL_PAGES_PUBLISHED: 'true' })).toBe(false);
   });
 

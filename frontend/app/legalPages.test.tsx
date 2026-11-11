@@ -125,6 +125,25 @@ describe('draft legal pages', () => {
   });
 });
 
+describe('privacy notice ICO registration line', () => {
+  afterEach(() => {
+    delete legal.LEGAL_CONFIG.ICO_REGISTRATION;
+  });
+
+  it('is absent when unset', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(screen.queryByText(/ICO registration/)).not.toBeInTheDocument();
+  });
+
+  it('is shown when set', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    legal.LEGAL_CONFIG.ICO_REGISTRATION = 'ZA123456';
+    renderWithMantine(PrivacyPage());
+    expect(screen.getByText('ICO registration: ZA123456.')).toBeInTheDocument();
+  });
+});
+
 describe('/attribution', () => {
   it('renders per request, so its footer reads the runtime legal-pages flag', () => {
     expect(attributionDynamic).toBe('force-dynamic');

@@ -229,7 +229,7 @@ export default function PrivacyPage() {
           Distant Signal is run by {OPERATOR_NAME}, the controller of your personal data. Contact us about privacy at{' '}
           <ContactEmail />.
         </Text>
-        <Text>ICO registration: {ICO_REGISTRATION}.</Text>
+        {ICO_REGISTRATION ? <Text>ICO registration: {ICO_REGISTRATION}.</Text> : null}
       </LegalSection>
 
       <LegalSection title="What we collect, why, and for how long">

@@ -34,10 +34,10 @@ export interface LegalConfig {
   /** A monitored inbox for privacy requests, content reports (Online Safety
    * Act 2023 ss. 20-21), complaints and accessibility requests. */
   CONTACT_EMAIL: string;
-  /** The ICO data protection fee registration number, or the literal
-   * `'not required'` once the ICO self-assessment says no fee is due
-   * (LEG-9). Record the self-assessment outcome either way. */
-  ICO_REGISTRATION: string;
+  /** Optional: the ICO data protection fee registration number, if one is
+   * held. Leave unset when no fee is due (LEG-9); the privacy notice then
+   * omits the ICO registration line. */
+  ICO_REGISTRATION?: string;
   /** Minimum age to create an account: `'18'` or `'13'` (audit open
    * question 3). 18 is simplest for the OSA children's duties and the
    * Children's Code. */
@@ -54,7 +54,6 @@ export interface LegalConfig {
 export const LEGAL_CONFIG: LegalConfig = {
   OPERATOR_NAME: 'Lucy M',
   CONTACT_EMAIL: 'legal@cursed.solutions',
-  ICO_REGISTRATION: '[[ICO_REGISTRATION]]',
   // DQ1 (2026-09-27): the operator chose 18.
   MINIMUM_AGE: '18',
   SSO_LOG_RETENTION: '30 days',
@@ -63,7 +62,7 @@ export const LEGAL_CONFIG: LegalConfig = {
 
 /** Names of the `LEGAL_CONFIG` fields still holding a placeholder. */
 export function unfilledLegalPlaceholders(config: LegalConfig = LEGAL_CONFIG): string[] {
-  return (Object.keys(config) as (keyof LegalConfig)[]).filter((key) => PLACEHOLDER.test(config[key]));
+  return (Object.keys(config) as (keyof LegalConfig)[]).filter((key) => PLACEHOLDER.test(config[key] ?? ''));
 }
 
 let warnedPlaceholders = false;
