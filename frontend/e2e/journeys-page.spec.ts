@@ -72,10 +72,10 @@ test.describe('the Journeys page, logged in', () => {
     const headings = await page.getByRole('main').getByRole('heading').allTextContents();
     expect(headings[0]).toBe('Journeys');
     expect(headings[1]).toBe('Upcoming');
-    // "Your reliability", when shown, sits between Upcoming and Past.
+    // "Your reliability", when shown, sits below Past.
     const reliability = headings.indexOf('Your reliability');
     const past = headings.indexOf('Past');
-    if (reliability !== -1 && past !== -1) expect(reliability).toBeLessThan(past);
+    if (reliability !== -1 && past !== -1) expect(reliability).toBeGreaterThan(past);
     await page.getByRole('main').getByRole('link', { name: 'Plan a journey' }).click();
     await expect(page).toHaveURL(/\/plan$/);
   });

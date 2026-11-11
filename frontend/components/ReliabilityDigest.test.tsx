@@ -90,6 +90,20 @@ describe('ReliabilityDigest', () => {
     expect(within(rollup).queryByText(/Attach a ticket|Add your ticket type/)).toBeNull();
   });
 
+  it('heads the Delay Repay part with a plain h3, not an alert', () => {
+    digest({ journeys: [journey()] });
+    const rollup = screen.getByTestId('delay-repay-rollup');
+    expect(within(rollup).getByRole('heading', { level: 3, name: 'Delay Repay' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText('Possible Delay Repay across your journeys')).toBeNull();
+  });
+
+  it('says plainly when none of the finished journeys may have qualified', () => {
+    digest({ journeys: [journey({ estimate: null, delayMinutes: 2 })] });
+    expect(screen.getByText(/Of your 1 finished journey, 0 may have qualified/)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('asks for the ticket type only when a 120-minute band depends on it', () => {
     digest({
       journeys: [

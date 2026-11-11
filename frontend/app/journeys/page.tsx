@@ -20,6 +20,8 @@ import { PLAN_JOURNEY_HREF, PLAN_JOURNEY_LABEL } from '@/lib/navLinks';
 import { FollowJourneyButton } from '@/components/FollowJourneyButton';
 import { followedFromLabel } from '@/lib/followedFrom';
 import { ReliabilityDigest } from '@/components/ReliabilityDigest';
+import { DelayRepayNotice } from '@/components/DelayRepayNotice';
+import { recentPossibleClaims } from '@/lib/reliabilityDigest';
 import { StatusRow } from '@/components/StatusRow';
 import { TrackedTrainRowMenu } from '@/components/TrackedTrainRowMenu';
 import { TrackedRowStatusBadge } from '@/components/TrackedRowStatusBadge';
@@ -51,7 +53,7 @@ export const metadata: Metadata = {
  * (`JOURNEYS_DESTINATION` in `lib/navLinks.ts`). It was the Track page at
  * `/track/mine` until DS-115, which renamed it and split the list into
  * Upcoming and Past (`lib/upcomingPast.ts`) with "Your reliability"
- * between them. Its header starts everything tracking-shaped: "Plan a
+ * below them. Its header starts everything tracking-shaped: "Plan a
  * journey" (`/plan`, no longer a nav entry since DS-194), "Find a train",
  * and regular journeys. Below that, a logged-in user's own journeys and
  * tracked trains. Tickets used to be listed here too, attached to a train
@@ -187,12 +189,20 @@ export default async function JourneysPage() {
     { journeys: journeyRows, trains: standaloneTrains, sharedTrains: shared },
     today,
   );
+  const possibleClaims = new Set(recentPossibleClaims(reliability?.journeys ?? [], today).map((j) => j.journeyId));
   const upcomingCount = sections.upcoming.length;
   const pastCount = sections.past.length;
   const renderEntry = (entry: JourneysPageEntry) => {
     switch (entry.kind) {
       case 'journey':
-        return <JourneyListRow key={entry.key} journey={entry.journey} status={entry.status} />;
+        return (
+          <JourneyListRow
+            key={entry.key}
+            journey={entry.journey}
+            status={entry.status}
+            mayQualify={possibleClaims.has(entry.journey.id)}
+          />
+        );
       case 'train':
         return <TrackedTrainListRow key={entry.key} train={entry.train} status={entry.status} />;
       case 'sharedTrain':
@@ -219,18 +229,19 @@ export default async function JourneysPage() {
               {sections.upcoming.map(renderEntry)}
             </Stack>
           )}
-          {/* Below Upcoming and above Past (DS-115): the caller's own record
-              matters less than what is coming up, and more than the list of
-              what is over. */}
-          {hasOwnContent && <ReliabilityDigest reliability={reliability ?? { trains: [], journeys: [] }} />}
           {pastCount > 0 && (
             // Travelled, newest first, own and shared together. A
             // cancelled one keeps its red badge here.
             <Stack component="section" aria-labelledby="past-heading" gap="xs">
               <SectionTitle id="past-heading">Past</SectionTitle>
+              <DelayRepayNotice count={possibleClaims.size} />
               {sections.past.map(renderEntry)}
             </Stack>
           )}
+          {/* Below Past: the caller's own record is a summary of the list
+              above it, and the Delay Repay notice at the top of Past is what
+              needs attention first. */}
+          {hasOwnContent && <ReliabilityDigest reliability={reliability ?? { trains: [], journeys: [] }} />}
           <DataCredits credits={TRAIN_CREDITS} />
         </>
       )}
@@ -283,7 +294,15 @@ function JourneysHeader({
  * `Group justify="space-between"`, for the shrink-safe title/trailing
  * behaviour the primitive encodes (review P2) -- the same reason
  * `ScheduleRow` is built on it. */
-function JourneyListRow({ journey, status }: { journey: JourneyListItem; status: TrackedRowStatus }) {
+function JourneyListRow({
+  journey,
+  status,
+  mayQualify = false,
+}: {
+  journey: JourneyListItem;
+  status: TrackedRowStatus;
+  mayQualify?: boolean;
+}) {
   const name = journeyListItemNameInput(journey);
   const preview = journeyPreviewLine(name);
   // A followed journey is labelled as followed (below) even when it is
@@ -307,6 +326,11 @@ function JourneyListRow({ journey, status }: { journey: JourneyListItem; status:
           <Text size="sm" c="dimmed">
             {preview}
           </Text>
+        )}
+        {mayQualify && (
+          <Group gap="xs">
+            <StateBadge tone="action">May qualify for Delay Repay</StateBadge>
+          </Group>
         )}
         {/* A journey shared into one or more of the caller's groups
             (DS-178): where it came from and who shared it, as the group's

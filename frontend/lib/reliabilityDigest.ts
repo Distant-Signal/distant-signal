@@ -120,3 +120,23 @@ export function computeDelayRepayRollup(journeys: ReliabilityJourney[]): DelayRe
     ),
   };
 }
+
+/** Days after the journey most operators take a claim for (ds-api's
+ * `delay_repay_rules::ClaimRule::window_days`, 28 for every scheme as of
+ * 2026-11-09). Used only to stop marking old journeys, never shown as a
+ * deadline. */
+export const USUAL_CLAIM_WINDOW_DAYS = 28;
+
+function dayNumber(day: string): number {
+  const [y, m, d] = day.split('-').map(Number);
+  return Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1) / 86_400_000;
+}
+
+/** The journeys that may qualify and finished recently enough that a claim
+ * is usually still possible: what the Journeys page marks. */
+export function recentPossibleClaims(journeys: ReliabilityJourney[], today: string): ReliabilityJourney[] {
+  const now = dayNumber(today);
+  return journeys.filter(
+    (journey) => mayHaveQualified(journey) && now - dayNumber(journey.serviceDate) <= USUAL_CLAIM_WINDOW_DAYS,
+  );
+}
