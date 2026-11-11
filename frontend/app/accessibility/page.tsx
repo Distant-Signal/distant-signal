@@ -38,7 +38,7 @@ export default function AccessibilityPage() {
         who use a screen reader, a keyboard only, magnification or high-contrast settings.
       </Text>
 
-      <LegalSection title="Our target">
+      <LegalSection title="How accessible this website is">
         <Text>
           We aim to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA. We have not had the site
           audited by an independent expert, so we don&apos;t claim full conformance.
@@ -48,8 +48,9 @@ export default function AccessibilityPage() {
       <LegalSection title="How we test">
         <List size="sm" spacing={4}>
           <ListItem>
-            Every change is checked by an automated accessibility scan (axe) of the site&apos;s pages, in both light and
-            dark colour schemes, before it is released.
+            Every change is checked by an automated accessibility scan (axe) of a fixed list of the site&apos;s pages
+            (including the home page, line status, a train, a journey, planning, stations and the account pages), in
+            both light and dark colour schemes, before it is released.
           </ListItem>
           <ListItem>Our colour palette is checked automatically against the WCAG AA contrast ratios.</ListItem>
           <ListItem>Keyboard use of drop-down lists, menus and dialogs is covered by automated tests.</ListItem>
@@ -80,12 +81,14 @@ export default function AccessibilityPage() {
       <LegalSection title="Tell us about a problem">
         <Text>
           If something is hard to use, or you need information in a different format, email <ContactEmail />. Tell us
-          the page and what went wrong, and we will reply within 10 working days. You can also use the{' '}
+          the page and what went wrong, and we will reply as soon as we can, normally within 10 working days. Distant
+          Signal is run by one person, so there may be gaps. You can also use the{' '}
           <TextLink href="/contact" underline="always" inline>
             contact page
           </TextLink>
           .
         </Text>
+        <Text>If you are not happy with our response, the Equality Advisory and Support Service (EASS) can help.</Text>
       </LegalSection>
     </LegalPage>
   );

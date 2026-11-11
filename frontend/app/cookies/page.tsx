@@ -47,12 +47,12 @@ const COOKIES: readonly StorageItem[] = [
   {
     name: 'distant_signal_session',
     purpose: 'Keeps you logged in. Only sent over HTTPS and not readable by scripts.',
-    lasts: 'Up to 90 days. You are signed out sooner after 14 days without use, or when you sign out.',
+    lasts: 'Up to 90 days. You are logged out sooner after 14 days without use, or when you log out.',
   },
   {
     name: 'distant_signal_login',
     purpose: 'Protects the login process from forgery while you log in.',
-    lasts: 'A few minutes.',
+    lasts: '15 minutes.',
   },
 ];
 
@@ -122,7 +122,8 @@ export default function CookiesPage() {
     <LegalPage draft={mode === 'preview'} title="Cookies and browser storage">
       <Text>
         We do not use advertising or tracking cookies, or anyone else&apos;s analytics. Everything below is either
-        needed for the service to work or stores a choice you made, so we do not ask for consent with a cookie banner.
+        needed for the service to work, stores a choice you made, or (for the network error reports) comes from our
+        network provider to keep the site reachable. We do not ask for consent with a cookie banner.
       </Text>
 
       <LegalSection title="Usage counts">
@@ -144,6 +145,10 @@ export default function CookiesPage() {
       </LegalSection>
 
       <LegalSection title="Saved in this browser">
+        <Text>
+          The theme and pride settings only change how the site looks (the &quot;appearance&quot; exception in the
+          cookie rules). Switch them back, or clear site data, to stop them.
+        </Text>
         <StorageList items={LOCAL_STORAGE} />
       </LegalSection>
 
@@ -156,14 +161,16 @@ export default function CookiesPage() {
 
       <LegalSection title="Network error reports">
         <Text>
-          Our network provider, Cloudflare, asks your browser to report failed connections to it (Network Error
-          Logging). This helps keep the site reachable and is not used to track you.
+          Our network provider, Cloudflare, asks your browser to tell it when a connection to this site fails (Network
+          Error Logging). Your browser stores that request for a limited time. A report says which address failed and
+          how, and comes from your IP address. Cloudflare uses it to keep the site reachable, not to track you. Clearing
+          site data in your browser removes the stored request.
         </Text>
       </LegalSection>
 
       <LegalSection title="Removing them">
         <Text>
-          You can delete cookies and site data at any time in your browser settings. If you do, you will be signed out
+          You can delete cookies and site data at any time in your browser settings. If you do, you will be logged out
           and your theme choices will reset.
         </Text>
       </LegalSection>

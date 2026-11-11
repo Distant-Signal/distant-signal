@@ -177,6 +177,13 @@ export interface RetentionPolicy {
    * `REGULAR_JOURNEY_RETENTION_DAYS`, DS-379). OFF (0) by default; the
    * chart sets 90 once the api records each leg's arrival delay. */
   regularJourneyDays: number;
+  /** Days a journey or tracked train the user deleted stays in Recently
+   * deleted before it is deleted for good (the api's
+   * `RECENTLY_DELETED_RETENTION_DAYS`, chart
+   * `api.recentlyDeleted.retentionDays`; the api accepts 7 to 31, default
+   * 7). 0 leaves the sentence out. The chart does not copy it into the
+   * frontend's env yet, so the default has to match the chart's. */
+  recentlyDeletedDays: number;
 }
 
 export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
@@ -184,6 +191,7 @@ export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
   stalePushSubscriptionDays: 365,
   inactiveAccountDays: 0,
   regularJourneyDays: 0,
+  recentlyDeletedDays: 7,
 };
 
 function retentionDays(raw: string | undefined, fallback: number): number {
@@ -204,6 +212,10 @@ export function retentionPolicy(env: Record<string, string | undefined> = proces
       DEFAULT_RETENTION_POLICY.inactiveAccountDays,
     ),
     regularJourneyDays: retentionDays(env.RETENTION_REGULAR_JOURNEY_DAYS, DEFAULT_RETENTION_POLICY.regularJourneyDays),
+    recentlyDeletedDays: retentionDays(
+      env.RETENTION_RECENTLY_DELETED_DAYS,
+      DEFAULT_RETENTION_POLICY.recentlyDeletedDays,
+    ),
   };
 }
 
