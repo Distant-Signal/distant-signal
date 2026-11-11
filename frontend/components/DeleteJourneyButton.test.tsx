@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { DeleteJourneyButton } from './DeleteJourneyButton';
+import { PendingDeleteToasts } from './PendingDeleteToasts';
+import { DELETE_UNDO_WINDOW_MS, getPendingDeletes, resetPendingDeletes } from '@/lib/pendingDeletes';
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -19,6 +21,8 @@ describe('DeleteJourneyButton', () => {
   });
 
   afterEach(() => {
+    resetPendingDeletes();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -29,57 +33,63 @@ describe('DeleteJourneyButton', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('warns that every leg is removed and this cannot be undone', async () => {
+  it('warns that every leg is removed and that undo only lasts a few seconds', async () => {
     renderWithMantine(<DeleteJourneyButton journeyId={167} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
     await waitFor(() => expect(screen.getByText(/removes every leg on this journey/)).toBeInTheDocument());
-    expect(screen.getByText(/cannot be undone/)).toBeInTheDocument();
+    expect(screen.getByText(/undo for a few seconds, then it cannot be undone/)).toBeInTheDocument();
   });
 
-  it('DELETEs the journey and redirects to /journeys on success', async () => {
+  async function confirmWithFakeTimers() {
+    renderWithMantine(
+      <>
+        <DeleteJourneyButton journeyId={167} />
+        <PendingDeleteToasts />
+      </>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete journey' }));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete journey' }));
+  }
+
+  it('redirects to /journeys at once, shows an Undo toast and waits to DELETE', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await confirmWithFakeTimers();
 
-    renderWithMantine(<DeleteJourneyButton journeyId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete journey' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete journey' }));
+    expect(pushMock).toHaveBeenCalledWith('/journeys');
+    expect(screen.getByText('Journey deleted')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/167', { method: 'DELETE' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DELETE_UNDO_WINDOW_MS);
     });
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys'));
-    expect(refreshMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/167', { method: 'DELETE', keepalive: false });
+    expect(screen.queryByText('Journey deleted')).not.toBeInTheDocument();
+    expect(refreshMock).toHaveBeenCalled();
   });
 
-  it('shows an error and does not navigate on a failed delete', async () => {
+  it('Undo cancels the DELETE', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response('no journey with that id', { status: 404 }));
-
-    renderWithMantine(<DeleteJourneyButton journeyId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete journey' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete journey' }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Couldn't delete this journey. It may have been removed.")).toBeInTheDocument();
+    await confirmWithFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo: Journey deleted' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DELETE_UNDO_WINDOW_MS * 2);
     });
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByText('Journey deleted')).not.toBeInTheDocument();
   });
 
-  it('a 401 shows a login prompt instead of the raw backend error text', async () => {
+  it('a failed delete shows a failure and puts the journey back', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
-
-    renderWithMantine(<DeleteJourneyButton journeyId={167} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm delete journey' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete journey' }));
-
-    const loginLink = await screen.findByRole('link', { name: 'Log in to delete this journey' });
-    expect(loginLink).toBeInTheDocument();
-    expect(screen.queryByText('no session')).not.toBeInTheDocument();
-    expect(pushMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValue(new Response('boom', { status: 500 }));
+    await confirmWithFakeTimers();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DELETE_UNDO_WINDOW_MS);
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't delete the journey. Try again.");
+    expect(getPendingDeletes().hidden.has('journey:167')).toBe(false);
   });
 
   it('cancelling the modal does not call DELETE', async () => {

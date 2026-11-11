@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest';
+import { flushPendingDeletes, resetPendingDeletes } from '@/lib/pendingDeletes';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import TrackedTrainByUidPage, { toJourneyState, trainPageDescription, generateMetadata } from './page';
@@ -404,12 +405,16 @@ describe('TrackedTrainByUidPage tracking overlay', () => {
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm stop tracking' }));
 
+    // The DELETE waits out the undo window; closing the page sends it now.
+    expect(fetchMock).not.toHaveBeenCalled();
+    flushPendingDeletes();
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/Train/7', { method: 'DELETE' });
+      expect(fetchMock).toHaveBeenCalledWith('/api/Train/7', { method: 'DELETE', keepalive: true });
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     expect(pushMock).not.toHaveBeenCalled();
 
+    resetPendingDeletes();
     vi.unstubAllGlobals();
   });
 

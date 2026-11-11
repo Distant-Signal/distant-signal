@@ -13,6 +13,7 @@ import { LoginConsentProvider } from '@/components/LoginConsentNote';
 import { legalPagesPublished } from '@/lib/legal';
 import { AppMantineProvider } from '@/components/AppMantineProvider';
 import { ConnectivityMonitor } from '@/components/ConnectivityMonitor';
+import { PendingDeleteToasts } from '@/components/PendingDeleteToasts';
 import { ConnectedAppNotice } from '@/components/ConnectedAppNotice';
 import { PersonalTokenNotice } from '@/components/PersonalTokenNotice';
 import {
@@ -363,6 +364,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   {children}
                 </Container>
                 <OpenDataAttribution />
+                <PendingDeleteToasts />
               </ConnectivityMonitor>
             </GroupSummariesProvider>
           </LoginConsentProvider>

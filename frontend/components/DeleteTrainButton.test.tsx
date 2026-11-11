@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { DeleteTrainButton } from './DeleteTrainButton';
+import { PendingDeleteToasts } from './PendingDeleteToasts';
+import { DELETE_UNDO_WINDOW_MS, getPendingDeletes, resetPendingDeletes } from '@/lib/pendingDeletes';
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -19,6 +21,8 @@ describe('DeleteTrainButton', () => {
   });
 
   afterEach(() => {
+    resetPendingDeletes();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -29,75 +33,73 @@ describe('DeleteTrainButton', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  // Default `afterDelete` ('redirect') -- the by-id page's own behaviour,
-  // unchanged by the new prop.
-  it('DELETEs the tracked train and redirects to /journeys on confirm', async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
-
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} />);
+  async function confirmWithFakeTimers(props: Partial<React.ComponentProps<typeof DeleteTrainButton>> = {}) {
+    renderWithMantine(
+      <>
+        <DeleteTrainButton trackingId={42} sharedGroupCount={0} {...props} />
+        <PendingDeleteToasts />
+      </>,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm stop tracking' }));
+  }
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/Train/42', { method: 'DELETE' });
+  async function expire() {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DELETE_UNDO_WINDOW_MS);
     });
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys'));
+  }
+
+  // Default `afterDelete` ('redirect') -- the by-id page's own behaviour.
+  it('redirects to /journeys at once and DELETEs the tracked train after the undo window', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await confirmWithFakeTimers();
+
+    expect(pushMock).toHaveBeenCalledWith('/journeys');
+    expect(screen.getByText('Stopped tracking this train')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+    await expire();
+    expect(fetchMock).toHaveBeenCalledWith('/api/Train/42', { method: 'DELETE', keepalive: false });
+  });
+
+  // `afterDelete="refresh"` -- stays put; the page refreshes once the
+  // DELETE has been sent.
+  it('stays put with afterDelete "refresh" and refreshes after the DELETE', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await confirmWithFakeTimers({ afterDelete: 'refresh' });
+
+    expect(pushMock).not.toHaveBeenCalled();
     expect(refreshMock).not.toHaveBeenCalled();
-  });
-
-  // `afterDelete="refresh"` -- `/train/[uid]/[date]`'s own behaviour: stay
-  // put and let the Server Component re-fetch instead of navigating away.
-  it('DELETEs the tracked train and calls router.refresh() instead of redirecting when afterDelete is "refresh"', async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
-
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} afterDelete="refresh" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm stop tracking' }));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/Train/42', { method: 'DELETE' });
-    });
-    await waitFor(() => expect(refreshMock).toHaveBeenCalled());
+    await expire();
+    expect(fetchMock).toHaveBeenCalledWith('/api/Train/42', { method: 'DELETE', keepalive: false });
+    expect(refreshMock).toHaveBeenCalled();
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('shows an error and does not redirect on a failed delete', async () => {
+  it('Undo cancels the DELETE and restores the row', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response('no tracked train with that id', { status: 404 }));
-
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm stop tracking' }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Couldn't remove this train. It may have been removed.")).toBeInTheDocument();
+    await confirmWithFakeTimers({ afterDelete: 'refresh' });
+    expect(getPendingDeletes().hidden.has('train:42')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Undo: Stopped tracking this train' }));
+    expect(getPendingDeletes().hidden.has('train:42')).toBe(false);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DELETE_UNDO_WINDOW_MS * 2);
     });
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  // Both train detail pages only ever render this button once they already
-  // have the tracked train's state in hand, so a 401 here can only come
-  // from a session that lapses between page load and this click. Same
-  // `needsLogin` treatment as `DeleteLineButton`/`PinToggle`: a login
-  // prompt, never the raw backend rejection text.
-  it('a 401 shows a login prompt instead of the raw backend error text', async () => {
+  it('shows a failure and restores the row when the DELETE fails', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
-
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
-    await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm stop tracking' }));
-
-    const loginLink = await screen.findByRole('link', { name: 'Log in to stop tracking this train' });
-    expect(loginLink).toHaveAttribute('href', '/api/auth/login?return_to=%2Ftrain%2Fby-id%2F42');
+    await confirmWithFakeTimers({ afterDelete: 'refresh' });
+    await expire();
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't stop tracking this train. Log in and try again.");
     expect(screen.queryByText('no session')).not.toBeInTheDocument();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(getPendingDeletes().hidden.has('train:42')).toBe(false);
   });
 
   // sharedGroupCount === 0: today's exact modal copy, no extra warning line.
@@ -105,7 +107,7 @@ describe('DeleteTrainButton', () => {
     renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
-    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument();
+    expect(screen.getByText('You can undo for a few seconds, then it cannot be undone.')).toBeInTheDocument();
     expect(screen.queryByText(/shared in/)).not.toBeInTheDocument();
   });
 
@@ -135,7 +137,7 @@ describe('DeleteTrainButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(screen.getByText(/part of a journey, so it stays tracked there/)).toBeInTheDocument();
-    expect(screen.queryByText('This cannot be undone.')).toBeNull();
+    expect(screen.queryByText(/cannot be undone/)).toBeNull();
     expect(screen.queryByText(/shared in 2 groups/)).toBeNull();
   });
 
@@ -145,7 +147,7 @@ describe('DeleteTrainButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(screen.getByText('Its journey is deleted too.')).toBeInTheDocument();
-    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument();
+    expect(screen.getByText('You can undo for a few seconds, then it cannot be undone.')).toBeInTheDocument();
     expect(screen.getByText(/shared in 1 group/)).toBeInTheDocument();
   });
 });

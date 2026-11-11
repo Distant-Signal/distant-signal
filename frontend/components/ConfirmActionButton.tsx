@@ -7,6 +7,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { scheduleDelete, type DeleteKind } from '@/lib/pendingDeletes';
 
 type AppRouter = ReturnType<typeof useRouter>;
 
@@ -53,6 +54,22 @@ export interface ConfirmActionButtonProps {
   onCancel?: (() => void) | undefined;
   /** Renders no trigger; the caller opens the dialog through the ref. */
   hideTrigger?: boolean | undefined;
+  /** Makes the action an undoable delete (`lib/pendingDeletes.ts`): on
+   * confirm the dialog closes, the row is hidden, a toast offers Undo and
+   * the `DELETE` to `url` is sent about 10 seconds later (at once if the
+   * page is hidden or closed). `request` and `onSuccess` are not used;
+   * `afterSchedule` runs right away (to navigate), the page refreshes once
+   * the delete is sent, and `failure` words a failed delete. */
+  deferred?:
+    | {
+        kind: DeleteKind;
+        id: number;
+        /** The toast text: "Journey deleted". */
+        message: string;
+        url: string;
+        afterSchedule?: ((router: AppRouter) => void) | undefined;
+      }
+    | undefined;
 }
 
 /** The app's one "are you sure?" control: a trigger button that opens a
@@ -82,6 +99,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
       confirmDisabled = false,
       onCancel,
       hideTrigger = false,
+      deferred,
     },
     ref,
   ) {
@@ -102,7 +120,25 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
       close();
     }
 
+    function handleDeferred(plan: NonNullable<typeof deferred>) {
+      const { url, afterSchedule, ...rest } = plan;
+      scheduleDelete({
+        ...rest,
+        url,
+        failure,
+        onDeleted: () => router.refresh(),
+        onRestored: () => router.refresh(),
+      });
+      setError(null);
+      close();
+      afterSchedule?.(router);
+    }
+
     async function handleConfirm() {
+      if (deferred) {
+        handleDeferred(deferred);
+        return;
+      }
       setBusy(true);
       setError(null);
       needsLoginState.reset();

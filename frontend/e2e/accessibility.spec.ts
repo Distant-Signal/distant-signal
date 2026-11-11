@@ -884,11 +884,13 @@ test.describe('accessibility: interactive sub-states, logged in', () => {
   // RENDERING and not of the API.
   test('a failed mutation renders its inline error text readably', async ({ page }) => {
     await page.goto('/journeys');
-    // A 500 on purpose: `DeleteTrainButton` shows the API's own sentence
+    // A 500 on purpose: a stop-tracking delete shows the API's own sentence
     // only for a readable 400/403/409/422 body (`failureFromResponse`), so a
-    // 500 always takes `describeFailure('remove', 'this train', 500)` --
-    // "Couldn't remove this train. Try again." -- a string this test can
-    // match without depending on whatever prose a backend happens to return.
+    // 500 always takes `describeFailure('stop tracking', 'this train', 500)`
+    // -- "Couldn't stop tracking this train. Try again." -- a string this
+    // test can match without depending on whatever prose a backend happens
+    // to return. The delete is sent after the 10 second undo window, and
+    // the failure is a toast.
     await page.route('**/api/**', (route) =>
       route.request().method() === 'GET' ? route.fallback() : route.fulfill({ status: 500, body: '' }),
     );
@@ -903,7 +905,9 @@ test.describe('accessibility: interactive sub-states, logged in', () => {
     await page.getByRole('button', { name: 'Confirm stop tracking' }).click();
     // The assertion that keeps this from passing vacuously: if the error
     // text never rendered, there is nothing here to have measured.
-    await expect(page.getByText("Couldn't remove this train. Try again.").first()).toBeVisible();
+    await expect(page.getByText("Couldn't stop tracking this train. Try again.").first()).toBeVisible({
+      timeout: 20_000,
+    });
     await expectNoViolations(page);
   });
 });

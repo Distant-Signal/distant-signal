@@ -53,11 +53,17 @@ export function DeleteJourneyButton({ journeyId }: { journeyId: number }) {
       actionName="delete journey"
       title="Delete this journey?"
       request={() => fetch(`/api/Journeys/${journeyId}`, { method: 'DELETE' })}
-      failure={['delete', 'this journey']}
+      failure={['delete', 'the journey']}
       loginPrompt="Log in to delete this journey"
-      onSuccess={(router) => router.push('/journeys')}
+      deferred={{
+        kind: 'journey',
+        id: journeyId,
+        message: 'Journey deleted',
+        url: `/api/Journeys/${journeyId}`,
+        afterSchedule: (router) => router.push('/journeys'),
+      }}
     >
-      This removes every leg on this journey. This cannot be undone.
+      This removes every leg on this journey. You can undo for a few seconds, then it cannot be undone.
     </ConfirmActionButton>
   );
 }

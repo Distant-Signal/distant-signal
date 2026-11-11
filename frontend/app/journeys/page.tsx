@@ -23,6 +23,7 @@ import { ReliabilityDigest } from '@/components/ReliabilityDigest';
 import { DelayRepayNotice } from '@/components/DelayRepayNotice';
 import { recentPossibleClaims } from '@/lib/reliabilityDigest';
 import { StatusRow } from '@/components/StatusRow';
+import { HideWhenDeleted } from '@/components/HideWhenDeleted';
 import { TrackedTrainRowMenu } from '@/components/TrackedTrainRowMenu';
 import { TrackedRowStatusBadge } from '@/components/TrackedRowStatusBadge';
 import { formatDate, formatTime, londonDayKey } from '@/lib/dateFormat';
@@ -196,15 +197,20 @@ export default async function JourneysPage() {
     switch (entry.kind) {
       case 'journey':
         return (
-          <JourneyListRow
-            key={entry.key}
-            journey={entry.journey}
-            status={entry.status}
-            mayQualify={possibleClaims.has(entry.journey.id)}
-          />
+          <HideWhenDeleted key={entry.key} kind="journey" id={entry.journey.id}>
+            <JourneyListRow
+              journey={entry.journey}
+              status={entry.status}
+              mayQualify={possibleClaims.has(entry.journey.id)}
+            />
+          </HideWhenDeleted>
         );
       case 'train':
-        return <TrackedTrainListRow key={entry.key} train={entry.train} status={entry.status} />;
+        return (
+          <HideWhenDeleted key={entry.key} kind="train" id={entry.train.id}>
+            <TrackedTrainListRow train={entry.train} status={entry.status} />
+          </HideWhenDeleted>
+        );
       case 'sharedTrain':
         return <SharedTrainListRow key={entry.key} row={entry.row} status={entry.status} />;
     }

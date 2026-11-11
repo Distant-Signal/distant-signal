@@ -172,7 +172,9 @@ test.describe('tracking an Iarnród Éireann train', () => {
       .getByRole('dialog')
       .getByRole('button', { name: /stop tracking/i })
       .click();
-    await expect(page.getByRole('button', { name: 'Track this train' })).toBeVisible();
+    // The delete is sent after the 10 second undo window, then the page
+    // refreshes.
+    await expect(page.getByRole('button', { name: 'Track this train' })).toBeVisible({ timeout: 20_000 });
   });
 
   test('a shared Irish train and journey are named by their boards and link to the train', async ({
