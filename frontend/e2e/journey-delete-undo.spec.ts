@@ -38,8 +38,8 @@ async function createJourney(request: APIRequestContext, name: string): Promise<
         transitMode: 'walk',
         originName: 'Islington',
         destinationName: 'Angel',
-        plannedDeparture: fromNow(60 * 24 * 30),
-        plannedArrival: fromNow(60 * 24 * 30 + 20),
+        plannedDeparture: fromNow(60 * 24 * 7),
+        plannedArrival: fromNow(60 * 24 * 7 + 20),
       },
     },
   });
