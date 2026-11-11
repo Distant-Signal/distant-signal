@@ -5,13 +5,17 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 // as CI's frontend-e2e job sets; an api without the feature (or with it off)
 // reports `recentlyDeletedEnabled` false, and these skip.
 //
-// Each test saves its own journey on the seed's train (E2E_TRAIN_UID on
-// E2E_TRAIN_DATE, which the seed user already tracks, so its tracking is
-// shared, not new), deletes it, and leaves nothing behind.
+// Each test saves its own journey on a fixture train nothing else uses
+// (seed.sql: E2EMJ3, ZMA to ZMB, on the day after London's tomorrow),
+// deletes it, and leaves nothing behind. Not the seed's own train: deleting
+// a journey drops its tracking, which would take the seed's rows (and the
+// visual baselines' pages) with it.
 const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE;
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
-const TRAIN_UID = process.env.E2E_TRAIN_UID ?? 'W12345';
-const TRAIN_DATE = process.env.E2E_TRAIN_DATE ?? '2026-09-17';
+const TRAIN_UID = 'E2EMJ3';
+const TRAIN_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(
+  new Date(Date.now() + 48 * 3600 * 1000),
+);
 const ORIGIN = { Origin: new URL(BASE_URL).origin };
 
 async function logIn(context: BrowserContext): Promise<void> {
@@ -39,7 +43,10 @@ async function featureOn(page: Page): Promise<boolean> {
 async function saveAndDelete(context: BrowserContext, name: string): Promise<void> {
   const saved = await context.request.post('/api/Journeys/itinerary', {
     headers: ORIGIN,
-    data: { customName: name, legs: [{ trainUid: TRAIN_UID, serviceDate: TRAIN_DATE }] },
+    data: {
+      customName: name,
+      legs: [{ trainUid: TRAIN_UID, serviceDate: TRAIN_DATE, originCrs: 'ZMA', destinationCrs: 'ZMB' }],
+    },
   });
   expect(saved.ok()).toBe(true);
   const { journeyId } = (await saved.json()) as { journeyId: number };
