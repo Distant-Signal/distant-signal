@@ -285,14 +285,11 @@ export default function PrivacyPage() {
       </LegalSection>
 
       {/* Delegated access (docs/superpowers/specs/2026-10-14-ds-mcp-delegated-
-          access-design.md). Worded to ship before the feature: no flag
-          exists yet. Drop "Once it is available" when Connected apps goes
-          live. */}
+          access-design.md). Live. */}
       <LegalSection title="Connecting your AI assistant">
         <Text>
-          This is optional and off unless you turn it on. Once it is available, you turn it on in Connected apps on your
-          account page. It lets an AI assistant you have connected to Distant Signal, such as Claude, work with the
-          journeys in your account.
+          This is optional and off unless you turn it on. You turn it on in Connected apps on your account page. It lets
+          an AI assistant you have connected to Distant Signal, such as Claude, work with the journeys in your account.
         </Text>
         <List size="sm" spacing={4}>
           <ListItem>It can save journeys you plan with it, and list and read your own journeys.</ListItem>
@@ -324,14 +321,14 @@ export default function PrivacyPage() {
         </Text>
       </LegalSection>
 
-      {/* Journey calendar feed (ds-api docs/calendar-feed.md). Worded to
-          ship before production turns it on: drop "Once it is available"
-          when api.calendarFeed.enabled goes live. */}
+      {/* Journey calendar feed (ds-api docs/calendar-feed.md). Live in
+          production since 2026-11-10 (api.calendarFeed.enabled), so it is
+          worded as a live opt-in feature. */}
       <LegalSection title="Your journey calendar">
         <Text>
-          This is optional and off unless you turn it on. Once it is available, you can turn on a calendar feed in
-          Preferences. It gives you a private link to add to your calendar app, such as Google Calendar or Apple
-          Calendar, so your journeys appear there.
+          This is optional and off unless you turn it on. You can turn on a calendar feed in Preferences. It gives you a
+          private link to add to your calendar app, such as Google Calendar or Apple Calendar, so your journeys appear
+          there.
         </Text>
         <List size="sm" spacing={4}>
           <ListItem>
@@ -360,15 +357,14 @@ export default function PrivacyPage() {
         </Text>
       </LegalSection>
 
-      {/* Personal API tokens (docs/specs/personal-api-tokens.md §9). Worded
-          to ship before production turns the feature on: drop "Once it is
-          available" when api.personalTokens.enabled goes live. */}
+      {/* Personal API tokens (docs/specs/personal-api-tokens.md §9). Live
+          (api.personalTokens.enabled). */}
       <LegalSection title="Personal API tokens">
         <Text>
-          This is optional. Once it is available, you can create a personal API token in Connected apps on your account
-          page, to let something you run yourself, such as a home dashboard or a phone shortcut, read your Distant
-          Signal data. A token can only read. It can&apos;t change or delete anything. You choose what it can read (your
-          journeys, line status, trains, or your settings) and when it expires, up to a year.
+          This is optional. You can create a personal API token in Connected apps on your account page, to let something
+          you run yourself, such as a home dashboard or a phone shortcut, read your Distant Signal data. A token can
+          only read. It can&apos;t change or delete anything. You choose what it can read (your journeys, line status,
+          trains, or your settings) and when it expires, up to a year.
         </Text>
         <Text>
           Anyone who has the token can read what it allows, so keep it private. We store only a scrambled form of it, so
