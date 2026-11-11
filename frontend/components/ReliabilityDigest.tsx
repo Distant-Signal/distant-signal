@@ -1,4 +1,4 @@
-import { Alert, Card, Group, Stack, Text } from '@mantine/core';
+import { Card, Group, Stack, Text } from '@mantine/core';
 import { SectionTitle } from './SectionTitle';
 import { TextLink } from './TextLink';
 import {
@@ -135,13 +135,14 @@ function DelayRepaySection({ rollup }: { rollup: DelayRepayRollup }) {
 
   return (
     <Stack gap={4} data-testid="delay-repay-rollup">
-      <Alert color="grape" title="Possible Delay Repay across your journeys" variant="light">
+      <SectionTitle order={3}>Delay Repay</SectionTitle>
+      <Text>
         {rollup.finishedCount === 1
           ? 'Of your 1 finished journey, '
           : `Of your last ${rollup.finishedCount} finished journeys, `}
         {rollup.qualifyingCount} may have qualified for a partial or full refund under the operator&apos;s Delay Repay
         scheme.
-      </Alert>
+      </Text>
       {bandEntries.length > 0 && (
         <Stack gap={2}>
           {bandEntries.map(([key, count]) => (

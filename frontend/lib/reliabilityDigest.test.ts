@@ -4,6 +4,8 @@ import {
   computePunctualitySummary,
   isEligibleForPunctuality,
   mayHaveQualified,
+  recentPossibleClaims,
+  USUAL_CLAIM_WINDOW_DAYS,
 } from './reliabilityDigest';
 import type { DelayRepayEstimate, ReliabilityJourney, ReliabilityTrain } from './types';
 import {
@@ -129,5 +131,32 @@ describe('computeDelayRepayRollup', () => {
     expect(
       computeDelayRepayRollup([journey({ estimate: { ...long, ticketKind: 'single' } })]).ticketTypeWouldHelp,
     ).toBe(false);
+  });
+});
+
+describe('recentPossibleClaims', () => {
+  const qualifying = (journeyId: number, serviceDate: string) =>
+    journey({ journeyId, serviceDate, estimate: band30, delayMinutes: 35 });
+
+  it('is the usual 28 days', () => {
+    expect(USUAL_CLAIM_WINDOW_DAYS).toBe(28);
+  });
+
+  it('keeps a journey 28 days old and drops one 29 days old, across a month end', () => {
+    const journeys = [qualifying(1, '2026-10-14'), qualifying(2, '2026-10-13')];
+    expect(recentPossibleClaims(journeys, '2026-11-11').map((j) => j.journeyId)).toEqual([1]);
+  });
+
+  it('keeps one from today, and drops journeys that may not qualify', () => {
+    const journeys = [
+      qualifying(1, '2026-11-11'),
+      journey({ journeyId: 2, serviceDate: '2026-11-11', estimate: null }),
+    ];
+    expect(recentPossibleClaims(journeys, '2026-11-11').map((j) => j.journeyId)).toEqual([1]);
+  });
+
+  it('counts a train that never got there', () => {
+    const journeys = [journey({ journeyId: 3, serviceDate: '2026-11-10', estimate: null, outcome: 'notReached' })];
+    expect(recentPossibleClaims(journeys, '2026-11-11')).toHaveLength(1);
   });
 });

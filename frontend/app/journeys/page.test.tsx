@@ -4,12 +4,20 @@ import { renderWithMantine } from '@/test/render';
 import { expectShrinkGuarded, expectNoUnguardedNowrapBadges } from '@/test/shrinkGuard';
 import JourneysPage from './page';
 import * as api from '@/lib/api';
-import type { TrackedTrainListItem, SharedGroupTrain, JourneyListItem, SharedVia } from '@/lib/types';
+import type {
+  TrackedTrainListItem,
+  SharedGroupTrain,
+  JourneyListItem,
+  SharedVia,
+  ReliabilityJourney,
+} from '@/lib/types';
 import { journeyDetail, journeyListItem } from '@/test/journeyFixtures';
 import { cardOf } from '@/test/clickableCard';
 import { byVisibleText, visibleText } from '@/test/routeText';
 import {
+  DELAY_REPAY_ESTIMATE_DEFAULTS,
   GROUP_TRAIN_DEFAULTS,
+  RELIABILITY_JOURNEY_DEFAULTS,
   JOURNEY_LIST_ITEM_DEFAULTS,
   RELIABILITY_TRAIN_DEFAULTS,
   TEMPLATE_TARGET_DEFAULTS,
@@ -1082,7 +1090,7 @@ describe('JourneysPage', () => {
         expect(screen.queryByRole('heading', { name: 'Finished' })).toBeNull();
       });
 
-      it('puts Your reliability below Upcoming and above Past', async () => {
+      it('puts Your reliability below Past', async () => {
         vi.mocked(api.getMyTrackedTrains).mockResolvedValue([
           train({ id: 8, pinOriginCrs: 'GLD', pinDestinationCrs: 'WOK', journeyIds: [] }),
           train({ id: 7, status: 'completed', delayMinutes: 3, journeyIds: [] }),
@@ -1093,11 +1101,102 @@ describe('JourneysPage', () => {
         const upcoming = screen.getByRole('heading', { name: 'Upcoming' });
         const reliability = screen.getByRole('heading', { name: 'Your reliability' });
         const past = screen.getByRole('heading', { name: 'Past' });
-        expect(upcoming.compareDocumentPosition(reliability) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(reliability.compareDocumentPosition(past) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(upcoming.compareDocumentPosition(past) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(past.compareDocumentPosition(reliability) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         // Neither list holds it.
         expect(within(region('Upcoming')).queryByRole('heading', { name: 'Your reliability' })).toBeNull();
         expect(within(region('Past')).queryByRole('heading', { name: 'Your reliability' })).toBeNull();
+      });
+
+      describe('Delay Repay notice and row badges', () => {
+        const claim = (
+          journeyId: number,
+          serviceDate: string,
+          over: Partial<ReliabilityJourney> = {},
+        ): ReliabilityJourney => ({
+          ...RELIABILITY_JOURNEY_DEFAULTS,
+          journeyId,
+          serviceDate,
+          delayMinutes: 35,
+          estimate: {
+            ...DELAY_REPAY_ESTIMATE_DEFAULTS,
+            scheme: 'DR30',
+            bandMinutes: 30,
+            percentage: 50,
+            disclaimer: 'e',
+          },
+          ...over,
+        });
+
+        beforeEach(() => {
+          vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
+          vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
+        });
+
+        it('marks recent journeys that may qualify, with a notice directly under the Past heading', async () => {
+          vi.mocked(api.getMyJourneys).mockResolvedValue([
+            journey({ id: 301, serviceDate: '2026-09-20' }),
+            journey({ id: 302, serviceDate: '2026-09-25' }),
+          ]);
+          vi.mocked(api.getMyReliability).mockResolvedValue({
+            trains: [],
+            journeys: [claim(301, '2026-09-20'), claim(302, '2026-09-25', { estimate: null, delayMinutes: 1 })],
+          });
+
+          renderWithMantine(await JourneysPage());
+
+          const past = within(region('Past'));
+          const note = past.getByRole('note');
+          expect(note).toHaveTextContent('1 recent journey may qualify for Delay Repay');
+          expect(past.getAllByText('May qualify for Delay Repay')).toHaveLength(1);
+          const heading = past.getByRole('heading', { name: 'Past' });
+          expect(heading.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        });
+
+        it('counts 28 days from the service date and stops at 29', async () => {
+          vi.mocked(api.getMyJourneys).mockResolvedValue([
+            journey({ id: 303, serviceDate: '2026-09-02' }),
+            journey({ id: 304, serviceDate: '2026-09-01' }),
+          ]);
+          vi.mocked(api.getMyReliability).mockResolvedValue({
+            trains: [],
+            journeys: [claim(303, '2026-09-02'), claim(304, '2026-09-01')],
+          });
+
+          renderWithMantine(await JourneysPage());
+
+          expect(screen.getAllByText('May qualify for Delay Repay')).toHaveLength(1);
+          expect(screen.getByRole('note')).toHaveTextContent('1 recent journey may qualify');
+        });
+
+        it('says "journeys" for several, and shows neither notice nor badge once none are recent', async () => {
+          vi.mocked(api.getMyJourneys).mockResolvedValue([
+            journey({ id: 305, serviceDate: '2026-09-20' }),
+            journey({ id: 306, serviceDate: '2026-09-21' }),
+          ]);
+          vi.mocked(api.getMyReliability).mockResolvedValue({
+            trains: [],
+            journeys: [claim(305, '2026-09-20'), claim(306, '2026-09-21')],
+          });
+          const first = renderWithMantine(await JourneysPage());
+          expect(screen.getByRole('note')).toHaveTextContent('2 recent journeys may qualify for Delay Repay');
+          first.unmount();
+
+          vi.setSystemTime(new Date('2026-12-30T12:00:00Z'));
+          renderWithMantine(await JourneysPage());
+          expect(screen.queryByRole('note')).toBeNull();
+          expect(screen.queryByText('May qualify for Delay Repay')).toBeNull();
+        });
+
+        it('uses the London service date, not UTC', async () => {
+          // 00:30 on 30 Sep in London (BST) is still 29 Sep in UTC.
+          vi.setSystemTime(new Date('2026-09-29T23:30:00Z'));
+          vi.mocked(api.getMyJourneys).mockResolvedValue([journey({ id: 307, serviceDate: '2026-09-01' })]);
+          vi.mocked(api.getMyReliability).mockResolvedValue({ trains: [], journeys: [claim(307, '2026-09-01')] });
+          renderWithMantine(await JourneysPage());
+          // 29 days on in London: not marked.
+          expect(screen.queryByRole('note')).toBeNull();
+        });
       });
 
       it('still shows Upcoming, saying it is empty, when everything is past', async () => {
