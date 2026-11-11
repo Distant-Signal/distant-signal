@@ -52,12 +52,12 @@ export interface LegalConfig {
 
 // DRAFT: operator must replace every placeholder before publishing.
 export const LEGAL_CONFIG: LegalConfig = {
-  OPERATOR_NAME: '[[OPERATOR_NAME]]',
-  CONTACT_EMAIL: '[[CONTACT_EMAIL]]',
+  OPERATOR_NAME: 'Lucy M',
+  CONTACT_EMAIL: 'legal@cursed.solutions',
   ICO_REGISTRATION: '[[ICO_REGISTRATION]]',
   // DQ1 (2026-09-27): the operator chose 18.
   MINIMUM_AGE: '18',
-  SSO_LOG_RETENTION: '[[SSO_LOG_RETENTION]]',
+  SSO_LOG_RETENTION: '30 days',
   LAST_UPDATED: '[[LAST_UPDATED]]',
 };
 

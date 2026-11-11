@@ -30,7 +30,10 @@ describe('AccessibilityPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Accessibility statement' })).toBeInTheDocument();
     expect(screen.getByText(/WCAG\) 2\.2 at level AA/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Known limitations' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '[[CONTACT_EMAIL]]' })).toHaveAttribute('href', 'mailto:[[CONTACT_EMAIL]]');
+    expect(screen.getByRole('link', { name: 'legal@cursed.solutions' })).toHaveAttribute(
+      'href',
+      'mailto:legal@cursed.solutions',
+    );
     expect(document.querySelector('[data-legal-draft]')).not.toBeNull();
   });
 
