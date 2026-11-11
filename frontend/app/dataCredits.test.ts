@@ -36,6 +36,8 @@ const NO_THIRD_PARTY_DATA: Readonly<Record<string, string>> = {
   // place can be in one. Credit TfL's stops here if that ever changes.
   'journeys/regular/page.tsx': "the visitor's saved plans: National Rail station names and times, no live data",
   'journeys/regular/[id]/page.tsx': "the visitor's saved plan: National Rail station names and times, no live data",
+  'journeys/recently-deleted/page.tsx':
+    "the visitor's own deleted journeys, as Connected apps lists them: station codes, places, dates and train IDs, no live data",
   'lines/new/page.tsx': "a form over Distant Signal's own line catalogue",
   'lines/[id]/edit/page.tsx': "a form over Distant Signal's own line catalogue",
   'track/mine/add-ticket/page.tsx': 'a redirect to the Journeys page',

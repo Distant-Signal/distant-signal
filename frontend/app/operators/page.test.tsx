@@ -86,6 +86,7 @@ const sessionInfo: SessionInfo = {
   regularJourneyDayOverridesEnabled: false,
   calendarFeedEnabled: false,
   webhooksEnabled: false,
+  recentlyDeletedEnabled: false,
   analyticsOptIn: false,
 };
 

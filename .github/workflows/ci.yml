@@ -169,6 +169,11 @@ jobs:
       # off by default in the chart: on here so Preferences offers it and
       # calendar-feed.spec.ts runs against the api.
       CALENDAR_FEED_ENABLED: "true"
+      # Recently deleted journeys (ds-api's routes::recently_deleted), off
+      # by default in the chart: on here so the Journeys page links to the
+      # list and recently-deleted.spec.ts runs against the api (it skips
+      # against an api without the feature).
+      RECENTLY_DELETED_ENABLED: "true"
       # frontend/e2e/fixtures/seed.sql's own fixture ids -- see that file's
       # header comment for what each backs and why the dates are fixed.
       E2E_REAL_LINE_ID: lner-ecml
@@ -244,7 +249,7 @@ jobs:
             SSO_REDIRECT_URL SSO_POST_LOGIN_REDIRECT_URL VAPID_PUBLIC_KEY
             API_TRANSIT_NETWORKS API_TRIP_PLAN_TRANSIT_NETWORKS TFL_BASE_URL
             REGULAR_JOURNEY_RECURRENCE_ENABLED REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED
-            CALENDAR_FEED_ENABLED)
+            CALENDAR_FEED_ENABLED RECENTLY_DELETED_ENABLED)
           args=()
           for name in "${names[@]}"; do args+=(-e "${name}"); done
           docker run -d --name api --network host "${args[@]}" "${REF}"

@@ -44,6 +44,7 @@ export const ROUTE_TEMPLATES = [
   '/journeys',
   '/journeys/[id]',
   '/journeys/shared/[token]',
+  '/journeys/recently-deleted',
   '/journeys/regular',
   '/journeys/regular/new',
   '/journeys/regular/[id]',

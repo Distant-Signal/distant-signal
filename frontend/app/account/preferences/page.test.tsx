@@ -35,6 +35,7 @@ const loggedOut = {
   regularJourneyDayOverridesEnabled: false,
   calendarFeedEnabled: false,
   webhooksEnabled: false,
+  recentlyDeletedEnabled: false,
   analyticsOptIn: false,
 } as const;
 const loggedIn = {
@@ -48,6 +49,7 @@ const loggedIn = {
   regularJourneyDayOverridesEnabled: false,
   calendarFeedEnabled: false,
   webhooksEnabled: false,
+  recentlyDeletedEnabled: false,
   analyticsOptIn: false,
 } as const;
 
