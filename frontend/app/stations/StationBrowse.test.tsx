@@ -6,7 +6,7 @@ import { StationBrowseIndex, StationLetterPage, stationBrowseMetadata } from './
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
-  return { ...actual, getStationCodes: vi.fn(), getStationName: vi.fn() };
+  return { ...actual, getStationIndex: vi.fn() };
 });
 
 vi.mock('next/navigation', () => ({
@@ -15,16 +15,15 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
-const NAMES: Record<string, string> = { WAT: 'London Waterloo', WOK: 'Woking' };
-
 beforeEach(() => {
-  vi.mocked(api.getStationCodes).mockReset().mockResolvedValue(['WAT', 'WOK', 'KGX']);
-  vi.mocked(api.getStationName)
+  vi.mocked(api.getStationIndex)
     .mockReset()
-    .mockImplementation(async (crs) => {
-      if (crs === 'WOK') throw new Error('lookup failed');
-      return NAMES[crs] ?? null;
-    });
+    .mockResolvedValue([
+      { crs: 'WAT', name: 'London Waterloo', served: true },
+      { crs: 'WOK', name: 'Woking', served: true },
+      { crs: 'KGX', name: 'London Kings Cross', served: true },
+      { crs: 'WZZ', name: 'Wzz Halt', served: false },
+    ]);
 });
 
 describe('StationBrowseIndex', () => {
@@ -37,7 +36,7 @@ describe('StationBrowseIndex', () => {
   });
 
   it('says so when the list cannot be loaded', async () => {
-    vi.mocked(api.getStationCodes).mockRejectedValue(new Error('down'));
+    vi.mocked(api.getStationIndex).mockRejectedValue(new Error('down'));
     renderWithMantine(await StationBrowseIndex());
     expect(screen.getByText(/Couldn't load the station list/)).toBeInTheDocument();
   });
@@ -48,15 +47,23 @@ describe('StationLetterPage', () => {
     renderWithMantine(await StationLetterPage({ letter: 'w' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Stations starting with W' })).toBeInTheDocument();
     const links = within(screen.getByRole('list', { name: 'Stations' })).getAllByRole('link');
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/stations/WAT', '/stations/WOK']);
-    // A name that resolved, and the bare code when its lookup failed.
-    expect(links.map((a) => a.textContent)).toEqual(['London Waterloo (WAT)', 'WOK']);
+    // Names come from the index; an unserved station is still linked.
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/stations/WAT', '/stations/WOK', '/stations/WZZ']);
+    expect(links.map((a) => a.textContent)).toEqual(['London Waterloo (WAT)', 'Woking (WOK)', 'Wzz Halt (WZZ)']);
+    expect(api.getStationIndex).toHaveBeenCalledTimes(1);
   });
 
   it('links back to the index and the other letters', async () => {
     renderWithMantine(await StationLetterPage({ letter: 'w' }));
     expect(screen.getByRole('link', { name: 'Stations A to Z' })).toHaveAttribute('href', '/stations/a-z');
     expect(screen.getByRole('link', { name: 'K' })).toHaveAttribute('href', '/stations/k');
+  });
+
+  it('says so, rather than failing, when the list cannot be loaded', async () => {
+    vi.mocked(api.getStationIndex).mockRejectedValue(new Error('down'));
+    renderWithMantine(await StationLetterPage({ letter: 'w' }));
+    expect(screen.getByText(/Couldn't load the station list/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Stations A to Z' })).toHaveAttribute('href', '/stations/a-z');
   });
 
   it('is not found for a letter with no stations or a bad segment', async () => {

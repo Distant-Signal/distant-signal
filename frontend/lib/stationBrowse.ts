@@ -1,5 +1,7 @@
+import type { StationIndexEntry } from './types';
+
 /** The A to Z of station pages (`/stations/a-z`): a station's CRS code is
- * three letters, so its first letter splits ~2,800 stations into 26 pages
+ * three letters, so its first letter splits ~2,600 stations into 26 pages
  * of at most a few hundred links each (`/stations/k`). These pages exist
  * so every station page is reachable by plain links, not only by the
  * sitemap or the search box.
@@ -27,23 +29,29 @@ export function isStationBrowseSegment(segment: string): boolean {
   return segment === STATION_INDEX_SEGMENT || STATION_LETTER.test(segment);
 }
 
-/** Station codes grouped by first letter (`a` to `z`), each group sorted.
- * Codes that are not three letters (the api lists only CRS codes, but a
- * stray one must not make a page that has no station) are dropped. */
-export function groupStationCodes(codes: readonly string[]): Map<string, string[]> {
-  const groups = new Map<string, string[]>();
-  for (const code of new Set(codes.map((raw) => raw.toUpperCase()))) {
-    if (!/^[A-Z]{3}$/.test(code)) continue;
-    const letter = code.slice(0, 1).toLowerCase();
+/** The stations grouped by the first letter of their code (`a` to `z`),
+ * each group sorted by code. Entries whose code is not three letters (the
+ * api lists only CRS codes, but a stray one must not make a page that has no
+ * station) are dropped, and a repeated code keeps its first entry. Codes are
+ * upper-cased. */
+export function groupStations(stations: readonly StationIndexEntry[]): Map<string, StationIndexEntry[]> {
+  const groups = new Map<string, StationIndexEntry[]>();
+  const seen = new Set<string>();
+  for (const station of stations) {
+    const crs = station.crs.toUpperCase();
+    if (!/^[A-Z]{3}$/.test(crs) || seen.has(crs)) continue;
+    seen.add(crs);
+    const letter = crs.slice(0, 1).toLowerCase();
+    const entry = { ...station, crs };
     const group = groups.get(letter);
-    if (group) group.push(code);
-    else groups.set(letter, [code]);
+    if (group) group.push(entry);
+    else groups.set(letter, [entry]);
   }
-  for (const group of groups.values()) group.sort();
+  for (const group of groups.values()) group.sort((a, b) => (a.crs < b.crs ? -1 : 1));
   return groups;
 }
 
 /** The letters that have stations, A to Z. */
-export function stationLetters(codes: readonly string[]): string[] {
-  return [...groupStationCodes(codes).keys()].sort();
+export function stationLetters(stations: readonly StationIndexEntry[]): string[] {
+  return [...groupStations(stations).keys()].sort();
 }

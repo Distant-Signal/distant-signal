@@ -4,7 +4,7 @@ import {
   getPublicLines,
   getIrelandLines,
   getIrelandStations,
-  getStationCodes,
+  getStationIndex,
   getTflStopIds,
   getTransitNetwork,
   getTransitNetworks,
@@ -13,7 +13,6 @@ import {
 import { legalPagesPublished } from '@/lib/legal';
 import { createLogger } from '@/lib/logger';
 import { buildSitemap, SITEMAP_REVALIDATE_SECONDS, SITEMAP_URL_LIMIT, type TransitSitemapNetwork } from '@/lib/sitemap';
-import { coveredStations } from '@/lib/sitemapCoverage';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 
 const log = createLogger('app/sitemap');
@@ -56,20 +55,18 @@ async function transitNetworks(): Promise<TransitSitemapNetwork[]> {
  * the api nothing between refreshes. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
-  const [origin, stationCodes, tflStopIds, lines, transit, irelandStations, irelandLines] = await Promise.all([
+  const [origin, stations, tflStopIds, lines, transit, irelandStations, irelandLines] = await Promise.all([
     getSiteOrigin(),
-    orEmpty('stations', () => getStationCodes(SITEMAP_REVALIDATE_SECONDS)),
+    orEmpty('stations', () => getStationIndex(SITEMAP_REVALIDATE_SECONDS)),
     orEmpty('tfl stops', () => getTflStopIds(SITEMAP_REVALIDATE_SECONDS)),
     orEmpty('lines', () => getPublicLines(SITEMAP_REVALIDATE_SECONDS)),
     orEmpty('transit', transitNetworks),
     orEmpty('island of Ireland stations', getIrelandStations),
     orEmpty('island of Ireland lines', getIrelandLines),
   ]);
-  const coveredStationCodes = await coveredStations(lines);
   const entries = buildSitemap({
     origin,
-    stationCodes,
-    coveredStationCodes,
+    stations,
     tflStopIds,
     lines,
     transit,

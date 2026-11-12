@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildSitemap,
   irelandSitemapPaths,
-  isThinStation,
   isExcludedPath,
   LEGAL_PATHS,
   SITEMAP_URL_LIMIT,
@@ -20,8 +19,10 @@ const line = (id: string, source: LineSummary['source']): LineSummary => ({
   source,
 });
 
+const st = (crs: string, served = true) => ({ crs, name: crs, served });
+
 const SOURCES = {
-  stationCodes: ['EUS', 'kgx'],
+  stations: [st('EUS'), st('kgx')],
   tflStopIds: ['940GZZLUEUS'],
   lines: [line('wcml-north', 'catalogue'), line('tfl-northern', 'tfl'), line('custom-mine', 'custom')],
   transit: [{ id: 'metrolink', lineIds: ['blue'], stopIds: ['9400ZZMAPIC'] }],
@@ -84,7 +85,7 @@ describe('sitemapPaths', () => {
   it('lists the station A to Z: the index and one page per first letter that has stations', () => {
     expect(paths).toEqual(expect.arrayContaining(['/stations/a-z', '/stations/e', '/stations/k']));
     expect(paths).not.toContain('/stations/z');
-    expect(sitemapPaths({ ...SOURCES, stationCodes: [] })).not.toContain('/stations/a-z');
+    expect(sitemapPaths({ ...SOURCES, stations: [] })).not.toContain('/stations/a-z');
   });
 
   it("lists each served tram network's lines, timetables and stops", () => {
@@ -113,48 +114,37 @@ describe('sitemapPaths', () => {
   });
 
   it('lists each path once', () => {
-    const twice = sitemapPaths({ ...SOURCES, stationCodes: ['EUS', 'eus'] });
+    const twice = sitemapPaths({ ...SOURCES, stations: [st('EUS'), st('eus')] });
     expect(twice.filter((path) => path === '/stations/EUS')).toHaveLength(1);
   });
 });
 
-describe('thin stations', () => {
-  const stationPaths = (coveredStationCodes: ReadonlySet<string> | null | undefined) =>
-    sitemapPaths({ ...SOURCES, stationCodes: ['EUS', 'kgx', 'ZZZ'], coveredStationCodes }).filter((p) =>
-      /^\/stations\/[A-Z]{3}$/.test(p),
-    );
+describe('stations without content', () => {
+  const stations = [st('EUS'), st('kgx'), st('ZZZ', false)];
+  const stationPaths = (list: typeof stations) =>
+    sitemapPaths({ ...SOURCES, stations: list }).filter((p) => /^\/stations\/[A-Z]{3}$/.test(p));
 
-  it('is a station with no line coverage and no sample stats', () => {
-    expect(isThinStation({ lineCovered: false, hasSampleStats: false })).toBe(true);
-    expect(isThinStation({ lineCovered: true, hasSampleStats: false })).toBe(false);
-    expect(isThinStation({ lineCovered: false, hasSampleStats: true })).toBe(false);
+  it('lists only the served stations, upper-cased', () => {
+    expect(stationPaths(stations)).toEqual(['/stations/EUS', '/stations/KGX']);
   });
 
-  it('leaves uncovered stations out of the sitemap, matching case-insensitively', () => {
-    expect(stationPaths(new Set(['EUS', 'KGX']))).toEqual(['/stations/EUS', '/stations/KGX']);
+  it('lists a station with timetable content even when no line covers it', () => {
+    // `served` is the api's answer: a catalogue line OR timetabled departures.
+    expect(stationPaths([st('AAP')])).toEqual(['/stations/AAP']);
   });
 
-  it('lists every station when coverage is unknown or empty', () => {
-    for (const unknown of [null, undefined, new Set<string>()]) {
-      expect(stationPaths(unknown)).toEqual(['/stations/EUS', '/stations/KGX', '/stations/ZZZ']);
-    }
-  });
-
-  it('keeps the A to Z index and every letter page when stations are thin', () => {
-    const paths = sitemapPaths({
-      ...SOURCES,
-      stationCodes: ['EUS', 'kgx', 'ZZZ'],
-      coveredStationCodes: new Set(['EUS']),
-    });
+  it('keeps the A to Z index and every letter page when stations are unserved', () => {
+    const paths = sitemapPaths({ ...SOURCES, stations });
     expect(paths).toEqual(expect.arrayContaining(['/stations/a-z', '/stations/e', '/stations/k', '/stations/z']));
     expect(paths).not.toContain('/stations/ZZZ');
   });
 
-  it('keeps the other sections whole', () => {
-    const paths = sitemapPaths({ ...SOURCES, coveredStationCodes: new Set(['EUS']) });
-    expect(paths).toContain('/transit/metrolink/stops');
-    expect(paths).toContain('/tfl/stops/940GZZLUEUS');
+  it('lists no station pages, but everything else, when the index could not be read', () => {
+    const paths = sitemapPaths({ ...SOURCES, stations: [] });
+    expect(paths.some((p) => /^\/stations\/[A-Za-z]/.test(p))).toBe(false);
+    expect(paths).toContain('/lines/wcml-north');
     expect(paths).toContain('/transit/metrolink/stops/9400ZZMAPIC');
+    expect(paths).toContain('/tfl/stops/940GZZLUEUS');
   });
 });
 
@@ -184,7 +174,7 @@ describe('buildSitemap', () => {
   });
 
   it('stays within one file', () => {
-    const stationCodes = Array.from({ length: SITEMAP_URL_LIMIT + 10 }, (_, i) => `S${i}`);
-    expect(buildSitemap({ ...SOURCES, stationCodes, origin: 'https://ds.example' })).toHaveLength(SITEMAP_URL_LIMIT);
+    const stations = Array.from({ length: SITEMAP_URL_LIMIT + 10 }, (_, i) => st(`S${i}`));
+    expect(buildSitemap({ ...SOURCES, stations, origin: 'https://ds.example' })).toHaveLength(SITEMAP_URL_LIMIT);
   });
 });

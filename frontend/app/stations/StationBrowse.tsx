@@ -4,16 +4,17 @@ import type { Metadata } from 'next';
 import { DataCredits } from '@/components/DataCredits';
 import { StationLetterLinks } from '@/components/StationLetterLinks';
 import { TextLink } from '@/components/TextLink';
-import { getStationCodes, getStationName } from '@/lib/api';
+import { getStationIndex } from '@/lib/api';
 import { pageMetadata } from '@/lib/pageMetadata';
 import {
-  groupStationCodes,
+  groupStations,
   STATION_BROWSE_PATH,
   STATION_INDEX_SEGMENT,
   STATION_LETTER,
   stationBrowseHref,
   stationLetters,
 } from '@/lib/stationBrowse';
+import type { StationIndexEntry } from '@/lib/types';
 import { stationLabel } from '@/lib/stationLabel';
 
 /** The A to Z of station pages, rendered by `app/stations/[crs]/page.tsx`
@@ -21,31 +22,9 @@ import { stationLabel } from '@/lib/stationLabel';
  * for why they are not routes of their own). */
 
 const REVALIDATE_SECONDS = 6 * 60 * 60;
-/** Name lookups in flight at once: a page lists up to a few hundred
- * stations, each named by one hour-cached api call. */
-const NAME_BATCH = 25;
-
 const INDEX_TITLE = 'Stations A to Z';
 const INDEX_DESCRIPTION =
   'Every UK station we cover, A to Z by station code, with disruptions and departures for each.';
-
-async function nameOrNull(crs: string): Promise<string | null> {
-  try {
-    return await getStationName(crs);
-  } catch {
-    return null;
-  }
-}
-
-async function stationNames(codes: readonly string[]): Promise<Map<string, string | null>> {
-  const names = new Map<string, string | null>();
-  for (let i = 0; i < codes.length; i += NAME_BATCH) {
-    const batch = codes.slice(i, i + NAME_BATCH);
-    const found = await Promise.all(batch.map(nameOrNull));
-    batch.forEach((code, index) => names.set(code, found[index] ?? null));
-  }
-  return names;
-}
 
 /** `<title>`, description and self-canonical of `/stations/<segment>`. */
 export function stationBrowseMetadata(segment: string): Metadata {
@@ -64,7 +43,7 @@ export function stationBrowseMetadata(segment: string): Metadata {
 export async function StationBrowseIndex() {
   let letters: string[] = [];
   try {
-    letters = stationLetters(await getStationCodes(REVALIDATE_SECONDS));
+    letters = stationLetters(await getStationIndex(REVALIDATE_SECONDS));
   } catch {
     // The page says so below; the nav still works.
   }
@@ -89,10 +68,22 @@ export async function StationBrowseIndex() {
  * as plain server-rendered links. Not found for a letter with none. */
 export async function StationLetterPage({ letter }: { letter: string }) {
   if (!STATION_LETTER.test(letter)) notFound();
-  const groups = groupStationCodes(await getStationCodes(REVALIDATE_SECONDS));
+  let stations: StationIndexEntry[];
+  try {
+    stations = await getStationIndex(REVALIDATE_SECONDS);
+  } catch {
+    // A page that says so, not a 500: the index is back on the next try.
+    return (
+      <Stack p="lg" gap="md">
+        <Title order={1}>Stations starting with {letter.toUpperCase()}</Title>
+        <Text c="dimmed">Couldn&apos;t load the station list. Try again shortly.</Text>
+        <TextLink href={STATION_BROWSE_PATH}>{INDEX_TITLE}</TextLink>
+      </Stack>
+    );
+  }
+  const groups = groupStations(stations);
   const codes = groups.get(letter);
   if (!codes) notFound();
-  const names = await stationNames(codes);
   const upper = letter.toUpperCase();
   return (
     <Stack p="lg" gap="md">
@@ -111,10 +102,10 @@ export async function StationLetterPage({ letter }: { letter: string }) {
         className="ds-plain-list"
         aria-label="Stations"
       >
-        {codes.map((crs) => (
+        {codes.map(({ crs, name }) => (
           <li key={crs}>
             <TextLink href={`/stations/${crs}`} prefetch={false}>
-              {stationLabel(crs, names.get(crs))}
+              {stationLabel(crs, name)}
             </TextLink>
           </li>
         ))}
