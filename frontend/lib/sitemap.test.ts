@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildSitemap,
   irelandSitemapPaths,
+  isThinStation,
   isExcludedPath,
   LEGAL_PATHS,
   SITEMAP_URL_LIMIT,
@@ -107,6 +108,35 @@ describe('sitemapPaths', () => {
   it('lists each path once', () => {
     const twice = sitemapPaths({ ...SOURCES, stationCodes: ['EUS', 'eus'] });
     expect(twice.filter((path) => path === '/stations/EUS')).toHaveLength(1);
+  });
+});
+
+describe('thin stations', () => {
+  const stationPaths = (coveredStationCodes: ReadonlySet<string> | null | undefined) =>
+    sitemapPaths({ ...SOURCES, stationCodes: ['EUS', 'kgx', 'ZZZ'], coveredStationCodes }).filter((p) =>
+      p.startsWith('/stations/'),
+    );
+
+  it('is a station with no line coverage and no sample stats', () => {
+    expect(isThinStation({ lineCovered: false, hasSampleStats: false })).toBe(true);
+    expect(isThinStation({ lineCovered: true, hasSampleStats: false })).toBe(false);
+    expect(isThinStation({ lineCovered: false, hasSampleStats: true })).toBe(false);
+  });
+
+  it('leaves uncovered stations out of the sitemap, matching case-insensitively', () => {
+    expect(stationPaths(new Set(['EUS', 'KGX']))).toEqual(['/stations/EUS', '/stations/KGX']);
+  });
+
+  it('lists every station when coverage is unknown or empty', () => {
+    for (const unknown of [null, undefined, new Set<string>()]) {
+      expect(stationPaths(unknown)).toEqual(['/stations/EUS', '/stations/KGX', '/stations/ZZZ']);
+    }
+  });
+
+  it('keeps the other sections whole', () => {
+    const paths = sitemapPaths({ ...SOURCES, coveredStationCodes: new Set(['EUS']) });
+    expect(paths).toContain('/tfl/stops/940GZZLUEUS');
+    expect(paths).toContain('/transit/metrolink/stops/9400ZZMAPIC');
   });
 });
 
