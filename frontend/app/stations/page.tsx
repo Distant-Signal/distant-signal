@@ -77,7 +77,7 @@ export default function StationSearchPage() {
         </Group>
       </Stack>
       {/* Plain links to every station page, for visitors and crawlers (DS-170). */}
-      <TextLink href="/stations/browse" underline="always">
+      <TextLink href="/stations/a-z" underline="always">
         Browse all stations, A to Z
       </TextLink>
       {/* Station names and codes come from the Knowledgebase Stations feed. */}

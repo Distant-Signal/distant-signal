@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import StationDisruptionPage, { generateMetadata } from './page';
+import { StationBrowseIndex } from '../StationBrowse';
 import * as api from '@/lib/api';
 import { ApiNotFoundError } from '@/lib/api';
 import { __resetStaleCacheForTests } from '@/lib/liveDataCache';
@@ -736,5 +737,25 @@ describe('StationDisruptionPage -- about and timetable prose', () => {
     await renderPage();
     expect(screen.getByRole('heading', { name: 'London Kings Cross (KGX)', level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Trains from/ })).toBeNull();
+  });
+});
+
+describe('the station A to Z', () => {
+  // `/stations/a-z` and `/stations/<letter>` are served here, since a page
+  // route of their own would need the api's usage-event allowlist first.
+  it('answers /stations/a-z and a letter with their own metadata, never a station lookup', async () => {
+    vi.mocked(api.getStationName).mockClear();
+    const index = await generateMetadata({ params: Promise.resolve({ crs: 'a-z' }) });
+    const letter = await generateMetadata({ params: Promise.resolve({ crs: 'k' }) });
+    expect(index.alternates).toEqual({ canonical: '/stations/a-z' });
+    expect(letter.alternates).toEqual({ canonical: '/stations/k' });
+    expect(api.getStationName).not.toHaveBeenCalled();
+  });
+
+  it('renders the index and letter views instead of a station', async () => {
+    const index = await StationDisruptionPage({ params: Promise.resolve({ crs: 'a-z' }) });
+    const letter = await StationDisruptionPage({ params: Promise.resolve({ crs: 'k' }) });
+    expect((index as { type: unknown }).type).toBe(StationBrowseIndex);
+    expect((letter as { props: unknown }).props).toEqual({ letter: 'k' });
   });
 });

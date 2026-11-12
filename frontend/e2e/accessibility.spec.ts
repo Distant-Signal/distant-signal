@@ -203,8 +203,8 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
   ['/stations', '/stations'],
   [`/stations/${REAL_STATION_CRS}`, `/stations/${REAL_STATION_CRS}`],
   // The station A to Z: the plain-link route to every station page.
-  ['/stations/browse', '/stations/browse'],
-  [`/stations/browse/${STATION_LETTER}`, `/stations/browse/${STATION_LETTER}`],
+  ['/stations/a-z', '/stations/a-z'],
+  [`/stations/${STATION_LETTER}`, `/stations/${STATION_LETTER}`],
   // A TfL stop's live arrivals (the seed's stops; scripts/tfl-arrivals-stub.py
   // answers King's Cross with a board and Russell Square with a 503).
   ['/tfl/stops/940GZZLUKSX', '/tfl/stops/940GZZLUKSX'],

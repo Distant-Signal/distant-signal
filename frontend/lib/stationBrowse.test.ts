@@ -14,7 +14,7 @@ describe('stationBrowse', () => {
 
   it('lists letters A to Z and builds lower-case hrefs', () => {
     expect(stationLetters(['WAT', 'AAP', 'KGX'])).toEqual(['a', 'k', 'w']);
-    expect(stationBrowseHref('K')).toBe('/stations/browse/k');
+    expect(stationBrowseHref('K')).toBe('/stations/k');
     expect(STATION_LETTER.test('k')).toBe(true);
     expect(STATION_LETTER.test('kk')).toBe(false);
     expect(STATION_LETTER.test('K')).toBe(false);

@@ -23,6 +23,8 @@ import { PinToggle } from '@/components/PinToggle';
 import { ShareButton } from '@/components/ShareButton';
 import { StationAccessibilitySection } from '@/components/StationAccessibilitySection';
 import { TextLink } from '@/components/TextLink';
+import { StationBrowseIndex, StationLetterPage, stationBrowseMetadata } from '../StationBrowse';
+import { isStationBrowseSegment, STATION_INDEX_SEGMENT } from '@/lib/stationBrowse';
 import { StationTramLinks } from '@/components/TransitRailLinks';
 import { NationalRailCredit } from '@/components/NationalRailCredit';
 import { DataCredits, lineCredits } from '@/components/DataCredits';
@@ -206,6 +208,8 @@ function redirectToUpperCase(crs: string): void {
  * own `notFound()` for an unknown CRS. */
 export async function generateMetadata({ params }: { params: Promise<{ crs: string }> }): Promise<Metadata> {
   const { crs } = await params;
+  // `/stations/a-z` and `/stations/k`: the A to Z of stations, never a code.
+  if (isStationBrowseSegment(crs)) return stationBrowseMetadata(crs);
   redirectToUpperCase(crs);
 
   const lookup = await lookupStation(crs);
@@ -251,6 +255,8 @@ async function previewDisruptionState(crs: string): Promise<StationDisruptionSta
 
 export default async function StationDisruptionPage({ params }: { params: Promise<{ crs: string }> }) {
   const { crs } = await params;
+  if (crs === STATION_INDEX_SEGMENT) return <StationBrowseIndex />;
+  if (isStationBrowseSegment(crs)) return <StationLetterPage letter={crs} />;
   redirectToUpperCase(crs);
 
   // Deliberately awaited before the disruption fetch rather than in

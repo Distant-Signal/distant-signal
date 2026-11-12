@@ -1,17 +1,30 @@
-/** The A to Z of station pages (`/stations/browse`): a station's CRS code
- * is three letters, so its first letter splits ~2,800 stations into 26
- * pages of at most a few hundred links each. These pages exist so every
- * station page is reachable by plain links, not only by the sitemap or the
- * search box. */
+/** The A to Z of station pages (`/stations/a-z`): a station's CRS code is
+ * three letters, so its first letter splits ~2,800 stations into 26 pages
+ * of at most a few hundred links each (`/stations/k`). These pages exist
+ * so every station page is reachable by plain links, not only by the
+ * sitemap or the search box.
+ *
+ * They are served by `app/stations/[crs]/page.tsx` (a CRS is never one
+ * letter, nor `a-z`) rather than routes of their own: every page route is
+ * on the api's usage-event allowlist (`lib/usageEvents.ts`), which the api
+ * owns, so a new route needs an api release first. */
 
-/** A letter segment of `/stations/browse/[letter]`: one lower-case letter. */
+/** A letter segment of `/stations/[letter]`: one lower-case letter. */
 export const STATION_LETTER = /^[a-z]$/;
 
+/** The index's segment under `/stations`. */
+export const STATION_INDEX_SEGMENT = 'a-z';
+
 /** The A to Z index. */
-export const STATION_BROWSE_PATH = '/stations/browse';
+export const STATION_BROWSE_PATH = `/stations/${STATION_INDEX_SEGMENT}`;
 
 export function stationBrowseHref(letter: string): string {
-  return `${STATION_BROWSE_PATH}/${letter.toLowerCase()}`;
+  return `/stations/${letter.toLowerCase()}`;
+}
+
+/** Whether `/stations/<segment>` is one of the A to Z pages, not a station. */
+export function isStationBrowseSegment(segment: string): boolean {
+  return segment === STATION_INDEX_SEGMENT || STATION_LETTER.test(segment);
 }
 
 /** Station codes grouped by first letter (`a` to `z`), each group sorted.

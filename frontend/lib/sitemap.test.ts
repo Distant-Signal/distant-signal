@@ -82,9 +82,9 @@ describe('sitemapPaths', () => {
   });
 
   it('lists the station A to Z: the index and one page per first letter that has stations', () => {
-    expect(paths).toEqual(expect.arrayContaining(['/stations/browse', '/stations/browse/e', '/stations/browse/k']));
-    expect(paths).not.toContain('/stations/browse/z');
-    expect(sitemapPaths({ ...SOURCES, stationCodes: [] })).not.toContain('/stations/browse');
+    expect(paths).toEqual(expect.arrayContaining(['/stations/a-z', '/stations/e', '/stations/k']));
+    expect(paths).not.toContain('/stations/z');
+    expect(sitemapPaths({ ...SOURCES, stationCodes: [] })).not.toContain('/stations/a-z');
   });
 
   it("lists each served tram network's lines, timetables and stops", () => {

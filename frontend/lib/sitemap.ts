@@ -153,7 +153,7 @@ export function sitemapPaths({
     // line page shows no trains panel for a TfL line).
     if (line.source === 'catalogue' && !line.id.startsWith('tfl-')) paths.push(`/lines/${seg(line.id)}/timetable`);
   }
-  // The A to Z of station pages (`/stations/browse`): the plain-link route
+  // The A to Z of station pages (`/stations/a-z`): the plain-link route
   // to each station page, so none depends on the sitemap alone.
   const letters = [...groupStationCodes(stationCodes).keys()].sort();
   if (letters.length > 0) paths.push(STATION_BROWSE_PATH, ...letters.map(stationBrowseHref));

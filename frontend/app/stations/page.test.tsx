@@ -28,10 +28,7 @@ describe('StationSearchPage', () => {
 
   it('links to the A to Z of every station, for visitors without the search box', () => {
     renderWithMantine(StationSearchPage());
-    expect(screen.getByRole('link', { name: 'Browse all stations, A to Z' })).toHaveAttribute(
-      'href',
-      '/stations/browse',
-    );
+    expect(screen.getByRole('link', { name: 'Browse all stations, A to Z' })).toHaveAttribute('href', '/stations/a-z');
   });
 });
 
