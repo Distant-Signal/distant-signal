@@ -129,7 +129,7 @@ describe('draft legal pages', () => {
     expect(screen.getByText(/the law lets us take up to two more months/)).toBeInTheDocument();
   });
 
-  it('says where the servers are and that the data is transferred to the EU (DS-465)', () => {
+  it('says where the servers are and that the data is stored in the EU (DS-465)', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
     renderWithMantine(PrivacyPage());
     expect(screen.getByText(/currently in Vienna, Austria/)).toBeInTheDocument();
@@ -137,6 +137,8 @@ describe('draft legal pages', () => {
     expect(
       screen.getByText(/Hetzner \(backup storage, Germany\), which stores our encrypted backups on our behalf\./),
     ).toBeInTheDocument();
+    expect(screen.getByText(/So your personal data is stored in the EU\./)).toBeInTheDocument();
+    expect(screen.queryByText(/transferred to/)).toBeNull();
     expect(screen.queryByText(/may process data in the United States/)).toBeNull();
   });
 
@@ -152,11 +154,51 @@ describe('draft legal pages', () => {
     expect(screen.queryByText(/database and backups all run on/)).toBeNull();
   });
 
-  it('keeps a deleted journey in Recently deleted and says how long backups add (DS-465)', () => {
+  describe('Recently deleted wording (DS-465)', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('keeps a deleted journey in Recently deleted and says how long backups add while the feature is on', () => {
+      vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+      vi.stubEnv('RETENTION_RECENTLY_DELETED_DAYS', '7');
+      renderWithMantine(PrivacyPage());
+      expect(screen.getByText(/kept in Recently deleted for 7 days so you can save it again/)).toBeInTheDocument();
+      expect(screen.getByText(/in a backup for up to 21 days after you delete it/)).toBeInTheDocument();
+    });
+
+    it('says nothing about a grace period or the longer backup period when the chart does not pass it (feature off)', () => {
+      vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+      vi.stubEnv('RETENTION_RECENTLY_DELETED_DAYS', '');
+      renderWithMantine(PrivacyPage());
+      expect(screen.queryByText(/Recently deleted/)).toBeNull();
+      expect(screen.queryByText(/in a backup for up to 21 days/)).toBeNull();
+    });
+  });
+
+  it('says what you have to give us, and one name for the chat key (DS-465)', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
     renderWithMantine(PrivacyPage());
-    expect(screen.getByText(/kept in Recently deleted for 7 days so you can save it again/)).toBeInTheDocument();
-    expect(screen.getByText(/in a backup for up to 21 days after you delete it/)).toBeInTheDocument();
+    expect(screen.getByText(/You do not have to give us anything/)).toBeInTheDocument();
+    expect(screen.getByText(/your own Claude API key/)).toBeInTheDocument();
+    expect(screen.queryByText(/Anthropic API key/)).toBeNull();
+  });
+
+  it('shows how long the browser keeps the network error policy (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(CookiesPage());
+    expect(screen.getByText(/keeps that request for up to 7 days/)).toBeInTheDocument();
+    expect(screen.getByText(/your own Claude API key/)).toBeInTheDocument();
+  });
+
+  it('labels the date as the last review on every page (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    for (const [, Page] of PAGES) {
+      const { unmount } = renderWithMantine(Page());
+      expect(screen.getByText(/Last reviewed: /)).toBeInTheDocument();
+      expect(screen.queryByText(/Last updated/)).toBeNull();
+      unmount();
+    }
   });
 
   it('lists the device label for push subscriptions (DS-465)', () => {
@@ -208,6 +250,33 @@ describe('privacy notice ICO registration line', () => {
     vi.stubEnv('LEGAL_ICO_REGISTRATION', 'ZA123456');
     renderWithMantine(PrivacyPage());
     expect(screen.getByText('ICO registration: ZA123456.')).toBeInTheDocument();
+  });
+});
+
+describe('privacy notice hosting provider line', () => {
+  beforeEach(() => {
+    stubLegalEnv();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('is absent when unset, and names no provider', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(screen.queryByText(/server hosting, Vienna/)).toBeNull();
+    expect(screen.getByText(/run on infrastructure we operate ourselves/)).toBeInTheDocument();
+  });
+
+  it('is listed as a processor and named in the infrastructure sentence when set', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    vi.stubEnv('LEGAL_HOSTING_PROVIDER', 'Example Hosting');
+    renderWithMantine(PrivacyPage());
+    expect(
+      screen.getByText('Example Hosting (server hosting, Vienna, Austria), which hosts our servers on our behalf.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/hosted by Example Hosting and managed by us/)).toBeInTheDocument();
+    expect(screen.queryByText(/infrastructure we operate ourselves/)).toBeNull();
   });
 });
 

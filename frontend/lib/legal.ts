@@ -1,11 +1,13 @@
 /** Operator-specific values for the legal pages (`/privacy`, `/terms`,
  * `/cookies`, `/contact`, `/accessibility`), and the flag that publishes them.
  *
- * DRAFT -- NOT YET REVIEWED. The page text under `app/privacy`, `app/terms`,
- * `app/cookies` and `app/contact` was drafted from the 2026-09-27 UK legal
- * compliance gap analysis (LEG-1, LEG-2, LEG-8, LEG-11, LEG-12, LEG-13,
- * LEG-25). It is not legal advice. The operator, and ideally a lawyer, must
- * review every page before `LEGAL_PAGES_PUBLISHED` is switched on.
+ * DRAFT. The page text under `app/privacy`, `app/terms`, `app/cookies`,
+ * `app/contact` and `app/accessibility` was drafted from the 2026-09-27 UK
+ * legal compliance gap analysis (LEG-1, LEG-2, LEG-8, LEG-11, LEG-12, LEG-13,
+ * LEG-25) and has had engineering reviews on 11 and 12 November 2026; a
+ * lawyer's review is pending. It is not legal advice. The operator, and
+ * ideally a lawyer, must review every page before `LEGAL_PAGES_PUBLISHED` is
+ * switched on.
  *
  * The operator's own details are NOT in the source: each deployment supplies
  * them as server environment variables (chart values `frontend.legal.*`,
@@ -16,6 +18,8 @@
  *   LEGAL_LAST_UPDATED       required: e.g. "1 November 2026"; set on go-live
  *   LEGAL_ICO_REGISTRATION   optional: omit when no ICO fee is due
  *   LEGAL_MINIMUM_AGE        optional, default "18"
+ *   LEGAL_HOSTING_PROVIDER   optional: who provides our servers, if a third
+ *                            party does; omit when we run our own hardware
  * The pages stay unpublished (404, and hidden from the footer) until BOTH:
  *   1. the server env `LEGAL_PAGES_PUBLISHED` is exactly `true`
  *      (chart value `frontend.legalPagesPublished`, off by default), and
@@ -56,7 +60,11 @@ export interface LegalConfig {
    * 13 to 21). 18 is simplest for the OSA children's duties and the
    * Children's Code. */
   MINIMUM_AGE: string;
-  /** How long the sign-in service (Authentik) keeps its event logs,
+  /** Optional: who provides the servers the login service and database run
+   * on, if a third party does (`LEGAL_HOSTING_PROVIDER`). Unset leaves the
+   * hosting provider out of the privacy notice; the operator decides. */
+  HOSTING_PROVIDER?: string | undefined;
+  /** How long the login service (Authentik) keeps its event logs,
    * including login IP addresses, e.g. `'1 year'`
    * (`LEGAL_SSO_LOG_RETENTION`). */
   SSO_LOG_RETENTION: string;
@@ -126,10 +134,12 @@ function field(env: Env, name: string, key: string, ok: (value: string) => boole
 export function readLegalConfig(env: Env = process.env): LegalConfig {
   const ico = env.LEGAL_ICO_REGISTRATION?.trim() ?? '';
   const age = env.LEGAL_MINIMUM_AGE?.trim() ?? '';
+  const hosting = env.LEGAL_HOSTING_PROVIDER?.trim() ?? '';
   return {
     OPERATOR_NAME: field(env, 'LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', plainText(100)),
     CONTACT_EMAIL: field(env, 'LEGAL_CONTACT_EMAIL', 'CONTACT_EMAIL', isEmail),
     ICO_REGISTRATION: ico === '' ? undefined : isIco(ico) ? ico : '[[ICO_REGISTRATION]]',
+    HOSTING_PROVIDER: hosting === '' ? undefined : plainText(100)(hosting) ? hosting : '[[HOSTING_PROVIDER]]',
     MINIMUM_AGE: age === '' ? '18' : isAge(age) ? age : '[[MINIMUM_AGE]]',
     SSO_LOG_RETENTION: field(env, 'LEGAL_SSO_LOG_RETENTION', 'SSO_LOG_RETENTION', plainText(60)),
     LAST_UPDATED: field(env, 'LEGAL_LAST_UPDATED', 'LAST_UPDATED', isDate),
@@ -147,6 +157,9 @@ export const LEGAL_CONFIG: LegalConfig = {
   },
   get ICO_REGISTRATION() {
     return readLegalConfig().ICO_REGISTRATION;
+  },
+  get HOSTING_PROVIDER() {
+    return readLegalConfig().HOSTING_PROVIDER;
   },
   get MINIMUM_AGE() {
     return readLegalConfig().MINIMUM_AGE;
@@ -210,8 +223,8 @@ export function legalPagesVisible(env: Env = process.env, config: LegalConfig = 
 }
 
 /** Route names of the account self-service features the privacy notice
- * points to. The account export and deletion work is a separate change;
- * keep these in sync with it. */
+ * points to. Keep these in sync with the account page's export and delete
+ * controls. */
 export const ACCOUNT_ROUTE = '/account';
 export const ACCOUNT_EXPORT_LABEL = 'Download my data';
 export const ACCOUNT_DELETE_LABEL = 'Delete my account';
@@ -260,7 +273,8 @@ export interface RetentionPolicy {
   /** Push subscriptions: days without a login or renewal. */
   stalePushSubscriptionDays: number;
   /** Whole accounts: days with no login and no live session. OFF (0) by
-   * default; DQ7: set to 730 once the privacy notice is published. */
+   * default; the chart's `api.inactiveAccountRetentionDays` turns it on
+   * (the period is the operator's decision). */
   inactiveAccountDays: number;
   /** Journeys made from a regular journey that nothing on keeps for Delay
    * Repay: days after their last leg (the api's
@@ -271,8 +285,10 @@ export interface RetentionPolicy {
    * deleted before it is deleted for good (the api's
    * `RECENTLY_DELETED_RETENTION_DAYS`, chart
    * `api.recentlyDeleted.retentionDays`; the api accepts 7 to 31, default
-   * 7). 0 leaves the sentence out. The chart does not copy it into the
-   * frontend's env yet, so the default has to match the chart's. */
+   * 7). 0 leaves the sentences out, and 0 is the default: the chart copies
+   * the value into the frontend's env only while
+   * `api.recentlyDeleted.enabled` is true. With the feature off the api
+   * deletes at once, so the notice must say nothing about a grace period. */
   recentlyDeletedDays: number;
 }
 
@@ -281,7 +297,7 @@ export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
   stalePushSubscriptionDays: 365,
   inactiveAccountDays: 0,
   regularJourneyDays: 0,
-  recentlyDeletedDays: 7,
+  recentlyDeletedDays: 0,
 };
 
 function retentionDays(raw: string | undefined, fallback: number): number {

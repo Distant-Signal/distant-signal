@@ -8,16 +8,17 @@ operator's (and ideally a lawyer's) review before it is published.
 
 ## Environment
 
-| Variable | Required | Meaning | Rules |
-|---|---|---|---|
-| `LEGAL_PAGES_PUBLISHED` | yes, to go live | `true` publishes the pages and their footer links | exactly `true` |
-| `LEGAL_OPERATOR_NAME` | yes | the data controller | up to 100 characters, no `<` or `>`, no control characters |
-| `LEGAL_CONTACT_EMAIL` | yes | monitored inbox for privacy requests, content reports and accessibility requests | an email address, up to 254 characters |
-| `LEGAL_SSO_LOG_RETENTION` | yes | how long the sign-in service keeps its event logs, e.g. `30 days` | up to 60 characters, same character rules as the name |
-| `LEGAL_LAST_UPDATED` | yes | date the text was last reviewed, e.g. `1 November 2026` | `D Month YYYY`, a real date, full English month name |
-| `LEGAL_ICO_REGISTRATION` | no | ICO data protection fee registration number; unset leaves the line out | letters, digits and `-`, 4 to 20 characters |
-| `LEGAL_MINIMUM_AGE` | no | minimum age to create an account | `13` to `21`, default `18` |
-| `LEGAL_PAGES_PREVIEW` | no | `true` renders the drafts with a banner and `noindex`, for review and CI; never in production | exactly `true` |
+| Variable                  | Required        | Meaning                                                                                                                 | Rules                                                      |
+| ------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `LEGAL_PAGES_PUBLISHED`   | yes, to go live | `true` publishes the pages and their footer links                                                                       | exactly `true`                                             |
+| `LEGAL_OPERATOR_NAME`     | yes             | the data controller                                                                                                     | up to 100 characters, no `<` or `>`, no control characters |
+| `LEGAL_CONTACT_EMAIL`     | yes             | monitored inbox for privacy requests, content reports and accessibility requests                                        | an email address, up to 254 characters                     |
+| `LEGAL_SSO_LOG_RETENTION` | yes             | how long the login service keeps its event logs, e.g. `30 days`                                                         | up to 60 characters, same character rules as the name      |
+| `LEGAL_LAST_UPDATED`      | yes             | date the text was last reviewed, e.g. `1 November 2026`                                                                 | `D Month YYYY`, a real date, full English month name       |
+| `LEGAL_ICO_REGISTRATION`  | no              | ICO data protection fee registration number; unset leaves the line out                                                  | letters, digits and `-`, 4 to 20 characters                |
+| `LEGAL_HOSTING_PROVIDER`  | no              | who provides the servers, if a third party does; unset leaves the line out of the privacy notice (the operator decides) | up to 100 characters, no `<` or `>`, no control characters |
+| `LEGAL_MINIMUM_AGE`       | no              | minimum age to create an account                                                                                        | `13` to `21`, default `18`                                 |
+| `LEGAL_PAGES_PREVIEW`     | no              | `true` renders the drafts with a banner and `noindex`, for review and CI; never in production                           | exactly `true`                                             |
 
 Values are trimmed. In the Helm chart they are `frontend.legalPagesPublished`
 and `frontend.legal.*` (ds-deploy's `docs/legal-pages.md`); locally see
@@ -32,7 +33,7 @@ and `frontend.legal.*` (ds-deploy's `docs/legal-pages.md`); locally see
 - There are no defaults for the operator's details in source, so an
   unconfigured fork cannot publish another operator's details. The minimum age
   defaults to 18.
-- `LAST_UPDATED` is the review date: set `LEGAL_LAST_UPDATED` when the pages go
+- `LAST_UPDATED` is the review date, shown as "Last reviewed" on all five pages: set `LEGAL_LAST_UPDATED` when the pages go
   live and whenever the text changes. It is a value, not a source edit.
 - Values are plain text. React escapes them where they render; the validators
   also reject markup characters, so they cannot reach page metadata, the

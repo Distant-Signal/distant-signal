@@ -162,9 +162,9 @@ export default function CookiesPage() {
       <LegalSection title="Network error reports">
         <Text>
           Our network provider, Cloudflare, asks your browser to tell it when a connection to this site fails (Network
-          Error Logging). Your browser stores that request for a limited time. A report says which address failed and
-          how, and comes from your IP address. Cloudflare uses it to keep the site reachable, not to track you. Clearing
-          site data in your browser removes the stored request.
+          Error Logging). Your browser keeps that request for up to 7 days. A report says which address failed and how,
+          and comes from your IP address. Cloudflare uses it to keep the site reachable, not to track you. Clearing site
+          data in your browser removes the stored request.
         </Text>
       </LegalSection>
 

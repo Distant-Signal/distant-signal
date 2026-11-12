@@ -18,8 +18,7 @@ export default function AccountDeletedPage() {
         Encrypted database backups can keep your data for up to 14 days, and then it is gone from them too.
       </Text>
       <Text>
-        Your single sign-on account (or Discord login) is separate and still exists. Close it there if you want it gone
-        too.
+        Your login account (or Discord login) is separate and still exists. Close it there if you want it gone too.
       </Text>
       <TextLink href="/">Back to the home page</TextLink>
     </Stack>

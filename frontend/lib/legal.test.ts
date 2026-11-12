@@ -117,6 +117,17 @@ describe('readLegalConfig', () => {
     expect(legalPagesPublished({ ...ENV, LEGAL_PAGES_PUBLISHED: 'true' })).toBe(true);
   });
 
+  it('reads an optional hosting provider, leaves it undefined when unset and flags a malformed one', () => {
+    expect(readLegalConfig(ENV).HOSTING_PROVIDER).toBeUndefined();
+    expect(readLegalConfig({ ...ENV, LEGAL_HOSTING_PROVIDER: ' Example Hosting ' }).HOSTING_PROVIDER).toBe(
+      'Example Hosting',
+    );
+    expect(unfilledLegalPlaceholders(readLegalConfig(ENV))).toEqual([]);
+    expect(unfilledLegalPlaceholders(readLegalConfig({ ...ENV, LEGAL_HOSTING_PROVIDER: '<b>x</b>' }))).toEqual([
+      'HOSTING_PROVIDER',
+    ]);
+  });
+
   it('takes a valid minimum age and rejects the rest', () => {
     expect(readLegalConfig({ ...ENV, LEGAL_MINIMUM_AGE: '16' }).MINIMUM_AGE).toBe('16');
     for (const bad of ['12', '99', 'eighteen', '1e1', '-18']) {
@@ -175,7 +186,7 @@ describe('retentionPolicy', () => {
       stalePushSubscriptionDays: 365,
       inactiveAccountDays: 0,
       regularJourneyDays: 0,
-      recentlyDeletedDays: 7,
+      recentlyDeletedDays: 0,
     });
   });
 
@@ -195,6 +206,12 @@ describe('retentionPolicy', () => {
       regularJourneyDays: 90,
       recentlyDeletedDays: 14,
     });
+  });
+
+  it('leaves the Recently deleted sentences out unless the chart passes the days', () => {
+    expect(retentionPolicy({}).recentlyDeletedDays).toBe(0);
+    expect(retentionPolicy({ RETENTION_RECENTLY_DELETED_DAYS: '' }).recentlyDeletedDays).toBe(0);
+    expect(retentionPolicy({ RETENTION_RECENTLY_DELETED_DAYS: '7' }).recentlyDeletedDays).toBe(7);
   });
 
   it('falls back to the default for a malformed value', () => {
