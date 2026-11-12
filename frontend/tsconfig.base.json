@@ -1,8 +1,8 @@
 {
   // Strict flags shared by every TypeScript program in frontend/: the app
   // (tsconfig.json), the Node scripts (tsconfig.scripts.json) and the
-// service worker (tsconfig.sw.json). Starts from a strict baseline;
-// each deviation says why.
+  // service worker (tsconfig.sw.json). Starts from a strict baseline;
+  // each deviation says why.
   "compilerOptions": {
     "strict": true,
     // Not in strict:
