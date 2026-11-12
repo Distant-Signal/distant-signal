@@ -58,6 +58,7 @@ import { openNavDrawer } from './navDrawer';
 const REAL_LINE_ID = process.env.E2E_REAL_LINE_ID ?? 'gwr-main-line';
 const REAL_INCIDENT_ID = process.env.E2E_REAL_INCIDENT_ID ?? 'E879EB6C791C470AB6C2A7458AE68C3B';
 const REAL_STATION_CRS = process.env.E2E_REAL_STATION_CRS ?? 'PAD';
+const STATION_LETTER = REAL_STATION_CRS.slice(0, 1).toLowerCase();
 
 // Everything below has NO default on purpose, and the tests that need one
 // `test.skip()` themselves when it is unset. Two different reasons:
@@ -201,6 +202,9 @@ const PUBLIC_ROUTES: [name: string, path: string][] = [
   ['/lines/new', '/lines/new'],
   ['/stations', '/stations'],
   [`/stations/${REAL_STATION_CRS}`, `/stations/${REAL_STATION_CRS}`],
+  // The station A to Z: the plain-link route to every station page.
+  ['/stations/a-z', '/stations/a-z'],
+  [`/stations/${STATION_LETTER}`, `/stations/${STATION_LETTER}`],
   // A TfL stop's live arrivals (the seed's stops; scripts/tfl-arrivals-stub.py
   // answers King's Cross with a board and Russell Square with a 503).
   ['/tfl/stops/940GZZLUKSX', '/tfl/stops/940GZZLUKSX'],

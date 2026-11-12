@@ -81,12 +81,19 @@ describe('sitemapPaths', () => {
     expect(paths).toContain('/tfl/stops/940GZZLUEUS');
   });
 
+  it('lists the station A to Z: the index and one page per first letter that has stations', () => {
+    expect(paths).toEqual(expect.arrayContaining(['/stations/a-z', '/stations/e', '/stations/k']));
+    expect(paths).not.toContain('/stations/z');
+    expect(sitemapPaths({ ...SOURCES, stationCodes: [] })).not.toContain('/stations/a-z');
+  });
+
   it("lists each served tram network's lines, timetables and stops", () => {
     expect(paths).toEqual(
       expect.arrayContaining([
         '/transit/metrolink',
         '/transit/metrolink/lines/blue',
         '/transit/metrolink/lines/blue/timetable',
+        '/transit/metrolink/stops',
         '/transit/metrolink/stops/9400ZZMAPIC',
       ]),
     );
@@ -114,7 +121,7 @@ describe('sitemapPaths', () => {
 describe('thin stations', () => {
   const stationPaths = (coveredStationCodes: ReadonlySet<string> | null | undefined) =>
     sitemapPaths({ ...SOURCES, stationCodes: ['EUS', 'kgx', 'ZZZ'], coveredStationCodes }).filter((p) =>
-      p.startsWith('/stations/'),
+      /^\/stations\/[A-Z]{3}$/.test(p),
     );
 
   it('is a station with no line coverage and no sample stats', () => {
@@ -133,8 +140,19 @@ describe('thin stations', () => {
     }
   });
 
+  it('keeps the A to Z index and every letter page when stations are thin', () => {
+    const paths = sitemapPaths({
+      ...SOURCES,
+      stationCodes: ['EUS', 'kgx', 'ZZZ'],
+      coveredStationCodes: new Set(['EUS']),
+    });
+    expect(paths).toEqual(expect.arrayContaining(['/stations/a-z', '/stations/e', '/stations/k', '/stations/z']));
+    expect(paths).not.toContain('/stations/ZZZ');
+  });
+
   it('keeps the other sections whole', () => {
     const paths = sitemapPaths({ ...SOURCES, coveredStationCodes: new Set(['EUS']) });
+    expect(paths).toContain('/transit/metrolink/stops');
     expect(paths).toContain('/tfl/stops/940GZZLUEUS');
     expect(paths).toContain('/transit/metrolink/stops/9400ZZMAPIC');
   });

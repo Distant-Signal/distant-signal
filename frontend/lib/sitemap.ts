@@ -9,6 +9,7 @@ import {
   type IrelandStation,
   networkInfo,
 } from './ireland';
+import { groupStationCodes, STATION_BROWSE_PATH, stationBrowseHref } from './stationBrowse';
 import type { LineSummary } from './types';
 
 /** How long the sitemap's lists stay in Next's data cache: six hours.
@@ -152,6 +153,10 @@ export function sitemapPaths({
     // line page shows no trains panel for a TfL line).
     if (line.source === 'catalogue' && !line.id.startsWith('tfl-')) paths.push(`/lines/${seg(line.id)}/timetable`);
   }
+  // The A to Z of station pages (`/stations/a-z`): the plain-link route
+  // to each station page, so none depends on the sitemap alone.
+  const letters = [...groupStationCodes(stationCodes).keys()].sort();
+  if (letters.length > 0) paths.push(STATION_BROWSE_PATH, ...letters.map(stationBrowseHref));
   // Fail safe: without a usable coverage set nothing is thin.
   const coverage = coveredStationCodes && coveredStationCodes.size > 0 ? coveredStationCodes : null;
   for (const crs of stationCodes) {
@@ -163,6 +168,7 @@ export function sitemapPaths({
   for (const network of transit) {
     const base = `/transit/${seg(network.id)}`;
     paths.push(base);
+    if (network.stopIds.length > 0) paths.push(`${base}/stops`);
     for (const line of network.lineIds) {
       paths.push(`${base}/lines/${seg(line)}`, `${base}/lines/${seg(line)}/timetable`);
     }
