@@ -31,7 +31,7 @@ export function LegalPage({ title, draft, children }: { title: string; draft: bo
         </Alert>
       )}
       <Text size="sm" c="dimmed">
-        Last updated: {LEGAL_CONFIG.LAST_UPDATED}
+        Last reviewed: {LEGAL_CONFIG.LAST_UPDATED}
       </Text>
       {children}
     </Stack>

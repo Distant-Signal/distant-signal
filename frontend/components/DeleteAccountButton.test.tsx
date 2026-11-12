@@ -40,7 +40,7 @@ describe('DeleteAccountButton', () => {
     expect(await screen.findByText(/tracked trains, tickets, journeys and regular journeys/)).toBeInTheDocument();
     expect(screen.getByText(/Groups carry on for their other members/)).toBeInTheDocument();
     expect(screen.getByText(/your data can stay in them for up to 14 days/)).toBeInTheDocument();
-    expect(screen.getByText(/single sign-on account/)).toBeInTheDocument();
+    expect(screen.getByText(/login account/)).toBeInTheDocument();
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
 

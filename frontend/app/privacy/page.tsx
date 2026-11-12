@@ -23,8 +23,8 @@ import { withAbsoluteTitle } from '@/lib/pageMetadata';
 // Retention periods below follow the api's actual retention settings, which
 // the chart passes to the frontend (lib/legal.ts `retentionPolicy`): tracked
 // trains, tickets and journeys after the travel date, push subscriptions
-// after a long absence, and -- only once enabled (DQ7: 730 days, after this
-// notice is published) -- whole inactive accounts. Journeys made from a
+// after a long absence, and -- only once enabled (api.inactiveAccountRetentionDays)
+// -- whole inactive accounts. Journeys made from a
 // regular journey go sooner only while `REGULAR_JOURNEY_RETENTION_DAYS` is
 // on (DS-379; ds-api's data/retention.rs `prune_regular_occurrences`): keep
 // the sentence's list of what keeps one in step with that query.
@@ -227,7 +227,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
 
 export default function PrivacyPage() {
   const mode = requireLegalPages();
-  const { OPERATOR_NAME, ICO_REGISTRATION, MINIMUM_AGE } = LEGAL_CONFIG;
+  const { OPERATOR_NAME, ICO_REGISTRATION, MINIMUM_AGE, HOSTING_PROVIDER } = LEGAL_CONFIG;
   const categories = dataCategories(retentionPolicy());
   return (
     <LegalPage draft={mode === 'preview'} title="Privacy notice">
@@ -257,6 +257,10 @@ export default function PrivacyPage() {
           or in the technical logs every website produces. If you turn on usage counts, we keep only anonymous daily
           totals.
         </Text>
+        <Text>
+          You do not have to give us anything. Without an account you can still see live rail information. With one, our
+          login service gives us the ID, display name and username described below; everything else is optional.
+        </Text>
         {categories.map((category) => (
           <Stack key={category.title} gap={4}>
             <Title order={3} size="h5">
@@ -274,10 +278,10 @@ export default function PrivacyPage() {
 
       <LegalSection title="Logging in">
         <Text>
-          You log in through our own login service, which is used only for Distant Signal and runs on infrastructure we
-          operate ourselves. When you log in with Discord, Discord tells our login service your Discord account ID,
-          username and display name. Our login service keeps these, so it can recognise you the next time you log in,
-          and passes them to Distant Signal with an ID for your account. It also keeps the event logs described above.
+          You log in through our own login service, which is used only for Distant Signal and is run by us. When you log
+          in with Discord, Discord tells our login service your Discord account ID, username and display name. Our login
+          service keeps these, so it can recognise you the next time you log in, and passes them to Distant Signal with
+          an ID for your account. It also keeps the event logs described above.
         </Text>
         <Text>
           When we moved logging in to this service, we copied the Discord account ID of each existing account from the
@@ -288,9 +292,9 @@ export default function PrivacyPage() {
 
       <LegalSection title="The AI chat">
         <Text>
-          The chat is optional. If you use it, you give it your own Anthropic API key, which is stored only in your
-          browser and never sent to us. Your messages, and any Distant Signal data the chat looks up to answer them, go
-          directly from your browser to Anthropic under your own Anthropic account and{' '}
+          The chat is optional. If you use it, you give it your own Claude API key, which is stored only in your browser
+          and never sent to us. Your messages, and any Distant Signal data the chat looks up to answer them, go directly
+          from your browser to Anthropic under your own Anthropic account and{' '}
           <TextLink href="https://www.anthropic.com/legal" external underline="always" inline tone="inherit">
             Anthropic&apos;s terms
           </TextLink>
@@ -437,6 +441,11 @@ export default function PrivacyPage() {
             Cloudflare, our network provider, which handles every visit to the site (including your IP address) on our
             behalf.
           </ListItem>
+          {HOSTING_PROVIDER ? (
+            <ListItem>
+              {HOSTING_PROVIDER} (server hosting, Vienna, Austria), which hosts our servers on our behalf.
+            </ListItem>
+          ) : null}
           <ListItem>Hetzner (backup storage, Germany), which stores our encrypted backups on our behalf.</ListItem>
           <ListItem>
             Discord, if you log in with Discord. Discord is a separate controller and its own privacy policy applies.
@@ -455,18 +464,20 @@ export default function PrivacyPage() {
           <ListItem>Members of groups you join, and anyone you give a share link to (see above).</ListItem>
         </List>
         <Text>
-          Our login service and database run on infrastructure we operate ourselves. Our backups are encrypted on our
-          servers before they are sent to Hetzner&apos;s storage in Germany (see the list above). We do not sell your
-          data or use it for advertising.
+          {HOSTING_PROVIDER
+            ? `Our login service and database run on servers in Vienna that are hosted by ${HOSTING_PROVIDER} and managed by us.`
+            : 'Our login service and database run on infrastructure we operate ourselves.'}{' '}
+          Our backups are encrypted on our servers before they are sent to Hetzner&apos;s storage in Germany (see the
+          list above). We do not sell your data or use it for advertising.
         </Text>
       </LegalSection>
 
       <LegalSection title="International transfers">
         <Text>
           Our servers are in the European Union, currently in Vienna, Austria, and our backups are stored in Germany,
-          which is also in the EU. So your personal data is transferred to, and stored in, the EU. The UK recognises the
-          European Economic Area, which includes Austria, as providing adequate protection for personal data (UK
-          adequacy regulations), so we need no further safeguards for that.
+          which is also in the EU. So your personal data is stored in the EU. The UK recognises the European Economic
+          Area, which includes Austria, as providing adequate protection for personal data (UK adequacy regulations), so
+          we need no further safeguards for that.
         </Text>
         <Text>
           Cloudflare handles every visit, including your IP address, in whichever of its data centres is nearest to you,
@@ -552,7 +563,7 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection title="Changes to this notice">
-        <Text>If we change this notice, we will update the date at the top of this page.</Text>
+        <Text>If we change this notice, we will update the review date at the top of this page.</Text>
       </LegalSection>
     </LegalPage>
   );
