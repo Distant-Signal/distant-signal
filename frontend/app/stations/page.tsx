@@ -76,6 +76,10 @@ export default function StationSearchPage() {
           ))}
         </Group>
       </Stack>
+      {/* Plain links to every station page, for visitors and crawlers (DS-170). */}
+      <TextLink href="/stations/browse" underline="always">
+        Browse all stations, A to Z
+      </TextLink>
       {/* Station names and codes come from the Knowledgebase Stations feed. */}
       <DataCredits credits={['national-rail']} />
     </Stack>

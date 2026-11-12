@@ -25,6 +25,14 @@ describe('StationSearchPage', () => {
     expect(screen.getByRole('heading', { name: 'Stations' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Look up' })).toBeInTheDocument();
   });
+
+  it('links to the A to Z of every station, for visitors without the search box', () => {
+    renderWithMantine(StationSearchPage());
+    expect(screen.getByRole('link', { name: 'Browse all stations, A to Z' })).toHaveAttribute(
+      'href',
+      '/stations/browse',
+    );
+  });
 });
 
 describe('metadata', () => {
