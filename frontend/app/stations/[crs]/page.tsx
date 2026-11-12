@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Fragment, Suspense, cache } from 'react';
 import { Stack, Title, Text, Group, Divider } from '@mantine/core';
 import { SectionTitle } from '@/components/SectionTitle';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -10,6 +10,7 @@ import {
   getStationSampleStats,
   getStationAccessibility,
   getAllTocs,
+  getStationDayTimetable,
   getTransitRailLinks,
   getPreviewStopPointDisruption,
   ApiNotFoundError,
@@ -33,6 +34,17 @@ import type { LineStatusReport, Preferences, StationAccessibilityData, StationOp
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
 import { type StationDisruptionState, stationPreviewImage } from '@/lib/stationPreview';
 import { stationJsonLd } from '@/lib/jsonLd';
+import { londonToday } from '@/lib/londonWallClock';
+import {
+  STATION_TIMETABLE_LIMIT,
+  factSentences,
+  stationDescription,
+  stationFacts,
+  summariseTimetable,
+  type StationFacts,
+  type TimetableSummary,
+} from '@/lib/stationSummary';
+import { StationAbout, StationTimetableSection } from '@/components/StationAbout';
 import { stationDeparturesHref } from '@/lib/stationDepartures';
 import { JsonLd, structuredDataOrigin } from '@/components/JsonLd';
 
@@ -149,6 +161,33 @@ async function fetchStationAccessibility(crs: string): Promise<StationAccessibil
   }
 }
 
+/** Today's timetable facts for the station: its train companies, where its
+ * trains go, its first and last train. One cached read of the api's train
+ * search (an hour, `getStationDayTimetable`), shared by the page and its
+ * metadata. `null` when there is none, whatever the reason (no schedule
+ * published, no trains, the api down): the page then simply has no such
+ * section, it never fails for it. */
+const fetchStationTimetable = cache(async (crs: string): Promise<TimetableSummary | null> => {
+  try {
+    const page = await getStationDayTimetable(crs, londonToday(), STATION_TIMETABLE_LIMIT);
+    return summariseTimetable(page, crs);
+  } catch {
+    return null;
+  }
+});
+
+/** The station's facilities and accessibility facts for its prose and
+ * description, from the hour-cached accessibility read. `null` when there
+ * is none (no row, an empty one, an outage). */
+async function readStationFacts(crs: string): Promise<StationFacts | null> {
+  try {
+    const data = await getStationAccessibility(crs);
+    return Object.keys(data).length === 0 ? null : stationFacts(data);
+  } catch {
+    return null;
+  }
+}
+
 /** A well-formed code in lower or mixed case (`/stations/eus`) answers
  * with a permanent redirect to its upper-case page, the one canonical URL.
  * The name lookup is case-insensitive but the disruption lookup is not, so
@@ -175,7 +214,17 @@ export async function generateMetadata({ params }: { params: Promise<{ crs: stri
   }
 
   const heading = lookup.outcome === 'found' ? `${lookup.name} (${crs})` : crs;
-  const description = `Disruption, accessibility and departures for ${heading}.`;
+  // Real facts when the station's data has them (its train companies, where
+  // its trains go, its step-free category, its platforms), the evergreen
+  // generic line when it has none. All three reads are hour-cached and
+  // shared with the page.
+  const [timetable, facts, tocs] = await Promise.all([
+    fetchStationTimetable(crs),
+    readStationFacts(crs),
+    getAllTocs().catch(() => []),
+  ]);
+  const tocNames = new Map(tocs.map((toc) => [toc.code, toc.name]));
+  const description = stationDescription(heading, timetable, facts, (code) => tocNames.get(code));
   // The live state goes in the preview image (`card.png`), its URL versioned
   // by it. Read through the image route's own shared, minute-cached entry
   // (`getPreviewStopPointDisruption`), not the page's per-visitor read: Next
@@ -213,26 +262,37 @@ export default async function StationDisruptionPage({ params }: { params: Promis
     notFound();
   }
 
-  const [{ reports, coverage }, preferences, sampleStatsResult, accessibilityResult, tocs, tramLinks, origin] =
-    await Promise.all([
-      fetchStationDisruptions(crs),
-      // Per-user, so it fails closed to "nothing pinned" (the shape a 401
-      // already returns) rather than being stale-served -- design spec
-      // Decision 5. The pin button reads as unpinned during an outage.
-      getPreferences().catch(() => NO_PREFERENCES),
-      fetchStationSampleStats(crs),
-      fetchStationAccessibility(crs),
-      // Hour-cached reference data used only to label operator rows in the
-      // sample-stats section below; an empty list degrades to bare ATOC
-      // codes rather than the whole page -- same pattern as
-      // app/lines/page.tsx's own getAllTocs() call.
-      getAllTocs().catch(() => []),
-      // Tram stops to change to (transit spec §12.1); empty while no tram
-      // network is served, and never throws.
-      getTransitRailLinks(crs),
-      // For the structured data's absolute URLs.
-      structuredDataOrigin(),
-    ]);
+  const [
+    { reports, coverage },
+    preferences,
+    sampleStatsResult,
+    accessibilityResult,
+    tocs,
+    tramLinks,
+    origin,
+    timetable,
+  ] = await Promise.all([
+    fetchStationDisruptions(crs),
+    // Per-user, so it fails closed to "nothing pinned" (the shape a 401
+    // already returns) rather than being stale-served -- design spec
+    // Decision 5. The pin button reads as unpinned during an outage.
+    getPreferences().catch(() => NO_PREFERENCES),
+    fetchStationSampleStats(crs),
+    fetchStationAccessibility(crs),
+    // Hour-cached reference data used only to label operator rows in the
+    // sample-stats section below; an empty list degrades to bare ATOC
+    // codes rather than the whole page -- same pattern as
+    // app/lines/page.tsx's own getAllTocs() call.
+    getAllTocs().catch(() => []),
+    // Tram stops to change to (transit spec §12.1); empty while no tram
+    // network is served, and never throws.
+    getTransitRailLinks(crs),
+    // For the structured data's absolute URLs.
+    structuredDataOrigin(),
+    // Today's timetable facts, cached for an hour (see the function);
+    // run alongside the reads above so it adds no round trip.
+    fetchStationTimetable(crs),
+  ]);
   const heading = lookup.outcome === 'found' ? `${lookup.name} (${crs})` : crs;
   // The page shows no departures itself: "Departures" goes to the train
   // search, pre-filled with this station.
@@ -252,6 +312,21 @@ export default async function StationDisruptionPage({ params }: { params: Promis
     const rankDiff = severityRank(worstStatus(b).statusSeverity) - severityRank(worstStatus(a).statusSeverity);
     return rankDiff !== 0 ? rankDiff : a.name.localeCompare(b.name);
   });
+
+  const stationName = lookup.outcome === 'found' ? lookup.name : null;
+  const facts = accessibilityResult.coverage === 'present' ? stationFacts(accessibilityResult.data) : null;
+
+  // The "On this page" row: the sections that exist for this station.
+  const pageLinks = [
+    ...(stationName !== null && facts !== null && factSentences(stationName, facts).length > 0
+      ? [{ href: '#about', label: 'About' }]
+      : []),
+    { href: '#disruptions', label: 'Disruptions' },
+    ...(stationName !== null && timetable !== null ? [{ href: '#timetable', label: 'Trains today' }] : []),
+    { href: '#stats', label: 'Stats' },
+    { href: departuresHref, label: 'Departures' },
+    { href: '#accessibility', label: 'Accessibility & facilities' },
+  ];
 
   // Same code-to-name resolution AllLinesTable.tsx:81 already establishes,
   // falling back to the bare ATOC code when `tocs` (hour-cached, fed by an
@@ -289,30 +364,25 @@ export default async function StationDisruptionPage({ params }: { params: Promis
       </Group>
 
       <Group component="nav" aria-label="On this page" gap="sm" c="dimmed" fz="sm">
-        <TextLink href="#disruptions" underline="always" inline>
-          Disruptions
-        </TextLink>
-        <Text span c="dimmed">
-          ·
-        </Text>
-        <TextLink href="#stats" underline="always" inline>
-          Stats
-        </TextLink>
-        <Text span c="dimmed">
-          ·
-        </Text>
-        <TextLink href={departuresHref} underline="always" inline>
-          Departures
-        </TextLink>
-        <Text span c="dimmed">
-          ·
-        </Text>
-        <TextLink href="#accessibility" underline="always" inline>
-          Accessibility &amp; facilities
-        </TextLink>
+        {pageLinks.map((link, index) => (
+          <Fragment key={link.href}>
+            {index > 0 && (
+              <Text span c="dimmed">
+                ·
+              </Text>
+            )}
+            <TextLink href={link.href} underline="always" inline>
+              {link.label}
+            </TextLink>
+          </Fragment>
+        ))}
       </Group>
 
       <StationTramLinks links={tramLinks} />
+
+      {/* Prose from the station's own data, server-rendered; the named stations only (a bare code would say
+          less than the heading). */}
+      {stationName !== null && <StationAbout name={stationName} facts={facts} />}
 
       {/* Two different absences, said honestly rather than collapsed into
           one cheerful "no disruptions" that would just as easily describe a
@@ -361,6 +431,18 @@ export default async function StationDisruptionPage({ params }: { params: Promis
           <RecentlyCleared scope={{ station: crs }} now={now} showLines />
         </Suspense>
       </Stack>
+
+      {stationName !== null && (
+        <>
+          {timetable !== null && <Divider />}
+          <StationTimetableSection
+            crs={crs}
+            name={stationName}
+            timetable={timetable}
+            nameOf={(code) => tocNameByCode.get(code)}
+          />
+        </>
+      )}
 
       {/* Sample stats by operator -- an independent block from the
           disruption section above, keyed by LDBWS live-sampling coverage

@@ -824,6 +824,24 @@ export async function getTrainSearchDates(): Promise<TrainSearchDates> {
   });
 }
 
+/** How long a station's day timetable is cached, in seconds: a day's CIF
+ * timetable does not change under a station page, and the date is in the
+ * URL, so the entry turns over at London midnight by itself. */
+export const STATION_TIMETABLE_REVALIDATE_SECONDS = 3600;
+
+/** `GET /public/trains/search?station=` for one London service date, from
+ * midnight, up to `limit` departures: the station page's timetable facts
+ * (the train companies, where trains go, the first and last train). The
+ * timetable only, no live state is shown from it, so it is cached like the
+ * other reference reads. 404s (`ApiNotFoundError`) when no schedule is
+ * published for the date. */
+export async function getStationDayTimetable(crs: string, date: string, limit: number): Promise<TrainSearchPage> {
+  const params = new URLSearchParams({ station: crs, date, from: '00:00', limit: String(limit) });
+  return fetchJson<TrainSearchPage>(`${baseUrl()}/public/trains/search?${params.toString()}`, {
+    next: { revalidate: STATION_TIMETABLE_REVALIDATE_SECONDS },
+  });
+}
+
 /** `GET /public/trains/search/operators` -- every operator code the train
  * search's `operator` filter takes: the operator reference list's, named,
  * and any other the published timetable carries, unnamed. Cached like
