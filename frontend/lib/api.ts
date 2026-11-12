@@ -221,6 +221,15 @@ async function cookieForwardInit(): Promise<RequestInit> {
   return session ? { headers: { Cookie: `${SESSION_COOKIE_NAME}=${session}` } } : {};
 }
 
+/** Whether the request carries a session cookie. No cookie means the
+ * visitor is anonymous without asking the api, which lets a page render its
+ * anonymous view at once (the home page, DS-170). A cookie says nothing
+ * about whether the session is still valid: that stays `getSession()`'s
+ * answer. */
+export async function hasSessionCookie(): Promise<boolean> {
+  return Boolean((await cookies()).get(SESSION_COOKIE_NAME)?.value);
+}
+
 /* ---------------------------------------------------------------------------
  * Path-segment encoding invariant (security)
  *

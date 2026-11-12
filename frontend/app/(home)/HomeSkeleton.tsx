@@ -9,11 +9,11 @@ import {
 } from '@/components/PageSkeleton';
 import { tokens } from '@/lib/theme';
 
-/** The home page's skeleton, shown while the page fetches statuses, the
- * visitor's pins and their journeys. It lives in the `(home)` route group,
- * not at `app/`: a root `app/loading.tsx` would be the nearest loading
- * boundary for every route without one of its own, so /status or /account
- * would flash the home page's shape while they load.
+/** The home page's skeleton, the Suspense fallback for a visitor with a
+ * session cookie while the page fetches statuses, the visitor's pins and
+ * their journeys. It is not a `loading.tsx`: a route boundary would flush
+ * before the page knew the visitor was anonymous and hide the h1 and summary
+ * a crawler needs from the first bytes. A visitor with no cookie never sees it.
  *
  * The session isn't known yet, so this draws the logged-in layout, the one
  * people come back to: the "Current journey" card (`CurrentJourneyCard`'s
@@ -21,7 +21,7 @@ import { tokens } from '@/lib/theme';
  * `.currentJourneyCard` border), an "Upcoming journeys" list, then the
  * "Your lines" grid and a list section. A visitor without a journey under
  * way, or logged out, sees those sections give way to the next. */
-export default function HomeLoading() {
+export function HomeSkeleton() {
   return (
     <PageSkeleton label="Loading the home page" gap="xl">
       <SkeletonSection>

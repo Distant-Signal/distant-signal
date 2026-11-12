@@ -484,10 +484,20 @@ used, rather than as a literal in a component.
   jumps when the data lands. One `role="status"` `aria-busy` region per
   page, named by a visually hidden plain-word label ("Loading line"), with
   everything drawn `aria-hidden`; headings are bars, never real h1s.
-  In-page Suspense fallbacks keep using `LoadingPlaceholder`. Today: home
-  (in the `(home)` route group, because a root `app/loading.tsx` would wrap
-  every route), `/lines/[id]`, both train routes (`TrainPageSkeleton`) and
-  `/journeys`. Never add `app/loading.tsx`.
+  In-page Suspense fallbacks keep using `LoadingPlaceholder`. Today: both
+  train routes (`TrainPageSkeleton`) and `/journeys`. Never add
+  `app/loading.tsx`.
+- **Indexable pages put their h1 in the first flush** (DS-170): a route
+  boundary (`loading.tsx`) flushes its skeleton first and streams the whole
+  page after it, so a crawler's first HTML is "Loading ..." and the h1
+  arrives in a hidden chunk. An indexable page (home, `/lines/[id]`,
+  `/tfl/stops/[id]`) therefore has no `loading.tsx`: it reads only what it
+  needs for its h1 and key facts before returning (the same read
+  `generateMetadata` makes), and keeps slow live data in its own
+  `<Suspense>` with a `LoadingPlaceholder` fallback. The home page has no
+  session to ask a crawler about: no session cookie means anonymous, so its
+  static h1 and summary render at once, and only a visitor with a cookie
+  gets `HomeSkeleton` while their session and data load.
 - **Home journeys** (`app/(home)/HomeJourneys.tsx`, `lib/homeJourneys.ts`):
   logged in, the home page leads with "Current journey" (a journey whose
   first departure has passed and whose last leg hasn't ended) and then "Upcoming journeys" (first departure

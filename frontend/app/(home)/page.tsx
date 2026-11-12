@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Stack, Title, SimpleGrid, Text, Group, VisuallyHidden } from '@mantine/core';
 import { CardTitleLink, ClickableCard } from '@/components/ClickableCard';
 import { SectionTitle } from '@/components/SectionTitle';
@@ -15,6 +16,7 @@ import {
   getStationName,
   getStopPointDisruption,
   getTrackedTrainById,
+  hasSessionCookie,
 } from '@/lib/api';
 import { withStaleFallback } from '@/lib/liveDataCache';
 import { DISPLAYED_MODES_PARAM, MERGED_TFL_LINE_IDS } from '@/lib/modes';
@@ -46,6 +48,9 @@ import { CurrentJourneySection, UpcomingJourneysSection, UpcomingJourneysTeaser 
 import { notGoodServiceSummary, RightNowModule } from './RightNowModule';
 import { SharedCustomLineSummaryRow } from './SharedCustomLineSummaryRow';
 import { DataCredits, lineCredits, TRAIN_CREDITS, type CreditId } from '@/components/DataCredits';
+import { LoadingPlaceholder } from '@/components/LoadingPlaceholder';
+import { SkeletonCardGrid } from '@/components/PageSkeleton';
+import { HomeSkeleton } from './HomeSkeleton';
 
 // See app/lines/[id]/page.tsx-adjacent history page and this repo's other
 // dynamic routes for the same `revalidate = 0` rationale: without it,
@@ -145,7 +150,113 @@ function representativeStatusAcrossReports(reports: LineStatusReport[]): LineSta
   return withStats ?? reports[0]?.lineStatuses[0];
 }
 
+/** The "Right now" module, behind its own boundary: the one live part of
+ * the anonymous home page. A skeleton holds its place (one `role="status"`
+ * region, `aria-busy`) while the status read finishes. */
+async function AnonymousRightNow({ reports }: { reports: Promise<LineStatusReport[]> }) {
+  return <RightNowModule summary={notGoodServiceSummary(await reports)} />;
+}
+
+async function AnonymousCredits({ reports }: { reports: Promise<LineStatusReport[]> }) {
+  return <DataCredits credits={lineCredits((await reports).map((report) => report.id))} />;
+}
+
+/** The anonymous home page, the one crawlers and logged-out visitors see.
+ * Its h1, its summary, the structured data and the quick links are static,
+ * so they sit outside any Suspense boundary and are in the first flush of
+ * the HTML; only the live "Right now" status and the credits that name the
+ * lines behind it wait for `reports`. */
+async function AnonymousHome({ reports }: { reports: Promise<LineStatusReport[]> }) {
+  // The site's structured data, for the anonymous view crawlers see. A
+  // `<script>` is `display: none`, so it takes no flex gap.
+  const origin = await structuredDataOrigin();
+  return (
+    <Stack p="lg" gap="xl">
+      {origin !== null && <JsonLd data={homeJsonLd(origin)} />}
+      <Stack gap="xs">
+        {/* Review §3.1.7: on mobile this used to repeat "Distant
+            Signal" -- once as the nav brand, again as this page's own
+            `<h1>` a little further down -- reading as duplicated
+            branding above the fold. Re-measured after Task 1.2's nav
+            collapse (which is what this task was sequenced after): the
+            nav no longer wraps to a multi-row header on a phone, so
+            the gap between the two is smaller than it once was, but
+            the duplication itself is unchanged -- the nav still says
+            "Distant Signal" and this heading did too, both still
+            visible without scrolling. The `<h1>` stays, for the
+            document outline and for a link-unfurler bot with no nav to
+            read a name from; only its TEXT changes, to something the
+            nav doesn't already say -- the tagline immediately below
+            keeps the rest of the pitch. */}
+        <Title order={1}>Live UK rail status</Title>
+        <Text c="dimmed">
+          Live UK rail line status, train tracking and Delay Repay support. Pin the lines, stations and operators you
+          care about once you&apos;re logged in.
+        </Text>
+      </Stack>
+
+      {/* Where the signed-in page puts "Upcoming journeys", so a visitor
+          sees what logging in adds. It also carries "Plan a journey",
+          the one journey feature that needs no account, which used to
+          lead the quick links below. Kept short so "Right now" still
+          starts above the fold on a phone. */}
+      <UpcomingJourneysTeaser />
+
+      <Suspense
+        fallback={
+          <LoadingPlaceholder label="Loading line status">
+            <SkeletonCardGrid count={3} />
+          </LoadingPlaceholder>
+        }
+      >
+        <AnonymousRightNow reports={reports} />
+      </Suspense>
+
+      <Group gap="lg">
+        <TextLink href="/lines">Browse all lines</TextLink>
+        <TextLink href="/stations">Look up a station</TextLink>
+        {/* Review M8: the anonymous homepage is the only place that can
+            advertise the operators list exists to a visitor who hasn't
+            logged in yet -- added alongside the other two quick links it
+            already carries, in the same position "Browse operators"
+            takes in the logged-in "Your Operators" section below. */}
+        <TextLink href="/operators">Browse operators</TextLink>
+        {/* Proactive, not reactive -- session is already in hand on this
+            page (see this task's own Step 1), so there's no reason to
+            wait for a failed pin click the way PinToggle does elsewhere.
+            §Policy's Tier-2 "proactive where session is already fetched"
+            refinement. */}
+        <LoginControl underline="always">Log in to pin your lines, stations and operators</LoginControl>
+      </Group>
+      <Suspense fallback={null}>
+        <AnonymousCredits reports={reports} />
+      </Suspense>
+    </Stack>
+  );
+}
+
+/** The home page. A visitor with no session cookie is anonymous without a
+ * fetch to say so, so their page, the one crawlers get, renders at once
+ * with only the live status behind Suspense. Anyone with a cookie gets the
+ * skeleton while their session and data load, as before. */
 export default async function DashboardPage() {
+  if (!(await hasSessionCookie())) {
+    return (
+      <AnonymousHome
+        reports={withStaleFallback(`lineStatusForMode:${DISPLAYED_MODES_PARAM}`, () =>
+          getLineStatusForMode(DISPLAYED_MODES_PARAM),
+        )}
+      />
+    );
+  }
+  return (
+    <Suspense fallback={<HomeSkeleton />}>
+      <SessionHome />
+    </Suspense>
+  );
+}
+
+async function SessionHome() {
   // Same defensive fallback as app/layout.tsx and TicketPanel.tsx: an
   // auth-status glitch degrades to "treat as anonymous", not a broken
   // homepage. See docs/superpowers/specs/2026-08-31-anonymous-user-ux-design.md
@@ -239,62 +350,7 @@ export default async function DashboardPage() {
   const rightNow = notGoodServiceSummary(allReports);
 
   if (!session.authenticated) {
-    // The site's structured data, for the anonymous view crawlers see. A
-    // `<script>` is `display: none`, so it takes no flex gap.
-    const origin = await structuredDataOrigin();
-    return (
-      <Stack p="lg" gap="xl">
-        {origin !== null && <JsonLd data={homeJsonLd(origin)} />}
-        <Stack gap="xs">
-          {/* Review §3.1.7: on mobile this used to repeat "Distant
-              Signal" -- once as the nav brand, again as this page's own
-              `<h1>` a little further down -- reading as duplicated
-              branding above the fold. Re-measured after Task 1.2's nav
-              collapse (which is what this task was sequenced after): the
-              nav no longer wraps to a multi-row header on a phone, so
-              the gap between the two is smaller than it once was, but
-              the duplication itself is unchanged -- the nav still says
-              "Distant Signal" and this heading did too, both still
-              visible without scrolling. The `<h1>` stays, for the
-              document outline and for a link-unfurler bot with no nav to
-              read a name from; only its TEXT changes, to something the
-              nav doesn't already say -- the tagline immediately below
-              keeps the rest of the pitch. */}
-          <Title order={1}>Live UK rail status</Title>
-          <Text c="dimmed">
-            Live UK rail line status, train tracking and Delay Repay support. Pin the lines, stations and operators you
-            care about once you&apos;re logged in.
-          </Text>
-        </Stack>
-
-        {/* Where the signed-in page puts "Upcoming journeys", so a visitor
-            sees what logging in adds. It also carries "Plan a journey",
-            the one journey feature that needs no account, which used to
-            lead the quick links below. Kept short so "Right now" still
-            starts above the fold on a phone. */}
-        <UpcomingJourneysTeaser />
-
-        <RightNowModule summary={rightNow} />
-
-        <Group gap="lg">
-          <TextLink href="/lines">Browse all lines</TextLink>
-          <TextLink href="/stations">Look up a station</TextLink>
-          {/* Review M8: the anonymous homepage is the only place that can
-              advertise the operators list exists to a visitor who hasn't
-              logged in yet -- added alongside the other two quick links it
-              already carries, in the same position "Browse operators"
-              takes in the logged-in "Your Operators" section below. */}
-          <TextLink href="/operators">Browse operators</TextLink>
-          {/* Proactive, not reactive -- session is already in hand on this
-              page (see this task's own Step 1), so there's no reason to
-              wait for a failed pin click the way PinToggle does elsewhere.
-              §Policy's Tier-2 "proactive where session is already fetched"
-              refinement. */}
-          <LoginControl underline="always">Log in to pin your lines, stations and operators</LoginControl>
-        </Group>
-        <DataCredits credits={lineCredits(allReports.map((report) => report.id))} />
-      </Stack>
-    );
+    return <AnonymousHome reports={Promise.resolve(allReports)} />;
   }
 
   // Logged-in branch: the journey sections (current, upcoming, with the

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { firstFlush, resolveAsync } from '@/test/serverTree';
 import { cardOf } from '@/test/clickableCard';
 import { expectNoUnguardedNowrapBadges } from '@/test/shrinkGuard';
 import DashboardPage, { metadata } from './page';
@@ -87,6 +88,9 @@ function operator(overrides: Partial<OperatorSummary> = {}): OperatorSummary {
 // they care about. The stale cache is real module state, so it is reset too.
 beforeEach(() => {
   __resetStaleCacheForTests();
+  // A session cookie by default, so a test reaches the session read; the
+  // no-cookie tests below turn it off.
+  vi.mocked(api.hasSessionCookie).mockResolvedValue(true);
   vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue({
     authenticated: false,
     id: null,
@@ -160,7 +164,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Live UK rail status', level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Distant Signal' })).not.toBeInTheDocument();
   });
@@ -191,7 +195,7 @@ describe('DashboardPage', () => {
       recentlyDeletedEnabled: false,
       analyticsOptIn: false,
     });
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('link', { name: 'Plan a journey' })).toHaveAttribute('href', '/plan');
   });
 
@@ -218,7 +222,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByText(/Every line is running a Good Service/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Log in to pin your lines, stations and operators' })).toHaveAttribute(
       'href',
@@ -268,7 +272,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('button', { name: /enable notifications/i })).toBeNull();
   });
 
@@ -309,7 +313,7 @@ describe('DashboardPage', () => {
       }),
       report(),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByText(/1 line not at Good Service right now/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Central/ })).toHaveAttribute('href', '/lines/central');
   });
@@ -350,7 +354,7 @@ describe('DashboardPage', () => {
         ],
       }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByText(/Every line is running a Good Service/)).toBeInTheDocument();
   });
 
@@ -377,7 +381,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Your lines' })).toBeInTheDocument();
     // Load-bearing specifically for the PINNED case (Task 7): this user has
     // pinned a line, so "Right now" must stay absent even though the
@@ -414,7 +418,7 @@ describe('DashboardPage', () => {
       ...TRAM_NETWORK,
       lines: [{ ...TRAM_NETWORK.lines[0]!, status: MINOR_DELAYS }],
     });
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     const card = screen.getByRole('link', { name: /Blue Line/ });
     expect(card).toHaveAttribute('href', '/transit/metrolink/lines/blue');
     expect(cardOf(card).textContent).toContain('Manchester Metrolink');
@@ -422,7 +426,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText(/You haven't pinned any lines yet/)).not.toBeInTheDocument();
     cleanup();
     vi.mocked(api.getTransitNetwork).mockRejectedValue(new Error('404'));
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('link', { name: /Blue Line/ })).not.toBeInTheDocument();
     expect(screen.getByText(/You haven't pinned any lines yet/)).toBeInTheDocument();
   });
@@ -463,7 +467,7 @@ describe('DashboardPage', () => {
         ],
       }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Right now' })).toBeInTheDocument();
     expect(screen.getByText(/1 line not at Good Service right now/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Central/ })).toHaveAttribute('href', '/lines/central');
@@ -496,7 +500,7 @@ describe('DashboardPage', () => {
     vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Right now' })).toBeInTheDocument();
   });
 
@@ -523,7 +527,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Right now' })).not.toBeInTheDocument();
   });
 
@@ -554,7 +558,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Home', level: 1 })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('heading', { name: 'Your lines', level: 2 })).toBeInTheDocument();
@@ -585,7 +589,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     const sections = screen.getAllByRole('heading', { level: 2 });
     expect(sections.map((h) => h.textContent)).toEqual(
       expect.arrayContaining(['Right now', 'Your stations', 'Your operators']),
@@ -622,7 +626,7 @@ describe('DashboardPage', () => {
         bankHolidayDivision: null,
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const heading = screen.getByRole('heading', { name: 'Your lines', level: 2 });
       // Scope to everything from the heading's own row up to (but not
       // including) the next section, so this can't accidentally pass by
@@ -654,7 +658,7 @@ describe('DashboardPage', () => {
         bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const heading = screen.getByRole('heading', { name: 'Your stations', level: 2 });
       const section = heading.closest('div')?.parentElement as HTMLElement;
       expect(within(section).getAllByRole('link', { name: 'Look up a station' })).toHaveLength(1);
@@ -683,7 +687,7 @@ describe('DashboardPage', () => {
         bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const heading = screen.getByRole('heading', { name: 'Your lines', level: 2 });
       expect(
         within(heading.parentElement as HTMLElement).getByRole('link', { name: 'Browse all lines' }),
@@ -713,7 +717,7 @@ describe('DashboardPage', () => {
         bankHolidayDivision: null,
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const heading = screen.getByRole('heading', { name: 'Your stations', level: 2 });
       expect(
         within(heading.parentElement as HTMLElement).getByRole('link', { name: 'Look up a station' }),
@@ -755,7 +759,7 @@ describe('DashboardPage', () => {
         bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const names = headingNames();
       expect(names.indexOf('Right now')).toBeLessThan(names.indexOf('Your lines'));
       // Rendered exactly once, not doubled up at both its old and new spot.
@@ -786,7 +790,7 @@ describe('DashboardPage', () => {
       });
       vi.mocked(api.getStationName).mockResolvedValue('Waterloo');
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const names = headingNames();
       expect(names.indexOf('Your stations')).toBeLessThan(names.indexOf('Right now'));
       expect(names.filter((n) => n === 'Right now')).toHaveLength(1);
@@ -823,7 +827,7 @@ describe('DashboardPage', () => {
       });
       vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT' })]);
       vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       const names = headingNames();
       expect(names.indexOf('Your operators')).toBeLessThan(names.indexOf('Right now'));
       expect(names.filter((n) => n === 'Right now')).toHaveLength(1);
@@ -866,7 +870,7 @@ describe('DashboardPage', () => {
         ],
       }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Right now', level: 2 })).toBeInTheDocument();
     expect(screen.getByText(/1 line not at Good Service right now/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Central/ })).toHaveAttribute('href', '/lines/central');
@@ -908,7 +912,7 @@ describe('DashboardPage', () => {
 
     it('counts the lines it is not showing and links to the full list', async () => {
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(12));
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.getByText(/12 lines not at Good Service right now/)).toBeInTheDocument();
       // Five cards, then the overflow line accounting for the other seven.
       expect(screen.getByRole('link', { name: /Line 05/ })).toBeInTheDocument();
@@ -919,7 +923,7 @@ describe('DashboardPage', () => {
 
     it('says "line is", not "lines are", when exactly one is hidden', async () => {
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(6));
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.getByText(/Showing the first 5\. 1 more line is not at Good Service\./)).toBeInTheDocument();
     });
 
@@ -947,7 +951,7 @@ describe('DashboardPage', () => {
         mild('abacus', 'Abacus'),
         ...disruptedReports(4),
       ]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.getByText(/6 lines not at Good Service right now/)).toBeInTheDocument();
       // Four severe lines fill four of the five slots; the fifth goes to the
       // alphabetically-first mild line, and only "Abacus" is hidden.
@@ -961,7 +965,7 @@ describe('DashboardPage', () => {
       // The boundary the count is most likely to get wrong: 5 affected, 5
       // rendered, nothing hidden.
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(5));
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.getByText(/5 lines not at Good Service right now/)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Line 05/ })).toBeInTheDocument();
       expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument();
@@ -972,7 +976,7 @@ describe('DashboardPage', () => {
 
     it('shows no overflow line for a short list', async () => {
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(2));
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument();
     });
 
@@ -997,7 +1001,7 @@ describe('DashboardPage', () => {
           ],
         }),
       ]);
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.getByText(/6 lines not at Good Service right now/)).toBeInTheDocument();
       expect(screen.getByText(/Showing the first 5\. 1 more line is not at Good Service\./)).toBeInTheDocument();
     });
@@ -1025,7 +1029,7 @@ describe('DashboardPage', () => {
         bankHolidayDivision: null,
       });
       vi.mocked(api.getLineStatusForMode).mockResolvedValue(disruptedReports(7));
-      renderWithMantine(await DashboardPage());
+      renderWithMantine(await resolveAsync(await DashboardPage()));
       expect(screen.getByRole('heading', { name: 'Right now', level: 2 })).toBeInTheDocument();
       expect(screen.getByText(/Showing the first 5\. 2 more lines are not at Good Service\./)).toBeInTheDocument();
       // "Browse all lines" beside the "Your Lines" heading points at /lines
@@ -1065,7 +1069,7 @@ describe('DashboardPage', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('link', { name: 'Log in to pin your lines, stations and operators' })).toBeInTheDocument();
   });
 });
@@ -1074,11 +1078,11 @@ describe('DashboardPage -- outage behaviour', () => {
   // Outage behaviour (design spec Decision 5 / plan Task 5).
   it('keeps rendering the last-known line status when the status fetch fails', async () => {
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     cleanup();
 
     vi.mocked(api.getLineStatusForMode).mockRejectedValue(new Error('connect ECONNREFUSED'));
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     // Still the real page, not a throw up to app/error.tsx.
     expect(screen.getByRole('heading', { name: 'Live UK rail status', level: 1 })).toBeInTheDocument();
@@ -1102,7 +1106,7 @@ describe('DashboardPage -- outage behaviour', () => {
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
 
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Your lines', level: 2 })).toBeInTheDocument();
     expect(screen.getByText(/haven't pinned any lines yet/)).toBeInTheDocument();
   });
@@ -1125,7 +1129,7 @@ describe('DashboardPage -- outage behaviour', () => {
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getMyTrackedTrains).mockRejectedValue(new Error('500'));
 
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Your lines', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Upcoming journeys' })).toBeInTheDocument();
   });
@@ -1155,7 +1159,7 @@ describe('DashboardPage -- outage behaviour', () => {
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     vi.mocked(api.getStopPointDisruption).mockRejectedValue(new Error('connect ECONNREFUSED'));
 
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Your stations', level: 2 })).toBeInTheDocument();
     expect(screen.getByText('KGX')).toBeInTheDocument();
   });
@@ -1203,7 +1207,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       new api.ApiNotFoundError('no line coverage for stop point: RAY'),
     );
 
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText('Not tracked')).toBeInTheDocument();
     expect(screen.getByText('Not covered by our line-status tracking yet.')).toBeInTheDocument();
@@ -1213,7 +1217,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
   it('still shows the real "Good Service" badge for a genuinely covered, currently-fine pinned station', async () => {
     vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
 
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText('Good service')).toBeInTheDocument();
     expect(screen.queryByText('Not tracked')).not.toBeInTheDocument();
@@ -1245,7 +1249,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       },
     ]);
 
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText(/Avg delay 2\.0 min/)).toBeInTheDocument();
     expect(screen.queryByText(/Avg delay 4\.0 min/)).not.toBeInTheDocument();
@@ -1284,7 +1288,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
   it('is absent entirely when nothing has been shared with the caller', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Lines shared with you' })).not.toBeInTheDocument();
   });
 
@@ -1306,7 +1310,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       analyticsOptIn: false,
     });
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Lines shared with you' })).not.toBeInTheDocument();
     expect(screen.queryByText('My Commute')).not.toBeInTheDocument();
   });
@@ -1314,7 +1318,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
   it('renders a shared line with its group tag, its sharer, and a link to the line', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByRole('heading', { name: 'Lines shared with you' })).toBeInTheDocument();
     expect(screen.getByText('My Commute')).toBeInTheDocument();
@@ -1329,7 +1333,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       sharedLine({ groupId: 'grp-1', groupName: 'Family' }),
       sharedLine({ groupId: 'grp-2', groupName: 'Commute Buddies' }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getAllByText('My Commute')).toHaveLength(1);
     expect(screen.getByText('From Family')).toBeInTheDocument();
@@ -1339,7 +1343,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
   it('falls back to "a member" rather than a raw user id when the sharer has no display name', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine({ grantedByName: null })]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByText('Shared by a member')).toBeInTheDocument();
     expect(screen.queryByText(/user-2/)).not.toBeInTheDocument();
   });
@@ -1347,7 +1351,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
   it('renders no owner controls of any kind on a shared line -- it is view-only', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
@@ -1369,7 +1373,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'custom-my-commute', name: 'My Commute' })]);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getAllByText('My Commute')).toHaveLength(1);
     expect(screen.queryByRole('heading', { name: 'Lines shared with you' })).not.toBeInTheDocument();
@@ -1391,7 +1395,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([]);
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByRole('heading', { name: 'Lines shared with you' })).toBeInTheDocument();
     expect(screen.getAllByText('My Commute')).toHaveLength(1);
@@ -1400,7 +1404,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
   it('survives the shared-lines fetch failing, rather than blanking the dashboard', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(api.getSharedGroupCustomLines).mockRejectedValue(new Error('boom'));
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByRole('heading', { name: 'Your lines' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Lines shared with you' })).not.toBeInTheDocument();
@@ -1428,7 +1432,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([
       sharedLine({ lineName: 'An Implausibly Long Custom Line Name Chosen To Threaten This Row’s Layout' }),
     ]);
-    const { container } = renderWithMantine(await DashboardPage());
+    const { container } = renderWithMantine(await resolveAsync(await DashboardPage()));
 
     const row = screen
       .getByText('An Implausibly Long Custom Line Name Chosen To Threaten This Row’s Layout')
@@ -1469,7 +1473,7 @@ describe('DashboardPage -- Your Operators section', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT', name: 'Avanti West Coast' })]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByRole('heading', { name: 'Your operators' })).toBeInTheDocument();
     expect(screen.getByText('Avanti West Coast')).toBeInTheDocument();
@@ -1488,7 +1492,7 @@ describe('DashboardPage -- Your Operators section', () => {
       operator({ code: 'VT', name: 'Avanti West Coast' }),
       operator({ code: 'GW', name: 'Great Western Railway' }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText('Avanti West Coast')).toBeInTheDocument();
     expect(screen.queryByText('Great Western Railway')).not.toBeInTheDocument();
@@ -1503,7 +1507,7 @@ describe('DashboardPage -- Your Operators section', () => {
       silentPinnedLines: [],
       bankHolidayDivision: null,
     });
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText(/haven't pinned any operators yet/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Browse all operators' })).toHaveAttribute('href', '/operators');
@@ -1519,7 +1523,7 @@ describe('DashboardPage -- Your Operators section', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT' })]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     const heading = screen.getByRole('heading', { name: 'Your operators' });
     expect(
@@ -1549,7 +1553,7 @@ describe('DashboardPage -- Your Operators section', () => {
     // file (nothing in this suite resets mocks between tests) -- cleared
     // here so this assertion is about THIS render, not the file's history.
     vi.mocked(api.getAllOperators).mockClear();
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(api.getAllOperators).not.toHaveBeenCalled();
   });
@@ -1568,7 +1572,7 @@ describe('DashboardPage -- Your Operators section', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockRejectedValue(new Error('network error'));
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText("Couldn't load operator status right now.")).toBeInTheDocument();
     expect(screen.queryByText(/haven't pinned any operators yet/)).not.toBeInTheDocument();
@@ -1588,7 +1592,7 @@ describe('DashboardPage -- Your Operators section', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockRejectedValue(new Error('network error'));
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.getByText(/haven't pinned any operators yet/)).toBeInTheDocument();
     expect(screen.queryByText("Couldn't load operator status right now.")).not.toBeInTheDocument();
@@ -1608,7 +1612,7 @@ describe('DashboardPage -- Your Operators section', () => {
       bankHolidayDivision: null,
     });
     vi.mocked(api.getAllOperators).mockResolvedValue([operator({ code: 'VT', name: 'Avanti West Coast' })]);
-    const { container } = renderWithMantine(await DashboardPage());
+    const { container } = renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(container.querySelector('[aria-label*="Pin"]')).not.toBeInTheDocument();
   });
@@ -1652,7 +1656,7 @@ describe('DashboardPage -- Your Operators section', () => {
         worstLineName: 'LNER East Coast Main Line',
       }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     // The full sentence appears once, on the "Your Lines" card -- the
     // operator card underneath cross-references it instead of repeating it.
@@ -1732,7 +1736,7 @@ describe('DashboardPage -- journey sections', () => {
   it('logged out: no real journey sections, and the journeys are never fetched', async () => {
     vi.mocked(api.getMyJourneys).mockClear();
     vi.mocked(api.getJourney).mockClear();
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     expect(screen.queryByText('No upcoming journeys.')).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Plan a journey' })).toHaveLength(1); // the teaser's, no button
@@ -1745,7 +1749,7 @@ describe('DashboardPage -- journey sections', () => {
   // tracking a journey gives you, with the one login flow (it also signs
   // new visitors up) and the planner, which needs no account.
   it('logged out: an Upcoming journeys teaser with a log in or sign up button and the planner', async () => {
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings.slice(0, 3)).toEqual(['Live UK rail status', 'Upcoming journeys', 'Right now']);
     expect(screen.getByRole('heading', { name: 'Upcoming journeys', level: 2 })).toBeInTheDocument();
@@ -1767,7 +1771,7 @@ describe('DashboardPage -- journey sections', () => {
   it('logged in: no teaser, and no log in or sign up button', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(LOGGED_IN);
     mockJourneys([thisMorning]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByText('Track a journey to see it here')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Log in or sign up' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('region', { name: 'Upcoming journeys' })).toHaveLength(1);
@@ -1780,7 +1784,7 @@ describe('DashboardPage -- journey sections', () => {
       [underWay, laterToday, thisMorning],
       [journeyListItem(nextWeek, undefined, { firstServiceDate: '2026-09-24', serviceDate: '2026-09-24' })],
     );
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     // Nothing is pinned, so "Right now" leads the pins (review §3.1.4), after
@@ -1837,7 +1841,7 @@ describe('DashboardPage -- journey sections', () => {
       if (!detail) throw new Error(`no journey ${id}`);
       return detail;
     });
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(api.getMyJourneys).toHaveBeenCalledWith({ includeFollowed: true, includeShared: true });
     const current = screen.getByRole('region', { name: 'Current journey' });
@@ -1890,7 +1894,7 @@ describe('DashboardPage -- journey sections', () => {
       if (!detail) throw new Error(`no journey ${id}`);
       return detail;
     });
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
 
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
@@ -1920,7 +1924,7 @@ describe('DashboardPage -- journey sections', () => {
   it('logged in with upcoming journeys only: no current section', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(LOGGED_IN);
     mockJourneys([laterToday]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Upcoming journeys' })).toBeInTheDocument();
   });
@@ -1930,7 +1934,7 @@ describe('DashboardPage -- journey sections', () => {
   it('logged in with no current or upcoming journeys: Upcoming journeys says so, and offers Plan a journey', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(LOGGED_IN);
     mockJourneys([thisMorning]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings.slice(0, 2)).toEqual(['Home', 'Upcoming journeys']);
@@ -1944,7 +1948,7 @@ describe('DashboardPage -- journey sections', () => {
   it('logged in with no journeys at all: still offers Plan a journey', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(LOGGED_IN);
     vi.mocked(api.getMyJourneys).mockResolvedValue([]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
     expect(within(upcoming).getByRole('link', { name: 'Plan a journey' })).toHaveAttribute('href', '/plan');
   });
@@ -1965,7 +1969,7 @@ describe('DashboardPage -- journey sections', () => {
       }),
       loneTrain(6, { serviceDate: '2026-09-10', travelled: true }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings).not.toContain('Tracked trains');
     // The journey's own train is shown through the journey, not again on
@@ -1982,7 +1986,7 @@ describe('DashboardPage -- journey sections', () => {
     vi.mocked(api.getMyTrackedTrains).mockResolvedValue([
       loneTrain(5, { status: 'en_route', delayMinutes: 12, delayProvisional: true }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(api.getTrackedTrainById).toHaveBeenCalledWith(5);
     const current = screen.getByRole('region', { name: 'Current journey' });
     const card = within(current).getByRole('link', {
@@ -2020,7 +2024,7 @@ describe('DashboardPage -- journey sections', () => {
         ],
       }),
     );
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     const card = within(screen.getByRole('region', { name: 'Current journey' })).getByRole('link');
     expect(within(cardOf(card)).getByText('York (YRK), arrive est. 13:37')).toBeInTheDocument();
   });
@@ -2045,7 +2049,7 @@ describe('DashboardPage -- journey sections', () => {
         ],
       }),
     );
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
     expect(within(upcoming).getByRole('link', { name: /to York/ })).toHaveAttribute('href', '/train/W5/2026-09-17');
@@ -2061,7 +2065,7 @@ describe('DashboardPage -- journey sections', () => {
       loneTrain(5, { pinScheduledDeparture: '2026-09-17T13:00:00Z', customName: 'Lunch train' }),
       loneTrain(6, { serviceDate: '2026-09-20', pinScheduledDeparture: '2026-09-20T07:00:00Z' }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
     const rows = within(upcoming)
@@ -2082,7 +2086,7 @@ describe('DashboardPage -- journey sections', () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(LOGGED_IN);
     mockJourneys([]);
     vi.mocked(api.getSharedGroupTrains).mockClear();
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(api.getSharedGroupTrains).not.toHaveBeenCalled();
     expect(screen.queryByText(/^From /)).not.toBeInTheDocument();
   });
@@ -2093,7 +2097,7 @@ describe('DashboardPage -- journey sections', () => {
     vi.mocked(api.getMyTrackedTrains).mockResolvedValue([
       loneTrain(101, { journeyIds: [10], pinScheduledDeparture: '2026-09-17T13:00:00Z' }),
     ]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     // "Plan a journey" stays, and the section doesn't claim there are none.
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
@@ -2106,7 +2110,7 @@ describe('DashboardPage -- journey sections', () => {
   it('a failing detail read leaves a journey starting today in the upcoming list', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(LOGGED_IN);
     vi.mocked(api.getMyJourneys).mockResolvedValue([journeyListItem(underWay)]);
-    renderWithMantine(await DashboardPage());
+    renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.queryByRole('heading', { name: 'Current journey' })).not.toBeInTheDocument();
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
     expect(within(upcoming).getByRole('link', { name: /Work trip/ })).toBeInTheDocument();
@@ -2145,5 +2149,40 @@ describe('metadata', () => {
       description:
         'Live UK rail status: which lines have problems right now. Log in to pin lines and stations and track trains.',
     });
+  });
+});
+
+describe('DashboardPage first flush (DS-170)', () => {
+  beforeEach(() => {
+    vi.mocked(api.hasSessionCookie).mockResolvedValue(false);
+    vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
+  });
+
+  it('carries the h1 and the summary before any data has loaded, with no session read', async () => {
+    renderWithMantine(await firstFlush(await DashboardPage()));
+    expect(screen.getByRole('heading', { level: 1, name: 'Live UK rail status' })).toBeInTheDocument();
+    expect(screen.getByText(/Live UK rail line status, train tracking and Delay Repay support/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Browse all lines' })).toHaveAttribute('href', '/lines');
+    expect(api.getSessionOrLoggedOut).not.toHaveBeenCalled();
+    expect(screen.queryByText('Loading the home page')).not.toBeInTheDocument();
+  });
+
+  it('holds the live status behind an announced, busy placeholder', async () => {
+    renderWithMantine(await firstFlush(await DashboardPage()));
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-busy', 'true');
+    expect(status).toHaveTextContent('Loading line status');
+  });
+
+  it('then fills in the live status without a second h1', async () => {
+    renderWithMantine(await resolveAsync(await DashboardPage()));
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('a visitor with a session cookie still gets the skeleton first', async () => {
+    vi.mocked(api.hasSessionCookie).mockResolvedValue(true);
+    renderWithMantine(await firstFlush(await DashboardPage()));
+    expect(screen.getByRole('status')).toHaveTextContent('Loading the home page');
   });
 });

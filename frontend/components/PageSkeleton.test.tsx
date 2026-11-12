@@ -10,8 +10,7 @@ import {
   SkeletonText,
 } from './PageSkeleton';
 import { TrainPageSkeleton } from './TrainPageSkeleton';
-import HomeLoading from '@/app/(home)/loading';
-import LineLoading from '@/app/lines/[id]/loading';
+import { HomeSkeleton } from '@/app/(home)/HomeSkeleton';
 import TrainLoading from '@/app/train/[uid]/[date]/loading';
 import TrackedTrainLoading from '@/app/train/by-id/[trackingId]/loading';
 import JourneysLoading from '@/app/journeys/loading';
@@ -73,8 +72,7 @@ describe('PageSkeleton', () => {
 
 describe('route loading skeletons', () => {
   it.each([
-    ['home', HomeLoading, 'Loading the home page'],
-    ['line', LineLoading, 'Loading line'],
+    ['home', HomeSkeleton, 'Loading the home page'],
     ['train', TrainLoading, 'Loading train'],
     ['tracked train', TrackedTrainLoading, 'Loading train'],
     ['journeys', JourneysLoading, 'Loading your journeys'],

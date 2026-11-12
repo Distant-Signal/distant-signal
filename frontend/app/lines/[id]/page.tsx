@@ -123,6 +123,27 @@ async function fetchLineStatusResult(id: string): Promise<LineStatusResult> {
   return report === undefined ? { coverage: 'not-computed' } : { coverage: 'present', report };
 }
 
+/** The custom-line ownership and existence probe, or null on every failure
+ * (a catalogue line's expected 404, a 401, a dropped connection): failing
+ * closed, so owner controls are never rendered on a guess. */
+async function fetchCustomLine(id: string): Promise<CustomLineDetail | null> {
+  try {
+    return await getCustomLine(id);
+  } catch {
+    return null;
+  }
+}
+
+/** The line's stations and operators for its tooltip, or null on any
+ * failure: a nice-to-have must not break the page. */
+async function fetchLineDefinition(id: string): Promise<LineDefinitionSummary | null> {
+  try {
+    return await getLineDefinition(id);
+  } catch {
+    return null;
+  }
+}
+
 /** The line's display name, from whichever source actually knows it, or
  * `undefined` when none of them do -- which is the page's real
  * "this line does not exist, or you may not see it" signal now that a
@@ -308,29 +329,46 @@ export default async function LineDetailPage({
   const isTflLine = id.startsWith('tfl-');
   // A TfL Tube, DLR or tram line's timetable lives on its transit page
   // while the TfL network is served (the TfL transit design §8).
-  const timetableHref = isTflLine ? await tflTimetableHref(id) : null;
-
-  // A 404 here no longer 404s the page by itself -- see
+  // The line's own reads, all at once. They used to run one after another
+  // behind the route's `loading.tsx`, which put a loading skeleton, not the
+  // h1, in the first bytes of the HTML (DS-170): the page now has no route
+  // boundary, so the h1, the status badge and the status text are in the
+  // first flush, and only the trains and trends below wait behind their own
+  // Suspense. Waiting for the slowest of these rather than the sum of them
+  // is what keeps the first byte from getting later.
+  //
+  // A 404 from the status read no longer 404s the page by itself -- see
   // `fetchLineStatusResult`'s comment. `withStaleFallback` still rethrows
   // `ApiNotFoundError` unconditionally (a deleted line is a real
   // application state, not a connectivity failure) and every other failure
   // still propagates; all that changed is who decides what the 404 means.
-  const statusResult = await fetchLineStatusResult(id);
-
+  //
   // Category only exists on `LineSummary` (from `getAllLines`), not on the
-  // `LineStatusReport` this page otherwise relies on.
-  // Same 'allLines' key as /lines -- one shared entry for one shared request.
-  const lines = await withStaleFallback('allLines', () => getAllLines());
+  // `LineStatusReport` this page otherwise relies on. Same 'allLines' key as
+  // /lines -- one shared entry for one shared request.
+  //
+  // `getAllTocs` is hour-cached reference data used only to resolve the
+  // "Operators" row's ATOC codes to names below; an empty list degrades to
+  // bare codes rather than the whole page (review §2.9: a raw ATOC code
+  // like "GR" is exactly the kind of internal token this page must not
+  // surface unresolved).
+  //
+  // `getCustomLine` 404s for a catalogue-line id (the endpoint only ever
+  // reads the `custom_lines` table) -- that expected 404 is how this page
+  // tells a custom line apart from a catalogue one. Every failure of it,
+  // and of `getLineDefinition` (a tooltip showing stations and operators,
+  // a nice-to-have), is swallowed: see the comments below.
+  const [timetableHref, statusResult, lines, tocList, customLineResult, definition] = await Promise.all([
+    isTflLine ? tflTimetableHref(id) : Promise.resolve(null),
+    fetchLineStatusResult(id),
+    withStaleFallback('allLines', () => getAllLines()),
+    getAllTocs().catch(() => []),
+    fetchCustomLine(id),
+    fetchLineDefinition(id),
+  ]);
   const summary = lines.find((line) => line.id === id);
   const category = summary?.category;
-
-  // Hour-cached reference data used only to resolve the "Operators" row's
-  // ATOC codes to names below; an empty list degrades to bare codes rather
-  // than the whole page -- same pattern as `app/lines/page.tsx`'s and
-  // `app/stations/[crs]/page.tsx`'s own `getAllTocs()` calls (review §2.9:
-  // a raw ATOC code like "GR" is exactly the kind of internal token this
-  // page must not surface unresolved).
-  const tocs = tocNameLookup(await getAllTocs().catch(() => []));
+  const tocs = tocNameLookup(tocList);
 
   // `getCustomLine` 404s for a catalogue-line id (the endpoint only ever
   // reads the `custom_lines` table) — that expected 404 is how this page
@@ -365,17 +403,10 @@ export default async function LineDetailPage({
   // Failing closed is also the safe direction on its own terms: both
   // `isCustom` and `viewerOwnsLine` stay `false` when we could not confirm
   // anything, so owner controls are never rendered on a guess.
-  let isCustom = true;
-  let viewerOwnsLine = false;
-  let sharedWithGroups: LineGroupRef[] = [];
-  let customLine: CustomLineDetail | null = null;
-  try {
-    customLine = await getCustomLine(id);
-    viewerOwnsLine = customLine.isOwner;
-    sharedWithGroups = customLine.sharedWithGroups;
-  } catch {
-    isCustom = false;
-  }
+  const customLine = customLineResult;
+  const isCustom = customLine !== null;
+  const viewerOwnsLine = customLine?.isOwner ?? false;
+  const sharedWithGroups: LineGroupRef[] = customLine?.sharedWithGroups ?? [];
 
   // A custom line has exactly the same "no schedule population, ever"
   // property as a TfL line, per the same get_line_schedule doc-comment
@@ -388,19 +419,6 @@ export default async function LineDetailPage({
   // 400 from the api). The `custom-` check covers a custom line whose
   // `getCustomLine` lookup failed and so reads as `isCustom = false`.
   const showRecentlyCleared = showTrainsPanel && !id.startsWith('custom-');
-
-  // A tooltip showing stations/operators is a nice-to-have, not core page
-  // functionality — if this fails for any reason, just don't show it
-  // rather than breaking the whole page over it. Works for both catalogue
-  // and custom lines (unlike `getCustomLine` above, `getLineDefinition`
-  // doesn't 404 for a catalogue id — see its backend doc comment for why
-  // that endpoint stays separate from this one).
-  let definition = null;
-  try {
-    definition = await getLineDefinition(id);
-  } catch {
-    // swallowed — see comment above
-  }
 
   // THE existence check for this page, and the only one. It deliberately
   // sits after all three fetches above rather than straight after the
