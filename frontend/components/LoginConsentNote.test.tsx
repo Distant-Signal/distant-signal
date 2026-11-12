@@ -36,6 +36,15 @@ describe('LoginConsentNote', () => {
     expect(screen.getByText(/You must be 18 or over/)).toBeInTheDocument();
   });
 
+  it('states the minimum age the server passes in', () => {
+    renderWithMantine(
+      <LoginConsentProvider published minimumAge="16">
+        <LoginConsentNote />
+      </LoginConsentProvider>,
+    );
+    expect(screen.getByText(/You must be 16 or over/)).toBeInTheDocument();
+  });
+
   it('appears in the login prompt modal and beside the login button once published', () => {
     renderWithMantine(
       <LoginConsentProvider published>

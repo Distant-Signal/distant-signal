@@ -183,7 +183,7 @@ anyway.
 - a settings control in the nav that nobody needs there;
 - several entry points for one task (tracking used to have four);
 - legal links missing on a site with accounts. The pages exist but stay off
-  until the operator details are filled in (`lib/legal.ts`).
+  until the operator details are set (`LEGAL_*` env, docs/legal-pages.md).
 
 ## 7. Guardrails already in place
 
@@ -235,9 +235,9 @@ For the owner to decide:
 - turning off Cloudflare's Email Address Obfuscation for the zone.
   `EmailLink` works around it in the rendered HTML, but the address still
   appears in the page's hydration data;
-- the legal pages' operator name, contact email and ICO registration
-  (`LEGAL_CONFIG` in `lib/legal.ts`), so the Privacy, Terms and Contact
-  pages can go live.
+- the legal pages' operator name, contact email, sign-in log retention and
+  last-updated date (`LEGAL_*` env, docs/legal-pages.md), so the Privacy,
+  Terms and Contact pages can go live.
 
 Decided: `short_name` stays "DS Rail" (12 Oct 2026); the wordmark and
 link-preview images shipped in round 2 (14 Oct 2026).

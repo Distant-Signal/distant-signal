@@ -145,6 +145,13 @@ jobs:
       # so accessibility.spec.ts can sweep them. Read at request time by
       # `next start`; see frontend/lib/legal.ts. Production leaves it unset.
       LEGAL_PAGES_PREVIEW: "true"
+      # Example operator details (never real ones) so the sweep sees the
+      # pages as a configured deployment renders them, not `[[PLACEHOLDER]]`
+      # text. Read at request time like the flags; see docs/legal-pages.md.
+      LEGAL_OPERATOR_NAME: Example Operator
+      LEGAL_CONTACT_EMAIL: legal@example.com
+      LEGAL_SSO_LOG_RETENTION: 30 days
+      LEGAL_LAST_UPDATED: 1 November 2026
       # The seed's transit networks (frontend/e2e/fixtures/seed.sql), for
       # the /transit pages' specs and screenshots: Metrolink and a small
       # TfL network. Off in every other setting.

@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import * as legal from '@/lib/legal';
+import { stubLegalEnv } from '@/test/legalEnv';
 import { GET, buildSecurityTxt } from './route';
 
 vi.mock('@/lib/legal', async (importOriginal) => {
@@ -30,10 +31,12 @@ describe('/.well-known/security.txt', () => {
   });
 
   it('expires 180 days out and names the canonical URL and policy when the site origin is known', () => {
+    stubLegalEnv();
     const body = buildSecurityTxt(new Date('2026-09-27T12:00:00.123Z'), 'https://ds.example');
+    vi.unstubAllEnvs();
     expect(body).toBe(
       [
-        `Contact: mailto:${legal.LEGAL_CONFIG.CONTACT_EMAIL}`,
+        'Contact: mailto:legal@example.com',
         'Expires: 2027-03-26T12:00:00Z',
         'Canonical: https://ds.example/.well-known/security.txt',
         'Policy: https://ds.example/contact',

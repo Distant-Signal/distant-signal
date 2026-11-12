@@ -5,6 +5,7 @@ import {
   describeRetentionDays,
   retentionPolicy,
   LEGAL_CONFIG,
+  readLegalConfig,
   legalPageMetadata,
   legalPagesMode,
   legalPagesPublished,
@@ -57,12 +58,16 @@ describe('legal pages flag', () => {
     expect(vi.mocked(console.warn).mock.calls[0]![0]).toContain('CONTACT_EMAIL');
   });
 
-  it('ships with placeholders still in place, so the pages cannot go live by accident', () => {
-    // MINIMUM_AGE is decided (DQ1: 18). LAST_UPDATED is set to the go-live
-    // date at publish time; ICO_REGISTRATION is optional and unset.
+  it('with no LEGAL_* values set, every required field is a placeholder, so the pages cannot go live by accident', () => {
+    // The minimum age defaults to 18; the ICO registration is optional.
     expect(LEGAL_CONFIG.MINIMUM_AGE).toBe('18');
     expect(LEGAL_CONFIG.ICO_REGISTRATION).toBeUndefined();
-    expect(unfilledLegalPlaceholders(LEGAL_CONFIG)).toEqual(['LAST_UPDATED']);
+    expect(unfilledLegalPlaceholders(LEGAL_CONFIG)).toEqual([
+      'OPERATOR_NAME',
+      'CONTACT_EMAIL',
+      'SSO_LOG_RETENTION',
+      'LAST_UPDATED',
+    ]);
     expect(legalPagesPublished({ LEGAL_PAGES_PUBLISHED: 'true' })).toBe(false);
   });
 
@@ -84,6 +89,73 @@ describe('legal pages flag', () => {
   it('falls back to preview, not published, when the publish flag is on but placeholders remain', () => {
     expect(legalPagesMode({ LEGAL_PAGES_PUBLISHED: 'true', LEGAL_PAGES_PREVIEW: 'true' })).toBe('preview');
     expect(legalPagesMode({ LEGAL_PAGES_PUBLISHED: 'true', LEGAL_PAGES_PREVIEW: 'true' }, FILLED)).toBe('published');
+  });
+});
+
+const ENV = {
+  LEGAL_OPERATOR_NAME: 'Example Operator',
+  LEGAL_CONTACT_EMAIL: 'hello@example.com',
+  LEGAL_SSO_LOG_RETENTION: '1 year',
+  LEGAL_LAST_UPDATED: '1 November 2026',
+};
+
+describe('readLegalConfig', () => {
+  it('reads every field from the environment, trimmed', () => {
+    expect(
+      readLegalConfig({ ...ENV, LEGAL_OPERATOR_NAME: '  Example Operator ', LEGAL_ICO_REGISTRATION: 'ZA000000' }),
+    ).toEqual({
+      OPERATOR_NAME: 'Example Operator',
+      CONTACT_EMAIL: 'hello@example.com',
+      ICO_REGISTRATION: 'ZA000000',
+      MINIMUM_AGE: '18',
+      SSO_LOG_RETENTION: '1 year',
+      LAST_UPDATED: '1 November 2026',
+    });
+  });
+
+  it('publishes with the required values set and the optional ones absent', () => {
+    expect(legalPagesPublished({ ...ENV, LEGAL_PAGES_PUBLISHED: 'true' })).toBe(true);
+  });
+
+  it('takes a valid minimum age and rejects the rest', () => {
+    expect(readLegalConfig({ ...ENV, LEGAL_MINIMUM_AGE: '16' }).MINIMUM_AGE).toBe('16');
+    for (const bad of ['12', '99', 'eighteen', '1e1', '-18']) {
+      expect(readLegalConfig({ ...ENV, LEGAL_MINIMUM_AGE: bad }).MINIMUM_AGE).toBe('[[MINIMUM_AGE]]');
+    }
+  });
+
+  it.each([
+    ['LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', ''],
+    ['LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', '   '],
+    ['LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', '<script>alert(1)</script>'],
+    ['LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', 'x'.repeat(101)],
+    ['LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', 'two\nlines'],
+    ['LEGAL_CONTACT_EMAIL', 'CONTACT_EMAIL', 'not-an-email'],
+    ['LEGAL_CONTACT_EMAIL', 'CONTACT_EMAIL', 'a b@example.com'],
+    ['LEGAL_CONTACT_EMAIL', 'CONTACT_EMAIL', 'a@example.com\nBcc: x@example.com'],
+    ['LEGAL_CONTACT_EMAIL', 'CONTACT_EMAIL', 'a@localhost'],
+    ['LEGAL_SSO_LOG_RETENTION', 'SSO_LOG_RETENTION', 'x'.repeat(61)],
+    ['LEGAL_LAST_UPDATED', 'LAST_UPDATED', '2026-11-01'],
+    ['LEGAL_LAST_UPDATED', 'LAST_UPDATED', '31 February 2026'],
+    ['LEGAL_LAST_UPDATED', 'LAST_UPDATED', '1 Nov 2026'],
+  ])('%s=%j is invalid and stays a placeholder, so the pages stay off', (name, key, value) => {
+    const env = { ...ENV, [name]: value };
+    expect(unfilledLegalPlaceholders(readLegalConfig(env))).toEqual([key]);
+    expect(legalPagesPublished({ ...env, LEGAL_PAGES_PUBLISHED: 'true' })).toBe(false);
+  });
+
+  it('treats a malformed optional ICO registration as a placeholder rather than dropping it', () => {
+    expect(unfilledLegalPlaceholders(readLegalConfig({ ...ENV, LEGAL_ICO_REGISTRATION: 'no spaces <b>' }))).toEqual([
+      'ICO_REGISTRATION',
+    ]);
+  });
+
+  it('LEGAL_CONFIG follows process.env at access time, not at import', () => {
+    vi.stubEnv('LEGAL_OPERATOR_NAME', 'First');
+    expect(LEGAL_CONFIG.OPERATOR_NAME).toBe('First');
+    vi.stubEnv('LEGAL_OPERATOR_NAME', 'Second');
+    expect(LEGAL_CONFIG.OPERATOR_NAME).toBe('Second');
+    vi.unstubAllEnvs();
   });
 });
 
