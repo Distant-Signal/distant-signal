@@ -133,7 +133,9 @@ describe('draft legal pages', () => {
     renderWithMantine(PrivacyPage());
     expect(screen.getByText(/currently in Vienna, Austria/)).toBeInTheDocument();
     expect(screen.getByText(/our backups are stored in Germany, which is also in the EU/)).toBeInTheDocument();
-    expect(screen.getByText(/Hetzner \(backup storage, Germany\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Hetzner \(backup storage, Germany\), which stores our encrypted backups on our behalf\./),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/may process data in the United States/)).toBeNull();
   });
 

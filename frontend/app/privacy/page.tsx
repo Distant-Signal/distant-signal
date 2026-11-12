@@ -437,7 +437,7 @@ export default function PrivacyPage() {
             Cloudflare, our network provider, which handles every visit to the site (including your IP address) on our
             behalf.
           </ListItem>
-          <ListItem>Hetzner (backup storage, Germany), which stores our encrypted backups.</ListItem>
+          <ListItem>Hetzner (backup storage, Germany), which stores our encrypted backups on our behalf.</ListItem>
           <ListItem>
             Discord, if you log in with Discord. Discord is a separate controller and its own privacy policy applies.
           </ListItem>
