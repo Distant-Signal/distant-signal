@@ -117,6 +117,67 @@ describe('draft legal pages', () => {
     expect(screen.queryByText(/rotated within days/)).toBeNull();
   });
 
+  it('states the right to complain to us, the right to object, withdrawing consent and the response times (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(screen.getByRole('heading', { level: 2, name: 'Complaints' })).toBeInTheDocument();
+    expect(screen.getByText(/We acknowledge every complaint within 30 days/)).toBeInTheDocument();
+    expect(screen.getByText(/whether or not you have complained to us first/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Your right to object' })).toBeInTheDocument();
+    expect(screen.getByText(/You can withdraw this consent at any time with the same switch/)).toBeInTheDocument();
+    expect(screen.getByText(/the law lets us take up to two more months/)).toBeInTheDocument();
+  });
+
+  it('says where the servers are and that the data is transferred to the EU (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(screen.getByText(/currently in Vienna, Austria/)).toBeInTheDocument();
+    expect(screen.getByText(/our backups are stored in Germany, which is also in the EU/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Hetzner \(backup storage, Germany\), which stores our encrypted backups on our behalf\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/may process data in the United States/)).toBeNull();
+  });
+
+  it('does not say backups run on infrastructure we operate (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(
+      screen.getByText(/Our login service and database run on infrastructure we operate ourselves/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/backups are encrypted on our servers before they are sent to Hetzner/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/database and backups all run on/)).toBeNull();
+  });
+
+  it('keeps a deleted journey in Recently deleted and says how long backups add (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(screen.getByText(/kept in Recently deleted for 7 days so you can save it again/)).toBeInTheDocument();
+    expect(screen.getByText(/in a backup for up to 21 days after you delete it/)).toBeInTheDocument();
+  });
+
+  it('lists the device label for push subscriptions (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(screen.getByText(/a short label for the device worked out from your browser/)).toBeInTheDocument();
+  });
+
+  it('has a changes clause and the enforceable liability wording in the terms (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(TermsPage());
+    expect(screen.getByRole('heading', { level: 2, name: 'Changes to these terms' })).toBeInTheDocument();
+    expect(screen.getByText(/nothing in them takes away rights the law gives you/)).toBeInTheDocument();
+  });
+
+  it('uses log in and log out wording and the 15 minute login cookie on the cookies page (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(CookiesPage());
+    expect(screen.queryByText(/signed out|sign out/i)).toBeNull();
+    expect(screen.getByText('How long: 15 minutes.')).toBeInTheDocument();
+  });
+
   it('gives a content reporting route in the terms (Online Safety Act)', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
     renderWithMantine(TermsPage());

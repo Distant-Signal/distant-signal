@@ -42,7 +42,10 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection title="Who can use it">
-        <Text>You must be at least {MINIMUM_AGE} to create an account.</Text>
+        <Text>
+          You must be at least {MINIMUM_AGE} to create an account. If we learn that an account belongs to someone
+          younger, we will delete it.
+        </Text>
       </LegalSection>
 
       <LegalSection title="Not an official service">
@@ -56,8 +59,8 @@ export default function TermsPage() {
             data sources
           </TextLink>
           ). It is provided &quot;as is&quot; and can be late, incomplete or wrong. Some incident timing and severity is
-          worked out by an AI model and is marked as AI. Always check with the train operator or National Rail before
-          you travel.
+          worked out by an AI model and is labelled as an AI summary. Always check with the train operator or National
+          Rail before you travel.
         </Text>
         <Text>
           Delay Repay estimates are a guide, not advice or a guarantee. We never submit claims for you. The train
@@ -83,7 +86,8 @@ export default function TermsPage() {
             use share or invite links to harass people, or share them with people you know will misuse them;
           </ListItem>
           <ListItem>
-            scrape the site or its API, or send automated requests in volumes that affect other users;
+            use the site or its API with automated requests beyond the published rate limits, or in a way that affects
+            other users;
           </ListItem>
           <ListItem>try to get into accounts or data that are not yours, or disrupt the service.</ListItem>
         </List>
@@ -111,17 +115,41 @@ export default function TermsPage() {
 
       <LegalSection title="Suspension and ending your account">
         <Text>
-          We may suspend or close an account that breaks these terms, and may change or stop the service. You can delete
-          your account at any time from your account page.
+          We may suspend or close an account that breaks these terms, and may change or stop the service. If we stop the
+          service we will try to give notice first, so you can download your data. You can delete your account at any
+          time from your account page.
         </Text>
       </LegalSection>
 
       <LegalSection title="Our liability">
         <Text>
-          The service is free, and we are not responsible for travel decisions you make using it, including missed
-          connections, extra travel costs or unsuccessful Delay Repay claims. Nothing in these terms limits our
-          liability for death or personal injury caused by our negligence, for fraud, or for anything else the law does
-          not allow us to limit.
+          The service is free and provided as is. To the extent the law allows, we are not responsible for loss that
+          comes from travel decisions you make using it, including missed connections, extra travel costs or
+          unsuccessful Delay Repay claims. Nothing in these terms limits our liability for death or personal injury
+          caused by our negligence, for fraud, or for anything else the law does not allow us to limit, and nothing in
+          them takes away rights the law gives you.
+        </Text>
+      </LegalSection>
+
+      <LegalSection title="Your content and our software">
+        <Text>
+          What you add to Distant Signal (names, groups, custom lines) stays yours. You let us show it to the people you
+          share it with.
+        </Text>
+        <Text>
+          Distant Signal&apos;s software is free software under the GNU AGPL v3; see{' '}
+          <TextLink href="/attribution" underline="always" inline>
+            data sources and licences
+          </TextLink>
+          . Train company, network and station names are their owners&apos; trade marks, used only to identify them.
+        </Text>
+      </LegalSection>
+
+      <LegalSection title="Changes to these terms">
+        <Text>
+          We may change these terms. We will update the date at the top of this page and, for a change that affects what
+          you can do or what we hold about you, show a notice on the site for at least 14 days before it takes effect.
+          If you do not agree, delete your account before then.
         </Text>
       </LegalSection>
 

@@ -77,6 +77,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     retention.pastTravelDays > 0
       ? `, or ${describeRetentionDays(retention.pastTravelDays)} after the travel date, whichever comes first`
       : '';
+  const deleted =
+    retention.recentlyDeletedDays > 0
+      ? ` When you delete a tracked train or journey, it stops being tracked and its history, tickets, share links and group shares are deleted straight away. What it was (its name, and each leg's date, stations or places, train and planned times) is kept in Recently deleted for ${describeRetentionDays(retention.recentlyDeletedDays)} so you can save it again, then deleted for good. A journey a connected app deleted is kept there for 30 days. For a few seconds after you delete one, Undo is offered. Journeys that are deleted automatically after their travel date do not go to Recently deleted, and deleting your account deletes everything in it straight away.`
+      : '';
   const regular =
     retention.regularJourneyDays > 0
       ? ` Journeys made from a regular journey go sooner: ${describeRetentionDays(retention.regularJourneyDays)} after the travel date, unless you might claim Delay Repay for one (you added ticket details to one of its trains, one was cancelled or arrived 15 or more minutes late, or you missed a connection). Those, and journeys made from a regular journey you have since deleted, are kept like other journeys.`
@@ -117,10 +121,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Tracked trains, journeys and regular journeys',
-      what: 'The date, origin, destination and operator of trains and journeys you track, any names you give them, how late each of your trains arrived and whether it was cancelled, the minutes you say you need to get to the station, whose bank holidays your regular journeys skip (England and Wales, Scotland or Northern Ireland), the date a paused regular journey starts again, and any time away you add (its dates and a name if you give one).',
+      what: 'The date, origin, destination and operator of trains and journeys you track, any names you give them, how late each of your trains arrived and whether it was cancelled, the minutes you say you need to get to the station, a history of the changes to each journey and the alternative trains we suggested when one stopped working, whose bank holidays your regular journeys skip (England and Wales, Scotland or Northern Ireland), the date a paused regular journey starts again, and any time away you add (its dates and a name if you give one).',
       why: 'To track your trains and journeys and tell you about delays.',
       basis: CONTRACT,
-      retention: `Tracked trains and journeys: until you delete them or delete your account${travel}.${regular} Regular journeys: until you delete them or delete your account. Time away: until the day after it ends, or until you delete it or your account.`,
+      retention: `Tracked trains and journeys: until you delete them or delete your account${travel}.${deleted}${regular} Regular journeys: until you delete them or delete your account. Time away: until the day after it ends, or until you delete it or your account.`,
     },
     {
       title: 'Tickets',
@@ -131,7 +135,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Groups',
-      what: 'Groups you create or join, your role in them, and the trains, journeys and custom lines you share. Other members see your display name and what you share. They never see your email address.',
+      what: 'Groups you create or join, your role in them, and the trains, journeys and custom lines you share. Other members see your display name and what you share. We do not hold your email address, so no one can see it here.',
       why: 'To let you share travel plans with people you invite.',
       basis: CONTRACT,
       retention: 'For as long as you are a member, or until the group or your account is deleted.',
@@ -153,7 +157,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Push notifications',
-      what: 'If you turn on notifications: the address your browser gives us for sending them, its encryption keys, and when it was last used.',
+      what: 'If you turn on notifications: the address your browser gives us for sending them, its encryption keys, a short label for the device worked out from your browser (such as "Chrome on Android"; we do not keep the full identification string your browser sends), and when it was last used.',
       why: 'To send you the notifications you asked for.',
       basis: CONTRACT,
       retention: `Until you turn notifications off, your browser's push service tells us the address no longer works, you have more than 20 devices registered (the oldest is removed)${
@@ -180,7 +184,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     {
       title: 'Technical logs and IP addresses',
       what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service.',
-      why: 'To keep the service secure, prevent abuse and fix faults.',
+      why: 'To keep the service secure, prevent abuse, limit how many requests one address can make, and fix faults.',
       basis: LEGITIMATE_INTERESTS,
       retention: `Our server logs are kept for up to 31 days. Our login service keeps its event logs for ${LEGAL_CONFIG.SSO_LOG_RETENTION}. Cloudflare keeps its logs under its own policy.`,
     },
@@ -188,7 +192,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       title: 'Feature counts',
       what: 'Our servers count how often features are used and how they turn out, such as how many trains are tracked, trips planned or share links opened. These are running totals with no account, IP address or other identifier attached, and they never name a station, line, train or journey.',
       why: 'To see which features are used and whether they work, so we can fix and improve them.',
-      basis: `${IMPROVING} To object, email us (see "Your rights").`,
+      basis: `${IMPROVING} To object, email us (see "Your right to object").`,
       retention: 'Kept in our monitoring system for 30 days.',
     },
     {
@@ -196,9 +200,9 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       what: 'If you turn on "Help improve Distant Signal", your browser tells us which kinds of page you open (such as "a line page", never which line), which steps of a feature you reach and which of its options you use (such as searching for a trip and getting results, which kind of timetable you look up, or opening a list of earlier stops), when a search finds nothing, when a request or page fails (with only its error reference), whether you use the installed app, and when the offline page was shown. Never a specific station, line, train or journey. It uses no cookies, and goes only to us. We add each one to a daily total, split only by whether you were logged in, and store nothing that identifies you: no IP address, account, device or browser details.',
       why: 'To learn which features are used and where people run into problems, so we can improve them.',
       basis:
-        'Consent (UK GDPR Art. 6(1)(a)): it is off unless you turn it on, in Preferences or on the cookies page. If your browser sends Global Privacy Control or Do Not Track, nothing is sent even if it is on.',
+        'Consent (UK GDPR Art. 6(1)(a)): it is off unless you turn it on, in Preferences or on the cookies page. You can withdraw this consent at any time with the same switch. If your browser sends Global Privacy Control or Do Not Track, nothing is sent even if it is on.',
       retention:
-        'Daily totals are kept for 13 months, then deleted. Turning it off stops any more counts straight away. Totals already counted cannot be linked to you or anyone else.',
+        'Daily totals are kept for 13 months, then deleted. Turning it off (withdrawing your consent) stops any more counts straight away. Totals already counted cannot be linked to you or anyone else.',
     },
     {
       title: 'Connections to our file-transfer server',
@@ -213,7 +217,10 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       what: 'Encrypted daily copies of our database, which include the data above.',
       why: 'To recover from failures.',
       basis: 'The same basis as the data they contain.',
-      retention: 'Up to 14 days. Data you delete can stay in our backups for up to 14 days.',
+      retention:
+        retention.recentlyDeletedDays > 0
+          ? `Up to 14 days. Data you delete can stay in our backups for up to 14 days after it is deleted for good. A journey in Recently deleted is deleted for good when its ${describeRetentionDays(retention.recentlyDeletedDays)} end, so it can be in a backup for up to ${describeRetentionDays(retention.recentlyDeletedDays + 14)} after you delete it.`
+          : 'Up to 14 days. Data you delete can stay in our backups for up to 14 days.',
     },
   ];
 }
@@ -230,6 +237,18 @@ export default function PrivacyPage() {
           <ContactEmail />.
         </Text>
         {ICO_REGISTRATION ? <Text>ICO registration: {ICO_REGISTRATION}.</Text> : null}
+      </LegalSection>
+
+      <LegalSection title="In brief">
+        <List size="sm" spacing={2}>
+          <ListItem>You can look at live rail information without an account.</ListItem>
+          <ListItem>
+            If you log in, we keep your account, the journeys and settings you add, and technical logs, to run Distant
+            Signal. We do not sell your data or use it for advertising.
+          </ListItem>
+          <ListItem>You can download or delete your data yourself, and you can complain to us or to the ICO.</ListItem>
+          <ListItem>The details are below.</ListItem>
+        </List>
       </LegalSection>
 
       <LegalSection title="What we collect, why, and for how long">
@@ -383,8 +402,8 @@ export default function PrivacyPage() {
           This is optional and off unless you add an address. You can add a web address in Notifications on your account
           page, and we send it the same notifications you get in your browser, under the same settings (quiet hours,
           pauses and the trains you turned off). You choose where they go: another app or device, such as ntfy or Gotify
-          (both Unofficial), or an address of your own. Those services, and any address you choose, are run by other
-          people, not by us. They see what we send and handle it under their own terms.
+          (independent services, not run by us), or an address of your own. Those services, and any address you choose,
+          are run by other people, not by us. They see what we send and handle it under their own terms.
         </Text>
         <List size="sm" spacing={4}>
           <ListItem>
@@ -418,12 +437,14 @@ export default function PrivacyPage() {
             Cloudflare, our network provider, which handles every visit to the site (including your IP address) on our
             behalf.
           </ListItem>
+          <ListItem>Hetzner (backup storage, Germany), which stores our encrypted backups on our behalf.</ListItem>
           <ListItem>
             Discord, if you log in with Discord. Discord is a separate controller and its own privacy policy applies.
           </ListItem>
           <ListItem>
-            Your browser&apos;s push service (such as Google, Mozilla or Apple), if you turn on notifications. It
-            carries the notifications but cannot read them, because they are encrypted.
+            The push service your browser uses (Google, Mozilla or Apple), if you turn on notifications. It carries each
+            notification to your device. We have no contract with it. It cannot read the content, which is encrypted for
+            your browser only; it does see when notifications are sent and how big they are.
           </ListItem>
           <ListItem>
             Any address you add for your notifications, such as ntfy or Gotify (their own servers, or one you run), only
@@ -434,24 +455,37 @@ export default function PrivacyPage() {
           <ListItem>Members of groups you join, and anyone you give a share link to (see above).</ListItem>
         </List>
         <Text>
-          Our login service, database and backups all run on infrastructure we operate ourselves. We do not sell your
+          Our login service and database run on infrastructure we operate ourselves. Our backups are encrypted on our
+          servers before they are sent to Hetzner&apos;s storage in Germany (see the list above). We do not sell your
           data or use it for advertising.
         </Text>
       </LegalSection>
 
       <LegalSection title="International transfers">
         <Text>
-          Cloudflare, Discord, the push services, any address you choose for your notifications and Anthropic may
-          process data in the United States. Cloudflare processes data for us under a data processing agreement that
-          includes the UK International Data Transfer Addendum. Discord, the push services, the addresses you choose and
-          Anthropic process data under their own terms with you.
+          Our servers are in the European Union, currently in Vienna, Austria, and our backups are stored in Germany,
+          which is also in the EU. So your personal data is transferred to, and stored in, the EU. The UK recognises the
+          European Economic Area, which includes Austria, as providing adequate protection for personal data (UK
+          adequacy regulations), so we need no further safeguards for that.
+        </Text>
+        <Text>
+          Cloudflare handles every visit, including your IP address, in whichever of its data centres is nearest to you,
+          which can be outside the UK and the EU, including in the United States. It does so for us under a data
+          processing agreement that includes the UK International Data Transfer Addendum.
+        </Text>
+        <Text>
+          If you log in with Discord, turn on notifications, add a notification address, use the AI chat or connect an
+          assistant, those providers (Discord, your browser&apos;s push service, the address you choose, Anthropic or
+          your assistant&apos;s provider) process data in the United States, and possibly elsewhere. They do so under
+          their own terms with you, not under a contract with us. We send to them only because you chose the feature.
         </Text>
       </LegalSection>
 
       <LegalSection title="Your rights">
         <Text>
-          You have the right to access, correct, delete, restrict or object to our use of your personal data, and to
-          receive it in a portable format.
+          You have the right to access, correct, delete, restrict or object to our use of your personal data, to receive
+          it in a portable format, and to withdraw any consent you gave us (see &quot;Your right to object&quot; and
+          &quot;Complaints&quot; below).
         </Text>
         <List size="sm" spacing={4}>
           <ListItem>
@@ -468,16 +502,32 @@ export default function PrivacyPage() {
             deleted, email <ContactEmail />.
           </ListItem>
           <ListItem>
-            For anything else, or if you cannot log in, email <ContactEmail />. We reply within one month.
+            For anything else, or if you cannot log in, email <ContactEmail />. We reply within one month. For a complex
+            request, or several at once, the law lets us take up to two more months. If we need that, we tell you within
+            the first month and explain why.
           </ListItem>
         </List>
+      </LegalSection>
+
+      <LegalSection title="Your right to object">
         <Text>
-          If you are unhappy with how we handle your data, please tell us first. You can also complain to the
-          Information Commissioner&apos;s Office (ICO) at{' '}
+          Where we rely on legitimate interests (for example technical logs, feature counts and our file-transfer
+          server&apos;s logs), you can object at any time by emailing <ContactEmail />. We will stop unless we have
+          compelling grounds to continue, which we would explain to you.
+        </Text>
+      </LegalSection>
+
+      <LegalSection title="Complaints">
+        <Text>
+          You have the right to complain to us about how we use your personal data. Email <ContactEmail /> and tell us
+          what went wrong. We acknowledge every complaint within 30 days and tell you the outcome without undue delay.
+        </Text>
+        <Text>
+          You can also complain to the Information Commissioner&apos;s Office (ICO) at{' '}
           <TextLink href="https://ico.org.uk/make-a-complaint/" external underline="always" inline tone="inherit">
             ico.org.uk
           </TextLink>{' '}
-          or on 0303 123 1113.
+          or on 0303 123 1113, whether or not you have complained to us first.
         </Text>
       </LegalSection>
 

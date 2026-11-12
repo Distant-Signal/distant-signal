@@ -53,7 +53,7 @@ export default function ContactPage() {
             .
           </ListItem>
           <ListItem>
-            For any other request, see the{' '}
+            To complain about how we handle your data (we acknowledge within 30 days), or for any other request, see the{' '}
             <TextLink href="/privacy" underline="always" inline>
               privacy notice
             </TextLink>{' '}
@@ -65,7 +65,8 @@ export default function ContactPage() {
       <LegalSection title="Accessibility and everything else">
         <Text>
           If something on the site is hard to use, or you have any other question, email us and tell us what you need.
-          See also our{' '}
+          We reply as soon as we can, normally within 10 working days. Distant Signal is run by one person, so there may
+          be gaps. Privacy requests have their own deadlines, set out in the privacy notice. See also our{' '}
           <TextLink href="/accessibility" underline="always" inline>
             accessibility statement
           </TextLink>

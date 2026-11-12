@@ -103,6 +103,7 @@ describe('retentionPolicy', () => {
       stalePushSubscriptionDays: 365,
       inactiveAccountDays: 0,
       regularJourneyDays: 0,
+      recentlyDeletedDays: 7,
     });
   });
 
@@ -113,8 +114,15 @@ describe('retentionPolicy', () => {
         RETENTION_STALE_PUSH_SUBSCRIPTION_DAYS: '0',
         RETENTION_INACTIVE_ACCOUNT_DAYS: '730',
         RETENTION_REGULAR_JOURNEY_DAYS: '90',
+        RETENTION_RECENTLY_DELETED_DAYS: '14',
       }),
-    ).toEqual({ pastTravelDays: 400, stalePushSubscriptionDays: 0, inactiveAccountDays: 730, regularJourneyDays: 90 });
+    ).toEqual({
+      pastTravelDays: 400,
+      stalePushSubscriptionDays: 0,
+      inactiveAccountDays: 730,
+      regularJourneyDays: 90,
+      recentlyDeletedDays: 14,
+    });
   });
 
   it('falls back to the default for a malformed value', () => {
