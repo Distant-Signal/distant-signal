@@ -373,7 +373,7 @@ in this design.**
 
 All panel additions target the same, already-merged ConfigMap this repo's
 prior Grafana plan created — which itself lives in `Ranma-Config`
-(`clusters/mine-bringer/apps/distant-signal.yaml`, per that plan's "The
+(`clusters/<cluster>/apps/distant-signal.yaml`, per that plan's "The
 dashboard `ConfigMap` — exact structure" section), not in this repo. As
 with that plan, what follows is a precise specification for a human (or an
 orchestrator with real cluster access) to apply to that file — not a change

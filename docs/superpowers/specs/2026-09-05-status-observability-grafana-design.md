@@ -18,9 +18,9 @@ has no Prometheus, Grafana, or any monitoring/collection stack."*
 
 **That premise is no longer true.** Since that document was written, the
 repo owner deployed a real `kube-prometheus-stack` (Prometheus +
-Alertmanager + Grafana) to the live `mine-bringer` cluster via
+Alertmanager + Grafana) to the live `prod-cluster` cluster via
 `Ranma-Config` (`clusters/base/apps/monitoring.yaml` +
-`clusters/mine-bringer/apps/monitoring.yaml`). This is not a proposal —
+`clusters/<cluster>/apps/monitoring.yaml`). This is not a proposal —
 it is real, already-merged GitOps config for infrastructure that now
 exists. Everything in the prior document that was reasoned from "there is
 no monitoring stack" needs re-deriving from "there is one, but it isn't
@@ -73,7 +73,7 @@ All three files below were read in full from a fresh clone of
   and Alertmanager are explicitly commented as staying **ClusterIP-only,
   no ingress of their own** — "this stack's one intended human-facing
   surface is Grafana."
-- **`clusters/mine-bringer/apps/monitoring.yaml`**: the cluster overlay.
+- **`clusters/<cluster>/apps/monitoring.yaml`**: the cluster overlay.
   Grafana's ingress is `ingressClassName: tailscale`, hostname
   `ranma-grafana`, tag `intranet-private` — the file's own comment states
   this is "Private, tailnet-only... not exposed via the public
@@ -82,7 +82,7 @@ All three files below were read in full from a fresh clone of
   reading `clusters/base/apps/headlamp.yaml`: same `ingressClassName:
   tailscale`, same `tag:k8s,tag:intranet-private` annotation, same
   no-`secretName`-TLS shape). Real OAuth wiring points at
-  `sso.cursed.solutions` — the same real Authentik instance
+  `sso.example.com` — the same real Authentik instance
   `distant-signal` itself uses — with a sealed `client-secret`. **Treated
   here as a hard constraint, not something to reconsider**: this instance
   is genuinely not reachable from outside the tailnet, full stop.
@@ -262,7 +262,7 @@ invisible with zero scrape targets, silently.
 
 ### Finding 5: a NetworkPolicy gap the task's own brief didn't flag — real, and specific to `schedulefeed`
 
-`clusters/mine-bringer/apps/distant-signal.yaml`'s standalone
+`clusters/<cluster>/apps/distant-signal.yaml`'s standalone
 `distant-signal-schedulefeed-sftp-ingress` `NetworkPolicy` (lines 289-309)
 selects `component: schedulefeed` pods and allows **only** `TCP 2022`
 ingress, from any source. Its own comment (lines 274-281) currently reads:
@@ -555,7 +555,7 @@ Grafana-specific label convention it has no other reason to know.
 | Optional: `distant_signal_<service>_ready` gauges (movement-relay/trust-consumer/full-coverage-consumer) | `charts/distant-signal`'s crates | Application instrumentation, same shape as every existing `metrics::gauge!` call. |
 | `metrics.podMonitor.enabled: true` | `Ranma-Config` (`distant-signal-config` values overlay) | A deployment-time value flip for one specific cluster; the chart's own default (`false`) stays conservative for anyone installing this chart without Prometheus Operator's CRDs. |
 | `podMonitorSelectorNilUsesHelmValues: false` (+ `serviceMonitorSelectorNilUsesHelmValues: false`) | `Ranma-Config` (`monitoring-config` ConfigMap) | A `kube-prometheus-stack`-specific, cluster-wide discovery policy — belongs wherever that HelmRelease's own values already live. |
-| `schedulefeed` `NetworkPolicy`: add a `monitoring`-namespace-scoped allow on `9091` | `Ranma-Config` (`clusters/mine-bringer/apps/distant-signal.yaml`, the existing standalone resource) | Already a standalone, cluster-specific resource outside the chart's own `networkPolicy.enabled` gate, per its own comment. |
+| `schedulefeed` `NetworkPolicy`: add a `monitoring`-namespace-scoped allow on `9091` | `Ranma-Config` (`clusters/<cluster>/apps/distant-signal.yaml`, the existing standalone resource) | Already a standalone, cluster-specific resource outside the chart's own `networkPolicy.enabled` gate, per its own comment. |
 | Dashboard `ConfigMap`(s) | `Ranma-Config` | Couples to `kube-prometheus-stack`'s sidecar label convention specifically — a fact only the cluster-config repo should need to know. |
 | Any future public-page endpoint (contingent, Point 3) | `charts/distant-signal` / `crates/api` | Only if the public-page product question resolves "yes" — application-layer read logic, same as every other `/public/*` route. |
 
@@ -598,7 +598,7 @@ specific topology belong in `Ranma-Config`.
 2. **The in-cluster Prometheus Service hostname**
    (`kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090`)
    is inferred from Helm's fullname convention and the chart's own
-   rendered template, not confirmed against the live `mine-bringer`
+   rendered template, not confirmed against the live `prod-cluster`
    cluster — a five-second `kubectl` check before anything depends on it.
 3. **Whether `podMonitorSelectorNilUsesHelmValues: false` should also be
    set for `probeSelector`/`ruleSelector`/`scrapeConfigSelector`** for

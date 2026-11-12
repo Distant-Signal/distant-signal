@@ -7,7 +7,7 @@ phases implemented on branch `integration-preview`, not yet on `main`):
 letting a user avoid re-entering the same journey's criteria every time
 they travel it again. Citations are file:line against
 `integration-preview`'s actual shipped code (read via the checked-out
-worktree at `/home/coder/Distant-Signal/.integration-worktree`, branch
+worktree at `<worktree>`, branch
 `integration-preview` at `65251c85`), not the design docs or plans alone —
 flagged **Speculative** anywhere I couldn't verify directly.
 

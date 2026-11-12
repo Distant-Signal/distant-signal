@@ -19,7 +19,7 @@ Required background, read before this document:
 - `docs/superpowers/specs/2026-09-04-option-b-live-consumer-design.md`
   (the consumer: Decisions 2d "unconfirmed = cancelled" and 2e
   "Pending until the rail day closes").
-- `/home/coder/ds-review/full-coverage-lag-2026-09-27.md` (restart damage,
+- a private review note (restart damage,
   memory history).
 
 All production numbers below were measured read-only on 2026-09-27 between

@@ -241,7 +241,7 @@ A sidecar per pod gives no cross-pod multiplexing, which is the point of
 a pooler. It also doubles the sidecars to maintain and does not help
 CronJob pods.
 
-For the image, build our own (Forgejo `lucy/…`, like
+For the image, build our own (not a third-party one, like
 `postgres-pgbackrest`), pinned by digest. The Bitnami images are no
 longer maintained for free. Use PgBouncer ≥ 1.21, and preferably the
 current 1.2x release for `options` support.

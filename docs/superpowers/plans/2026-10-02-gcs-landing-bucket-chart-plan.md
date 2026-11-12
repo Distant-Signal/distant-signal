@@ -60,7 +60,7 @@ federation.
 
 ## Ground rules
 
-- Follow `/home/coder/ds-review/fix-brief-common.md`:
+- Follow the private fix brief:
   - scratch files only in the session scratchpad;
   - the disk-budget cargo env (`CARGO_INCREMENTAL=0`,
     `CARGO_PROFILE_*_DEBUG=line-tables-only`, the shared

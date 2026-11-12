@@ -13,7 +13,7 @@ Two things about the review environment shaped the method and should be
 read before any finding below.
 
 **The local seed does not contain real RDM data.** The seeded `PAD`, `KGX`
-and `WOK` payloads (`/home/lucy/.local/share/distant-signal-local/seed.sql`)
+and `WOK` payloads (`~/.local/share/distant-signal-local/seed.sql`)
 are hand-written and use a schema that does not exist in the feed:
 `openingHours: [{dayFrom, dayTo, from, to}]`, `carParks` as a root array
 with `{name, spaces, accessibleSpaces}`, `transportLinks` as an array of

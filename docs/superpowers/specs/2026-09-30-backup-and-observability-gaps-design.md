@@ -1,9 +1,9 @@
-# Backup and observability gaps on mine-bringer — design
+# Backup and observability gaps on prod-cluster — design
 
 Status: approved, implementation in progress.
 Date: 2026-09-30.
 
-> Status note (2026-10-01): implemented and live on mine-bringer. The
+> Status note (2026-10-01): implemented and live on prod-cluster. The
 > Postgres app password was sealed as its current value, not rotated; see
 > "Sealing the secrets" below.
 
@@ -45,7 +45,7 @@ The one question still open is listed at the end of this document.
 ## Context
 
 Distant Signal (DS) and the Distant-Signal-MCP run on one k3s node,
-`mine-bringer`, deployed by Flux from Ranma-Config. The deploy session's
+`prod-cluster`, deployed by Flux from Ranma-Config. The deploy session's
 read-only survey of the live cluster (30 Sep 2026) and the DS architecture
 page list these gaps:
 
@@ -65,13 +65,13 @@ changes, estimates the cost, sets out restore and verification steps
 
 ### Sources
 
-- The deploy session's live-cluster write-up of mine-bringer (30 Sep 2026)
+- The deploy session's live-cluster write-up of prod-cluster (30 Sep 2026)
   and the DS architecture page built from it.
 - This repository: `charts/distant-signal` (`postgresql.*`, `redis.*`,
   `scheduleFeed.*` and `archive.*` values, and the Postgres, Redis and
   schedulefeed templates), `docs/cold-archive.md`,
   `docs/full-coverage-consumer.md` and `docs/personal-data-retention.md`.
-- Ranma-Config (read only): `clusters/mine-bringer/apps/distant-signal.yaml`
+- Ranma-Config (read only): `clusters/<cluster>/apps/distant-signal.yaml`
   (the backup CronJob and the staged archive values),
   `netpol-distant-signal.yaml`, `netpol-monitoring.yaml`, `monitoring.yaml`,
   and `docs/specs/{distant-signal-postgres-pitr,distant-signal-cold-archive,backup-encryption,active-monitoring}.md`.
@@ -85,7 +85,7 @@ changes, estimates the cost, sets out restore and verification steps
 | Node | 1 node, 16 cores, 62.8 GiB. About 98% of CPU is already requested. About 1 TB free on the root filesystem. | PITR spec, live |
 | Default StorageClass | `local-path`. It is a directory on the root filesystem: sizes are **not enforced** and volumes cannot be expanded. | write-up; local-path README |
 | Where the DS dump runs | The `distant-signal-postgres-backup` CronJob lives in **Ranma-Config**, not in the DS chart. The DS chart has no CronJobs. | `apps/distant-signal.yaml`; architecture page §3 |
-| Backup destination | Thoth S3 under `<bucket>/mine-bringer/backups/<job>/`, reached through static GeeseFS PVs. Output is piped through `age -R`, and the age identity is kept offline. Retention is 7 days, and the newest file is never pruned. | write-up §7; `backup-encryption.md` |
+| Backup destination | Thoth S3 under `<bucket>/prod-cluster/backups/<job>/`, reached through static GeeseFS PVs. Output is piped through `age -R`, and the age identity is kept offline. Retention is 7 days, and the newest file is never pruned. | write-up §7; `backup-encryption.md` |
 | Thoth | It is S3 served by `tailscale serve` on the node host itself, and pods reach it through the node's tailnet address on one TCP port. It uses one shared key with no bucket or prefix scoping. There is no lifecycle API (`GET ?lifecycle` returns 501). ListObjects V1 is not implemented; V2 works. | write-up §1 and §9; cold-archive spec |
 | DS Postgres | Postgres 16.15, the chart's own single-replica StatefulSet. About 6.5 GB (6.6 GB measured 26 Sep; the backup comment says about 6.4 GB on 27 Sep). | PITR spec; backup CronJob comment |
 | WAL rate | About 35 GB/day raw, measured **before** the chart's current WAL settings (`wal_compression: lz4`, `max_wal_size: 4GB`, `checkpoint_timeout: 15min`). Up to about 90% of it was full-page images. Not re-measured since. | PITR spec; `values.yaml` `postgresql.config` |
@@ -213,7 +213,7 @@ postgresql:
       s3:
         endpoint: ""          # Thoth
         bucket: ""
-        path: ""              # e.g. /mine-bringer/pgbackrest/distant-signal
+        path: ""              # e.g. /prod-cluster/pgbackrest/distant-signal
         region: us-east-1
         uriStyle: path
         existingSecret: ""    # access-key-id, secret-access-key, cipher-pass
@@ -275,7 +275,7 @@ to this document.
   passphrase, generated with `scripts/mint-sealed-secret.sh`.
 - **Store the passphrase offline with the age identity** (X2). Without it,
   the repository can't be read after a cluster loss.
-- Use a new prefix `<bucket>/mine-bringer/pgbackrest/distant-signal/`, outside
+- Use a new prefix `<bucket>/prod-cluster/pgbackrest/distant-signal/`, outside
   `backups/` so neither job's pruning can touch the other.
 - Add a NetworkPolicy letting the Postgres pod reach Thoth: the node's
   tailnet `/32` on the Thoth port. Reuse the shape of the blackbox
@@ -533,7 +533,7 @@ Notes on the rule:
 - **Chart (optional, DS):** for other installs, add
   `networkPolicy.archiveEgress: {cidrs: [], ports: []}`. When it's set and
   `archive.enabled` is true, the chart renders the same rule. It isn't
-  needed on mine-bringer, where the repo-authored policies are the ones in
+  needed on prod-cluster, where the repo-authored policies are the ones in
   force.
 
 ### (b) Expiry done client-side: DS repo
@@ -576,8 +576,8 @@ archive:
 - **At startup:** the binary refuses to start if the prefix is empty, has
   fewer than two path segments, or equals or contains any prefix listed in
   a new `ARCHIVE_PROTECTED_PREFIXES`. The chart defaults that list to
-  nothing, and Ranma-Config sets it to `mine-bringer/backups/` and
-  `mine-bringer/pgbackrest/`.
+  nothing, and Ranma-Config sets it to `prod-cluster/backups/` and
+  `prod-cluster/pgbackrest/`.
 - **Per key:** keys that don't match the pattern are counted and logged,
   never deleted.
 
@@ -661,7 +661,7 @@ decision in Ranma-Config's cold-archive spec as well.
 - **Expiry drill (once before going live, then after any change to the
   expiry code):**
   1. Point a second aggregator binary, run locally or as a one-off Job, at a
-     scratch prefix such as `mine-bringer/distant-signal/archive-drill/`.
+     scratch prefix such as `prod-cluster/distant-signal/archive-drill/`.
   2. Seed it with fake keys dated around the cutoff, plus some keys that
      don't match the pattern, plus one key under a protected prefix.
   3. Run expiry in dry-run mode, then live.
@@ -716,7 +716,7 @@ daily stats), so a longer TSDB would add cost for little benefit.
 
 ### Which repo
 
-**Ranma-Config** only: `clusters/mine-bringer/apps/monitoring.yaml`.
+**Ranma-Config** only: `clusters/<cluster>/apps/monitoring.yaml`.
 
 ```yaml
 prometheus:

@@ -196,7 +196,7 @@ load-bearing decision.
   precedent cited in Decision 4 below.
 
 ### train-mcp's own tool/data shapes (`train-mcp.zip`, re-extracted this
-session to `/tmp/claude-1000/.../scratchpad/train-mcp-extract/`, outside
+session to `<scratchpad>/train-mcp-extract/`, outside
 this git worktree, `.env`/`.env.prod` excluded from extraction and not
 opened, per the research doc's own handling)
 

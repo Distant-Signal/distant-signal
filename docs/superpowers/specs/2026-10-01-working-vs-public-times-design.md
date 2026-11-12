@@ -291,7 +291,7 @@ Other places this matters:
   baseline error flips the DR15 answer for about a quarter of
   borderline-eligible trains.
 - **Exposure is zero today.** `tracked_train_tickets` has 0 rows.
-- **Legal risk is low.** `ds-review/uk-legal-compliance-2026-09-27.md`
+- **Legal risk is low.** The private UK legal review
   LEG-14 rates the consumer-law risk low (DS is probably not a "trader"
   under the DMCC Act 2024 Pt 4, and the copy is hedged).
 - **It is still a correctness defect** in the one feature tied to a legal

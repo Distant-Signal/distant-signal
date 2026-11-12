@@ -1952,7 +1952,7 @@ export async function getSharedGroupJourneys(): Promise<SharedGroupJourney[] | n
 - [ ] **Step 3: Verify**
 
 ```bash
-npm run build --prefix /home/coder/Distant-Signal/frontend
+npm run build --prefix <checkout>/frontend
 ```
 
   Expected: type-checks clean (both new functions are unused by anything
@@ -2325,9 +2325,9 @@ export function ShareJourneyButton({ journeyId }: { journeyId: number }) {
 - [ ] **Step 5: Verify**
 
 ```bash
-npm test -- ShareJourneyButton --prefix /home/coder/Distant-Signal/frontend
-npm test -- AddJourneyToGroupButton --prefix /home/coder/Distant-Signal/frontend
-npm run build --prefix /home/coder/Distant-Signal/frontend
+npm test -- ShareJourneyButton --prefix <checkout>/frontend
+npm test -- AddJourneyToGroupButton --prefix <checkout>/frontend
+npm run build --prefix <checkout>/frontend
 ```
 
   Expected: all pass; `RemoveGroupJourneyButton` has no dedicated test file
@@ -2493,7 +2493,7 @@ function SharedJourneyRow({
 - [ ] **Step 4: Verify**
 
 ```bash
-npm run build --prefix /home/coder/Distant-Signal/frontend
+npm run build --prefix <checkout>/frontend
 ```
 
   Expected: type-checks clean. Then, once Phase 1's `/journeys/{id}` page
@@ -2540,7 +2540,7 @@ only the "share-to-group button" piece; the rest of that header is Phase
 - [ ] **Step 2: Verify**
 
 ```bash
-npm run build --prefix /home/coder/Distant-Signal/frontend
+npm run build --prefix <checkout>/frontend
 ```
 
   Then, in a real browser once the backend is running: open a journey you

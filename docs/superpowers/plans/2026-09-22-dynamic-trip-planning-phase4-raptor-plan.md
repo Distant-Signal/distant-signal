@@ -54,7 +54,7 @@ directly.
    note already flags as carried forward from an investigation that could
    not re-verify the sibling project's code directly. This plan's research
    pass *could* (the sibling repository was reachable via
-   `ssh://git@git-bringer-ssh.fox-prometheus.ts.net/lucy/Distant-Signal-MCP.git`),
+   `ssh://git@host.example.ts.net/lucy/Distant-Signal-MCP.git`),
    and reading `raptor.ts:1-355` end to end confirms: `RaptorOptions`
    carries the same `connections: Connection[]` shape `CsaOptions` does
    (`raptor.ts:92-115`); the round loop (`raptor.ts:322-352`) iterates `for
