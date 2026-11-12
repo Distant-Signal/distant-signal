@@ -132,7 +132,8 @@ describe('draft legal pages', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
     renderWithMantine(PrivacyPage());
     expect(screen.getByText(/currently in Vienna, Austria/)).toBeInTheDocument();
-    expect(screen.getByText(/transferred to, and stored on, servers in the EU/)).toBeInTheDocument();
+    expect(screen.getByText(/our backups are stored in Germany, which is also in the EU/)).toBeInTheDocument();
+    expect(screen.getByText(/Hetzner \(backup storage, Germany\)/)).toBeInTheDocument();
     expect(screen.queryByText(/may process data in the United States/)).toBeNull();
   });
 

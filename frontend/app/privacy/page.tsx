@@ -437,6 +437,7 @@ export default function PrivacyPage() {
             Cloudflare, our network provider, which handles every visit to the site (including your IP address) on our
             behalf.
           </ListItem>
+          <ListItem>Hetzner (backup storage, Germany), which holds our encrypted backups on our behalf.</ListItem>
           <ListItem>
             Discord, if you log in with Discord. Discord is a separate controller and its own privacy policy applies.
           </ListItem>
@@ -461,10 +462,10 @@ export default function PrivacyPage() {
 
       <LegalSection title="International transfers">
         <Text>
-          Our own servers are in the European Union, currently in Vienna, Austria, and our backups are stored in the
-          European Union too. So your personal data is transferred to, and stored on, servers in the EU. The UK
-          recognises the European Economic Area, which includes Austria, as providing adequate protection for personal
-          data (UK adequacy regulations), so we need no further safeguards for that.
+          Our servers are in the European Union, currently in Vienna, Austria, and our backups are stored in Germany,
+          which is also in the EU. So your personal data is transferred to, and stored in, the EU. The UK recognises the
+          European Economic Area, which includes Austria, as providing adequate protection for personal data (UK
+          adequacy regulations), so we need no further safeguards for that.
         </Text>
         <Text>
           Cloudflare handles every visit, including your IP address, in whichever of its data centres is nearest to you,
