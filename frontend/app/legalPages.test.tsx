@@ -137,6 +137,18 @@ describe('draft legal pages', () => {
     expect(screen.queryByText(/may process data in the United States/)).toBeNull();
   });
 
+  it('does not say backups run on infrastructure we operate (DS-465)', () => {
+    vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    renderWithMantine(PrivacyPage());
+    expect(
+      screen.getByText(/Our login service and database run on infrastructure we operate ourselves/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/backups are encrypted on our servers before they are sent to Hetzner/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/database and backups all run on/)).toBeNull();
+  });
+
   it('keeps a deleted journey in Recently deleted and says how long backups add (DS-465)', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
     renderWithMantine(PrivacyPage());

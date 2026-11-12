@@ -437,7 +437,7 @@ export default function PrivacyPage() {
             Cloudflare, our network provider, which handles every visit to the site (including your IP address) on our
             behalf.
           </ListItem>
-          <ListItem>Hetzner (backup storage, Germany), which holds our encrypted backups on our behalf.</ListItem>
+          <ListItem>Hetzner (backup storage, Germany), which stores our encrypted backups.</ListItem>
           <ListItem>
             Discord, if you log in with Discord. Discord is a separate controller and its own privacy policy applies.
           </ListItem>
@@ -455,7 +455,8 @@ export default function PrivacyPage() {
           <ListItem>Members of groups you join, and anyone you give a share link to (see above).</ListItem>
         </List>
         <Text>
-          Our login service, database and backups all run on infrastructure we operate ourselves. We do not sell your
+          Our login service and database run on infrastructure we operate ourselves. Our backups are encrypted on our
+          servers before they are sent to Hetzner&apos;s storage in Germany (see the list above). We do not sell your
           data or use it for advertising.
         </Text>
       </LegalSection>
