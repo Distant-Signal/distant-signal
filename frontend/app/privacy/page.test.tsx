@@ -134,7 +134,7 @@ describe('PrivacyPage login service and Discord account ID', () => {
   it('describes the login service and the copy of Discord account IDs from the previous one', () => {
     render();
     const text = retentionText('Logging in');
-    expect(text).toMatch(/used only for Distant Signal and runs on infrastructure we operate ourselves/);
+    expect(text).toMatch(/used only for Distant Signal and is run by us/);
     expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
     expect(text).toMatch(
       /copied the Discord account ID of each existing account from the login service we used before/,
