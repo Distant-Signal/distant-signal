@@ -55,6 +55,29 @@ export function isExcludedPath(path: string): boolean {
   );
 }
 
+/** Whether a station page has next to nothing on it, so the sitemap should
+ * not spend crawl budget on it. KEEP THIS IN STEP WITH WHAT
+ * `app/stations/[crs]/page.tsx` ACTUALLY SHOWS: today a page is thin when
+ * it shows both "This station isn't covered by our line-status tracking
+ * yet" (no catalogue line lists the station, so `/StopPoint/{crs}/Disruption`
+ * 404s) and "This station isn't part of our live departure sampling" (its
+ * sample-stats 404s), leaving only the departures link and the
+ * accessibility block. Narrow it when the page gains per-station content.
+ *
+ * The api has no bulk sampling answer, so the sitemap cannot ask it for 2,600
+ * stations; `hasSampleStats` is `false` there and a station with only
+ * sample stats counts as thin (its stats are mostly "below threshold" or
+ * empty). A bulk answer would let the sitemap pass the real value. */
+export function isThinStation({
+  lineCovered,
+  hasSampleStats,
+}: {
+  lineCovered: boolean;
+  hasSampleStats: boolean;
+}): boolean {
+  return !lineCovered && !hasSampleStats;
+}
+
 export interface TransitSitemapNetwork {
   /** The path segment (`metrolink`). */
   id: string;
@@ -68,6 +91,10 @@ export interface SitemapSources {
   /** `https://host`, no trailing slash. */
   origin: string;
   stationCodes: string[];
+  /** CRS codes (upper case) that some catalogue line covers. `null` or
+   * absent when unknown (a lookup failed, or no line listed a station): then
+   * no station is treated as thin. */
+  coveredStationCodes?: ReadonlySet<string> | null | undefined;
   tflStopIds: string[];
   lines: LineSummary[];
   transit: TransitSitemapNetwork[];
@@ -107,6 +134,7 @@ const seg = encodeURIComponent;
 /** Every public page path the sources name, in a stable order. */
 export function sitemapPaths({
   stationCodes,
+  coveredStationCodes,
   tflStopIds,
   lines,
   transit,
@@ -124,7 +152,13 @@ export function sitemapPaths({
     // line page shows no trains panel for a TfL line).
     if (line.source === 'catalogue' && !line.id.startsWith('tfl-')) paths.push(`/lines/${seg(line.id)}/timetable`);
   }
-  for (const crs of stationCodes) paths.push(`/stations/${seg(crs.toUpperCase())}`);
+  // Fail safe: without a usable coverage set nothing is thin.
+  const coverage = coveredStationCodes && coveredStationCodes.size > 0 ? coveredStationCodes : null;
+  for (const crs of stationCodes) {
+    const code = crs.toUpperCase();
+    if (coverage && isThinStation({ lineCovered: coverage.has(code), hasSampleStats: false })) continue;
+    paths.push(`/stations/${seg(code)}`);
+  }
   for (const id of tflStopIds) paths.push(`/tfl/stops/${seg(id)}`);
   for (const network of transit) {
     const base = `/transit/${seg(network.id)}`;

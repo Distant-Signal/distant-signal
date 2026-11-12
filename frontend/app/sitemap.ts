@@ -13,6 +13,7 @@ import {
 import { legalPagesPublished } from '@/lib/legal';
 import { createLogger } from '@/lib/logger';
 import { buildSitemap, SITEMAP_REVALIDATE_SECONDS, SITEMAP_URL_LIMIT, type TransitSitemapNetwork } from '@/lib/sitemap';
+import { coveredStations } from '@/lib/sitemapCoverage';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 
 const log = createLogger('app/sitemap');
@@ -64,9 +65,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     orEmpty('island of Ireland stations', getIrelandStations),
     orEmpty('island of Ireland lines', getIrelandLines),
   ]);
+  const coveredStationCodes = await coveredStations(lines);
   const entries = buildSitemap({
     origin,
     stationCodes,
+    coveredStationCodes,
     tflStopIds,
     lines,
     transit,

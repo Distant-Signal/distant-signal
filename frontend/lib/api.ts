@@ -1488,6 +1488,19 @@ export async function getStationCodes(revalidate: number): Promise<string[]> {
   return body.codes;
 }
 
+/** `GET /public/lines/{id}/definition`, hour-cached and anonymous: the
+ * stations a catalogue line covers, for the sitemap (`getLineDefinition`
+ * is per-visitor and never cached). */
+export async function getCatalogueLineStations(id: string, revalidate: number): Promise<string[]> {
+  const body = await fetchJson<LineDefinitionSummary>(
+    `${baseUrl()}/public/lines/${encodeURIComponent(id)}/definition`,
+    {
+      next: { revalidate },
+    },
+  );
+  return body.stations;
+}
+
 /** `GET /public/tfl/stops/ids`: every TfL Tube, DLR and tram stop id. */
 export async function getTflStopIds(revalidate: number): Promise<string[]> {
   const body = await fetchJson<Api.TflStopIds>(`${baseUrl()}/public/tfl/stops/ids`, { next: { revalidate } });
