@@ -7,16 +7,29 @@
  * LEG-25). It is not legal advice. The operator, and ideally a lawyer, must
  * review every page before `LEGAL_PAGES_PUBLISHED` is switched on.
  *
- * Every value the operator has to supply lives in `LEGAL_CONFIG` below, as a
- * `[[LIKE_THIS]]` placeholder. The pages stay unpublished (404, and hidden
- * from the footer) until BOTH:
+ * The operator's own details are NOT in the source: each deployment supplies
+ * them as server environment variables (chart values `frontend.legal.*`,
+ * docs/legal-pages.md), read per request:
+ *   LEGAL_OPERATOR_NAME      required: the data controller
+ *   LEGAL_CONTACT_EMAIL      required: a monitored inbox
+ *   LEGAL_SSO_LOG_RETENTION  required: e.g. "30 days"
+ *   LEGAL_LAST_UPDATED       required: e.g. "1 November 2026"; set on go-live
+ *   LEGAL_ICO_REGISTRATION   optional: omit when no ICO fee is due
+ *   LEGAL_MINIMUM_AGE        optional, default "18"
+ * The pages stay unpublished (404, and hidden from the footer) until BOTH:
  *   1. the server env `LEGAL_PAGES_PUBLISHED` is exactly `true`
  *      (chart value `frontend.legalPagesPublished`, off by default), and
- *   2. no placeholder is left in `LEGAL_CONFIG`.
- * The second check means flipping the flag early can't put `[[CONTACT_EMAIL]]`
- * in front of users. `LEGAL_PAGES_PREVIEW=true` renders the drafts with a
- * "draft" banner and `noindex` for review and for CI's accessibility sweep;
- * see `legalPagesMode`. */
+ *   2. every required value above is set and valid.
+ * A missing or malformed value reads as a `[[LIKE_THIS]]` placeholder, so
+ * flipping the flag early can't put a blank or broken value in front of
+ * users, and a fork can't publish another operator's details by accident.
+ * `LEGAL_PAGES_PREVIEW=true` renders the drafts, placeholders and all, with
+ * a "draft" banner and `noindex` for review and for CI's accessibility
+ * sweep; see `legalPagesMode`.
+ *
+ * Every read is `process.env.X` on the server at request time. None of
+ * these is `NEXT_PUBLIC_`, so Next never inlines them into a bundle, and
+ * every page that uses them is `force-dynamic`. */
 
 import type { Metadata } from 'next';
 import { createLogger } from './logger';
@@ -24,44 +37,130 @@ import { canonicalPath, fullTitle } from './pageMetadata';
 
 const log = createLogger('lib/legal');
 
-/** Matches a value the operator hasn't filled in yet. */
+/** Matches a value the operator hasn't filled in (or filled in badly). */
 const PLACEHOLDER = /\[\[[A-Z0-9_]+\]\]/;
 
 export interface LegalConfig {
   /** The data controller: an individual's name or a trading name
-   * (audit open question 1). */
+   * (`LEGAL_OPERATOR_NAME`). */
   OPERATOR_NAME: string;
   /** A monitored inbox for privacy requests, content reports (Online Safety
-   * Act 2023 ss. 20-21), complaints and accessibility requests. */
+   * Act 2023 ss. 20-21), complaints and accessibility requests
+   * (`LEGAL_CONTACT_EMAIL`). */
   CONTACT_EMAIL: string;
   /** Optional: the ICO data protection fee registration number, if one is
-   * held. Leave unset when no fee is due (LEG-9); the privacy notice then
-   * omits the ICO registration line. */
-  ICO_REGISTRATION?: string;
-  /** Minimum age to create an account: `'18'` or `'13'` (audit open
-   * question 3). 18 is simplest for the OSA children's duties and the
+   * held (`LEGAL_ICO_REGISTRATION`). Leave unset when no fee is due (LEG-9);
+   * the privacy notice then omits the ICO registration line. */
+  ICO_REGISTRATION?: string | undefined;
+  /** Minimum age to create an account (`LEGAL_MINIMUM_AGE`, default `'18'`,
+   * 13 to 21). 18 is simplest for the OSA children's duties and the
    * Children's Code. */
   MINIMUM_AGE: string;
   /** How long the sign-in service (Authentik) keeps its event logs,
-   * including login IP addresses, e.g. `'1 year'` (audit open question 8;
-   * Authentik's default is 1 year). */
+   * including login IP addresses, e.g. `'1 year'`
+   * (`LEGAL_SSO_LOG_RETENTION`). */
   SSO_LOG_RETENTION: string;
-  /** Date the operator last reviewed the text, e.g. `'1 November 2026'`. */
+  /** Date the operator last reviewed the text, e.g. `'1 November 2026'`
+   * (`LEGAL_LAST_UPDATED`). Set when the pages go live. */
   LAST_UPDATED: string;
 }
 
-// DRAFT: operator must replace every placeholder before publishing.
+type Env = Record<string, string | undefined>;
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** Printable text without markup characters or control characters. React
+ * escapes what it renders; this keeps junk out of metadata and the
+ * `mailto:` and security.txt outputs too. */
+function plainText(max: number): (value: string) => boolean {
+  return (value) => value.length <= max && !/[<>\p{Cc}]/u.test(value);
+}
+
+function isEmail(value: string): boolean {
+  return value.length <= 254 && /^[^\s@<>"',;:()[\]\\]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/.test(value);
+}
+
+function isDate(value: string): boolean {
+  const m = /^(\d{1,2}) ([A-Za-z]+) (\d{4})$/.exec(value);
+  const [, dayText, monthName, yearText] = m ?? [];
+  if (dayText === undefined || monthName === undefined || yearText === undefined) return false;
+  const month = MONTHS.indexOf(monthName);
+  if (month < 0) return false;
+  const day = Number(dayText);
+  const year = Number(yearText);
+  const d = new Date(Date.UTC(year, month, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month && d.getUTCDate() === day;
+}
+
+function isAge(value: string): boolean {
+  return /^\d{2}$/.test(value) && Number(value) >= 13 && Number(value) <= 21;
+}
+
+function isIco(value: string): boolean {
+  return /^[A-Za-z0-9-]{4,20}$/.test(value);
+}
+
+/** One value: trimmed, validated, or the `[[NAME]]` placeholder when it is
+ * unset, empty or invalid. */
+function field(env: Env, name: string, key: string, ok: (value: string) => boolean): string {
+  const value = env[name]?.trim() ?? '';
+  return value !== '' && ok(value) ? value : `[[${key}]]`;
+}
+
+/** The legal config as the given environment supplies it (`process.env` by
+ * default), validated. Missing or invalid values are placeholders, never
+ * thrown. */
+export function readLegalConfig(env: Env = process.env): LegalConfig {
+  const ico = env.LEGAL_ICO_REGISTRATION?.trim() ?? '';
+  const age = env.LEGAL_MINIMUM_AGE?.trim() ?? '';
+  return {
+    OPERATOR_NAME: field(env, 'LEGAL_OPERATOR_NAME', 'OPERATOR_NAME', plainText(100)),
+    CONTACT_EMAIL: field(env, 'LEGAL_CONTACT_EMAIL', 'CONTACT_EMAIL', isEmail),
+    ICO_REGISTRATION: ico === '' ? undefined : isIco(ico) ? ico : '[[ICO_REGISTRATION]]',
+    MINIMUM_AGE: age === '' ? '18' : isAge(age) ? age : '[[MINIMUM_AGE]]',
+    SSO_LOG_RETENTION: field(env, 'LEGAL_SSO_LOG_RETENTION', 'SSO_LOG_RETENTION', plainText(60)),
+    LAST_UPDATED: field(env, 'LEGAL_LAST_UPDATED', 'LAST_UPDATED', isDate),
+  };
+}
+
+/** The live config: each field reads `process.env` when accessed, so it
+ * reflects the running server's environment, never a build-time snapshot. */
 export const LEGAL_CONFIG: LegalConfig = {
-  OPERATOR_NAME: 'Lucy M',
-  CONTACT_EMAIL: 'legal@cursed.solutions',
-  // DQ1 (2026-09-27): the operator chose 18.
-  MINIMUM_AGE: '18',
-  SSO_LOG_RETENTION: '30 days',
-  LAST_UPDATED: '[[LAST_UPDATED]]',
+  get OPERATOR_NAME() {
+    return readLegalConfig().OPERATOR_NAME;
+  },
+  get CONTACT_EMAIL() {
+    return readLegalConfig().CONTACT_EMAIL;
+  },
+  get ICO_REGISTRATION() {
+    return readLegalConfig().ICO_REGISTRATION;
+  },
+  get MINIMUM_AGE() {
+    return readLegalConfig().MINIMUM_AGE;
+  },
+  get SSO_LOG_RETENTION() {
+    return readLegalConfig().SSO_LOG_RETENTION;
+  },
+  get LAST_UPDATED() {
+    return readLegalConfig().LAST_UPDATED;
+  },
 };
 
-/** Names of the `LEGAL_CONFIG` fields still holding a placeholder. */
-export function unfilledLegalPlaceholders(config: LegalConfig = LEGAL_CONFIG): string[] {
+/** Names of the config fields still holding a placeholder. */
+export function unfilledLegalPlaceholders(config: LegalConfig = readLegalConfig()): string[] {
   return (Object.keys(config) as (keyof LegalConfig)[]).filter((key) => PLACEHOLDER.test(config[key] ?? ''));
 }
 
@@ -75,7 +174,7 @@ export function __resetLegalWarningForTests(): void {
 export type LegalPagesMode = 'off' | 'preview' | 'published';
 
 /** How `/privacy`, `/terms`, `/cookies` and `/contact` are served:
- *   - `'published'`: `LEGAL_PAGES_PUBLISHED=true` and no placeholder left.
+ *   - `'published'`: `LEGAL_PAGES_PUBLISHED=true` and every required `LEGAL_*` value set.
  *   - `'preview'`: `LEGAL_PAGES_PREVIEW=true` (and not published). The pages
  *     render with a "draft" banner and `noindex`, placeholders and all, so
  *     the operator can review them on a staging deployment and CI's axe
@@ -85,18 +184,15 @@ export type LegalPagesMode = 'off' | 'preview' | 'published';
  * Read from `process.env` at call time, so every caller must render per
  * request (`dynamic = 'force-dynamic'`): the image build never sets these,
  * and a build-time prerender would freeze them off. */
-export function legalPagesMode(
-  env: Record<string, string | undefined> = process.env,
-  config: LegalConfig = LEGAL_CONFIG,
-): LegalPagesMode {
+export function legalPagesMode(env: Env = process.env, config: LegalConfig = readLegalConfig(env)): LegalPagesMode {
   if (env.LEGAL_PAGES_PUBLISHED === 'true') {
     const unfilled = unfilledLegalPlaceholders(config);
     if (unfilled.length === 0) return 'published';
     if (!warnedPlaceholders) {
       warnedPlaceholders = true;
       log.warn(
-        `LEGAL_PAGES_PUBLISHED is true but frontend/lib/legal.ts still has placeholders (${unfilled.join(', ')}); ` +
-          'the legal pages stay unpublished until they are filled in.',
+        `LEGAL_PAGES_PUBLISHED is true but these LEGAL_* values are unset or invalid (${unfilled.join(', ')}); ` +
+          'the legal pages stay unpublished until they are set (docs/legal-pages.md).',
       );
     }
   }
@@ -104,18 +200,12 @@ export function legalPagesMode(
 }
 
 /** Whether the legal pages are live for real (not just previewed). */
-export function legalPagesPublished(
-  env: Record<string, string | undefined> = process.env,
-  config: LegalConfig = LEGAL_CONFIG,
-): boolean {
+export function legalPagesPublished(env: Env = process.env, config: LegalConfig = readLegalConfig(env)): boolean {
   return legalPagesMode(env, config) === 'published';
 }
 
 /** Whether the legal pages (and their footer links) render at all. */
-export function legalPagesVisible(
-  env: Record<string, string | undefined> = process.env,
-  config: LegalConfig = LEGAL_CONFIG,
-): boolean {
+export function legalPagesVisible(env: Env = process.env, config: LegalConfig = readLegalConfig(env)): boolean {
   return legalPagesMode(env, config) !== 'off';
 }
 

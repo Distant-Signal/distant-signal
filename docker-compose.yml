@@ -938,6 +938,17 @@ services:
       # `rail-mcp` Compose profile, see that service's own comment above):
       # it is only read at request time, not at frontend boot.
       NEXT_PUBLIC_RAILMCP_PUBLIC_URL: ${RAIL_MCP_PUBLIC_URL:-http://localhost:3100}
+      # The legal pages' operator details (docs/legal-pages.md), read per
+      # request. Unset, the pages stay 404 (the safe state). Compose
+      # passes an unset variable through as empty, which counts as unset.
+      LEGAL_PAGES_PUBLISHED: ${LEGAL_PAGES_PUBLISHED:-}
+      LEGAL_PAGES_PREVIEW: ${LEGAL_PAGES_PREVIEW:-}
+      LEGAL_OPERATOR_NAME: ${LEGAL_OPERATOR_NAME:-}
+      LEGAL_CONTACT_EMAIL: ${LEGAL_CONTACT_EMAIL:-}
+      LEGAL_SSO_LOG_RETENTION: ${LEGAL_SSO_LOG_RETENTION:-}
+      LEGAL_LAST_UPDATED: ${LEGAL_LAST_UPDATED:-}
+      LEGAL_ICO_REGISTRATION: ${LEGAL_ICO_REGISTRATION:-}
+      LEGAL_MINIMUM_AGE: ${LEGAL_MINIMUM_AGE:-}
     ports:
       - "${FRONTEND_HOST_PORT:-3000}:3000"
 

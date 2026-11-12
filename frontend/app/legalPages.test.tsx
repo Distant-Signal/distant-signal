@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
+import { stubLegalEnv } from '@/test/legalEnv';
 import { notFound } from 'next/navigation';
 import { renderWithMantine } from '@/test/render';
 import * as legal from '@/lib/legal';
@@ -180,15 +181,20 @@ describe('draft legal pages', () => {
 
   it('gives a content reporting route in the terms (Online Safety Act)', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
+    stubLegalEnv();
     renderWithMantine(TermsPage());
     expect(screen.getByRole('heading', { level: 2, name: 'Reporting content and complaints' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: legal.LEGAL_CONFIG.CONTACT_EMAIL }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: 'legal@example.com' }).length).toBeGreaterThan(0);
+    vi.unstubAllEnvs();
   });
 });
 
 describe('privacy notice ICO registration line', () => {
+  beforeEach(() => {
+    stubLegalEnv();
+  });
   afterEach(() => {
-    delete legal.LEGAL_CONFIG.ICO_REGISTRATION;
+    vi.unstubAllEnvs();
   });
 
   it('is absent when unset', () => {
@@ -199,7 +205,7 @@ describe('privacy notice ICO registration line', () => {
 
   it('is shown when set', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
-    legal.LEGAL_CONFIG.ICO_REGISTRATION = 'ZA123456';
+    vi.stubEnv('LEGAL_ICO_REGISTRATION', 'ZA123456');
     renderWithMantine(PrivacyPage());
     expect(screen.getByText('ICO registration: ZA123456.')).toBeInTheDocument();
   });

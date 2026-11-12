@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { stubLegalEnv } from '@/test/legalEnv';
 import AccessibilityPage, { generateMetadata } from './page';
 
 vi.mock('next/navigation', () => ({
@@ -26,14 +27,12 @@ describe('AccessibilityPage', () => {
 
   it('renders the WCAG 2.2 AA target, the testing, the known limitations and the contact route in preview', () => {
     vi.stubEnv('LEGAL_PAGES_PREVIEW', 'true');
+    stubLegalEnv();
     renderWithMantine(<AccessibilityPage />);
     expect(screen.getByRole('heading', { level: 1, name: 'Accessibility statement' })).toBeInTheDocument();
     expect(screen.getByText(/WCAG\) 2\.2 at level AA/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Known limitations' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'legal@cursed.solutions' })).toHaveAttribute(
-      'href',
-      'mailto:legal@cursed.solutions',
-    );
+    expect(screen.getByRole('link', { name: 'legal@example.com' })).toHaveAttribute('href', 'mailto:legal@example.com');
     expect(document.querySelector('[data-legal-draft]')).not.toBeNull();
   });
 
