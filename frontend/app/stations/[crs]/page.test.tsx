@@ -5,7 +5,7 @@ import StationDisruptionPage, { generateMetadata } from './page';
 import * as api from '@/lib/api';
 import { ApiNotFoundError } from '@/lib/api';
 import { __resetStaleCacheForTests } from '@/lib/liveDataCache';
-import type { LineStatusReport, StationOperatorSampleStats } from '@/lib/types';
+import type { LineStatusReport, StationOperatorSampleStats, TrainSearchPage, TrainSearchResult } from '@/lib/types';
 import { visibleText } from '@/test/routeText';
 import type { JsonValue } from '@/lib/api-types';
 
@@ -20,6 +20,7 @@ vi.mock('@/lib/api', async () => {
     getStationSampleStats: vi.fn(),
     getStationAccessibility: vi.fn(),
     getAllTocs: vi.fn(),
+    getStationDayTimetable: vi.fn(),
     getTransitRailLinks: vi.fn(),
   };
 });
@@ -75,6 +76,46 @@ function report(id: string, name: string): LineStatusReport {
   };
 }
 
+function timetableRow(overrides: Partial<TrainSearchResult> = {}): TrainSearchResult {
+  return {
+    uid: 'G1',
+    scheduled: '06:41',
+    stationCrs: 'KGX',
+    originCrs: 'KGX',
+    originName: 'London Kings Cross',
+    destinationCrs: 'CBG',
+    destinationName: 'Cambridge',
+    destinationArrival: '07:50',
+    destinationArrivalDayOffset: 0,
+    publicDeparture: '06:41',
+    publicDestinationArrival: '07:50',
+    workingDeparture: '06:41',
+    workingDestinationArrival: '07:50',
+    operator: 'GN',
+    identity: '1C00',
+    serviceDate: '2026-11-12',
+    live: null,
+    serviceMode: 'train',
+    liveTracking: true,
+    dayOffset: 0,
+    workingDayOffset: 0,
+    ...overrides,
+  };
+}
+
+function timetablePage(results: TrainSearchResult[], nextCursor: string | null = null): TrainSearchPage {
+  return {
+    results,
+    nextCursor,
+    serviceDate: '2026-11-12',
+    window: { from: { time: '00:00', dayOffset: 0 }, to: null, arrivalFrom: null, arrivalTo: null },
+    acrossMidnight: false,
+    serviceDates: ['2026-11-12'],
+    provisional: false,
+    provisionalFrom: '2026-11-20',
+  };
+}
+
 async function renderPage(crs = 'KGX') {
   const element = await StationDisruptionPage({ params: Promise.resolve({ crs }) });
   return renderWithMantine(element);
@@ -83,6 +124,7 @@ async function renderPage(crs = 'KGX') {
 describe('StationDisruptionPage -- outage behaviour', () => {
   beforeEach(() => {
     __resetStaleCacheForTests();
+    vi.mocked(api.getStationDayTimetable).mockRejectedValue(new ApiNotFoundError('no schedule'));
     vi.stubGlobal('fetch', vi.fn());
     vi.mocked(api.getStationName).mockResolvedValue('London Kings Cross');
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -491,6 +533,21 @@ describe('generateMetadata', () => {
     __resetStaleCacheForTests();
     vi.mocked(api.getStationName).mockResolvedValue('London Kings Cross');
     vi.mocked(api.getPreviewStopPointDisruption).mockResolvedValue([]);
+    vi.mocked(api.getStationAccessibility).mockResolvedValue({});
+    vi.mocked(api.getAllTocs).mockResolvedValue([]);
+    vi.mocked(api.getStationDayTimetable).mockRejectedValue(new ApiNotFoundError('no schedule'));
+  });
+
+  it('describes the page with its real facts when the data has them', async () => {
+    vi.mocked(api.getAllTocs).mockResolvedValue([{ code: 'GN', name: 'Great Northern' }]);
+    vi.mocked(api.getStationDayTimetable).mockResolvedValue(timetablePage([timetableRow()]));
+    vi.mocked(api.getStationAccessibility).mockResolvedValue({
+      stationAccessibility: { stepFreeCategory: { category: 'A, Compliant step-free access to all platform(s)' } },
+    });
+    const metadata = await generateMetadata({ params: Promise.resolve({ crs: 'KGX' }) });
+    expect(metadata.description).toBe(
+      'London Kings Cross (KGX): served by Great Northern; trains to Cambridge; step-free access category A.',
+    );
   });
 
   it('titles the page with the station name and gives an evergreen description and canonical', async () => {
@@ -590,5 +647,94 @@ describe('structured data', () => {
       identifier: 'KGX',
       url: 'https://ds.example/stations/KGX',
     });
+  });
+});
+
+describe('StationDisruptionPage -- about and timetable prose', () => {
+  beforeEach(() => {
+    __resetStaleCacheForTests();
+    vi.stubGlobal('fetch', vi.fn());
+    vi.mocked(api.getStationName).mockResolvedValue('London Kings Cross');
+    vi.mocked(api.getPreferences).mockResolvedValue({
+      pinnedLines: [],
+      pinnedStations: [],
+      pinnedOperators: [],
+      silentPinnedLines: [],
+      bankHolidayDivision: null,
+    });
+    vi.mocked(api.getStopPointDisruption).mockRejectedValue(new ApiNotFoundError('no line coverage'));
+    vi.mocked(api.getStationSampleStats).mockRejectedValue(new ApiNotFoundError('not sampled'));
+    vi.mocked(api.getStationAccessibility).mockResolvedValue({});
+    vi.mocked(api.getAllTocs).mockResolvedValue([{ code: 'GN', name: 'Great Northern' }]);
+    vi.mocked(api.getTransitRailLinks).mockResolvedValue([]);
+    vi.mocked(api.getStationDayTimetable).mockRejectedValue(new ApiNotFoundError('no schedule'));
+  });
+
+  it('adds no About or timetable section when the station has no data for them', async () => {
+    await renderPage();
+    expect(screen.queryByRole('heading', { name: /About/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: /Trains from/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Trains today' })).toBeNull();
+  });
+
+  it("lists a small station's departures with links to where they go", async () => {
+    vi.mocked(api.getStationDayTimetable).mockResolvedValue(
+      timetablePage([
+        timetableRow(),
+        timetableRow({ uid: 'G2', scheduled: '07:11', destinationCrs: 'PBO', destinationName: 'Peterborough' }),
+      ]),
+    );
+    await renderPage();
+    expect(api.getStationDayTimetable).toHaveBeenCalledWith('KGX', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), 200);
+    expect(screen.getByRole('heading', { name: 'Trains from London Kings Cross today', level: 2 })).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Departures from London Kings Cross today' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(list).getByRole('link', { name: 'Peterborough' })).toHaveAttribute('href', '/stations/PBO');
+    expect(screen.getByText(/All of them are run by Great Northern\./)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trains today' })).toHaveAttribute('href', '#timetable');
+  });
+
+  it('summarises a busy station by where its trains go instead of listing them', async () => {
+    const rows = Array.from({ length: 14 }, (_, index) =>
+      timetableRow({
+        uid: `G${index}`,
+        destinationCrs: index % 2 ? 'PBO' : 'CBG',
+        destinationName: index % 2 ? 'Peterborough' : 'Cambridge',
+      }),
+    );
+    vi.mocked(api.getStationDayTimetable).mockResolvedValue(timetablePage(rows));
+    await renderPage();
+    expect(screen.queryByRole('list', { name: /Departures from/ })).toBeNull();
+    const section = screen.getByRole('heading', { name: /Trains from/ }).parentElement as HTMLElement;
+    expect(within(section).getByRole('link', { name: 'Cambridge' })).toHaveAttribute('href', '/stations/CBG');
+    expect(section.textContent).toContain('14 trains are timetabled to leave London Kings Cross today');
+    expect(section.textContent).toContain('Trains go to Cambridge and Peterborough.');
+  });
+
+  it('says "more than" when the timetable read stopped short', async () => {
+    vi.mocked(api.getStationDayTimetable).mockResolvedValue(timetablePage([timetableRow()], 'next'));
+    await renderPage();
+    expect(screen.getByText(/lists more than 1 departures/)).toBeInTheDocument();
+    expect(screen.queryByText(/the last at/)).toBeNull();
+  });
+
+  it('writes About from the station facilities', async () => {
+    vi.mocked(api.getStationAccessibility).mockResolvedValue({
+      platformFacilities: { numberOfPlatforms: 12 },
+      lifts: { available: true },
+    });
+    await renderPage();
+    const about = screen.getByRole('heading', { name: 'About London Kings Cross', level: 2 })
+      .parentElement as HTMLElement;
+    expect(about.textContent).toContain('London Kings Cross has 12 platforms.');
+    expect(about.textContent).toContain('The station information lists lifts.');
+    expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '#about');
+  });
+
+  it('survives the timetable read failing outright', async () => {
+    vi.mocked(api.getStationDayTimetable).mockRejectedValue(new Error('down'));
+    await renderPage();
+    expect(screen.getByRole('heading', { name: 'London Kings Cross (KGX)', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Trains from/ })).toBeNull();
   });
 });

@@ -542,6 +542,21 @@ used, rather than as a literal in a component.
   never the feed's zero-based name. A note over 280 characters starts
   collapsed behind a "Notes" disclosure whose accessible name includes its
   field. Shorter notes stay inline.
+- **Station prose** (`StationAbout`, `StationTimetableSection`,
+  `lib/stationSummary.ts`): the station page says what its data says, in
+  sentences, server-rendered so it is in the HTML a search engine reads.
+  "About X" (platforms, step-free category, facilities the feed says are
+  there) and "Trains from X today" (today's timetable from the train
+  search, one hour-cached read: the train companies, where trains go with
+  links to those stations, the first and last train; a day of 12 trains or
+  fewer is listed whole). Each sentence is built from a fact and skipped
+  without it, so a station with no data has no section and no empty
+  heading. A read that stopped short of the day's end says "more than" and
+  "include", never a count or a last train it does not know. The page
+  `description` is one sentence of the same facts ("Abbey Wood (ABW):
+  served by Southeastern and Thameslink; trains to London Cannon Street"),
+  no counts or times (they change by the day), within the 20-word limit,
+  and falls back to the generic line.
 - **Charts** (`lib/chartTheme.ts`): every chart takes its series colours
   from `CHART_COLORS`, the `--ds-chart-*` variables in `globals.css`. Late
   is orange, cancelled red, skipped stops yellow and a plain count grape;

@@ -49,7 +49,8 @@ test('a lower-case station code redirects permanently to the upper-case page', a
 const LIVE_PREVIEWS: [page: string, missing: string, description: RegExp][] = [
   [`/incidents/${INCIDENT_ID}`, '/incidents/NO-SUCH-INCIDENT', /^(Disruption|Planned work)/],
   [`/lines/${LINE_ID}`, '/lines/no-such-line', /^Live status, disruption/],
-  [`/stations/${CRS}`, '/stations/ZZZ', /^Disruption, accessibility and departures for /],
+  // The generic line, or "Name (CRS): served by ..." once the station's data has facts.
+  [`/stations/${CRS}`, '/stations/ZZZ', /^(Disruption, accessibility and departures for |[^:]+ \([A-Z]{3}\): )/],
   // The public train page (the seed's train); a session-only
   // `/train/by-id/...` page has no card of its own.
   [`/train/${TRAIN_UID}/${TRAIN_DATE}`, '/train/ZZ9999/2099-01-01', /: calling points, platforms and live running\.$/],
