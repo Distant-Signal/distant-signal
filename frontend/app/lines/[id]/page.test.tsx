@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, vi, beforeEach } from 'vitest';
 import { act, cleanup, screen } from '@testing-library/react';
 import { TFL_NETWORK } from '@/test/transitFixtures';
 import { renderWithMantine } from '@/test/render';
+import { firstFlush } from '@/test/serverTree';
 import LineDetailPage, { generateMetadata } from './page';
 import * as api from '@/lib/api';
 import { __resetStaleCacheForTests } from '@/lib/liveDataCache';
@@ -235,6 +236,23 @@ describe('LineDetailPage Edit/Delete visibility', () => {
   // The unchanged-behaviour half of the no-status-row fix below: when the
   // status endpoint does answer, the page renders the computed severity
   // and none of the "not yet computed" copy.
+  // DS-170: no route-level loading boundary stands in front of the page, so
+  // the h1, the status and the facts are in the first flush of the HTML; only
+  // the trains and trends (their own Suspense boundaries) wait.
+  it('has the h1, the status and the operators in the first flush, with trends behind a busy placeholder', async () => {
+    vi.mocked(api.getCustomLine).mockResolvedValue(customLine({ isOwner: true }));
+    const element = await LineDetailPage({
+      params: Promise.resolve({ id: 'custom-my-commute' }),
+      searchParams: Promise.resolve({}),
+    });
+    renderWithMantine(await firstFlush(element));
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1, name: 'My Commute' })).toBeInTheDocument();
+    expect(screen.getByText('Good service')).toBeInTheDocument();
+    for (const status of screen.getAllByRole('status')) expect(status).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText('Loading line')).not.toBeInTheDocument();
+  });
+
   it('renders the computed status, not the no-status state, when a status row exists', async () => {
     vi.mocked(api.getCustomLine).mockResolvedValue(customLine({ isOwner: true }));
     await renderPage();

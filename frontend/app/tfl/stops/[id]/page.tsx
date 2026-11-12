@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Alert, Badge, Group, SimpleGrid, Stack, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -5,6 +6,8 @@ import { ButtonLink } from '@/components/ButtonLink';
 import { LastUpdated } from '@/components/LastUpdated';
 import { LineStatusCard } from '@/components/LineStatusCard';
 import { LinkSentence } from '@/components/LinkSentence';
+import { LoadingPlaceholder } from '@/components/LoadingPlaceholder';
+import { SkeletonRows } from '@/components/PageSkeleton';
 import { SectionTitle } from '@/components/SectionTitle';
 import { TflArrivalsBoard } from '@/components/TflArrivalsBoard';
 import { DataCredits } from '@/components/DataCredits';
@@ -131,19 +134,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   });
 }
 
-/** `/tfl/stops/[id]` (DS-136): a TfL Tube, DLR or tram stop. Its live
- * arrivals by line and platform (from TfL, through the api's short cache),
- * its timetable while the TfL network is served (first and last trains,
- * scheduled departures; `?date=` and `?cursor=` page it), its lines'
- * status, the National Rail station there if there is one, and a way to
- * start a journey leg from it. Server-rendered; the root layout's
- * `AutoRefresh` refreshes it every 30 s. */
-export default async function TflStopPage({ params, searchParams }: Params & Search) {
-  const { id } = await params;
-  const search = (await searchParams) ?? {};
-  const dateParam = single(search.date);
-  const cursorParam = single(search.cursor);
-  const stop = await loadStop(id);
+/** The stop's live and scheduled parts: its arrivals, timetable and lines'
+ * status. Each is a read of TfL or the api that can be slow, so they sit
+ * behind the page's one Suspense boundary and the stop's own h1 and facts
+ * are in the first flush (DS-170). */
+async function TflStopLive({
+  stop,
+  dateParam,
+  cursorParam,
+}: {
+  stop: TflStopDetail;
+  dateParam: string | undefined;
+  cursorParam: string | undefined;
+}) {
   const [arrivals, lineStatus, timetable] = await Promise.all([
     loadArrivals(stop.id),
     loadLineStatus(stop),
@@ -156,34 +159,9 @@ export default async function TflStopPage({ params, searchParams }: Params & Sea
   const base = `/tfl/stops/${encodeURIComponent(stop.id)}`;
   const reported = new Set(lineStatus.map((report) => report.id));
   const unreported = stop.lines.filter((line) => TFL_LINE_ID.test(line.id) && !reported.has(`tfl-${line.id}`));
-  // The stations at the stop, best first (King's Cross St. Pancras has two).
-  const rail = stop.railStations.slice(0, MAX_RAIL_STATIONS);
 
   return (
-    <Stack p="lg" gap="lg">
-      <Stack gap="xs">
-        <Title order={1}>{stop.name}</Title>
-        <Group gap="xs">
-          {stop.modes.map((mode) => (
-            <Badge key={mode} variant="light" tt="none">
-              {tflModeBadge(mode)}
-            </Badge>
-          ))}
-        </Group>
-        <LinkSentence
-          lead={rail.length > 1 ? 'National Rail stations here: ' : 'National Rail station here: '}
-          links={rail.map((station) => ({
-            href: `/stations/${encodeURIComponent(station.crs)}`,
-            label: stationLabel(station.crs, station.name),
-          }))}
-        />
-        <Group>
-          <ButtonLink href={journeyFromTflStopHref(stop.id)} variant="default">
-            Add as a journey leg
-          </ButtonLink>
-        </Group>
-      </Stack>
-
+    <>
       <Stack gap="sm" component="section" aria-labelledby="live-arrivals">
         <SectionTitle id="live-arrivals">Live arrivals</SectionTitle>
         {arrivals ? (
@@ -230,6 +208,60 @@ export default async function TflStopPage({ params, searchParams }: Params & Sea
           />
         </Stack>
       )}
+    </>
+  );
+}
+
+/** `/tfl/stops/[id]` (DS-136): a TfL Tube, DLR or tram stop. Its live
+ * arrivals by line and platform (from TfL, through the api's short cache),
+ * its timetable while the TfL network is served (first and last trains,
+ * scheduled departures; `?date=` and `?cursor=` page it), its lines'
+ * status, the National Rail station there if there is one, and a way to
+ * start a journey leg from it. Server-rendered; the root layout's
+ * `AutoRefresh` refreshes it every 30 s. */
+export default async function TflStopPage({ params, searchParams }: Params & Search) {
+  const { id } = await params;
+  const search = (await searchParams) ?? {};
+  const dateParam = single(search.date);
+  const cursorParam = single(search.cursor);
+  const stop = await loadStop(id);
+  // The stations at the stop, best first (King's Cross St. Pancras has two).
+  const rail = stop.railStations.slice(0, MAX_RAIL_STATIONS);
+
+  return (
+    <Stack p="lg" gap="lg">
+      <Stack gap="xs">
+        <Title order={1}>{stop.name}</Title>
+        <Group gap="xs">
+          {stop.modes.map((mode) => (
+            <Badge key={mode} variant="light" tt="none">
+              {tflModeBadge(mode)}
+            </Badge>
+          ))}
+        </Group>
+        <LinkSentence
+          lead={rail.length > 1 ? 'National Rail stations here: ' : 'National Rail station here: '}
+          links={rail.map((station) => ({
+            href: `/stations/${encodeURIComponent(station.crs)}`,
+            label: stationLabel(station.crs, station.name),
+          }))}
+        />
+        <Group>
+          <ButtonLink href={journeyFromTflStopHref(stop.id)} variant="default">
+            Add as a journey leg
+          </ButtonLink>
+        </Group>
+      </Stack>
+
+      <Suspense
+        fallback={
+          <LoadingPlaceholder label="Loading arrivals">
+            <SkeletonRows count={4} />
+          </LoadingPlaceholder>
+        }
+      >
+        <TflStopLive stop={stop} dateParam={dateParam} cursorParam={cursorParam} />
+      </Suspense>
       {/* TfL's stop, arrivals and line status: its credit with the mapping
           statements its stop locations need. */}
       <DataCredits credits={['tfl-stops']} />

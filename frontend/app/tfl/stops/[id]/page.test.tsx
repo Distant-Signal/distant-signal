@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { firstFlush, resolveAsync } from '@/test/serverTree';
 import { KINGS_CROSS, RUSSELL_SQUARE, RUSSELL_SQUARE_ARRIVALS, tflLineStatus } from '@/test/tflStopFixtures';
 import { TFL_NETWORK } from '@/test/transitFixtures';
 import * as api from '@/lib/api';
@@ -30,7 +31,7 @@ vi.mock('next/navigation', () => ({
 
 async function render(id = '940GZZLURSQ', search: Record<string, string> = {}) {
   const element = await TflStopPage({ params: Promise.resolve({ id }), searchParams: Promise.resolve(search) });
-  return renderWithMantine(element);
+  return renderWithMantine(await resolveAsync(element));
 }
 
 describe('/tfl/stops/[id]', () => {
@@ -46,6 +47,20 @@ describe('/tfl/stops/[id]', () => {
     vi.mocked(api.getTransitNetworks).mockReset().mockResolvedValue([]);
     vi.mocked(api.getTransitStop).mockReset();
     vi.mocked(api.getTransitDepartures).mockReset();
+  });
+
+  it('puts the stop name, modes and station links in the first flush, with arrivals behind a busy placeholder (DS-170)', async () => {
+    const element = await TflStopPage({
+      params: Promise.resolve({ id: '940GZZLURSQ' }),
+      searchParams: Promise.resolve({}),
+    });
+    renderWithMantine(await firstFlush(element));
+    expect(screen.getByRole('heading', { level: 1, name: RUSSELL_SQUARE.name })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading arrivals');
+    expect(screen.queryByRole('heading', { name: 'Live arrivals' })).not.toBeInTheDocument();
+    // The slow reads have not been asked for yet.
+    expect(api.getTflStopArrivals).not.toHaveBeenCalled();
   });
 
   it('has no timetable while the TfL network is not served', async () => {
