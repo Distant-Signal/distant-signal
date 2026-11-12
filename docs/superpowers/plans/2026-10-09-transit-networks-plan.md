@@ -21,7 +21,7 @@ the ingest architecture's rules (D7).
 
 ## Ground rules for whoever executes this
 
-- **Follow `/home/coder/ds-review/fix-brief-common.md`:**
+- **Follow the private fix brief:**
   - rustc 1.88, with no dependency above it;
   - the Cargo.lock pins (`zip` 8.x, `csv` 1.4 and `quick-xml` 0.41 are
     already in the lockfile, so add no new parser crate);

@@ -35,9 +35,9 @@ between services. It does three things:
   - `docs/superpowers/specs/2026-09-04-movement-relay-design.md`;
   - the approved `2026-09-30-backup-and-observability-gaps-design.md`,
     section 5;
-  - `/home/coder/ds-review/{full-review-infra,full-review-pipelines,uk-legal-compliance-2026-09-27}.md`.
+  - private review notes.
 - Ranma-Config, read only:
-  - `clusters/mine-bringer/apps/distant-signal-exporters.yaml` (the
+  - `clusters/<cluster>/apps/distant-signal-exporters.yaml` (the
     redis_exporter);
   - `monitoring-rules.yaml` (its `redis` group);
   - `distant-signal.yaml` (`redis.persistence.size: 1Gi`).
@@ -512,7 +512,7 @@ The **redis_exporter is not chart-managed**. It lives in Ranma-Config's
 
 - Nothing in Ranma-Config has to change for this branch. The new alerts
   render wherever `metrics.prometheusRule.enabled` is already on, which it
-  is on mine-bringer.
+  is on prod-cluster.
 - The new gauges exist only once the new movement-relay image and the
   consumer images are running. The NearFull and lag alerts fall back to
   the old series until then.
@@ -525,7 +525,7 @@ The **redis_exporter is not chart-managed**. It lives in Ranma-Config's
   movement-relay. Don't set `movementRelay.deadLetterMaxAgeSecs` above
   86400; the render fails.
 - **D1, Redis AUTH (Ranma-Config), in this order:**
-  1. **New SealedSecret** in `clusters/mine-bringer/apps/distant-signal.yaml`,
+  1. **New SealedSecret** in `clusters/<cluster>/apps/distant-signal.yaml`,
      next to `distant-signal-archive-s3`:
      - name: `distant-signal-redis-auth`;
      - namespace: `distant-signal`;

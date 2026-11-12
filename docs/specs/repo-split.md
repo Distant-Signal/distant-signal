@@ -1583,7 +1583,7 @@ readers know old SHAs aren't publicly resolvable apart from old PR pages.
 #### 5.11.9 The migration ledger on page-bringer
 
 The old-to-new record lives in **one private Forgejo repository,
-`lucy/ds-migration-ledger`**. page-bringer serves it on the tailnet only.
+`<owner>/ds-migration-ledger`**. page-bringer serves it on the tailnet only.
 It is on Forgejo, not GitHub, so it is in no DS repository: not the landing
 repository, not an extract, not the archive. The archive stays on GitHub,
 private.
@@ -1593,7 +1593,7 @@ private.
 - It is a tailnet-only static host: nginx in namespace `pages`, behind a
   Tailscale Ingress, with no public-internet path.
 - Each site is a Forgejo repo, branch and path, listed in Ranma-Config's
-  `clusters/mine-bringer/apps/page-bringer/sites.yaml`.
+  `clusters/<cluster>/apps/page-bringer/sites.yaml`.
 - A syncer pulls every 60 s, and private repositories are fine. Updating
   content is a push.
 - Every site is served with a CSP sandbox, so the page has an opaque origin
@@ -1603,7 +1603,7 @@ private.
 **Repository layout:**
 
 ```text
-lucy/ds-migration-ledger (private, Forgejo)
+<owner>/ds-migration-ledger (private, Forgejo)
 ├── site/                  # what page-bringer serves
 │   ├── index.html         # self-contained lookup page, inline CSS and JS
 │   ├── ledger.js          # window.DS_LEDGER = {...}; the data as a JS global
@@ -1685,7 +1685,7 @@ deployed with the passkey:
 
 ```yaml
 - name: ds-migration-ledger
-  repo: lucy/ds-migration-ledger
+  repo: <owner>/ds-migration-ledger
   branch: main
   path: site
   access: owner
@@ -1772,7 +1772,7 @@ treats the current RDM use as permitted.
 
 ## 7. What else depends on the DS repository
 
-- **DS-MCP** (Forgejo, `lucy/Distant-Signal-MCP`) depends only on the
+- **DS-MCP** (Forgejo, `<owner>/Distant-Signal-MCP`) depends only on the
   deployed API and on `docs/api-changelog.md` by name. Its comments cite the
   file path. After the move, the old GitHub links redirect. Generated API
   types (§5.3) would let it pin a package instead of reading Rust structs.
@@ -1793,24 +1793,24 @@ the scripts.
   (`github>FasterSpeeding/Piped//config/renovate.json5`). Piped is also used
   by Aurora-Fauxy and by the Forgejo repositories' Renovate configs.
 - **Marketplace actions,** all SHA-pinned.
-- **Forgejo (`git-bringer`): nothing at build or CI time.**
+- **Forgejo: nothing at build or CI time.**
   - `deny.toml` allows crates.io only (`allow-git = []`, and "the guide's
     Forgejo registry entry is dropped").
-  - There is no `local>lucy/renovate-config` preset. DS-MCP, ci-workflows,
+  - There is no `local><owner>/renovate-config` preset. DS-MCP, ci-workflows,
     helm-common and postgres-pgbackrest use it; DS doesn't.
   - There is no helm-common dependency. helm-common was *extracted from*
     the DS chart, but the DS chart doesn't consume it.
-  - DS doesn't use `lucy/ci-workflows`, which was also extracted from DS's
+  - DS doesn't use `<owner>/ci-workflows`, which was also extracted from DS's
     workflows.
-- **Runtime only:** `lucy/postgres-pgbackrest`. The chart's
+- **Runtime only:** `<owner>/postgres-pgbackrest`. The chart's
   `postgresql.pgbackrest.image.repository` has no default; the deployer
   (Ranma-Config) sets it. The chart and `renovate.json5` mention it only in
   comments.
 
-GitHub-hosted runners **cannot reach** `git-bringer.fox-prometheus.ts.net`,
+GitHub-hosted runners **cannot reach** `git.example.ts.net`,
 which is on the tailnet. helm-common's README says so under "GitHub-built
 consumers". Forgejo's composite actions also need the in-cluster URL
-(`http://forgejo-http.forgejo.svc.cluster.local:3000/...`). So nothing on
+(`http://<forgejo-service>.<namespace>.svc.cluster.local:3000/...`). So nothing on
 Forgejo can be a `uses:`, a Renovate `local>` preset, or a git dependency of
 an organisation repository on GitHub.
 
@@ -1818,15 +1818,15 @@ an organisation repository on GitHub.
 
 | Repository | Used by DS? | Also used by | Verdict | Why |
 |---|---|---|---|---|
-| `lucy/ci-workflows` | No | lucy/* repos on Forgejo (DS-MCP, deploy-bringer, ...) | **Keep** | Written for Forgejo 15. It relies on server-side expansion quirks, `secrets: inherit` without declarations, the Forgejo registry login, buildx mirrors through the in-cluster pull-through cache, and runner-local grype DB and cargo cache. Moving it would break its real consumers, and GitHub doesn't need it. It is neutral already ("lucy/*"), not DS-branded. |
-| `lucy/ci-workflows-selftest` | No | ci-workflows | **Keep** | Tests ci-workflows on Forgejo. |
-| `lucy/helm-common` | No | DS-MCP, deploy-bringer charts | **Keep** | Only Forgejo repositories consume it. If the DS chart ever adopts it, vendor the `.tgz` (`helm dependency build --skip-refresh`) or push a neutral mirror to `ghcr.io/fasterspeeding/charts/helm-common`. Not the DS organisation: it isn't DS's. |
-| `lucy/postgres-pgbackrest` | Runtime, through deployer values | Every pgBackRest Postgres in the cluster | **Keep** | Cluster infrastructure, pulled by the cluster from the in-cluster registry. It doesn't touch DS CI. Moving it to GHCR would add an internet dependency to the database's restart path for no gain. |
-| `lucy/k8s-backup-component` | No (Ranma-Config's DS backup) | forgejo, coder, authentik, vaultwarden | **Keep** | Ranma-Config-level and multi-service. |
-| `lucy/renovate-config` | No | Forgejo repositories | **Keep** | GitHub Renovate can't read it. DS uses Piped's preset. |
+| `<owner>/ci-workflows` | No | <owner>/* repos on Forgejo (DS-MCP, deploy-bringer, ...) | **Keep** | Written for Forgejo 15. It relies on server-side expansion quirks, `secrets: inherit` without declarations, the Forgejo registry login, buildx mirrors through the in-cluster pull-through cache, and runner-local grype DB and cargo cache. Moving it would break its real consumers, and GitHub doesn't need it. It is neutral already ("<owner>/*"), not DS-branded. |
+| `<owner>/ci-workflows-selftest` | No | ci-workflows | **Keep** | Tests ci-workflows on Forgejo. |
+| `<owner>/helm-common` | No | DS-MCP, deploy-bringer charts | **Keep** | Only Forgejo repositories consume it. If the DS chart ever adopts it, vendor the `.tgz` (`helm dependency build --skip-refresh`) or push a neutral mirror to `ghcr.io/fasterspeeding/charts/helm-common`. Not the DS organisation: it isn't DS's. |
+| `<owner>/postgres-pgbackrest` | Runtime, through deployer values | Every pgBackRest Postgres in the cluster | **Keep** | Cluster infrastructure, pulled by the cluster from the in-cluster registry. It doesn't touch DS CI. Moving it to GHCR would add an internet dependency to the database's restart path for no gain. |
+| `<owner>/k8s-backup-component` | No (Ranma-Config's DS backup) | forgejo, coder, authentik, vaultwarden | **Keep** | Ranma-Config-level and multi-service. |
+| `<owner>/renovate-config` | No | Forgejo repositories | **Keep** | GitHub Renovate can't read it. DS uses Piped's preset. |
 | `lucy-ts-libs` | No (not in `frontend/package.json`) | DS-MCP and other TypeScript services | **Keep** | Not used by DS. |
 | `FasterSpeeding/Piped` (GitHub) | Yes | Aurora-Fauxy, the Forgejo repositories' presets | **Keep where it is** | Already on GitHub, public and neutral. Moving it into a DS-branded organisation would be wrong for its other users. |
-| `lucy/Distant-Signal-MCP` | Consumer of DS | DS users | **Keep** (§10.1, decision 5) | Its pipeline is Forgejo end to end: Actions, the registry, `deploy-releases.yaml` and Forgejo Renovate. Moving it is a separate project. Revisit if it becomes public. |
+| `<owner>/Distant-Signal-MCP` | Consumer of DS | DS users | **Keep** (§10.1, decision 5) | Its pipeline is Forgejo end to end: Actions, the registry, `deploy-releases.yaml` and Forgejo Renovate. Moving it is a separate project. Revisit if it becomes public. |
 
 
 ### 8.3 (a) What to pull out of DS: `Distant-Signal/ci`
@@ -1837,7 +1837,7 @@ DS-specific parts. Piped is neutral and serves other projects.
 
 | Piece | Today | Goes to | Notes |
 |---|---|---|---|
-| clippy, rustfmt, MSRV, cargo-deny, test | `ci.yml` jobs | `ci/.github/workflows/rust-ci.yml` | Inputs: features, MSRV, system packages (the rdkafka set only for `ds-ingest`). This is a GitHub port of the design in `lucy/ci-workflows`, whose Forgejo copy stays. |
+| clippy, rustfmt, MSRV, cargo-deny, test | `ci.yml` jobs | `ci/.github/workflows/rust-ci.yml` | Inputs: features, MSRV, system packages (the rdkafka set only for `ds-ingest`). This is a GitHub port of the design in `<owner>/ci-workflows`, whose Forgejo copy stays. |
 | nextest archive and the three DB passes | `ci.yml`, `db-tests.py`, `test-postgres-roles.py` | `rust-db-tests.yml`, with the runner script in `ci/scripts/` | Passes come from each repository's `db-tests.toml`. Migrations and grants come from the pinned core version (§5.1). `test-postgres-roles.py` stays in `ds-core`; the workflow fetches it at the pinned tag. |
 | Image build, sign with retry, attest, digest output | `containers.yml` (three copies of the retry loop) | `image.yml` and the composite `actions/cosign-sign` | Labels as in §5.4. |
 | Chart lint, package, push and sign | `containers.yml` `push-helm-chart` | `helm-chart.yml`, used by `ds-deploy` | The chart-specific asserts stay in `ds-deploy`. |
@@ -1909,12 +1909,12 @@ log and the 37 repaired reverse merges, and writing any title overrides.
   "Generated with Claude Code" footers from now on;
 - create the private `Distant-Signal/distant-signal-archive` and push its
   `tooling` branch;
-- create the private Forgejo repository `lucy/ds-migration-ledger`, with
+- create the private Forgejo repository `<owner>/ds-migration-ledger`, with
   `index.html`, `gen-ledger.py` and `append-extract.py`. Fill it from the
   rehearsal's output to test the page;
 - add the one-time page-bringer entry to Ranma-Config's
-  `clusters/mine-bringer/apps/page-bringer/sites.yaml`. It is
-  `ds-migration-ledger`, `lucy/ds-migration-ledger`, `main`, `site`, with
+  `clusters/<cluster>/apps/page-bringer/sites.yaml`. It is
+  `ds-migration-ledger`, `<owner>/ds-migration-ledger`, `main`, `site`, with
   `access: owner` (§5.11.9). Deploy it through deploy-bringer with the
   passkey, then open the page on the tailnet;
 - rehearse both stages on a fresh throwaway clone, read
@@ -1960,7 +1960,7 @@ PR has merged, which is about half a day.
    - the chart base bump to **0.5.0**.
 
    In the same window, `gen-ledger.py` writes the real ledger and pushes it
-   to `lucy/ds-migration-ledger`.
+   to `<owner>/ds-migration-ledger`.
 7. That PR's `main` build pushes to `ghcr.io/distant-signal/images/*` and
    `charts/distant-signal`. Check that the packages are public, that the
    signature verifies, and that the attestation is there.
@@ -2001,7 +2001,7 @@ The archive keeps the original history whatever happens.
 | Charts | `distant-signal` `0.5.0_build.969.sha.2321bff`, `ds-ingest-bucket` `0.3.0_build.969.sha.2321bff` |
 | Cutover deploy | rcfr, HelmRelease revision v353 |
 | Archive | `Distant-Signal/distant-signal-archive`, release `original-2026-11-02` with the bundle; archived |
-| Ledger | `lucy/ds-migration-ledger`, page-bringer site `ds-migration-ledger`, deploy c9nj |
+| Ledger | `<owner>/ds-migration-ledger`, page-bringer site `ds-migration-ledger`, deploy c9nj |
 | PR footers stripped | 111 (bodies and comments) |
 
 **Deviations from the plan:**
@@ -2128,7 +2128,7 @@ These are the prerequisites. Each one is deployable alone.
 | Extract | `ds-core` `396b3fc`, 549 commits; tree identical to the landing's covered files, every `--follow` commit present, identities clean |
 | First ds-core PRs | ds-core #1 (CI on demand, `e33f7faf`), #2 (the contract check, `a68dc567`) |
 | Release | **v0.1.0** = `a68dc567`: seven assets with Sigstore bundles and `SHA256SUMS`, immutable, signed as `release.yml@refs/tags/v0.1.0`; `images/ds-migrate:v0.1.0@sha256:8692781c…`, public, labelled and attested |
-| Ledger | `ext:ds-core` in `lucy/ds-migration-ledger` (`9f1e880`): 2847 rows mapped, 93 post-rewrite rows |
+| Ledger | `ext:ds-core` in `<owner>/ds-migration-ledger` (`9f1e880`): 2847 rows mapped, 93 post-rewrite rows |
 | Switch PR | #186, merged as `a165468f`; chart build 1054, deploy azhu (live 21:00 UTC: migrate Job a no-op on ds-core's ds-migrate, roles Job green, every pod Ready) |
 | Follow-up | #188 (`0c5c29d4`): `core-checkout.py` replaces a partial checkout a CI cache restored |
 | Delete PR | #187, merged as `a57b1a7a`, naming `Distant-Signal/ds-core@a68dc567` |
@@ -2195,7 +2195,7 @@ reach prod only through `ds-deploy` bumps.
 | Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, rulesets "Protect main" and "Sync bot: Renovate branches only"; Write on `charts/distant-signal` and `charts/ds-ingest-bucket` |
 | Sync App | `ds-deploy-sync` (app 5603060, bot user 352187955), Contents read and write; secrets `DS_DEPLOY_SYNC_APP_ID`, `DS_DEPLOY_SYNC_PRIVATE_KEY`; ds-deploy#1 names the bot in `gitIgnoredAuthors` |
 | First charts | `distant-signal:0.6.0_build.1.sha.d1c6969` and `ds-ingest-bucket:0.4.0_build.1.sha.d1c6969`, signed as `Distant-Signal/ds-deploy/.github/workflows/chart.yml@refs/heads/main`, public |
-| Ledger | `ext:ds-deploy` in `lucy/ds-migration-ledger` (`cea94d4`): 1905 rows mapped, 18 post-rewrite rows |
+| Ledger | `ext:ds-deploy` in `<owner>/ds-migration-ledger` (`cea94d4`): 1905 rows mapped, 18 post-rewrite rows |
 | ds-core | ds-core#5: `tag.yml`'s `CHART_VALUES_URL` reads ds-deploy's pinned values |
 | Chart push stop | #193, merged as `1bcabb02` |
 | Deploy | 5cbj: chart 0.6.0 build 2 from ds-deploy; no pod restarted (identical digests), `/public/version` unchanged, `runbook_url`s under ds-deploy. Ranma-Config `8362d312` moved Renovate's `sourceUrl`, the compare links and the bump script to ds-deploy |
@@ -2296,7 +2296,7 @@ the delete commit.
 | Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 264 tests; DB passes superuser (9) and per-service (12); 9 images whose `--print-config-defaults` equal the deployed monorepo build `build.41730208148-eac5feac` |
 | Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26518153); Write on the nine `images/poller-*` packages and `images/buildcache` |
 | First build | CI run 41801866478 and Containers run 41801872738 (dispatched: the push was made with Actions off); 9 images at `build.41801872738-4420d2cb…`, `org.opencontainers.image.source` ds-pollers, core-version v0.1.0, signed, with build provenance |
-| Ledger | `ext:ds-pollers` in `lucy/ds-migration-ledger` (`cc72055`): 738 rows mapped, 12 post-rewrite rows |
+| Ledger | `ext:ds-pollers` in `<owner>/ds-migration-ledger` (`cc72055`): 738 rows mapped, 12 post-rewrite rows |
 | Monorepo stops publishing | #197, merged as `eb79245b`: containers.yml without the poller legs |
 | Digest bump | ds-deploy#3: the nine poller tags and digests only |
 | Deploy | h48k: chart `0.6.0_build.3.sha.5ea9ffd`, only the poller digests changed |
@@ -2333,7 +2333,7 @@ the delete commit.
 | Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 740 tests; DB passes superuser (163), app-role (163), per-service (163) and release D's narrow step (8), the enricher's LLM evals and replay skipped; 3 images whose `--print-config-defaults` equal the deployed monorepo build `build.41730208148-eac5feac` |
 | Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26525427); Write on `images/aggregator`, `images/enricher`, `images/notifier` and `images/buildcache` |
 | First build | CI run 41821846229 (14 jobs) and Containers run 41821852145 (dispatched: the push was made with Actions off); 3 images at `build.41821852145-4dd1c46b…`, `org.opencontainers.image.source` ds-workers, core-version v0.1.0, signed, with build provenance |
-| Ledger | `ext:ds-workers` in `lucy/ds-migration-ledger` (`8635b21`): 1404 rows mapped, 6 post-rewrite rows |
+| Ledger | `ext:ds-workers` in `<owner>/ds-migration-ledger` (`8635b21`): 1404 rows mapped, 6 post-rewrite rows |
 | Monorepo stops publishing | #203, merged as `d0d8e46e`: containers.yml without the worker legs |
 | Digest bump | ds-deploy#7 (`24c08e6`): the three worker tags and digests only |
 | Deploy | h2aw: chart build 6, only the worker digests changed; aggregator, enricher and notifier rolled with no restarts |
@@ -2372,7 +2372,7 @@ hand digest PR, the legs PR before the bump, the user's repository steps):
 | Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 451 tests; DB passes superuser (99), app-role (53) and per-service (71); 6 images whose `--print-config-defaults` equal the deployed monorepo build `build.41730208148-eac5feac` |
 | Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26525803); Write on `images/ingest-writer`, `images/movement-relay`, `images/darwin-relay`, `images/trust-consumer`, `images/trust-backlog-consumer`, `images/full-coverage-consumer` and `images/buildcache` |
 | First build | CI run 41821852575 (14 jobs) and Containers run 41821859871 (dispatched: the push was made with Actions off); 6 images at `build.41821859871-4d64b91c…`, `org.opencontainers.image.source` ds-ingest, core-version v0.1.0, signed, with build provenance |
-| Ledger | `ext:ds-ingest` in `lucy/ds-migration-ledger` (`3408927`): 994 rows mapped, no new post-rewrite rows (the earlier extractions had added the ones it shares) |
+| Ledger | `ext:ds-ingest` in `<owner>/ds-migration-ledger` (`3408927`): 994 rows mapped, no new post-rewrite rows (the earlier extractions had added the ones it shares) |
 | Monorepo stops publishing | #202, merged as `20ba0466`: containers.yml without the ingest legs (rebuilt on `d0d8e46e` after phase 8's #203) |
 | Digest bump | ds-deploy#6 (`227ebbb9`): the six ingest tags and digests only (re-pinned on `24c08e6` after phase 8's #7) |
 | Deploy | 4qp8: chart build 7; the six ingest services rolled with no restarts, the relays' partitions assigned, the writer's stream consumers took over, no dead letters |
@@ -2409,7 +2409,7 @@ hand digest PR, the legs PR before the bump, the user's repository steps):
 | Local checks | fmt, clippy (both feature sets), MSRV 1.88, cargo-deny, 1861 tests; DB passes superuser (855 + 3 + 7, with fake-gcs-server), app-role (838 + 7), per-service (838 + 3 + 7) and narrow (1); 3 images whose `--print-config-defaults` equal the deployed builds (the api's `8d34bcfd`, the schedule services' `eac5feac`); `api-types/` byte-equal and openapi-breaking green |
 | Repository | public, Issues, Wiki and Projects off, private vulnerability reporting, topics; ruleset "Protect main" (26537311); Write on `images/api`, `images/schedule-ingest`, `images/schedule-reference` and `images/buildcache` |
 | First build | CI run 41847744489 (14 jobs, openapi-breaking included) and Containers run 41847752805 (dispatched: the push was made with Actions off); 3 images at `build.41847752805-a364d773…`, `org.opencontainers.image.source` ds-api, core-version v0.1.1, signed, with build provenance; the api image's two files verified against the pin (`sync-api-types.py check --from image`, `verify-pin`) |
-| Ledger | `ext:ds-api` in `lucy/ds-migration-ledger` (`ee7bafb`): 2918 rows mapped, 18 post-rewrite rows |
+| Ledger | `ext:ds-api` in `<owner>/ds-migration-ledger` (`ee7bafb`): 2918 rows mapped, 18 post-rewrite rows |
 | Monorepo stops publishing | #208, merged as `9bddf80b`: containers.yml builds only the frontend |
 | Digest bump | ds-deploy#18 (`a9ed57f2`): the three tags and digests only |
 | Deploy | zcy6: chart build 9; api and schedulefeed rolled (schedulefeed-sftp untouched), the schema gate passed, the last delivery recognised, `/api/version` shows `a364d773` for all three |
@@ -2539,7 +2539,7 @@ Then the squash-detail questions:
 25. **No tracking inside any repository.** There is no `Archive:` line in
     any commit, and no commit map in the landing repository, the extracts
     or the archive. Old-to-new tracking lives in the migration ledger,
-    `lucy/ds-migration-ledger` on Forgejo, served by page-bringer at
+    `<owner>/ds-migration-ledger` on Forgejo, served by page-bringer at
     `access: owner` (§5.11.9). Each extraction appends to it. The
     post-rewrite commit points in-repo references at new SHAs. A reader
     with an old SHA looks it up in the ledger.

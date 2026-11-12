@@ -59,7 +59,7 @@ delivery.
 
 ## Ground rules for whoever executes this
 
-- Follow `/home/coder/ds-review/fix-brief-common.md`: rustc 1.88 with no
+- Follow the private fix brief: rustc 1.88 with no
   dependency above it, the disk-budget cargo environment, the assigned
   migration range only, Python over bash for tooling (uv, ruff, mypy
   --strict).

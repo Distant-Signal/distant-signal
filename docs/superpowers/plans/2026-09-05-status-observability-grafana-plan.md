@@ -26,7 +26,7 @@
 > precise specification the human applies via their normal `Ranma-Config`
 > workflow, not a hazard-laden runbook with rollback choreography. It still
 > isn't an implementation agent's job to run, because this plan cannot
-> verify it against the real `mine-bringer` cluster.
+> verify it against the real `prod-cluster` cluster.
 
 **Goal:** implement
 `docs/superpowers/specs/2026-09-05-status-observability-grafana-design.md`
@@ -179,17 +179,17 @@ version, and a fresh `Ranma-Config` clone) rather than re-guessed:
    clone shows two real candidate files:
    `clusters/base/apps/monitoring.yaml` (the `HelmRelease`'s own inline
    `spec.values`, applies to any cluster including this base file) and
-   `clusters/mine-bringer/apps/monitoring.yaml` (the `monitoring-config`
-   `ConfigMap`, `mine-bringer`-specific, wired via `valuesFrom`). Read both
+   `clusters/<cluster>/apps/monitoring.yaml` (the `monitoring-config`
+   `ConfigMap`, `prod-cluster`-specific, wired via `valuesFrom`). Read both
    in full: `clusters/base/apps/monitoring.yaml` already carries exactly
    this shape of decision inline — `kubeControllerManager.enabled: false`,
    `kubeScheduler.enabled: false`, `kubeEtcd.enabled: false`,
    `grafana.enabled: true` — structural, non-secret, cluster-topology-
    agnostic chart policy, the identical category `podMonitorSelectorNilUsesHelmValues`
    falls into (it says nothing about a hostname, credential, or any
-   `mine-bringer`-specific fact). **Decision: R1 goes in
+   `prod-cluster`-specific fact). **Decision: R1 goes in
    `clusters/base/apps/monitoring.yaml`'s inline `spec.values`, not the
-   `mine-bringer` overlay's `monitoring-config` ConfigMap** — consistent
+   `prod-cluster` overlay's `monitoring-config` ConfigMap** — consistent
    with that file's own existing convention, and it automatically covers
    `production` too if that cluster overlay ever includes this same base
    file, without a second copy-paste. (One confirmed load-bearing fact from
@@ -203,13 +203,13 @@ version, and a fresh `Ranma-Config` clone) rather than re-guessed:
 **One more fresh-verification correction, not a judgment call but load-
 bearing for Part 2's own verification steps**: the respec's Ground Truth
 section states Grafana's tailnet hostname is `ranma-grafana`. A fresh clone
-(today) shows this is now stale — `clusters/mine-bringer/apps/monitoring.yaml`'s
+(today) shows this is now stale — `clusters/<cluster>/apps/monitoring.yaml`'s
 `monitoring-config` ConfigMap carries a comment dated **2026-09-05** (i.e.
 apparently changed the same day as or after the respec was written):
 *"confirmed live 2026-09-05 that the bare label doesn't work for TLS
 here... Full tailnet FQDN, not the bare MagicDNS label headlamp.yaml uses
 (ranma-headlamp)"* — the real, current hostname is
-**`https://grafana-bringer.fox-prometheus.ts.net`**. Every verification
+**`https://host.example.ts.net`**. Every verification
 step below that names "open Grafana" uses this corrected hostname, not
 `ranma-grafana`.
 
@@ -218,7 +218,7 @@ step below that names "open Grafana" uses this corrected hostname, not
 trust events... globally" repeats the prior document's caveat that this
 figure "is only fully accurate once every consumer is off the
 `movementFeed: kafka` transitional mode." **That migration is now
-complete** — `clusters/mine-bringer/apps/distant-signal.yaml`'s
+complete** — `clusters/<cluster>/apps/distant-signal.yaml`'s
 `distant-signal-config` `ConfigMap` shows `trustConsumer.movementFeed:
 redis-stream` and `fullCoverageConsumer.movementFeed: redis-stream`, both
 at `replicaCount: 1`, with a comment confirming "movement-relay... is
@@ -323,7 +323,7 @@ figure from day one, not caveated.
   other file in this repo changes. `Ranma-Config` files touched (Part 2,
   human-applied, not part of this repo's own file scope):
   `clusters/base/apps/monitoring.yaml`,
-  `clusters/mine-bringer/apps/distant-signal.yaml`.
+  `clusters/<cluster>/apps/distant-signal.yaml`.
 
 ---
 
@@ -487,7 +487,7 @@ workflow step.
 
   Add a sentence after the existing reasoning (don't remove the existing
   reasoning — it's still why the *default* stays `false`): note that as of
-  this plan, at least one real cluster (`mine-bringer`, via `Ranma-Config`)
+  this plan, at least one real cluster (`prod-cluster`, via `Ranma-Config`)
   does run Prometheus Operator and does flip this to `true` in its own
   values overlay — so this is no longer a purely theoretical toggle, and a
   future reader shouldn't assume nothing ever sets it. Cite
@@ -921,9 +921,9 @@ overrides in either `Ranma-Config` file) and this plan's own Judgment Call
 4 reasoning (namespace placement is a pure organizational choice here,
 `searchNamespace: ALL` means it has zero effect on discovery): **the
 `ConfigMap` lives in the `distant-signal` namespace, in
-`clusters/mine-bringer/apps/distant-signal.yaml`** (the same file that
+`clusters/<cluster>/apps/distant-signal.yaml`** (the same file that
 already owns `distant-signal-config` and the `schedulefeed` `NetworkPolicy`)
-— not `clusters/mine-bringer/apps/monitoring.yaml`. Reasoning: this
+— not `clusters/<cluster>/apps/monitoring.yaml`. Reasoning: this
 dashboard's content is fundamentally *about* `distant-signal`, not a
 `monitoring`-stack-wide concern; colocating it with the app it describes
 scales better as a pattern (a future second app's own dashboard belongs in
@@ -1095,7 +1095,7 @@ verifying each before moving to the next.
 
 **File:** `clusters/base/apps/monitoring.yaml` (the `kube-prometheus-stack`
 `HelmRelease`'s own inline `spec.values` — see Judgment Call 4 for why this
-file, not the `mine-bringer` overlay's `monitoring-config` `ConfigMap`).
+file, not the `prod-cluster` overlay's `monitoring-config` `ConfigMap`).
 
 Add a new top-level `prometheus:` key inside the existing `spec.values`
 block (sibling to the existing `kubeControllerManager`/`grafana` keys):
@@ -1153,7 +1153,7 @@ doing both in one sitting).
 
 ## Edit R2 — flip `metrics.podMonitor.enabled` for `distant-signal`
 
-**File:** `clusters/mine-bringer/apps/distant-signal.yaml`, the
+**File:** `clusters/<cluster>/apps/distant-signal.yaml`, the
 `distant-signal-config` `ConfigMap`'s `data.values.yaml` block.
 
 **Precondition**: this repo's own Task 1 (the `PodMonitor` selector fix)
@@ -1208,7 +1208,7 @@ not a sign anything else is broken).
 
 ## Edit R3 — `schedulefeed` `NetworkPolicy`: allow Prometheus's scrape
 
-**File:** `clusters/mine-bringer/apps/distant-signal.yaml`, the standalone
+**File:** `clusters/<cluster>/apps/distant-signal.yaml`, the standalone
 `distant-signal-schedulefeed-sftp-ingress` `NetworkPolicy` (currently lines
 267–309 of that file).
 
@@ -1227,12 +1227,12 @@ immediately above the resource) reads:
 > ```
 
 **This is now stale** — `clusters/base/apps/monitoring.yaml` and
-`clusters/mine-bringer/apps/monitoring.yaml` are real, merged
+`clusters/<cluster>/apps/monitoring.yaml` are real, merged
 `kube-prometheus-stack` manifests (respec's whole premise). Replace that
 paragraph with something to the effect of: *"metrics.enabled defaults to
 true upstream (so the ingest container's :9091 listener exists); this
 cluster now runs a real Prometheus
-(clusters/{base,mine-bringer}/apps/monitoring.yaml) that needs to reach it
+(clusters/{base,prod-cluster}/apps/monitoring.yaml) that needs to reach it
 — see the second ingress rule below, scoped to the monitoring namespace
 only, not opened to the whole cluster."* Then add a second `ingress` rule
 to the `NetworkPolicy` spec itself:
@@ -1275,13 +1275,13 @@ R2) — `schedulefeed`'s `ingest` target should now read `UP`.
 
 ## Edit R4 — dashboard `ConfigMap`
 
-**File:** `clusters/mine-bringer/apps/distant-signal.yaml` — new resource,
+**File:** `clusters/<cluster>/apps/distant-signal.yaml` — new resource,
 appended after the existing `distant-signal-schedulefeed-sftp-ingress`
 `NetworkPolicy`. Exact content: the `ConfigMap` YAML given in this plan's
 own "The dashboard `ConfigMap` — exact structure" section, above (Part 1,
 Point 5's design work) — not repeated a second time here.
 
-**Verify**: open `https://grafana-bringer.fox-prometheus.ts.net`
+**Verify**: open `https://host.example.ts.net`
 (corrected hostname — see "One more fresh-verification correction," above;
 **not** `ranma-grafana`), log in via Authentik SSO, navigate to
 Dashboards, confirm "Distant-Signal: Trust-Event Pipeline & Service Status"
@@ -1337,7 +1337,7 @@ only, no ingress"): every Prometheus-side check in this plan uses
 9090:9090` (Service name/port verified fresh in this planning pass, not
 assumed) then a browser against `localhost:9090/targets` or `/config`.
 Grafana itself needs no port-forward — it already has a real tailnet
-ingress (`https://grafana-bringer.fox-prometheus.ts.net`, corrected
+ingress (`https://host.example.ts.net`, corrected
 hostname per above) reachable directly from any tailnet-joined device.
 
 ## Open items for a human before/during implementation
@@ -1349,7 +1349,7 @@ hostname per above) reachable directly from any tailnet-joined device.
    doesn't go looking for a fork that no longer exists in this document.
 2. **R1's exact `Ranma-Config` file (Judgment Call 4)** is this plan's own
    considered choice (`clusters/base/apps/monitoring.yaml`'s inline
-   values, not the `mine-bringer` overlay ConfigMap) based on a fresh
+   values, not the `prod-cluster` overlay ConfigMap) based on a fresh
    read — worth a quick sanity check from whoever applies it, since it's a
    refinement of the respec's own less-specific "wherever that HelmRelease's
    own values already live," not a verbatim instruction from either design

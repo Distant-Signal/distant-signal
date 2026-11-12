@@ -59,7 +59,7 @@ itself.
 > real delivery timestamp within ~5 minutes, empirically proving the
 > single-zip ingest pipeline works end-to-end in production for the first
 > time. **Task 4 onward could not be attempted at all** — the live
-> production Authentik instance (`https://sso.fox-prometheus.ts.net`,
+> production Authentik instance (`https://host.example.ts.net`,
 > `client_id=distant-signal`) does not offer the open, no-credential
 > self-signup flow this document's prior two sessions relied on
 > (`distant-signal-dev-enrollment` now 404s; the live identification
@@ -231,8 +231,8 @@ What *is* reachable: the real page this data feeds,
 data as part of its HTML/RSC payload. Fetched directly:
 
 ```
-$ curl -s "http://konata.fox-prometheus.ts.net:3000/lines/wcml/history?range=30d"
-$ curl -s "http://konata.fox-prometheus.ts.net:3000/lines/swr-alton/history?range=30d"
+$ curl -s "http://host.example.ts.net:3000/lines/wcml/history?range=30d"
+$ curl -s "http://host.example.ts.net:3000/lines/swr-alton/history?range=30d"
 ```
 
 Both returned HTTP 200 with real, current data embedded in the page's
@@ -379,7 +379,7 @@ Reported honestly, not worked around.**
 
 Confirmed directly, by probing rather than assuming:
 
-- `http://konata.fox-prometheus.ts.net:3000/` — reachable (HTTP 200).
+- `http://host.example.ts.net:3000/` — reachable (HTTP 200).
 - `/api/Train/*` and `/api/*` (proxied to `/public/*`) — reachable
   through the frontend's proxy, per its own documented allow-list.
 - Direct backend ports were probed and are **not** reachable: `:8080`
@@ -429,7 +429,7 @@ explicit instruction, this was investigated rather than skipped:
    to anything reachable from this sandbox** — `.localhost` names resolve
    to loopback (`::1`) per RFC 6761, and this sandbox's own loopback is
    not the deployment's. Port 9000 *is* separately reachable via the
-   tailnet hostname directly (`http://konata.fox-prometheus.ts.net:9000/`
+   tailnet hostname directly (`http://host.example.ts.net:9000/`
    → real HTTP 302, and Authentik's generic login flow page loads
    correctly, HTTP 200, real "authentik" HTML/config). So Authentik
    itself is up and network-reachable; only the specific redirect host
@@ -655,7 +655,7 @@ freshly-chosen forward-looking window:
    fixing regardless of this plan's outcome.
 2. **Diagnose the `client_id=nr-status-dev` "missing or invalid"
    error** at Authentik's own authorize endpoint, reachable directly at
-   `http://konata.fox-prometheus.ts.net:9000/`, once (1) is fixed enough
+   `http://host.example.ts.net:9000/`, once (1) is fixed enough
    to test through a real browser — this may be the same root cause as
    (1) (an Authentik Application/Brand bound to the wrong hostname) or a
    separate OAuth2-provider misconfiguration.
@@ -679,10 +679,10 @@ run did not reach "go."
 
 ## Access-boundary summary (for whoever re-runs this)
 
-- Reachable: `http://konata.fox-prometheus.ts.net:3000/*` (frontend,
+- Reachable: `http://host.example.ts.net:3000/*` (frontend,
   including server-rendered pages that embed data not reachable through
   the JSON proxy), `/api/public/*` and `/api/Train/*` (proxied), and
-  separately `http://konata.fox-prometheus.ts.net:9000/*` (Authentik,
+  separately `http://host.example.ts.net:9000/*` (Authentik,
   directly).
 - Not reachable, confirmed by direct probe rather than assumed: the
   backend `api` service's own port (`:8080` timed out), any database
@@ -706,7 +706,7 @@ run did not reach "go."
 resuming at Task 4 per the dispatcher's explicit instruction.** This
 section extends the document above; nothing above is edited or retracted.
 Everything below was checked directly against the live instance at
-`http://konata.fox-prometheus.ts.net:3000/` and `:9000/`, or against real
+`http://host.example.ts.net:3000/` and `:9000/`, or against real
 code on `main`, on 2026-08-30 — quoted, not paraphrased, exactly as the
 rest of this document already does.
 
@@ -740,16 +740,16 @@ plain JSON API under the hood.
 **1. Redirect host, live-probed:**
 
 ```
-$ curl -s -D - -o /dev/null "http://konata.fox-prometheus.ts.net:3000/api/auth/login"
+$ curl -s -D - -o /dev/null "http://host.example.ts.net:3000/api/auth/login"
 HTTP/1.1 307 Temporary Redirect
-location: http://konata.fox-prometheus.ts.net:9000/application/o/authorize/?response_type=code&client_id=distant-signal-dev&state=...&code_challenge=...&redirect_uri=http%3A%2F%2Fkonata.fox-prometheus.ts.net%3A3000%2Fapi%2Fauth%2Fcallback&scope=openid+email+profile&nonce=...
+location: http://host.example.ts.net:9000/application/o/authorize/?response_type=code&client_id=distant-signal-dev&state=...&code_challenge=...&redirect_uri=http%3A%2F%2Fkonata.example.ts.net%3A3000%2Fapi%2Fauth%2Fcallback&scope=openid+email+profile&nonce=...
 ```
 
 This is the real, live redirect target the frontend generates right now.
 Compare directly against 2026-08-29's captured value:
 `http://authentik.localhost:9000/application/o/authorize/?...&client_id=nr-status-dev&...`.
 Both things flagged as broken then are different now, observed directly,
-not inferred: the host is `konata.fox-prometheus.ts.net:9000` (the real,
+not inferred: the host is `host.example.ts.net:9000` (the real,
 externally-reachable tailnet hostname this whole session has been using
 throughout), not `authentik.localhost`; and `client_id` is
 **`distant-signal-dev`**, not `nr-status-dev`.
@@ -759,7 +759,7 @@ URL** (no placeholder values, no `--resolve` hack needed this time — the
 hostname just resolves and routes correctly on its own):
 
 ```
-$ curl -s -D - "http://konata.fox-prometheus.ts.net:9000/application/o/authorize/?response_type=code&client_id=distant-signal-dev&...".
+$ curl -s -D - "http://host.example.ts.net:9000/application/o/authorize/?response_type=code&client_id=distant-signal-dev&...".
 HTTP/1.1 302 Found
 location: /if/flow/default-authentication-flow/?response_type=code&client_id=distant-signal-dev&...
 ```
@@ -795,7 +795,7 @@ $ curl -s -L -c cookies.txt -b cookies.txt -X POST \
     -d '{"name":"Validator Bot","email":"valbot1788130219@example.com"}'
 → {"component":"xak-flow-redirect","to":"/","final_redirect":true}
 
-$ curl -s "http://konata.fox-prometheus.ts.net:9000/api/v3/core/users/me/"
+$ curl -s "http://host.example.ts.net:9000/api/v3/core/users/me/"
 → {"user":{"pk":8,"username":"valbot1788130219", ...,"type":"external"}}
 ```
 
@@ -808,11 +808,11 @@ the actual OIDC exchange, using the app's own genuinely-issued
 ```
 $ curl -s -D - -c cookies.txt -b cookies.txt "$AUTHORIZE_URL"    # authenticated Authentik session
 HTTP/1.1 302 Found
-location: http://konata.fox-prometheus.ts.net:3000/api/auth/callback?code=6fc935c3c05f46cdbd326d438dc27032&state=SlurF8u5BT6rtw5xTjdBhQ
+location: http://host.example.ts.net:3000/api/auth/callback?code=6fc935c3c05f46cdbd326d438dc27032&state=SlurF8u5BT6rtw5xTjdBhQ
 
 $ curl -s -D - -c app_cookies.txt -b app_cookies.txt "$CALLBACK_URL"   # app's own distant_signal_login cookie from the earlier /api/auth/login
 HTTP/1.1 307 Temporary Redirect
-location: http://konata.fox-prometheus.ts.net:3000/
+location: http://host.example.ts.net:3000/
 set-cookie: distant_signal_session=s-ayj-eaVqaPONRzDnVeALalniPUTzoN-OKp3ZSP-JQ; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600
 ```
 
@@ -1081,9 +1081,9 @@ flow, a fresh OIDC code exchange — rather than reusing anything from the
 prior session, per the dispatcher's explicit "verify it fresh" instruction.
 
 ```
-$ curl -s -D - -o /dev/null "http://konata.fox-prometheus.ts.net:3000/api/auth/login"
+$ curl -s -D - -o /dev/null "http://host.example.ts.net:3000/api/auth/login"
 HTTP/1.1 307 Temporary Redirect
-location: http://konata.fox-prometheus.ts.net:9000/application/o/authorize/?...&client_id=distant-signal-dev&...
+location: http://host.example.ts.net:9000/application/o/authorize/?...&client_id=distant-signal-dev&...
 ```
 
 Same working redirect shape as 2026-08-30 (host, `client_id=distant-signal-dev`,
@@ -1096,7 +1096,7 @@ the OIDC exchange:
 ```
 $ curl -s -D - -o /dev/null -c app_cookies.txt -b app_cookies.txt "$CALLBACK_URL"
 HTTP/1.1 307 Temporary Redirect
-location: http://konata.fox-prometheus.ts.net:3000/
+location: http://host.example.ts.net:3000/
 set-cookie: distant_signal_session=7svoG1vzkKiLIy1xTBffZfy9ULgkFoFLwmcnEA7wQrY; ...
 ```
 
@@ -1308,13 +1308,13 @@ because they were caused by this validation work:
    this codebase). The far more likely explanation, confirmed circumstantially
    below, is a real redeploy that reset the database.
 2. **The SSO topology itself changed**: `GET /api/auth/login` now redirects
-   to `https://sso.fox-prometheus.ts.net/application/o/authorize/?...&client_id=distant-signal&...`
+   to `https://host.example.ts.net/application/o/authorize/?...&client_id=distant-signal&...`
    (a new hostname, HTTPS, and `client_id=distant-signal` — not
-   `distant-signal-dev`) with `redirect_uri=https://konata.fox-prometheus.ts.net/api/auth/callback`
+   `distant-signal-dev`) with `redirect_uri=https://host.example.ts.net/api/auth/callback`
    (no port, HTTPS). The prior dev-only Authentik endpoint,
-   `http://konata.fox-prometheus.ts.net:9000/`, is now unreachable
-   (connection refused). `https://konata.fox-prometheus.ts.net/` (443,
-   no port) is live and serves the app; `https://sso.fox-prometheus.ts.net/`
+   `http://host.example.ts.net:9000/`, is now unreachable
+   (connection refused). `https://host.example.ts.net/` (443,
+   no port) is live and serves the app; `https://host.example.ts.net/`
    is live and serves Authentik. This looks like a real migration from the
    dev-style HTTP/port-based setup this and the 2026-08-30 session both
    used, to a production-style HTTPS/custom-domain setup, with a
@@ -1458,7 +1458,7 @@ prior write-ups':
    demonstrates it produces real, silent, wrong-train mismatches, not just
    non-resolution.
 2. **Re-establish the no-browser SSO procedure against the new production
-   Authentik application** (`https://sso.fox-prometheus.ts.net/`,
+   Authentik application** (`https://host.example.ts.net/`,
    `client_id=distant-signal`) discovered mid-session — confirm whether an
    equivalent open self-signup flow still exists there, since the
    `*-dev-enrollment` flow this document has now used successfully twice
@@ -1504,7 +1504,7 @@ and because it was this deployment's first-ever real delivery.
 Uploaded the real, untracked `timetable_full.zip` (73,139,785 bytes,
 confirmed by `stat` after transfer) via real SFTP, using
 `dev-server.env`'s `SCHEDULE_SFTP_USERNAME`/`SCHEDULE_SFTP_PASSWORD`/
-`SCHEDULE_SFTP_PORT` (2022) against `konata.fox-prometheus.ts.net`, landing
+`SCHEDULE_SFTP_PORT` (2022) against `host.example.ts.net`, landing
 at the SFTP account's own chroot root (`/`) — confirmed correct by reading
 `charts/distant-signal/templates/schedulefeed-deployment.yaml`'s own
 comment: the account's `home_dir` **is** `WATCH_DIR`
@@ -1562,14 +1562,14 @@ Repeated the exact opening steps of the prior sessions' proven recipe,
 fresh, against the current live instance:
 
 ```
-$ curl -s -D - -o /dev/null -c cookies.txt "https://konata.fox-prometheus.ts.net/api/auth/login"
+$ curl -s -D - -o /dev/null -c cookies.txt "https://host.example.ts.net/api/auth/login"
 HTTP/2 307
-location: https://sso.fox-prometheus.ts.net/application/o/authorize/?response_type=code&client_id=distant-signal&state=...&code_challenge=...&redirect_uri=https%3A%2F%2Fkonata.fox-prometheus.ts.net%2Fapi%2Fauth%2Fcallback&scope=openid+email+profile+groups&nonce=...
+location: https://host.example.ts.net/application/o/authorize/?response_type=code&client_id=distant-signal&state=...&code_challenge=...&redirect_uri=https%3A%2F%2Fkonata.example.ts.net%2Fapi%2Fauth%2Fcallback&scope=openid+email+profile+groups&nonce=...
 set-cookie: distant_signal_login=...; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900
 ```
 
 Same topology the 2026-08-31/09-01 section found mid-session (production
-`sso.fox-prometheus.ts.net`, HTTPS, `client_id=distant-signal`, no port) —
+`host.example.ts.net`, HTTPS, `client_id=distant-signal`, no port) —
 confirmed stable, not reverted. Following the authorize URL:
 
 ```
@@ -1585,7 +1585,7 @@ Authentik's own flow-executor JSON API (the exact no-browser mechanism
 this document's 2026-08-30 section established, reused verbatim):
 
 ```
-$ curl -s -c cookies.txt -b cookies.txt "https://sso.fox-prometheus.ts.net/api/v3/flows/executor/default-authentication-flow/?query="
+$ curl -s -c cookies.txt -b cookies.txt "https://host.example.ts.net/api/v3/flows/executor/default-authentication-flow/?query="
 {"flow_info": {..., "application_pre": "Distant Signal", ...},
  "component": "ak-stage-identification", "user_fields": ["username", "email"],
  "pending_user_identifier": null, "password_fields": false,
@@ -1607,7 +1607,7 @@ directly, not assumed, that the specific flow this document's recipe used
 twice before is simply gone from production:
 
 ```
-$ curl -s -D - -o /dev/null "https://sso.fox-prometheus.ts.net/api/v3/flows/executor/distant-signal-dev-enrollment/?query="
+$ curl -s -D - -o /dev/null "https://host.example.ts.net/api/v3/flows/executor/distant-signal-dev-enrollment/?query="
 HTTP/2 404
 ```
 
@@ -1663,7 +1663,7 @@ states plainly `AUTHENTIK_BOOTSTRAP_PASSWORD`/`_HASH`/`_EMAIL` are
 (both confirmed, by reading their own header comments, to be a **local
 dev-only** OpenBao/secret-store integration against this repo's own
 **local dev** Authentik instance — unrelated to the live
-`sso.fox-prometheus.ts.net` production instance this task targets). No
+`host.example.ts.net` production instance this task targets). No
 admin bootstrap credential, no seeded human test account, and no
 documented procedure for obtaining one was found anywhere.
 
@@ -1708,7 +1708,7 @@ this live deployment's production SSO at all.
 Narrower than ever, but now blocked on something outside this validation
 plan's own scope to fix:
 
-1. **A human with real credentials for `https://sso.fox-prometheus.ts.net`
+1. **A human with real credentials for `https://host.example.ts.net`
    (or a legitimate way to provision a scoped test account there) needs to
    either log in once and hand off a real `distant_signal_session` cookie
    for a bounded validation window, or provision a real, disposable test

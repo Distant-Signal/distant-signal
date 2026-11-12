@@ -11,7 +11,7 @@ observed in; nothing is asserted from captions or memory alone.
 ## Goal
 
 Review the actual rendered UI of the live Distant Signal deployment
-(`https://konata.fox-prometheus.ts.net`, captured 2026-09-02 as 73
+(`https://host.example.ts.net`, captured 2026-09-02 as 73
 screenshots) against two yardsticks at once:
 
 1. **The design specs the pages were built from** (`docs/superpowers/specs/*-design.md`)

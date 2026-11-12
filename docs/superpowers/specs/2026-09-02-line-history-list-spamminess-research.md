@@ -9,7 +9,7 @@ code was edited to produce this document.
 
 ## Goal
 
-`https://konata.fox-prometheus.ts.net/lines/thameslink-cambridge/history`'s
+`https://host.example.ts.net/lines/thameslink-cambridge/history`'s
 Timeline tab (the incident list, not the Trends charts) reads as "spammy" —
 too many, too repetitive, too noisy entries. This document investigates
 *why*, grounded in the real page plus the actual data-model/write/read code,
@@ -22,7 +22,7 @@ and sketches prioritized directions — not a fix.
   sandbox and told me to fall back to code review immediately on failure.
   Instead, both `WebFetch` and a direct `curl` succeeded: `curl -v` shows a
   full TLS handshake against `100.87.228.55:443` with a valid Let's
-  Encrypt certificate for `konata.fox-prometheus.ts.net`, and a plain
+  Encrypt certificate for `host.example.ts.net`, and a plain
   `curl -sS -o ... -w "HTTP_STATUS:%{http_code}"` against the exact history
   URL returned `HTTP_STATUS:200`, ~205KB of HTML. **This sandbox has real
   network reachability into the target Tailscale node** — the task's
@@ -401,6 +401,6 @@ investigation. This specific hypothesis is not supported by the code.
   `great-northern-kings-lynn.toml`'s `gn-peterborough-branch`.
 - Real-page evidence: `curl -v` TLS/HTTP trace and `curl -sS -o ... -w
   "HTTP_STATUS:%{http_code}"` against
-  `https://konata.fox-prometheus.ts.net/lines/thameslink-cambridge/history`
+  `https://host.example.ts.net/lines/thameslink-cambridge/history`
   (200, ~205KB HTML, valid Let's Encrypt cert); `WebFetch` against the same
   URL for a description of the rendered Timeline tab.

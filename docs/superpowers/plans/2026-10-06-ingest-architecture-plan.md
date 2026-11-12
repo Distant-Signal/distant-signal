@@ -18,7 +18,7 @@ branches to merge (D4).
 
 ## Ground rules for whoever executes this
 
-- **Follow `/home/coder/ds-review/fix-brief-common.md`:**
+- **Follow the private fix brief:**
   - rustc 1.88, with no dependency above it;
   - the Cargo.lock pins;
   - the disk-budget cargo environment and the shared `CARGO_TARGET_DIR`;

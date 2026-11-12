@@ -15,7 +15,7 @@ the fixes.
 Run a real accessibility audit of Distant Signal's Next.js/Mantine
 frontend (`frontend/`), combining **static** analysis (source code) and
 **dynamic** analysis (the live rendered app at
-`https://konata.fox-prometheus.ts.net`), since the two catch different
+`https://host.example.ts.net`), since the two catch different
 classes of defects — static tools catch missing ARIA attributes and
 markup-pattern mistakes before anything renders; dynamic tools catch
 computed-style problems (contrast, focus order, DOM landmark structure)
@@ -82,7 +82,7 @@ pinned `9.5.2`/`9.5.2` versions.
 ### Part 2 — Dynamic analysis
 
 Used the Playwright MCP browser tools already available in this session
-against the real deployment (`https://konata.fox-prometheus.ts.net`),
+against the real deployment (`https://host.example.ts.net`),
 logged in as the supplied disposable test account
 (`ds-test-2026-09-02`). No `@axe-core/playwright` package or a way to run
 real Playwright *test* code was available in this session (MCP only

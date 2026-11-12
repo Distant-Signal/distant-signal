@@ -267,7 +267,7 @@ above). See
   TIPLOC/STANOX-only locations, for example in TRUST event rendering and
   train detail.
 - **The LDBWS delay-reason matcher's sub-CRS fix**
-  (`ds-review/ldbws-delay-reason-on-train-detail-scope.md` §4.4). Its 18
+  (a private review note §4.4). Its 18
   board-CRS ↔ TIPLOC-CRS alias pairs (PAD/PDX, STP/SPL and others) and its
   two TIPLOCs missing from `tiploc_crs` could come from CORPUS, by grouping
   TIPLOCs on NLC location or STANOX, instead of a static map.

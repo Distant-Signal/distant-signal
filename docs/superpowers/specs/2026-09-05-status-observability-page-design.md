@@ -26,7 +26,7 @@ an earlier session's memory — see Correction 1 below for where that earlier
 account had drifted): a full grep of the `Ranma-Config` GitOps repo (cloned
 locally at `/tmp/ranma-config`) for `prometheus|monitoring|grafana|scrape`
 across every `*.yaml` file turns up nothing but (a) unrelated Tailscale
-hostnames that happen to contain the substring `fox-prometheus`, (b) three
+hostnames that happen to contain the substring `example`, (b) three
 `prometheus.io/scrape`/`prometheus.io/port` annotation pairs baked into
 Flux's own vendored `gotk-components.yaml` (Flux's controllers self-annotate
 for a Prometheus that would have to already exist to read them), and (c) one
@@ -66,7 +66,7 @@ overturned an inherited framing (e.g. `2026-09-04-movement-relay-design.md`'s
 1. **The specific quoted comment ("this cluster has no Prometheus/monitoring
    stack... to scrape it") does not exist verbatim anywhere in
    `Ranma-Config`.** `clusters/base/apps/distant-signal.yaml` and
-   `clusters/mine-bringer/apps/distant-signal.yaml` were read in full (159
+   `clusters/<cluster>/apps/distant-signal.yaml` were read in full (159
    and 185 lines respectively) and grepped case-insensitively for
    `prometheus|monitoring|grafana|scrape|no Prometheus`; no such comment is
    present in either. This looks like drift from an earlier session's

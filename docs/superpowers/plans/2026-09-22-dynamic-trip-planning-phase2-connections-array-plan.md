@@ -150,7 +150,7 @@ must already exist and be populated.
    algorithm can traverse the same way as a real train connection" — is
    corrected here, not implemented literally, after independently re-reading
    the real sibling implementation this pass** (re-cloned from
-   `ssh://git@git-bringer-ssh.fox-prometheus.ts.net/lucy/Distant-Signal-MCP.git`,
+   `ssh://git@host.example.ts.net/lucy/Distant-Signal-MCP.git`,
    since the design spec's own provenance note says this exact detail was
    carried forward unverified). The real, working, tested implementation —
    `src/timetable/plan/interchange.ts` (`minimumChangeTime`, `siblingTiplocs`,

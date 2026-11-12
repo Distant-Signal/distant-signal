@@ -138,7 +138,7 @@ and lookup layer must already exist and be tested).
   logic in `csa.rs` must trace to a specific, cited line range in the
   sibling project's own `csa.ts`, re-read directly during this plan's
   research pass (re-cloned from
-  `ssh://git@git-bringer-ssh.fox-prometheus.ts.net/lucy/Distant-Signal-MCP.git`) —
+  `ssh://git@host.example.ts.net/lucy/Distant-Signal-MCP.git`) —
   not reconstructed from the design spec's own higher-level prose summary
   alone.
 

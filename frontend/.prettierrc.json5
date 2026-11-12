@@ -1,5 +1,5 @@
-// JSON5 so the deviations from the "Strict Config Starting Points" guide's
-// .prettierrc.json can carry their reasons.
+// JSON5 so the deviations from the strict baseline Prettier config
+// can carry their reasons.
 {
   $schema: 'https://json.schemastore.org/prettierrc',
   printWidth: 120,

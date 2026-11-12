@@ -63,7 +63,7 @@ posture for a comma-format file in a fixed-width-format codebase).
    *not* re-verified this pass because that project's clone was unavailable
    (design spec, top-of-document provenance note). This plan's own research
    pass **did** re-clone `Distant-Signal-MCP`
-   (`ssh://git@git-bringer-ssh.fox-prometheus.ts.net/lucy/Distant-Signal-MCP.git`)
+   (`ssh://git@host.example.ts.net/lucy/Distant-Signal-MCP.git`)
    and confirms every sibling-project number the design spec cites — real
    counts, re-read directly from that project's own design doc
    (`docs/superpowers/specs/2026-07-22-train-mcp-phase2b-journey-planner-design.md:62-63,79`):

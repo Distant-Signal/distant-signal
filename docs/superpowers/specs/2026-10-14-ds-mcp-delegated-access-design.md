@@ -560,7 +560,7 @@ static list of registered clients:
 ```yaml
 delegatedClients:
   - name: ds-mcp                 # the grant table's `client` value, shown in the UI as "Distant Signal assistant (MCP)"
-    issuerUrl: https://sso.cursed.solutions/application/o/distant-signal-api/
+    issuerUrl: https://sso.example.com/application/o/distant-signal-api/
     audience: distant-signal-api
     maxScopes: [journeys:read, journeys:write, journeys:delete]   # + journeys:read_shared in Phase 3
     enabled: true                # the kill switch
@@ -1489,8 +1489,8 @@ and Authentik's docs. This runbook checks them on a real instance.
   `docker-compose.authentik.yml`, `ghcr.io/goauthentik/server:2026.8.0`,
   with blueprints in `authentik-blueprints/`.
 - **[Ranma]** steps change or test the production Authentik
-  (`https://sso.cursed.solutions`, 2026.8.1). Its configuration lives in
-  Ranma-Config (`clusters/mine-bringer/apps/authentik.yaml`), not in this
+  (`https://sso.example.com`, 2026.8.1). Its configuration lives in
+  Ranma-Config (`clusters/<cluster>/apps/authentik.yaml`), not in this
   repository, so only the Ranma session may do them.
 - **[ds-mcp]** steps need ds-mcp's code or credentials.
 
@@ -1660,11 +1660,11 @@ also leaves the production `distant-signal-mcp` provider unchanged.
 **Remaining production steps for Ranma** are in §9.6.
 
 **Production smoke test (2026-10-14, Authentik 2026.8.3).** The Ranma
-session ran §9.6 step 3 on `https://sso.cursed.solutions`:
+session ran §9.6 step 3 on `https://sso.example.com`:
 
 | Check | Result |
 |---|---|
-| Exchange of a `distant-signal-mcp` access token | **200.** RS256 JWT with `iss=https://sso.cursed.solutions/application/o/distant-signal-api/`, `aud=azp=distant-signal-api`, `exp − iat = 300`, `scope="journeys:write journeys:read journeys:delete"`. No `act` and no `sid`, as on dev |
+| Exchange of a `distant-signal-mcp` access token | **200.** RS256 JWT with `iss=https://sso.example.com/application/o/distant-signal-api/`, `aud=azp=distant-signal-api`, `exp − iat = 300`, `scope="journeys:write journeys:read journeys:delete"`. No `act` and no `sid`, as on dev |
 | A `distant-signal` (DS SSO) access token as the subject | Refused, 400 `invalid_grant` |
 | The same exchange for a deactivated user | Refused, 400 `invalid_grant` |
 
@@ -1682,7 +1682,7 @@ done on 2026-10-14 (§9.5); the O3 binding was removed under D-18.
    - Seal it twice, as with `distant-signal-mcp`: as `ds-mcp-secret` /
      `distant-signal-api-client-secret` in namespace `ds-mcp`, and as the
      Authentik-side copy.
-2. **Add the blueprint entries** to `clusters/mine-bringer/apps/authentik.yaml`,
+2. **Add the blueprint entries** to `clusters/<cluster>/apps/authentik.yaml`,
    gated on the secret env var being non-empty, like `srv-ds-mcp`:
    - **O1:** `authentik_providers_oauth2.scopemapping` × 3 (Phase 1):
      - `ds-journeys-read` / `scope_name: journeys:read` / description
@@ -1731,13 +1731,13 @@ done on 2026-10-14 (§9.5); the O3 binding was removed under D-18.
    user (any Authentik account):
    1. Obtain a `distant-signal-mcp` access token, through ds-mcp's login or
       a one-off authorization-code run.
-   2. `POST https://sso.cursed.solutions/application/o/token/`, with Basic
+   2. `POST https://sso.example.com/application/o/token/`, with Basic
       auth `distant-signal-api:<secret>` and the form fields
       `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`,
       `subject_token=<AT>`,
       `subject_token_type=urn:ietf:params:oauth:token-type:access_token`
       and `scope=journeys:read journeys:write journeys:delete`.
-   3. Expect 200 and a JWT with `iss=https://sso.cursed.solutions/application/o/distant-signal-api/`,
+   3. Expect 200 and a JWT with `iss=https://sso.example.com/application/o/distant-signal-api/`,
       `aud=distant-signal-api`, the same `sub` as the subject token, and
       `exp − iat = 300`.
    4. Repeat with a `distant-signal` (DS SSO) access token as the subject.
@@ -1746,7 +1746,7 @@ done on 2026-10-14 (§9.5); the O3 binding was removed under D-18.
    6. Delete the test user.
    7. Record the results as a dated note in §9.5. Paste no tokens anywhere.
 4. **Hand over to the DS and ds-mcp sessions:**
-   - the issuer URL `https://sso.cursed.solutions/application/o/distant-signal-api/`;
+   - the issuer URL `https://sso.example.com/application/o/distant-signal-api/`;
    - the audience `distant-signal-api`;
    - the secret's location for ds-mcp.
 

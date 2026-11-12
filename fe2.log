@@ -1,9 +1,0 @@
-> eslint . --max-warnings 0
-
-[warn] Code style issues found in 9 files. Run Prettier with --write to fix.
-
-     × getPreferences treats a 401 as no preferences rather than throwing 9ms
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
- Test Files  1 failed | 369 passed (370)
-      Tests  1 failed | 5460 passed (5461)
-copy=0

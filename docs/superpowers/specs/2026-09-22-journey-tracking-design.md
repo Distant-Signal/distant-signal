@@ -333,7 +333,7 @@ third time.
 ### 0.6 Per-stop platform/delay display (#4's building block) — in-flight external dependency
 
 **Found, in progress, not yet merged**: worktree
-`/home/coder/Distant-Signal/.claude/worktrees/agent-ad6ebb365cf9fcac0`,
+`<worktree>`,
 branch `worktree-agent-ad6ebb365cf9fcac0`, uncommitted. So far it adds
 `platform: Option<String>` and `planned_platform: Option<String>` to
 `common::StationDeparture` and to `TrackPinRequest`, and parses RDM's
