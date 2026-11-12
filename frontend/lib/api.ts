@@ -23,6 +23,7 @@ import type {
   LineSummary,
   CustomLineDetail,
   LineDefinitionSummary,
+  StationIndexEntry,
   DataFreshness,
   HistoryRetention,
   Suggestion,
@@ -1509,22 +1510,12 @@ export async function getTflStop(id: string): Promise<TflStopDetail> {
 // seconds in Next's data cache: a crawler fetching the sitemap costs the api
 // nothing between refreshes.
 
-/** `GET /public/stations/codes`: every station's CRS code. */
-export async function getStationCodes(revalidate: number): Promise<string[]> {
-  const body = await fetchJson<Api.StationCodes>(`${baseUrl()}/public/stations/codes`, { next: { revalidate } });
-  return body.codes;
-}
-
-/** `GET /public/lines/{id}/definition`, hour-cached and anonymous: the
- * stations a catalogue line covers, for the sitemap (`getLineDefinition`
- * is per-visitor and never cached). */
-export async function getCatalogueLineStations(id: string, revalidate: number): Promise<string[]> {
-  const body = await fetchJson<LineDefinitionSummary>(
-    `${baseUrl()}/public/lines/${encodeURIComponent(id)}/definition`,
-    {
-      next: { revalidate },
-    },
-  );
+/** `GET /public/stations/index`: every station's CRS code and name, and
+ * whether its page has content (`served`: a catalogue line lists it, or a
+ * timetabled train calls there in the next week). The api caches it for
+ * five minutes and marks it cacheable for an hour. */
+export async function getStationIndex(revalidate: number): Promise<StationIndexEntry[]> {
+  const body = await fetchJson<Api.StationIndex>(`${baseUrl()}/public/stations/index`, { next: { revalidate } });
   return body.stations;
 }
 

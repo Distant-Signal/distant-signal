@@ -9,8 +9,8 @@ import {
   type IrelandStation,
   networkInfo,
 } from './ireland';
-import { groupStationCodes, STATION_BROWSE_PATH, stationBrowseHref } from './stationBrowse';
-import type { LineSummary } from './types';
+import { stationLetters, STATION_BROWSE_PATH, stationBrowseHref } from './stationBrowse';
+import type { LineSummary, StationIndexEntry } from './types';
 
 /** How long the sitemap's lists stay in Next's data cache: six hours.
  * Stations, stops and lines change a few times a year, and the sitemap is
@@ -18,7 +18,7 @@ import type { LineSummary } from './types';
 export const SITEMAP_REVALIDATE_SECONDS = 6 * 60 * 60;
 
 /** The most URLs one sitemap file may list (sitemaps.org). Today's total is
- * a few thousand; past this, split it with `generateSitemaps`. */
+ * a few thousand (about 2,600 of them station pages); past this, split it with `generateSitemaps`. */
 export const SITEMAP_URL_LIMIT = 50_000;
 
 /** The public pages that need no list: the home page, the indexes, the
@@ -56,29 +56,6 @@ export function isExcludedPath(path: string): boolean {
   );
 }
 
-/** Whether a station page has next to nothing on it, so the sitemap should
- * not spend crawl budget on it. KEEP THIS IN STEP WITH WHAT
- * `app/stations/[crs]/page.tsx` ACTUALLY SHOWS: today a page is thin when
- * it shows both "This station isn't covered by our line-status tracking
- * yet" (no catalogue line lists the station, so `/StopPoint/{crs}/Disruption`
- * 404s) and "This station isn't part of our live departure sampling" (its
- * sample-stats 404s), leaving only the departures link and the
- * accessibility block. Narrow it when the page gains per-station content.
- *
- * The api has no bulk sampling answer, so the sitemap cannot ask it for 2,600
- * stations; `hasSampleStats` is `false` there and a station with only
- * sample stats counts as thin (its stats are mostly "below threshold" or
- * empty). A bulk answer would let the sitemap pass the real value. */
-export function isThinStation({
-  lineCovered,
-  hasSampleStats,
-}: {
-  lineCovered: boolean;
-  hasSampleStats: boolean;
-}): boolean {
-  return !lineCovered && !hasSampleStats;
-}
-
 export interface TransitSitemapNetwork {
   /** The path segment (`metrolink`). */
   id: string;
@@ -91,11 +68,10 @@ export interface TransitSitemapNetwork {
 export interface SitemapSources {
   /** `https://host`, no trailing slash. */
   origin: string;
-  stationCodes: string[];
-  /** CRS codes (upper case) that some catalogue line covers. `null` or
-   * absent when unknown (a lookup failed, or no line listed a station): then
-   * no station is treated as thin. */
-  coveredStationCodes?: ReadonlySet<string> | null | undefined;
+  /** The station index (`GET /public/stations/index`). A station whose page
+   * has next to nothing on it (`served: false`) is not listed. `[]` when the
+   * index could not be read: the sitemap then has no station pages. */
+  stations: StationIndexEntry[];
   tflStopIds: string[];
   lines: LineSummary[];
   transit: TransitSitemapNetwork[];
@@ -134,8 +110,7 @@ const seg = encodeURIComponent;
 
 /** Every public page path the sources name, in a stable order. */
 export function sitemapPaths({
-  stationCodes,
-  coveredStationCodes,
+  stations,
   tflStopIds,
   lines,
   transit,
@@ -155,14 +130,12 @@ export function sitemapPaths({
   }
   // The A to Z of station pages (`/stations/a-z`): the plain-link route
   // to each station page, so none depends on the sitemap alone.
-  const letters = [...groupStationCodes(stationCodes).keys()].sort();
+  const letters = stationLetters(stations);
   if (letters.length > 0) paths.push(STATION_BROWSE_PATH, ...letters.map(stationBrowseHref));
-  // Fail safe: without a usable coverage set nothing is thin.
-  const coverage = coveredStationCodes && coveredStationCodes.size > 0 ? coveredStationCodes : null;
-  for (const crs of stationCodes) {
-    const code = crs.toUpperCase();
-    if (coverage && isThinStation({ lineCovered: coverage.has(code), hasSampleStats: false })) continue;
-    paths.push(`/stations/${seg(code)}`);
+  // Only a station with content (`served`) is listed, so no crawl budget
+  // goes on a page that shows just a departures link.
+  for (const { crs, served } of stations) {
+    if (served) paths.push(`/stations/${seg(crs.toUpperCase())}`);
   }
   for (const id of tflStopIds) paths.push(`/tfl/stops/${seg(id)}`);
   for (const network of transit) {

@@ -168,6 +168,7 @@ export type OperatorSummary = Api.OperatorSummary;
 export type StationOperatorSampleStats = Api.StationOperatorSampleStats;
 export type StationAccessibilityData = Api.StationAccessibility;
 export type NearbyStation = Api.NearbyStation;
+export type StationIndexEntry = Api.StationIndexEntry;
 export type BoardCallingPoint = Api.BoardCallingPoint;
 export type TrainResolveResult = Api.TrainResolveResult;
 export type LineSummary = Api.LineSummary;
