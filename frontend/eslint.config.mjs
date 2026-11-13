@@ -2,6 +2,7 @@ import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import tseslint from 'typescript-eslint';
 
 // The plain-JS files tsconfig.json skips (allowJs: false), split by the
@@ -106,6 +107,33 @@ const DATE_FORMAT_RULE = {
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+
+  // eslint-plugin-jsx-a11y's strict preset (eslint-config-next only turns on
+  // a handful of its rules as warnings). Only the rules are taken:
+  // eslint-config-next already registers the plugin, and the flat config
+  // refuses a second registration of it. `components` maps the Mantine
+  // components that render a native element to it, so the rules (alt text,
+  // valid hrefs, accessible names, no autofocus) cover them too.
+  {
+    files: ['**/*.{jsx,tsx}'],
+    rules: jsxA11y.flatConfigs.strict.rules ?? {},
+    settings: {
+      'jsx-a11y': {
+        components: {
+          Anchor: 'a',
+          Image: 'img',
+          Button: 'button',
+          ActionIcon: 'button',
+          UnstyledButton: 'button',
+          TextInput: 'input',
+          PasswordInput: 'input',
+          NumberInput: 'input',
+          Textarea: 'textarea',
+          Select: 'select',
+        },
+      },
+    },
+  },
 
   // A disable comment that no longer suppresses anything is itself an
   // error, so the per-line opt-outs below cannot outlive their reason.
