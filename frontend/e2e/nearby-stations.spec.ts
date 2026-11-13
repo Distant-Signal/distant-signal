@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPage } from './a11y-helpers';
 
 // "Use my location" on /stations (app/stations/NearbyStationList.tsx),
 // against the live api and the seed's two stations with coordinates
@@ -69,7 +69,7 @@ test.describe('nearby stations', () => {
       await page.goto('/stations');
       await page.getByRole('button', { name: 'Use my location' }).click();
       await expect(page.getByRole('list', { name: 'Nearest stations' })).toBeVisible();
-      const results = await new AxeBuilder({ page }).include('[data-nearby-stations]').analyze();
+      const results = await scanPage(page);
       expect(results.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) }))).toEqual([]);
     });
   }

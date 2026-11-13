@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 import type { TripPlanResponse } from '../lib/types';
 import { SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS } from '../test/apiDefaults';
 
@@ -183,7 +183,7 @@ test.describe('Plan a journey', () => {
     test(`has no axe violations on ?mode=${mode}`, async ({ page }) => {
       await page.goto(`/plan?mode=${mode}`);
       await expect(page.getByRole('heading', { level: 1, name: 'Plan a journey' })).toBeVisible();
-      const results = await new AxeBuilder({ page }).analyze();
+      const results = await scanPageBothSchemes(page);
       expect(results.violations).toEqual([]);
     });
   }

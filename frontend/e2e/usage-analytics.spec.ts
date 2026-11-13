@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPage } from './a11y-helpers';
 
 // Opt-in usage counts (DS-190, frontend/lib/usageAnalytics.ts): off by
 // default, so a visitor who never opted in sends nothing; one who turns the
@@ -163,7 +163,7 @@ test.describe('usage switch accessibility', () => {
               await toggle.click();
               await expect(toggle).toBeChecked();
             }
-            const results = await new AxeBuilder({ page }).include('[data-analytics-opt-in]').analyze();
+            const results = await scanPage(page);
             expect(results.violations, `${state}: ${JSON.stringify(results.violations, null, 2)}`).toEqual([]);
           }
         });
@@ -175,7 +175,7 @@ test.describe('usage switch accessibility', () => {
         });
         await page.goto('/account/preferences', { waitUntil: 'networkidle' });
         await expect(page.getByRole('switch', { name: SWITCH_NAME })).toBeDisabled();
-        const results = await new AxeBuilder({ page }).include('[data-analytics-opt-in]').analyze();
+        const results = await scanPage(page);
         expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
       });
     });

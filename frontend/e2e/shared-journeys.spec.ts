@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPage } from './a11y-helpers';
 
 // Journeys shared with you (DS-199), against the seeded backend
 // (e2e/fixtures/seed.sql): fixture-member shares two 2099 train journeys
@@ -89,7 +89,7 @@ test.describe('journeys shared with you', () => {
       const rowBox = await withTrain.boundingBox();
       expect(headingBox && rowBox && headingBox.y < rowBox.y).toBe(true);
 
-      const results = await new AxeBuilder({ page }).include('main').analyze();
+      const results = await scanPage(page);
       expect(results.violations).toEqual([]);
     });
   }

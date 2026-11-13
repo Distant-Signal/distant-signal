@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 
 // The route-level sweep in e2e/accessibility.spec.ts cannot see this state:
 // ConnectivityMonitor's "Reconnecting..." banner only exists while the
@@ -11,7 +11,6 @@ import AxeBuilder from '@axe-core/playwright';
 // Notification's description to gray 6, bypassing this app's
 // `--mantine-color-dimmed` override, so the banner originally shipped at
 // 3.32:1 on white. See the matching comment in app/globals.css.
-const RULES = ['color-contrast', 'landmark-one-main', 'region', 'heading-order', 'page-has-heading-one'];
 
 /** Fires the browser's own `offline` event until ConnectivityMonitor shows
  * its banner. FE-9: this used to be a fixed 1.5 s sleep after hydration,
@@ -46,7 +45,7 @@ test.describe('connectivity banner', () => {
     const status = await goOffline(page);
     await expect(status).toHaveAttribute('aria-live', 'polite');
 
-    const results = await new AxeBuilder({ page }).withRules(RULES).analyze();
+    const results = await scanPageBothSchemes(page);
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 

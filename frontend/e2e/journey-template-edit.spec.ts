@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 
 // The journey template editor (components/EditJourneyTemplateForm.tsx):
 // each leg's From and To fields are the site's standard station search, so
@@ -111,7 +111,7 @@ test.describe('edit a journey template', () => {
       await expect(
         card.getByText('Add a departure time to each leg so we can remind you to pick a train.'),
       ).toBeVisible();
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
 
       await page.goto(`/journeys/regular/${templateId}`);

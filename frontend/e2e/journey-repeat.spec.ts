@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type BrowserContext } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 
 // "Track this journey again" and "Move this journey": the whole route
 // planned again, the same trains preferred, shown before saving. Runs
@@ -74,7 +74,7 @@ test.describe('track again and move', () => {
       await expect(dialog.getByLabel('Time')).toHaveValue('00:05');
       const track = dialog.getByRole('button', { name: /^Track this journey, the 00:05 / });
       await expect(track).toBeVisible();
-      const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+      const results = await scanPageBothSchemes(page);
       expect(results.violations).toEqual([]);
 
       await track.click();
@@ -108,7 +108,7 @@ test.describe('track again and move', () => {
       await dialog.getByLabel('Time').fill('01:05');
       await dialog.getByRole('button', { name: 'Find trains' }).click();
       await expect(dialog.getByText('The same operator, close to your time.')).toBeVisible();
-      const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+      const results = await scanPageBothSchemes(page);
       expect(results.violations).toEqual([]);
 
       await dialog.getByRole('button', { name: /^Move to these trains, the 01:05 / }).click();
