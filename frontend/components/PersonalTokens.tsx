@@ -104,11 +104,11 @@ export function PersonalTokens({
         private.
       </Text>
       <Text size="sm">
-        <TextLink href={DEVELOPERS_PATH} underline="always">
+        <TextLink href={DEVELOPERS_PATH} underline="always" inline>
           How to use a token
         </TextLink>
         {' · '}
-        <TextLink href={API_REFERENCE_PATH} underline="always">
+        <TextLink href={API_REFERENCE_PATH} underline="always" inline>
           API reference
         </TextLink>
       </Text>
