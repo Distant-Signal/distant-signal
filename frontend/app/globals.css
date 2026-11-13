@@ -2651,3 +2651,13 @@ svg[data-icon='external-link'] {
     width: 100%;
   }
 }
+
+/* The home page's journey cards sit close together, and this one-line link
+   is only 16px tall, under WCAG 2.2's 24px target size (2.5.8) next to the
+   card's own link. Padding, not margin, so the underline and layout of the
+   text stay as they were. */
+.ds-regular-journey-link a {
+  display: inline-block;
+  min-height: 24px;
+  line-height: 24px;
+}
