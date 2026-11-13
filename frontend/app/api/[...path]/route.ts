@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { clientIpFromHeaders, REAL_IP_HEADER } from '@/lib/clientIp';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import { createLogger } from '@/lib/logger';
+import { isPublicCacheCandidate, lockDown, publicCacheEnabled, publicCacheHeadersFor } from '@/lib/proxyPublicCache';
 
 // Client Components can't read `API_BASE_URL` (server-only env var, not
 // inlined into the browser bundle unless prefixed `NEXT_PUBLIC_`), so
@@ -244,8 +245,20 @@ function upstreamFailure(err: unknown): NextResponse {
 }
 
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
+  // The opt-in shared-cache policy (lib/proxyPublicCache.ts,
+  // docs/api-proxy-public-cache.md). Off by default, and then nothing below
+  // that mentions it runs: the proxy is byte-for-byte what it was. On, every
+  // response is `private, no-store` unless the request is an anonymous GET
+  // or HEAD of an allowlisted path and the api itself answered `public`.
+  const cachePolicyOn = publicCacheEnabled();
+  const cacheCandidate = cachePolicyOn && isPublicCacheCandidate(req.method, path, req.headers);
+  const locked = (res: NextResponse): NextResponse => {
+    if (cachePolicyOn) lockDown(res.headers);
+    return res;
+  };
+
   if (!(await hasAcceptableOriginForMutation(req))) {
-    return new NextResponse('cross-site request rejected', { status: 403 });
+    return locked(new NextResponse('cross-site request rejected', { status: 403 }));
   }
 
   // Build the target as a `URL` and check the *resolved* pathname still
@@ -275,7 +288,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     target.pathname.startsWith('/JourneyTemplates/') ||
     target.pathname.startsWith('/Trips/');
   if (!isAllowed) {
-    return new NextResponse('invalid path', { status: 400 });
+    return locked(new NextResponse('invalid path', { status: 400 }));
   }
 
   // Forward the incoming Content-Type verbatim rather than hardcoding
@@ -352,6 +365,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   if (ifNoneMatch) {
     headers['If-None-Match'] = ifNoneMatch;
   }
+  // The other validator, for a publicly cacheable path only (a cache
+  // revalidating by date); every other request is forwarded as before.
+  const ifModifiedSince = req.headers.get('if-modified-since');
+  if (cacheCandidate && ifModifiedSince) {
+    headers['If-Modified-Since'] = ifModifiedSince;
+  }
 
   const init: RequestInit = {
     method: req.method,
@@ -386,7 +405,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     // Read through `readCappedBody` (FE-7), which also returns an
     // ArrayBuffer.
     const body = await readCappedBody(req);
-    if (body === 'too-large') return tooLarge();
+    if (body === 'too-large') return locked(tooLarge());
     init.body = body;
   } else if (req.method === 'DELETE') {
     // A DELETE normally has no body and is forwarded without one, as
@@ -394,7 +413,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     // JSON confirmation body (UK legal audit LEG-4), so a DELETE that does
     // carry one is forwarded byte-for-byte like a POST's.
     const body = await readCappedBody(req);
-    if (body === 'too-large') return tooLarge();
+    if (body === 'too-large') return locked(tooLarge());
     if (body.byteLength > 0) {
       init.body = body;
     }
@@ -404,7 +423,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   try {
     response = await fetch(target, init);
   } catch (err) {
-    return upstreamFailure(err);
+    return locked(upstreamFailure(err));
   }
 
   // A response can carry *multiple* Set-Cookie headers, which
@@ -424,7 +443,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     for (const setCookie of setCookies) {
       responseHeaders.append('set-cookie', setCookie);
     }
-    return new NextResponse(null, { status: response.status, headers: responseHeaders });
+    return locked(new NextResponse(null, { status: response.status, headers: responseHeaders }));
   }
 
   // arrayBuffer(), not text(): a binary download (Content-Disposition) must
@@ -433,7 +452,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   try {
     body = await response.arrayBuffer();
   } catch (err) {
-    return upstreamFailure(err);
+    return locked(upstreamFailure(err));
   }
   // No default type on a 304: a cache updates its stored headers from it.
   const contentType = response.headers.get('Content-Type') ?? (response.status === 304 ? null : 'application/json');
@@ -448,9 +467,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // `Retry-After` comes with api's 503 (a dependency is unavailable, see
   // docs/api-changelog.md 2026-10-06) and 429, so a client can wait it out.
   // `ETag` comes with the Atom feeds, for the conditional GET above.
+  //
+  // With the cache policy on, `Cache-Control` is not relayed here: it is set
+  // below, from the policy.
   for (const name of [
     'Content-Disposition',
-    'Cache-Control',
+    ...(cachePolicyOn ? [] : ['Cache-Control']),
     'X-Generated-At',
     'X-Polled-At',
     'Last-Modified',
@@ -462,8 +484,23 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       responseHeaders.set(name, value);
     }
   }
-  for (const setCookie of setCookies) {
-    responseHeaders.append('set-cookie', setCookie);
+  // Policy on: a candidate's response is public only when the api said so
+  // (publicCacheHeadersFor); it then carries the api's validators and `Vary`
+  // and no `Set-Cookie`. Every other response is private, and keeps its
+  // `Set-Cookie`s as before.
+  const publicHeaders = cacheCandidate ? publicCacheHeadersFor(response.status, response.headers) : null;
+  if (cachePolicyOn) {
+    if (publicHeaders === null) {
+      lockDown(responseHeaders);
+    } else {
+      responseHeaders.set('Cache-Control', publicHeaders.cacheControl);
+      if (publicHeaders.vary) responseHeaders.set('Vary', publicHeaders.vary);
+    }
+  }
+  if (publicHeaders === null) {
+    for (const setCookie of setCookies) {
+      responseHeaders.append('set-cookie', setCookie);
+    }
   }
   // Null-body statuses (204/205/304) may not carry a body on the outgoing
   // Response, not even an empty string -- see the existing PUT/DELETE
