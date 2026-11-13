@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 
 // Clickable cards (`components/ClickableCard.tsx`, docs/style-guide.md
 // "Clickable cards"): every box the whole of which is clickable holds one
@@ -80,8 +80,8 @@ test.describe('clickable cards', () => {
         expect(['A', 'BUTTON', 'INPUT']).toContain(card.targets[0]);
         expect(card.cursor).toBe('pointer');
       }
-      // Card markup only: the full-page sweep is e2e/accessibility.spec.ts.
-      const results = await new AxeBuilder({ page }).include('[data-clickable-card]').analyze();
+      // Whole page, both schemes: the cards' chrome neighbours are covered too.
+      const results = await scanPageBothSchemes(page);
       expect(results.violations).toEqual([]);
     });
   }

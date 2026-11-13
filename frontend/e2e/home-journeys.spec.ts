@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type BrowserContext } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPage } from './a11y-helpers';
 
 // The logged-in home page's journey sections: "Current journey" for the
 // journey under way, and "Upcoming journeys" for the ones still to come; a
@@ -126,7 +126,7 @@ test.describe('home page journeys (logged in)', () => {
       const upcomingBox = await page.getByRole('region', { name: 'Upcoming journeys' }).boundingBox();
       expect(currentBox && upcomingBox && currentBox.y < upcomingBox.y).toBe(true);
 
-      const results = await new AxeBuilder({ page }).include('main').analyze();
+      const results = await scanPage(page);
       expect(results.violations).toEqual([]);
 
       // Keyboard: the card's link goes to the journey page.
@@ -159,7 +159,7 @@ test.describe('home page journeys teaser (logged out)', () => {
       const rightNow = await page.getByRole('heading', { name: 'Right now' }).boundingBox();
       expect(rightNow && rightNow.y + rightNow.height <= 844).toBe(true);
 
-      const results = await new AxeBuilder({ page }).include('main').analyze();
+      const results = await scanPage(page);
       expect(results.violations).toEqual([]);
     });
   }

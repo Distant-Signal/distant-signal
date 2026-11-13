@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 
 // Timetabled legs (DS-237), against the seeded backend
 // (e2e/fixtures/seed.sql): the seeded Metrolink feed's Blue Line runs
@@ -145,7 +145,7 @@ test.describe('timetabled legs', () => {
       /^\/transit\/metrolink\/incidents\//,
     );
 
-    const results = await new AxeBuilder({ page }).include('[data-timetabled-leg]').analyze();
+    const results = await scanPageBothSchemes(page);
     expect(results.violations).toEqual([]);
   });
 
@@ -176,7 +176,7 @@ test.describe('timetabled legs', () => {
       await expect(rows.first()).toContainText('Walthamstow Central');
       await expect(panel.getByText(/Brixton/)).toHaveCount(0);
       await expect(panel.getByText(/^TfL's predictions for trains that go to Walthamstow Central\./)).toBeVisible();
-      const results = await new AxeBuilder({ page }).include('[data-live-arrivals]').analyze();
+      const results = await scanPageBothSchemes(page);
       expect(results.violations).toEqual([]);
     } finally {
       await api(page, 'DELETE', `/Journeys/${tubeJourney}`);

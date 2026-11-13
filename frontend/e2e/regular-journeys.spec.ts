@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 import type { JourneyTemplateListItem, TripPlanResponse } from '../lib/types';
 import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '../test/apiDefaults';
 
@@ -165,7 +165,7 @@ test.describe('regular journeys', () => {
       await expect(page.getByText('Your usual train: 08:10 London Kings Cross to London Euston')).toBeVisible();
       await expect(page.getByRole('switch', { name: 'Skip bank holidays' })).toBeChecked();
       await expect(page.getByRole('combobox', { name: /Whose bank holidays/ })).toHaveValue('England and Wales');
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
 
       await page.getByRole('button', { name: 'Save regular journey' }).click();
@@ -214,7 +214,7 @@ test.describe('regular journeys', () => {
       await expect(
         card.getByRole('link', { name: 'London Euston to London Kings Cross, leave after 18:00' }),
       ).toBeVisible();
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
 
       await card.getByRole('button', { name: 'Skip next' }).click();
@@ -266,7 +266,7 @@ test.describe('regular journeys', () => {
       const dates = page.getByRole('group', { name: 'Next dates' });
       // Every day: the next 8 days, each on.
       await expect(dates.getByRole('checkbox')).toHaveCount(8);
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
 
       const second = dates.getByRole('checkbox').nth(1);
@@ -335,7 +335,7 @@ test.describe('regular journeys', () => {
       await page.goto(`/journeys/regular/${templateId}`);
       await expect(page.getByText(/^Paused until \d{1,2} [A-Z][a-z]{2} \d{4}\.$/)).toBeVisible();
       await expect(page.getByRole('group', { name: 'Next dates' }).getByText('Paused')).toHaveCount(2);
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
       await page.getByRole('button', { name: 'Start again now' }).click();
       await expect(page.getByRole('button', { name: 'Pause until' })).toBeVisible();
@@ -346,7 +346,7 @@ test.describe('regular journeys', () => {
       await expect(page.getByRole('dialog', { name: 'Pause until a date?' })).toBeVisible();
       // Once it has faded in: mid-transition, axe reads its colours half-mixed.
       await expect(page.locator('.mantine-Modal-content')).toHaveCSS('opacity', '1');
-      const dialogAxe = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+      const dialogAxe = await scanPageBothSchemes(page);
       expect(dialogAxe.violations).toEqual([]);
       await page.getByRole('button', { name: 'Cancel' }).click();
 
@@ -360,7 +360,7 @@ test.describe('regular journeys', () => {
       const section = page.getByRole('region', { name: 'Time away' });
       await expect(section.getByText(/^E2E away: /)).toBeVisible();
       // The whole page, with the new card's period and Connected apps on it.
-      const prefsAxe = await new AxeBuilder({ page }).analyze();
+      const prefsAxe = await scanPageBothSchemes(page);
       expect(prefsAxe.violations).toEqual([]);
       await expect.poll(async () => (await detail()).upcomingDates[1]!.skipReason).toBe('away');
 
@@ -424,7 +424,7 @@ test.describe('regular journeys', () => {
       await page.getByRole('option', { name: 'Every other week' }).click();
       await expect(page.getByRole('radio', { name: 'Starting this week' })).toBeChecked();
       await expect(page.getByText(/^Next dates: /)).toBeVisible();
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
       await page.getByRole('combobox', { name: 'Repeats' }).click();
       await page.getByRole('option', { name: 'On dates I choose' }).click();
@@ -460,7 +460,7 @@ test.describe('regular journeys', () => {
     // The card's stretched label covers its radio (a clickable card).
     await page.getByRole('radio', { name: /^08:15 / }).check({ force: true });
     await expect(page.getByText('Your usual train: 08:15 London Kings Cross to London Euston')).toBeVisible();
-    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    const axe = await scanPageBothSchemes(page);
     expect(axe.violations).toEqual([]);
 
     await page.getByRole('button', { name: 'Later trains' }).click();
@@ -512,7 +512,7 @@ test.describe('regular journeys', () => {
       await page.getByRole('switch', { name: /Different time on some days/ }).check();
       await expect(page.getByRole('combobox', { name: 'Day' })).toHaveValue('Fridays');
       await expect(page.getByText('Choose a time first.')).toBeVisible();
-      const axe = await new AxeBuilder({ page }).include('main').analyze();
+      const axe = await scanPageBothSchemes(page);
       expect(axe.violations).toEqual([]);
     } finally {
       await page.request.delete(`/api/JourneyTemplates/${templateId}`);
@@ -529,7 +529,7 @@ test.describe('regular journeys', () => {
       'href',
       '/journeys/regular/900202',
     );
-    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    const axe = await scanPageBothSchemes(page);
     expect(axe.violations).toEqual([]);
   });
 
@@ -545,7 +545,7 @@ test.describe('regular journeys', () => {
     await expect(page.getByText('Departing between 08:30 and 10:00')).toBeVisible();
     await expect.poll(() => searches.at(-1)?.searchParams.get('departBefore')).toBe('10:00');
     expect(searches.at(-1)!.searchParams.get('departAfter')).toBe('08:30');
-    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    const axe = await scanPageBothSchemes(page);
     expect(axe.violations).toEqual([]);
   });
 
@@ -565,7 +565,7 @@ test.describe('regular journeys', () => {
     await expect(card).toBeVisible();
     await expect(card.getByRole('heading', { level: 3, name: 'Other trains' })).toBeVisible();
     await expect(card.getByText('Arrives 11:40, 1 change')).toBeVisible();
-    const axe = await new AxeBuilder({ page }).include('main').analyze();
+    const axe = await scanPageBothSchemes(page);
     expect(axe.violations).toEqual([]);
 
     await card.getByRole('button', { name: 'Track this train, the 09:15 London Kings Cross to London Euston' }).click();

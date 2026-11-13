@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 import type * as Api from '../lib/api-types';
 
 // "Add a leg" on /plan (components/AddJourneyLegButton.tsx): its
@@ -331,7 +331,7 @@ test.describe('add a leg', () => {
     await expect(dialog.getByRole('button', { name: 'Clear To station' })).toBeVisible();
     await expect(dialog.getByText('Must be a 3-letter station code')).toHaveCount(0);
     // With a station picked: its clear button and live region included.
-    const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+    const results = await scanPageBothSchemes(page);
     expect(results.violations).toEqual([]);
 
     await dialog.getByRole('button', { name: 'Add leg' }).click();
@@ -355,7 +355,7 @@ test.describe('add a leg', () => {
 
     // The field error is legible: Mantine's error red is the site's
     // error-text token (app/globals.css), not its 3.28:1 default.
-    const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+    const results = await scanPageBothSchemes(page);
     expect(results.violations).toEqual([]);
   });
 

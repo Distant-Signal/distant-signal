@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { scanPageBothSchemes } from './a11y-helpers';
 import type * as Api from '../lib/api-types';
 
 // "Tube, bus or walk" legs (spec
@@ -215,7 +215,7 @@ test.describe('untracked legs', () => {
     await dialog.getByRole('textbox', { name: 'Leaves', exact: true }).fill('10:05');
     await dialog.getByRole('textbox', { name: 'Arrives', exact: true }).fill('10:20');
 
-    const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+    const results = await scanPageBothSchemes(page);
     expect(results.violations).toEqual([]);
 
     await dialog.getByRole('button', { name: 'Add leg' }).click();
@@ -248,7 +248,7 @@ test.describe('untracked legs', () => {
     await page.getByRole('textbox', { name: 'Leaves', exact: true }).fill('08:30');
     await page.getByRole('textbox', { name: 'Arrives', exact: true }).fill('08:45');
 
-    const results = await new AxeBuilder({ page }).analyze();
+    const results = await scanPageBothSchemes(page);
     expect(results.violations).toEqual([]);
 
     await page.getByRole('button', { name: 'Start journey' }).click();
