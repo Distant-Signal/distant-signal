@@ -47,7 +47,7 @@ async function transitNetworks(): Promise<TransitSitemapNetwork[]> {
 
 /** `/sitemap.xml`: every public page worth indexing (`lib/sitemap.ts`).
  *
- * Rendered per request, not at `next build` (as `app/robots.ts`): the
+ * Rendered per request, not at `next build` (as `app/robots.txt/route.ts`): the
  * image build has neither the api nor `NEXT_PUBLIC_SITE_URL`. `connection()`
  * opts in to that without `dynamic = 'force-dynamic'`, which would also
  * turn off the data cache: each list below is a cached fetch kept for

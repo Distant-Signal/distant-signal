@@ -116,3 +116,24 @@ export function buildRobots({
     ...(origin && sitemapPath ? { sitemap: `${origin}${sitemapPath}` } : {}),
   };
 }
+
+const asList = (value: string | readonly string[] | undefined): readonly string[] =>
+  value === undefined ? [] : typeof value === 'string' ? [value] : value;
+
+/** `buildRobots`' result as robots.txt text, in the layout Next's own
+ * `app/robots.ts` convention produced (blank line after each group, then
+ * `Host:` and `Sitemap:`). `app/robots.txt/route.ts` serves it, so the
+ * response can carry an `ETag` and `Cache-Control` of its own. */
+export function renderRobots(robots: MetadataRoute.Robots): string {
+  const groups = Array.isArray(robots.rules) ? robots.rules : [robots.rules];
+  let text = '';
+  for (const rule of groups) {
+    for (const agent of asList(rule.userAgent ?? '*')) text += `User-Agent: ${agent}\n`;
+    for (const path of asList(rule.allow)) text += `Allow: ${path}\n`;
+    for (const path of asList(rule.disallow)) text += `Disallow: ${path}\n`;
+    text += '\n';
+  }
+  if (robots.host) text += `Host: ${robots.host}\n`;
+  for (const url of asList(robots.sitemap)) text += `Sitemap: ${url}\n`;
+  return text;
+}

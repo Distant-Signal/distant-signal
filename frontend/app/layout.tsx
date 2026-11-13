@@ -41,7 +41,7 @@ import type { DataFreshness } from '@/lib/types';
 // PREVIEW_IMAGE), or a route's own opengraph-image.tsx
 // (lib/previewImage.tsx). Next needs `metadataBase` to make its URL absolute; it comes from NEXT_PUBLIC_SITE_URL (the chart
 // sets it on the pod), read per request in `generateMetadata` below, the
-// same way app/robots.ts reads it. Without it Next falls back to
+// same way app/robots.txt/route.ts reads it. Without it Next falls back to
 // localhost, which only matters for local runs.
 export const SITE_METADATA: Metadata = {
   // Every page sets its own name (its h1) as `title`; the template adds

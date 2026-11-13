@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 // crawler actually receives, not just the object. It's an internal module
 // path; if a Next upgrade moves it, update this import.
 import { resolveRobots } from 'next/dist/build/webpack/loaders/metadata/resolve-route-data';
-import { AI_TRAINING_CRAWLERS, BLOCK_AI_TRAINING_CRAWLERS, buildRobots } from './robots';
+import { AI_TRAINING_CRAWLERS, BLOCK_AI_TRAINING_CRAWLERS, buildRobots, renderRobots } from './robots';
 
 const render = (...args: Parameters<typeof buildRobots>) => resolveRobots(buildRobots(...args));
 const lines = (text: string) => text.split('\n');
@@ -146,5 +146,16 @@ describe('buildRobots', () => {
     }
     const lastUa = out.lastIndexOf(`User-Agent: ${AI_TRAINING_CRAWLERS.at(-1)}`);
     expect(out[lastUa + 1]).toBe('Disallow: /');
+  });
+});
+
+describe('renderRobots', () => {
+  it.each([
+    { origin: undefined },
+    { origin: 'https://ds.example' },
+    { origin: 'https://ds.example', blockAiTrainingCrawlers: false },
+    { origin: undefined, sitemapPath: null },
+  ])("matches Next's own serializer byte for byte (%j)", (options) => {
+    expect(renderRobots(buildRobots(options))).toBe(resolveRobots(buildRobots(options)));
   });
 });
