@@ -64,7 +64,7 @@ const CACHE_OFFLINE_PAGE = 'public, max-age=300';
 
 // Un-hashed static assets: `public/` files and the `app/` metadata routes
 // (`icon.svg`, `apple-icon.png`, `manifest.ts`). /robots.txt and /sitemap.xml
-// are deliberately not here.
+// have their own rules below.
 const UNHASHED_ASSET_SOURCES = [
   '/icon-192.png',
   '/icon-512.png',
@@ -76,6 +76,24 @@ const UNHASHED_ASSET_SOURCES = [
 ];
 
 const API_CSP = ["default-src 'none'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'none'"].join('; ');
+
+// Cloudflare is in front of the (single-replica) origin
+// and caches by these headers. Without them Google's robots.txt fetches
+// always reached the origin, which rolls often, and Google reported
+// intermittent fetch failures. `stale-if-error` keeps serving the last good
+// copy while the origin is down or restarting.
+//
+// robots.txt is a pure function of NEXT_PUBLIC_SITE_URL, so a day at the
+// edge is safe.
+const ROBOTS_CACHE_CONTROL =
+  'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=604800';
+// The sitemap falls back to no station URLs when the api's station index
+// call fails (app/sitemap.ts), so serving a stale copy on error, or caching
+// that thin copy for a day, could pin an incomplete sitemap at the edge. It
+// gets a one-hour `s-maxage` (and the same stale windows) so a bad copy
+// heals within the hour once the api is back.
+const SITEMAP_CACHE_CONTROL =
+  'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -171,8 +189,9 @@ const nextConfig = {
   // checking. The same goes for /sw-cache-rules.js, which the worker
   // `importScripts`: a stale copy would run against a new worker. See
   // docs/superpowers/specs/2026-09-02-pwa-service-worker-design.md
-  // Decision 5, point 4. A CDN in front must not rewrite this: it has to
-  // respect the origin's Cache-Control rather than apply its own TTL.
+  // Decision 5, point 4. Cloudflare sits in front of the app and obeys the
+  // `Cache-Control` the app sends, so a header set here is the CDN's
+  // caching rule too (see ROBOTS_CACHE_CONTROL above).
   //
   // Not hashed, so cacheable for a day with a week of stale-while-revalidate:
   // the icons, the manifest and the social image change rarely and nothing
@@ -209,6 +228,14 @@ const nextConfig = {
       {
         source: '/api/:path*',
         headers: [{ key: 'Content-Security-Policy', value: API_CSP }],
+      },
+      {
+        source: '/robots.txt',
+        headers: [{ key: 'Cache-Control', value: ROBOTS_CACHE_CONTROL }],
+      },
+      {
+        source: '/sitemap.xml',
+        headers: [{ key: 'Cache-Control', value: SITEMAP_CACHE_CONTROL }],
       },
     ];
   },

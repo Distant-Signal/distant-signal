@@ -13,6 +13,9 @@ test('/sitemap.xml lists public pages and none of the short-lived ones', async (
   const response = await request.get('/sitemap.xml');
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toMatch(/xml/);
+  expect(response.headers()['cache-control']).toBe(
+    'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800',
+  );
   const body = await response.text();
   expect(body).toContain('<urlset');
   expect(body).toMatch(new RegExp(`<loc>[^<]*/stations/${CRS}</loc>`));

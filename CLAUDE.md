@@ -76,6 +76,7 @@ uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run scripts/sync-core.py --check          # frontend/lib/site-credits.json = the pinned ds-core release's signed asset (rewrite without --check)
 uv run scripts/sync-api-types.py check       # frontend's api types and OpenAPI copy = the pinned api image's
 uv run scripts/check-sftp-entrypoint.py      # docker/schedule-sftp-entrypoint.sh = ds-deploy's pinned chart copy (--write to update)
+uv run scripts/check-edge-cache.py          # read-only GETs to production: cf-cache-status/Age per route class (docs/edge-caching.md)
 ```
 
 Distant-Signal/ci's `scripts/release-order.py labels` stamps the frontend

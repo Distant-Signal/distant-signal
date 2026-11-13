@@ -141,7 +141,7 @@ describe('next.config.mjs redirects', () => {
 
 // Cloudflare's Browser Cache TTL overrides an origin `max-age=0` (Next's
 // default for public/ files), so each static class states its own lifetime.
-// /robots.txt and /sitemap.xml are owned elsewhere and must not appear here.
+// /robots.txt and /sitemap.xml have their own edge rules (DS-170), tested below.
 describe('next.config.mjs static Cache-Control headers', () => {
   /** @param {string} source */
   async function cacheControlFor(source) {
@@ -184,5 +184,17 @@ describe('next.config.mjs static Cache-Control headers', () => {
       .map((entry) => entry.source);
     expect(sources).not.toContain('/api/:path*');
     expect(sources.some((s) => s.startsWith('/_next') || s.includes(':path'))).toBe(false);
+  });
+
+  it('lets the edge keep robots.txt for a day and serve it stale while the origin rolls', async () => {
+    expect(await cacheControlFor('/robots.txt')).toBe(
+      'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=604800',
+    );
+  });
+
+  it('keeps the sitemap at the edge for an hour only, so a thin fallback copy heals quickly', async () => {
+    expect(await cacheControlFor('/sitemap.xml')).toBe(
+      'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800',
+    );
   });
 });
