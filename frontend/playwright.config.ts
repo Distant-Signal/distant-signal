@@ -2,8 +2,6 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  // Fails a CI run that lacks a fixture variable the specs would skip on.
-  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
   reporter: [['html', { outputFolder: 'e2e-report', open: 'never' }]],

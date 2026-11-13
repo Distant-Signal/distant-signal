@@ -83,6 +83,9 @@ export async function gotoOk(page: Page, path: string) {
   // Next's error shell is itself accessible, so a 500 would pass axe.
   // The deliberate 404 routes are fine.
   expect(response?.status() ?? 0, `${path} returned a server error`).toBeLessThan(500);
+  // Next streams a route's loading skeleton (no h1) before its content, and
+  // `goto` can resolve first: audit the real page, not the placeholder.
+  await expect(page.getByRole('heading', { level: 1 }).first()).toBeAttached();
 }
 
 export async function expectNoViolations(page: Page) {
