@@ -138,3 +138,33 @@ describe('next.config.mjs redirects', () => {
     });
   });
 });
+
+// Cloudflare caches /robots.txt and /sitemap.xml by the `Cache-Control` the
+// origin sends (DS-170). The sitemap's `s-maxage` is shorter because it
+// falls back to no station URLs when the api is down.
+describe('next.config.mjs robots.txt and sitemap.xml caching', () => {
+  /** @param {string} source */
+  async function cacheControlFor(source) {
+    if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
+    const entries = await nextConfig.headers();
+    const values = entries
+      .filter((entry) => entry.source === source)
+      .flatMap((entry) => entry.headers)
+      .filter((h) => h.key === 'Cache-Control')
+      .map((h) => h.value);
+    expect(values).toHaveLength(1);
+    return values[0];
+  }
+
+  it('lets the edge keep robots.txt for a day and serve it stale while the origin rolls', async () => {
+    expect(await cacheControlFor('/robots.txt')).toBe(
+      'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=604800',
+    );
+  });
+
+  it('keeps the sitemap at the edge for an hour only, so a thin fallback copy heals quickly', async () => {
+    expect(await cacheControlFor('/sitemap.xml')).toBe(
+      'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800',
+    );
+  });
+});
