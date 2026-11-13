@@ -19,6 +19,7 @@ import { ButtonSpinner, LoadingText } from './LoadingText';
 import { StateBadge } from './StateBadge';
 import { formatDateTime } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { useOperatorNames } from './OperatorNamesContext';
 import { BOOKED_BADGE, fateBadge, revisionLegLine, revisionTitle } from '@/lib/journeyBreak';
 import type { Revision, RevisionsResponse } from '@/lib/types';
 
@@ -100,6 +101,7 @@ export function EarlierPlans({ journeyId, revisionCount }: { journeyId: number; 
 /** One earlier plan: its heading and when it was made, its legs with
  * their fates, and "Go back to this plan" when it can be. */
 function EarlierPlan({ journeyId, revision }: { journeyId: number; revision: Revision }) {
+  const operatorNames = useOperatorNames();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +143,7 @@ function EarlierPlan({ journeyId, revision }: { journeyId: number; revision: Rev
             const fate = fateBadge(leg.fate);
             return (
               <Group key={leg.position} component="li" gap="xs" wrap="wrap">
-                <Text size="sm">{revisionLegLine(leg)}</Text>
+                <Text size="sm">{revisionLegLine(leg, operatorNames)}</Text>
                 {fate && <StateBadge tone={fate.tone}>{fate.label}</StateBadge>}
               </Group>
             );

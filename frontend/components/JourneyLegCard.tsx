@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Group, Stack, Text } from '@mantine/core';
 import { TrainJourney } from './TrainJourney';
+import { TrainOperator } from './TrainOperator';
 import { JourneyLegCandidates } from './JourneyLegCandidates';
 import { LegSearchForm } from './LegSearchForm';
 import { TrainNotificationsSwitch } from './TrainNotificationsSwitch';
@@ -311,6 +312,9 @@ export function JourneyLegCard({
             <Text fw={600} size="lg">
               {title}
             </Text>
+            {/* Who runs the train, name and code (a leg's tracked train
+                carries both). Nothing for an unknown operator. */}
+            <TrainOperator name={state.operatorName} code={state.operatorCode} size="xs" />
             {/* Feature request: "journey view legs [should] have link
                 throughs to the train entries for each leg" -- this was
                 previously a plain, unlinked `Text`, even though every

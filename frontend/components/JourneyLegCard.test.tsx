@@ -167,6 +167,25 @@ describe('JourneyLegCard', () => {
     expect(screen.getByText(byVisibleText('London Kings Cross (KGX) to York (YRK) · 17:00'))).toBeInTheDocument();
   });
 
+  it("names the leg's operator with its code", () => {
+    renderWithMantine(
+      <JourneyLegCard
+        journeyId={167}
+        leg={baseLeg({
+          trackedTrainState: trackedState({ operatorName: 'West Midlands Railway', operatorCode: 'WM' }),
+        })}
+        isOwner
+        isOnlyLeg={false}
+      />,
+    );
+    expect(screen.getByText('Operated by West Midlands Railway (WM)')).toBeInTheDocument();
+  });
+
+  it('shows no operator line when the leg has none', () => {
+    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    expect(screen.queryByText(/Operated by/)).not.toBeInTheDocument();
+  });
+
   it('still shows the headcode, as secondary information', () => {
     renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByText('Train P9E010')).toBeInTheDocument();

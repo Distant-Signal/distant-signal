@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPublicTrainByUidAndDate, getMyTrackedTrains, getPreviewTrain, ApiNotFoundError } from '@/lib/api';
 import { ShareButton } from '@/components/ShareButton';
+import { TrainOperator } from '@/components/TrainOperator';
 import { TrainJourneyPanel } from '@/components/TrainJourneyPanel';
 import { TrackThisTrainButton } from '@/components/TrackThisTrainButton';
 import { TrackedTrainOwnerControls } from '@/components/TrackedTrainOwnerControls';
@@ -319,6 +320,7 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
                 .filter((part): part is string => part !== null)
                 .join(' · ')}
             </Text>
+            <TrainOperator name={train.operatorName} code={train.operatorCode} />
           </Stack>
         </Group>
         <Group gap="sm">

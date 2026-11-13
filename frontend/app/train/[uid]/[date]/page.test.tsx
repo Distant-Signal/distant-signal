@@ -137,6 +137,32 @@ describe('TrackedTrainByUidPage success path', () => {
     expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument();
   });
 
+  it('names the operator with its code in the header, once', async () => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+      publicTrainState({ operatorName: 'West Midlands Railway', operatorCode: 'WM' }),
+    );
+    await renderPage();
+    expect(screen.getAllByText('Operated by West Midlands Railway (WM)')).toHaveLength(1);
+  });
+
+  it.each([
+    [{ operatorName: null, operatorCode: 'WM' }, 'Operated by WM'],
+    [{ operatorName: 'West Midlands Railway', operatorCode: null }, 'Operated by West Midlands Railway'],
+  ])('shows whichever of the operator name and code the api sent (%o)', async (operator, text) => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState(operator));
+    await renderPage();
+    expect(screen.getByText(text)).toBeInTheDocument();
+  });
+
+  it('shows no operator line when the api sent neither', async () => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+      publicTrainState({ operatorName: null, operatorCode: null }),
+    );
+    await renderPage();
+    expect(screen.queryByText(/Operated by/)).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent('undefined');
+  });
+
   it('says the timetable may change for a provisional (far-ahead) service date', async () => {
     vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
       publicTrainState({ provisional: true, provisionalFrom: '2026-10-16' }),
