@@ -138,3 +138,51 @@ describe('next.config.mjs redirects', () => {
     });
   });
 });
+
+// Cloudflare's Browser Cache TTL overrides an origin `max-age=0` (Next's
+// default for public/ files), so each static class states its own lifetime.
+// /robots.txt and /sitemap.xml are owned elsewhere and must not appear here.
+describe('next.config.mjs static Cache-Control headers', () => {
+  /** @param {string} source */
+  async function cacheControlFor(source) {
+    if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
+    const entries = await nextConfig.headers();
+    const values = entries
+      .filter((entry) => entry.source === source)
+      .flatMap((entry) => entry.headers)
+      .filter((h) => h.key === 'Cache-Control')
+      .map((h) => h.value);
+    expect(values).toHaveLength(1);
+    return values[0];
+  }
+
+  it.each(['/sw.js', '/sw-cache-rules.js'])('revalidates %s on every use', async (source) => {
+    expect(await cacheControlFor(source)).toBe('no-cache');
+  });
+
+  it('keeps the offline page short-lived', async () => {
+    expect(await cacheControlFor('/offline.html')).toBe('public, max-age=300');
+  });
+
+  it.each([
+    '/icon-192.png',
+    '/icon-512.png',
+    '/icon-maskable-512.png',
+    '/opengraph-image.png',
+    '/icon.svg',
+    '/apple-icon.png',
+    '/manifest.webmanifest',
+  ])('caches un-hashed %s for a day with a week of stale-while-revalidate', async (source) => {
+    expect(await cacheControlFor(source)).toBe('public, max-age=86400, stale-while-revalidate=604800');
+  });
+
+  it('sets no Cache-Control on pages or the api, and none on /_next/static (Next makes it immutable)', async () => {
+    if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
+    const entries = await nextConfig.headers();
+    const sources = entries
+      .filter((entry) => entry.headers.some((h) => h.key === 'Cache-Control'))
+      .map((entry) => entry.source);
+    expect(sources).not.toContain('/api/:path*');
+    expect(sources.some((s) => s.startsWith('/_next') || s.includes(':path'))).toBe(false);
+  });
+});
