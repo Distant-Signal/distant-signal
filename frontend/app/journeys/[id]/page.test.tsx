@@ -17,6 +17,7 @@ vi.mock('@/lib/api', async () => {
     ...actual,
     getJourney: vi.fn(),
     getJourneyTemplate: vi.fn(),
+    getAllTocs: vi.fn(async () => [{ code: 'GR', name: 'London North Eastern Railway' }]),
     getSessionOrLoggedOut: vi.fn(async () => ({ calendarFeedEnabled: false })),
   };
 });

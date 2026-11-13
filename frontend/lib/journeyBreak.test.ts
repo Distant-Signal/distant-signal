@@ -141,8 +141,8 @@ describe('suggestion rows', () => {
     });
     expect(suggestionSummary(changing)).toBe('10:04 York to Edinburgh, 1 change');
     expect(suggestionLegLines(changing)).toEqual([
-      '10:04 York to Newcastle (LNER)',
-      '11:30 Newcastle to Edinburgh (LNER)',
+      '10:04 York to Newcastle, LNER (GR)',
+      '11:30 Newcastle to Edinburgh, LNER (GR)',
     ]);
   });
 
@@ -333,7 +333,11 @@ describe('history', () => {
       ticketIds: [],
       fate: 'cancelled',
     };
-    expect(revisionLegLine(leg)).toBe('09:52 York to Edinburgh');
+    expect(revisionLegLine(leg)).toBe('09:52 York to Edinburgh, GR');
+    expect(revisionLegLine(leg, { GR: 'London North Eastern Railway' })).toBe(
+      '09:52 York to Edinburgh, London North Eastern Railway (GR)',
+    );
+    expect(revisionLegLine({ ...leg, atocCode: null })).toBe('09:52 York to Edinburgh');
     expect(
       revisionLegLine({
         ...leg,

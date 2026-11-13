@@ -1,6 +1,7 @@
 import { Stack, Title, Text, Group } from '@mantine/core';
 import { notFound, redirect } from 'next/navigation';
 import { getTrackedTrainById, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
+import { TrainOperator } from '@/components/TrainOperator';
 import { TrainJourneyPanel } from '@/components/TrainJourneyPanel';
 import { LoginControl } from '@/components/LoginControl';
 import { TrackedTrainOwnerControls } from '@/components/TrackedTrainOwnerControls';
@@ -108,6 +109,7 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
           <Text size="sm" c="dimmed">
             {trainIdentifiers({ headcode: null, uid: state.trainUid }) ?? 'Not matched to a train yet'}
           </Text>
+          <TrainOperator name={state.operatorName} code={state.operatorCode} />
         </Stack>
         <Group gap="xs">
           <TrackedTrainOwnerControls train={state} />

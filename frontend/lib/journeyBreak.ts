@@ -1,6 +1,8 @@
 import { formatTime } from './dateFormat';
 import { legIsOver } from './homeJourneys';
+import { operatorNameAndCode } from './displayLabels';
 import { legDepartureInstant } from './journeyLegChaining';
+import { ownValue } from './ownValue';
 import { operatorOnlyLabel } from './plannerOperators';
 import type { ItineraryLegBody } from './tripPlanSave';
 import type {
@@ -164,16 +166,17 @@ export function suggestionSummary(
 }
 
 /** The legs of a suggestion in words, one per leg: "10:04 York to
- * Newcastle (LNER)", "Walk, Euston to King's Cross". */
+ * Newcastle, LNER (GR)", "Walk, Euston to King's Cross". */
 export function suggestionLegLines(suggestion: ReplanSuggestion): string[] {
   return suggestion.legs.map((leg) => {
     const origin = legOriginName(leg);
     const destination = legDestinationName(leg);
     const route = origin && destination ? `${origin} to ${destination}` : (origin ?? destination ?? '');
     if (leg.kind === 'train') {
-      const operator = leg.operatorName ? ` (${leg.operatorName})` : '';
-      const cancelled = leg.cancelled ? ', cancelled' : '';
-      return `${formatTime(leg.departure)} ${route}${operator}${cancelled}`.trim();
+      const operator = operatorNameAndCode(leg.operatorName, leg.operator);
+      return [`${formatTime(leg.departure)} ${route}`.trim(), operator, leg.cancelled ? 'cancelled' : null]
+        .filter(Boolean)
+        .join(', ');
     }
     const mode = transitModeLabel(leg.transitMode);
     const what = leg.lineName ? `${mode}: ${leg.lineName}` : mode;
@@ -331,8 +334,10 @@ export function revisionTitle(revision: Pick<Revision, 'reason'>): string {
 }
 
 /** An earlier plan's leg in one line: "09:52 York to Edinburgh", or an
- * untracked leg's mode and places ("Walk, Euston to King's Cross"). */
-export function revisionLegLine(leg: RevisionLeg): string {
+ * untracked leg's mode and places ("Walk, Euston to King's Cross"). A
+ * train's operator follows when known: "09:52 York to Edinburgh, London
+ * North Eastern Railway (GR)". */
+export function revisionLegLine(leg: RevisionLeg, operatorNames: Readonly<Record<string, string>> = {}): string {
   if (leg.kind === 'untracked') {
     const mode = transitModeLabel(leg.transitMode ?? 'other');
     const what = leg.lineName ? `${mode}: ${leg.lineName}` : mode;
@@ -345,7 +350,11 @@ export function revisionLegLine(leg: RevisionLeg): string {
   const origin = leg.originName ?? leg.originCrs;
   const destination = leg.destinationName ?? leg.destinationCrs;
   const route = origin && destination ? `${origin} to ${destination}` : (origin ?? destination ?? 'Train');
-  return leg.bookedDeparture ? `${formatTime(leg.bookedDeparture)} ${route}` : route;
+  const line = leg.bookedDeparture ? `${formatTime(leg.bookedDeparture)} ${route}` : route;
+  // The operator's name from the reference list, with its code; the code
+  // alone when the list has no name for it.
+  const operator = leg.atocCode ? operatorNameAndCode(ownValue(operatorNames, leg.atocCode), leg.atocCode) : null;
+  return operator ? `${line}, ${operator}` : line;
 }
 
 /** The one line for "I missed this train" when the train before it was too

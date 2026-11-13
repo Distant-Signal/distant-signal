@@ -2,11 +2,13 @@ import { Group, Stack, Text, Title } from '@mantine/core';
 import { notFound } from 'next/navigation';
 import {
   getJourney,
+  getAllTocs,
   getJourneyTemplate,
   getSessionOrLoggedOut,
   ApiNotFoundError,
   ApiUnauthorizedError,
 } from '@/lib/api';
+import { OperatorNamesProvider } from '@/components/OperatorNamesContext';
 import { UsualTrainProvider } from '@/components/UsualTrainContext';
 import { usualTrainLegs } from '@/lib/regularJourneys';
 import type { JourneyDetail, JourneyTemplateDetail } from '@/lib/types';
@@ -101,6 +103,11 @@ export default async function JourneyDetailPage({
     journey.isOwner && journey.sourceTemplateId !== null
       ? await getJourneyTemplate(journey.sourceTemplateId).catch(() => null)
       : null;
+  // Names for the operator codes the page's earlier plans and candidate
+  // trains carry on their own; without the list they show the code.
+  const operatorNames = journey.isOwner
+    ? Object.fromEntries((await getAllTocs().catch(() => [])).map((toc) => [toc.code, toc.name]))
+    : {};
   const usual = query.pick === 'usual' ? usualTrainsByLeg(journey, template) : {};
   // Remind me to pick my train: each leg's pick looks from half an hour
   // before to an hour after the usual train, not just at it.
@@ -141,18 +148,22 @@ export default async function JourneyDetailPage({
       ) : (
         journey.canFollow && <FollowJourneyButton journeyId={journey.id} following={false} />
       )}
-      <UsualTrainProvider usual={usual} remindPick={remindPick}>
-        <JourneyDetailView
-          journey={journey}
-          fetchedAt={fetchedAt}
-          origin={origin}
-          // The deep link opens the suggestions only on the owner's own,
-          // still open break; an old link just shows the page.
-          openBreakOnLoad={journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)}
-          fromPush={query.src === 'push'}
-          calendarDownload={calendarDownload}
-        />
-      </UsualTrainProvider>
+      <OperatorNamesProvider names={operatorNames}>
+        <UsualTrainProvider usual={usual} remindPick={remindPick}>
+          <JourneyDetailView
+            journey={journey}
+            fetchedAt={fetchedAt}
+            origin={origin}
+            // The deep link opens the suggestions only on the owner's own,
+            // still open break; an old link just shows the page.
+            openBreakOnLoad={
+              journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)
+            }
+            fromPush={query.src === 'push'}
+            calendarDownload={calendarDownload}
+          />
+        </UsualTrainProvider>
+      </OperatorNamesProvider>
       <DataCredits credits={journeyCredits(journey.legs)} />
     </Stack>
   );

@@ -5,6 +5,7 @@ import {
   isCrossStationTransfer,
   tocNameLookup,
   operatorLabel,
+  operatorNameAndCode,
   transferLabel,
   transferLegLabel,
   transferLegMode,
@@ -58,6 +59,28 @@ describe('operatorLabel', () => {
   it('falls back to the bare code for every operator when the TOC list is empty', () => {
     const lookup = tocNameLookup([]);
     expect(operatorLabel('SW', lookup)).toBe('SW');
+  });
+});
+
+describe('operatorNameAndCode', () => {
+  it('shows the name with its code in parentheses', () => {
+    expect(operatorNameAndCode('West Midlands Railway', 'WM')).toBe('West Midlands Railway (WM)');
+  });
+
+  it('shows whichever of the two there is', () => {
+    expect(operatorNameAndCode('West Midlands Railway', null)).toBe('West Midlands Railway');
+    expect(operatorNameAndCode(undefined, 'WM')).toBe('WM');
+  });
+
+  it('is null without either, treating blanks as missing', () => {
+    expect(operatorNameAndCode(null, null)).toBeNull();
+    expect(operatorNameAndCode('  ', '')).toBeNull();
+    expect(operatorNameAndCode(undefined, undefined)).toBeNull();
+  });
+
+  it('does not repeat a code the name already carries', () => {
+    expect(operatorNameAndCode('Avanti West Coast (VT)', 'VT')).toBe('Avanti West Coast (VT)');
+    expect(operatorNameAndCode('VT', 'VT')).toBe('VT');
   });
 });
 

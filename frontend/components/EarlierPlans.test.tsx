@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { OperatorNamesProvider } from './OperatorNamesContext';
 import { EarlierPlans } from './EarlierPlans';
 import type { Revision, RevisionLeg } from '@/lib/types';
 import { REVISION_LEG_DEFAULTS } from '@/test/apiDefaults';
@@ -92,7 +93,11 @@ describe('EarlierPlans', () => {
   });
 
   it('loads the earlier plans only when opened, with their fates', async () => {
-    renderWithMantine(<EarlierPlans journeyId={42} revisionCount={3} />);
+    renderWithMantine(
+      <OperatorNamesProvider names={{ GR: 'London North Eastern Railway' }}>
+        <EarlierPlans journeyId={42} revisionCount={3} />
+      </OperatorNamesProvider>,
+    );
     const toggle = screen.getByRole('button', { name: 'Earlier plans (2)' });
     expect(fetchMock).not.toHaveBeenCalled();
     fireEvent.click(toggle);
@@ -104,8 +109,11 @@ describe('EarlierPlans', () => {
     expect(within(booked).queryByRole('button', { name: 'Go back to this plan' })).not.toBeInTheDocument();
 
     // The current plan (the newest) is the page itself, not an earlier one.
-    expect(screen.queryByText('10:04 York to Edinburgh')).not.toBeInTheDocument();
-    const changed = screen.getByText('09:58 York to Edinburgh').closest('[data-revision]') as HTMLElement;
+    expect(screen.queryByText(/^10:04 York to Edinburgh/)).not.toBeInTheDocument();
+    // Each train says who ran it, name and code.
+    const changed = screen
+      .getByText('09:58 York to Edinburgh, London North Eastern Railway (GR)')
+      .closest('[data-revision]') as HTMLElement;
     expect(within(changed).getByText('Not used')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

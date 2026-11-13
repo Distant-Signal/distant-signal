@@ -1,5 +1,6 @@
 'use client';
 
+import { TrainOperator } from './TrainOperator';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -676,6 +677,9 @@ function SuggestionCard({
               </Text>
             ))}
           </Stack>
+        )}
+        {suggestion.legs.length === 1 && suggestion.legs[0]?.kind === 'train' && (
+          <TrainOperator name={suggestion.legs[0].operatorName} code={suggestion.legs[0].operator} size="xs" />
         )}
         {suggestion.legs.map((leg, index) =>
           leg.kind === 'train' && leg.reliesOnLateDeparture ? (

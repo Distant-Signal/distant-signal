@@ -1,5 +1,8 @@
 'use client';
 
+import { useOperatorNames } from './OperatorNamesContext';
+import { operatorNameAndCode } from '@/lib/displayLabels';
+import { ownValue } from '@/lib/ownValue';
 import { useEffect, useState } from 'react';
 import { Alert, Button, Stack, Text } from '@mantine/core';
 import { LoadMoreControl } from './LoadMoreControl';
@@ -457,7 +460,12 @@ function CandidateRowView({
     .filter(Boolean)
     .join(', ');
   const noun = serviceNoun(train.serviceMode).toLowerCase();
-  const details = [`${serviceNoun(train.serviceMode)} ${row.uid}`, searchRowDetails(row), row.operator]
+  const operatorNames = useOperatorNames();
+  const details = [
+    `${serviceNoun(train.serviceMode)} ${row.uid}`,
+    searchRowDetails(row),
+    row.operator ? operatorNameAndCode(ownValue(operatorNames, row.operator), row.operator) : null,
+  ]
     .filter(Boolean)
     .join(' · ');
   return (

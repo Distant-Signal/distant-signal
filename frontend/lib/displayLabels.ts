@@ -61,6 +61,20 @@ export function operatorLabel(code: string, lookup: ReadonlyMap<string, string>)
   return name ? `${name} (${code})` : code;
 }
 
+/** An operator as the api gives it, name and code separately (a tracked
+ * or public train's `operatorName` and `operatorCode`, a suggestion leg's
+ * `operatorName` and `operator`): "West Midlands Railway (WM)". Either
+ * alone is shown as it is, so a train the reference list has no name for
+ * still shows its code, and one without a code shows its name; neither
+ * gives `null`, never "()" or "undefined". A name that already ends in its
+ * own code is not given it twice. */
+export function operatorNameAndCode(name?: string | null, code?: string | null): string | null {
+  const n = name?.trim() || null;
+  const c = code?.trim() || null;
+  if (n && c) return n.endsWith(`(${c})`) || n === c ? n : `${n} (${c})`;
+  return n ?? c;
+}
+
 const TRANSFER_MODE_LABELS: Record<string, string> = {
   WALK: 'Walk',
   TUBE: 'Tube',
