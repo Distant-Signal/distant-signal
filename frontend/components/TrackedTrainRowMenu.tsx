@@ -50,23 +50,32 @@ export function TrackedTrainRowMenu({
   defaultName: string;
   sharedGroupCount: number;
 }) {
+  const kebabRef = useRef<HTMLButtonElement>(null);
   const renameRef = useRef<RenameTrainButtonHandle>(null);
   const deleteRef = useRef<DeleteTrainButtonHandle>(null);
+
+  /** Opens a dialog from a menu item. The item unmounts as the menu closes,
+   * so focus goes to the kebab first: that is what the dialog remembers and
+   * gives focus back to when it closes. */
+  function openFromMenu(open: () => void) {
+    kebabRef.current?.focus();
+    open();
+  }
 
   return (
     <>
       <Menu position="bottom-end" withinPortal>
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" aria-label={`More actions for ${displayName}`}>
+          <ActionIcon ref={kebabRef} variant="subtle" color="gray" aria-label={`More actions for ${displayName}`}>
             <KebabIcon />
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
-          <Menu.Item onClick={() => renameRef.current?.open()}>Rename</Menu.Item>
+          <Menu.Item onClick={() => openFromMenu(() => renameRef.current?.open())}>Rename</Menu.Item>
           {/* The menu's danger token, not `color="red"`: Mantine paints a
               bare theme colour at shade 6 in both schemes, 3.28:1 on the
               white dropdown (app/globals.css, `--ds-menu-danger-text`). */}
-          <Menu.Item color="var(--ds-menu-danger-text)" onClick={() => deleteRef.current?.open()}>
+          <Menu.Item color="var(--ds-menu-danger-text)" onClick={() => openFromMenu(() => deleteRef.current?.open())}>
             Stop tracking
           </Menu.Item>
         </Menu.Dropdown>
