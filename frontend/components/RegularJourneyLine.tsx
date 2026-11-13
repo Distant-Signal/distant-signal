@@ -21,7 +21,7 @@ export function RegularJourneyLine({
 }) {
   return (
     <Group gap="xs" wrap="wrap">
-      <Text size="sm" c="dimmed">
+      <Text size="sm" c="dimmed" className="ds-regular-journey-link">
         <TextLink href={regularJourneyHref(templateId)} tone="inherit" underline="always" inline size="sm">
           Regular journey
         </TextLink>

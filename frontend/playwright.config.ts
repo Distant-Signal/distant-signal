@@ -12,7 +12,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /visual\.spec\.ts/,
+      testIgnore: /visual\.spec\.ts|a11y-(mobile|firefox)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     // Gecko only, and only for the nav spec. Nav layout is the one thing
@@ -30,6 +30,21 @@ export default defineConfig({
     {
       name: 'firefox-nav',
       testMatch: /nav\.spec\.ts/,
+      use: { ...devices['Desktop Firefox'] },
+    },
+    // axe on a phone (Pixel 7 emulation at 390px wide), where the nav is
+    // a drawer and layouts reflow. Only the mobile spec: the desktop project
+    // already runs everything else, and the phone-specific layout is what
+    // this adds.
+    {
+      name: 'chromium-mobile',
+      testMatch: /a11y-mobile\.spec\.ts/,
+      use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
+    },
+    // axe in Gecko over the main routes (e2e/a11y-firefox.spec.ts).
+    {
+      name: 'firefox-a11y',
+      testMatch: /a11y-firefox\.spec\.ts/,
       use: { ...devices['Desktop Firefox'] },
     },
     // Visual regression screenshots (e2e/visual.spec.ts). Run on its own
