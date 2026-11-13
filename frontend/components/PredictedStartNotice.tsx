@@ -48,7 +48,10 @@ export function PredictedStartNotice({ prediction }: { prediction: PredictedStar
         <StateBadge tone={confident ? 'late' : 'caution'}>Estimate</StateBadge>
       </Group>
       <Text size="sm" c="dimmed">
-        Based on the <TextLink href={incomingTrainHref(prediction)}>incoming train</TextLink>
+        Based on the{' '}
+        <TextLink href={incomingTrainHref(prediction)} inline>
+          incoming train
+        </TextLink>
         {provenanceTail(prediction)}
       </Text>
     </Stack>

@@ -29,7 +29,9 @@ export default async function ConnectedAppsPage() {
           <ConnectedAppsSection showTitle={false} />
           <PersonalTokensSection />
           <Text size="sm">
-            <TextLink href="/account">Back to account and data</TextLink>
+            <TextLink href="/account" inline>
+              Back to account and data
+            </TextLink>
           </Text>
         </>
       ) : (

@@ -519,6 +519,7 @@ export function PlanTripFlow({
                 plan.operatorsNotRunning.length === 1 ? 'runs' : 'run'
               } nothing on this day. `
             : ''}
+          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- component="button" makes this a real button, which the rules (reading Anchor as an <a>) cannot see */}
           <Anchor component="button" type="button" size="sm" onClick={() => openAdvancedOptions()}>
             Change
           </Anchor>

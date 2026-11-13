@@ -55,6 +55,26 @@ const OFFLINE_PAGE_CSP = [
 // `/api/*`: the backend proxy. It returns JSON and redirects, never a page,
 // so if a response were ever rendered as a document it should be able to do
 // nothing at all.
+// Cache-Control values for the static path classes (see headers()).
+const CACHE_NO_CACHE = 'no-cache';
+const CACHE_UNHASHED_ASSET = 'public, max-age=86400, stale-while-revalidate=604800';
+// The offline page is precached by the service worker; browsers only need it
+// when the worker is not in play, and it should follow a deploy quickly.
+const CACHE_OFFLINE_PAGE = 'public, max-age=300';
+
+// Un-hashed static assets: `public/` files and the `app/` metadata routes
+// (`icon.svg`, `apple-icon.png`, `manifest.ts`). /robots.txt and /sitemap.xml
+// have their own rules below.
+const UNHASHED_ASSET_SOURCES = [
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable-512.png',
+  '/opengraph-image.png',
+  '/icon.svg',
+  '/apple-icon.png',
+  '/manifest.webmanifest',
+];
+
 const API_CSP = ["default-src 'none'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'none'"].join('; ');
 
 // Cloudflare is in front of the (single-replica) origin
@@ -149,38 +169,62 @@ const nextConfig = {
       },
     ];
   },
+  // Cache-Control for the static paths. Next sends `max-age=0` for `public/`
+  // files and the metadata routes, which Cloudflare's zone-wide Browser
+  // Cache TTL (4 hours by default) overrides, so every one of them got a
+  // 14400 at the browser. Each class now states its own lifetime, and the
+  // zone's Browser Cache TTL is set to "Respect origin" so these reach the
+  // browser as written. /_next/static/* is already `public, max-age=31536000,
+  // immutable` (hashed file names) and is left to Next.
+  //
   // /sw.js's own byte content changes whenever the frontend does (scripts/
   // stamp-sw-version.mjs stamps the BUILD_ID into it) -- an
   // aggressively browser-HTTP-cached response could mask that from the
   // browser's own service-worker update check, which re-fetches this URL
   // on every navigation and does a byte-for-byte comparison. `no-cache`
   // (not `no-store`) still permits a cheap conditional revalidation
-  // request rather than forcing a full re-download every time, while
+  // request (Next sends an ETag, so an unchanged worker answers 304)
+  // rather than forcing a full re-download every time, while
   // guaranteeing the browser never trusts a locally-cached copy without
-  // checking. See
+  // checking. The same goes for /sw-cache-rules.js, which the worker
+  // `importScripts`: a stale copy would run against a new worker. See
   // docs/superpowers/specs/2026-09-02-pwa-service-worker-design.md
   // Decision 5, point 4. Cloudflare sits in front of the app and obeys the
   // `Cache-Control` the app sends, so a header set here is the CDN's
   // caching rule too (see ROBOTS_CACHE_CONTROL above).
+  //
+  // Not hashed, so cacheable for a day with a week of stale-while-revalidate:
+  // the icons, the manifest and the social image change rarely and nothing
+  // breaks if a browser shows the old one for a day.
   // eslint-disable-next-line @typescript-eslint/require-await -- NextConfig types headers() as returning a Promise
   async headers() {
     return [
       {
         source: '/sw.js',
         headers: [
-          { key: 'Cache-Control', value: 'no-cache' },
+          { key: 'Cache-Control', value: CACHE_NO_CACHE },
           { key: 'Content-Security-Policy', value: SERVICE_WORKER_CSP },
         ],
       },
       // Keep in sync with proxy.ts's matcher: these are the paths it skips.
       {
         source: '/sw-cache-rules.js',
-        headers: [{ key: 'Content-Security-Policy', value: SERVICE_WORKER_CSP }],
+        headers: [
+          { key: 'Cache-Control', value: CACHE_NO_CACHE },
+          { key: 'Content-Security-Policy', value: SERVICE_WORKER_CSP },
+        ],
       },
       {
         source: '/offline.html',
-        headers: [{ key: 'Content-Security-Policy', value: OFFLINE_PAGE_CSP }],
+        headers: [
+          { key: 'Cache-Control', value: CACHE_OFFLINE_PAGE },
+          { key: 'Content-Security-Policy', value: OFFLINE_PAGE_CSP },
+        ],
       },
+      ...UNHASHED_ASSET_SOURCES.map((source) => ({
+        source,
+        headers: [{ key: 'Cache-Control', value: CACHE_UNHASHED_ASSET }],
+      })),
       {
         source: '/api/:path*',
         headers: [{ key: 'Content-Security-Policy', value: API_CSP }],

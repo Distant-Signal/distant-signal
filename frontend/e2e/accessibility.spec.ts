@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { AXE_TAGS } from './a11y-helpers';
 import { openNavDrawer } from './navDrawer';
+import { LEGAL_ROUTES, LOGGED_IN_ROUTES, PUBLIC_ROUTES, REAL_LINE_ID, REAL_STATION_CRS } from './a11yRoutes';
 
 // A repeatable axe-core sweep over EVERY route in `app/`, in both colour
 // schemes, logged out and logged in, and across the interactive sub-states
@@ -55,10 +57,7 @@ import { openNavDrawer } from './navDrawer';
 // ---------------------------------------------------------------------------
 // Anonymous, always-on routes default to identifiers that exist on this
 // project's own deployment; override them for a different `E2E_BASE_URL`.
-const REAL_LINE_ID = process.env.E2E_REAL_LINE_ID ?? 'gwr-main-line';
-const REAL_INCIDENT_ID = process.env.E2E_REAL_INCIDENT_ID ?? 'E879EB6C791C470AB6C2A7458AE68C3B';
-const REAL_STATION_CRS = process.env.E2E_REAL_STATION_CRS ?? 'PAD';
-const STATION_LETTER = REAL_STATION_CRS.slice(0, 1).toLowerCase();
+// Fixture ids (REAL_LINE_ID and friends) live in ./a11yRoutes.ts, with the route lists.
 
 // Everything below has NO default on purpose, and the tests that need one
 // `test.skip()` themselves when it is unset. Two different reasons:
@@ -88,6 +87,7 @@ const STATION_LETTER = REAL_STATION_CRS.slice(0, 1).toLowerCase();
 //    block, exactly as before.
 const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE;
 const LEGAL_PAGES_RENDERED = process.env.LEGAL_PAGES_PREVIEW === 'true' || process.env.LEGAL_PAGES_PUBLISHED === 'true';
+const ANONYMOUS_ROUTES = [...PUBLIC_ROUTES, ...(LEGAL_PAGES_RENDERED ? LEGAL_ROUTES : [])];
 const GROUP_ID = process.env.E2E_GROUP_ID;
 const GROUP_INVITE_TOKEN = process.env.E2E_GROUP_INVITE_TOKEN;
 const CUSTOM_LINE_ID = process.env.E2E_CUSTOM_LINE_ID;
@@ -98,6 +98,10 @@ const CUSTOM_LINE_ID = process.env.E2E_CUSTOM_LINE_ID;
 const TRACKING_ID = process.env.E2E_TRACKING_ID;
 const TRAIN_UID = process.env.E2E_TRAIN_UID;
 const TRAIN_DATE = process.env.E2E_TRAIN_DATE;
+// A user with nothing in their account (seed.sql's `fixture-empty`), for the
+// empty states. Not an env var: the raw token is a fixture constant, like
+// SHARED_JOURNEY_TOKEN, and the seed stores its hash.
+const EMPTY_USER_SESSION_COOKIE = 'fixture-empty-session-token-0123456789abcdef';
 
 /**
  * Rules switched off, and only for the one assertion that needs it. Nothing
@@ -147,7 +151,22 @@ const COMBOBOX_PORTAL_WAIVERS = ['region', 'scrollable-region-focusable'];
 const MENU_PORTAL_WAIVERS = ['region'];
 
 async function expectNoViolations(page: Page, waived: string[] = []) {
-  const builder = new AxeBuilder({ page });
+  // Mantine names a modal (`aria-labelledby`) from an effect that runs just
+  // after the modal mounts, so a scan in that instant sees an unnamed
+  // dialog (`aria-dialog-name`) that is never unnamed to a user. Wait for
+  // the name to arrive; a dialog that never gets one times out here, is
+  // left as it is, and fails the scan below as before.
+  await page
+    .waitForFunction(
+      () =>
+        [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].every(
+          (dialog) => dialog.hasAttribute('aria-labelledby') || dialog.hasAttribute('aria-label'),
+        ),
+      undefined,
+      { timeout: 3000 },
+    )
+    .catch(() => {});
+  const builder = new AxeBuilder({ page }).withTags(AXE_TAGS);
   const results = await (waived.length ? builder.disableRules(waived) : builder).analyze();
   expect(
     results.violations,
@@ -189,123 +208,8 @@ function sessionState(value: string) {
   };
 }
 
-/** Every route that renders the same thing to an anonymous visitor on any
- * deployment with data in it. Kept as data rather than 20 hand-written
- * `test()` calls so that adding a route to `app/` is a one-line change
- * here -- the gap this suite existed to have and didn't. */
-const PUBLIC_ROUTES: [name: string, path: string][] = [
-  ['/', '/'],
-  ['/lines', '/lines'],
-  [`/lines/${REAL_LINE_ID}`, `/lines/${REAL_LINE_ID}`],
-  [`/lines/${REAL_LINE_ID}/history`, `/lines/${REAL_LINE_ID}/history`],
-  [`/lines/${REAL_LINE_ID}/timetable`, `/lines/${REAL_LINE_ID}/timetable`],
-  ['/lines/new', '/lines/new'],
-  ['/stations', '/stations'],
-  [`/stations/${REAL_STATION_CRS}`, `/stations/${REAL_STATION_CRS}`],
-  // The station A to Z: the plain-link route to every station page.
-  ['/stations/a-z', '/stations/a-z'],
-  [`/stations/${STATION_LETTER}`, `/stations/${STATION_LETTER}`],
-  // A TfL stop's live arrivals (the seed's stops; scripts/tfl-arrivals-stub.py
-  // answers King's Cross with a board and Russell Square with a 503).
-  ['/tfl/stops/940GZZLUKSX', '/tfl/stops/940GZZLUKSX'],
-  ['/tfl/stops/940GZZLURSQ (TfL unavailable)', '/tfl/stops/940GZZLURSQ'],
-  // The seed's Metrolink pages: the network's disruptions link the stops
-  // they name, the line lists its stops, the timetable's row headers are
-  // stop links.
-  ['/transit/metrolink', '/transit/metrolink'],
-  ['/transit/metrolink/incidents/E2E-S1', '/transit/metrolink/incidents/E2E-S1'],
-  ['/transit/metrolink/stops', '/transit/metrolink/stops'],
-  ['/transit/tfl', '/transit/tfl'],
-  ['/transit/metrolink/lines/blue', '/transit/metrolink/lines/blue'],
-  ['/transit/tfl/lines/dlr (a branch)', '/transit/tfl/lines/dlr'],
-  [
-    '/transit/metrolink/lines/blue/timetable',
-    '/transit/metrolink/lines/blue/timetable?date=2026-09-17&direction=outbound&from=07:00',
-  ],
-  // The seed's island of Ireland pages: a live board, a station with
-  // none, a NI Railways station and a corridor id with a slash.
-  ['/island-of-ireland', '/island-of-ireland'],
-  ['/island-of-ireland/iarnrod-eireann', '/island-of-ireland/iarnrod-eireann'],
-  ['/island-of-ireland/ni-railways', '/island-of-ireland/ni-railways'],
-  ['/island-of-ireland/iarnrod-eireann/lines/DUB-DRO%2FDUN', '/island-of-ireland/iarnrod-eireann/lines/DUB-DRO%2FDUN'],
-  ['/island-of-ireland/iarnrod-eireann/stations/8220IR0007', '/island-of-ireland/iarnrod-eireann/stations/8220IR0007'],
-  ['/island-of-ireland/iarnrod-eireann/stations/7020IR2162', '/island-of-ireland/iarnrod-eireann/stations/7020IR2162'],
-  ['/island-of-ireland/ni-railways/stations/nir-bangor', '/island-of-ireland/ni-railways/stations/nir-bangor'],
-  [
-    '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
-    '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
-  ],
-  // A train running today, with "Track this train" (the seed's A102,
-  // dated Dublin's today).
-  [
-    '/island-of-ireland/iarnrod-eireann/trains/A102/[today]',
-    `/island-of-ireland/iarnrod-eireann/trains/A102/${new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Europe/Dublin',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date())}?from=CNLLY`,
-  ],
-  ['/incidents', '/incidents'],
-  [`/incidents/${REAL_INCIDENT_ID}`, `/incidents/${REAL_INCIDENT_ID}`],
-  ['/trains', '/trains'],
-  // The Trains section's other views, with results (the seed's W62001).
-  ['/trains (departures)', '/trains?station=ZFA&date=2099-01-05'],
-  ['/trains (arrivals)', '/trains?station=ZFC&board=arrivals&date=2099-01-05'],
-  ['/trains (between stations)', '/trains?from=ZFA&to=ZFC&date=2099-01-05'],
-  ['/trains (headcode)', '/trains?headcode=2Z42&date=2099-01-05'],
-  ['/track', '/track'],
-  // Plan a journey (DS-194, which merged New journey into it): opens on
-  // the planner; `?mode=known` is the train form, `?mode=untracked` the
-  // Tube, bus or walk form. `/journeys/new` redirects here.
-  ['/plan', '/plan'],
-  ['/plan?mode=known', '/plan?mode=known'],
-  ['/plan?mode=untracked', '/plan?mode=untracked'],
-  ['/journeys/new (redirected to /plan)', '/journeys/new?mode=known'],
-  ['/groups/new', '/groups/new'],
-  ['/connect-claude', '/connect-claude'],
-  // The retired consent bridge's "this moved" note.
-  ['/connect-claude/authorize', '/connect-claude/authorize'],
-  // A client-only page, and the only route here reachable without any
-  // backend state. Visited with no OAuth params on purpose: that is its
-  // error branch, which is the state a user actually lands in when the
-  // callback goes wrong, and it is one of the `<Text c="...">{error}</Text>`
-  // sites the contrast work below covers.
-  ['/chat/callback', '/chat/callback'],
-  // Deliberate 404, exercising not-found.tsx + the `<main>` landmark every
-  // not-found.tsx inherits from app/layout.tsx.
-  ['a deliberate 404', '/lines/nonexistent-line-slug'],
-  // The app-wide 404 (app/not-found.tsx), for a URL no route matches.
-  ['an unmatched-route 404', '/this-route-does-not-exist'],
-  // These gate on a session and, logged out, render a heading plus an
-  // auto-opened `LoginPromptModal`. That modal state is a real, reachable,
-  // first-paint DOM for an anonymous visitor -- and is where the Mantine
-  // close-button `button-name` defect lived -- so it is audited here rather
-  // than treated as "logged-in only".
-  ['/journeys (anonymous)', '/journeys'],
-  ['/groups (anonymous login prompt)', '/groups'],
-  ['/chat (anonymous login prompt)', '/chat'],
-  ['/account/preferences', '/account/preferences'],
-  ['/account/notifications (anonymous login prompt)', '/account/notifications'],
-  ['/attribution', '/attribution'],
-  ['/developers', '/developers'],
-  ['/developers/api', '/developers/api'],
-  // The draft legal pages 404 unless the server has LEGAL_PAGES_PREVIEW or
-  // LEGAL_PAGES_PUBLISHED on (frontend/lib/legal.ts). CI sets
-  // LEGAL_PAGES_PREVIEW for this job, and the same env reaches this process.
-  ...(LEGAL_PAGES_RENDERED
-    ? ([
-        ['/privacy', '/privacy'],
-        ['/terms', '/terms'],
-        ['/cookies', '/cookies'],
-        ['/contact', '/contact'],
-        ['/accessibility', '/accessibility'],
-      ] as [string, string][])
-    : []),
-];
-
 test.describe('accessibility: anonymous, light scheme', () => {
-  for (const [name, path] of PUBLIC_ROUTES) {
+  for (const [name, path] of ANONYMOUS_ROUTES) {
     test(name, async ({ page }) => {
       // Next's error shell is itself accessible, so without this a route that
       // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
@@ -324,7 +228,7 @@ test.describe('accessibility: anonymous, light scheme', () => {
 // with no stored preference the app follows `prefers-color-scheme`.
 test.describe('accessibility: anonymous, dark scheme', () => {
   test.use({ colorScheme: 'dark' });
-  for (const [name, path] of PUBLIC_ROUTES) {
+  for (const [name, path] of ANONYMOUS_ROUTES) {
     test(name, async ({ page }) => {
       // Next's error shell is itself accessible, so without this a route that
       // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
@@ -408,22 +312,9 @@ test.describe('accessibility: logged in', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
   test.use({ storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined });
 
-  // The routes whose logged-in DOM differs meaningfully from the anonymous
-  // one: `/` gains the pinned-lines/stations/tracked-trains sections,
-  // `/journeys` and `/groups` replace a login modal with real content,
-  // `/lines` gains pin controls, `/chat` swaps its whole body.
-  // (`/connect-claude` no longer depends on a session at all.)
-  for (const [name, path] of [
-    ['/', '/'],
-    ['/lines', '/lines'],
-    [`/stations/${REAL_STATION_CRS}`, `/stations/${REAL_STATION_CRS}`],
-    ['/journeys', '/journeys'],
-    ['/groups', '/groups'],
-    ['/chat', '/chat'],
-    ['/account/notifications', '/account/notifications'],
-    // Every account section, the calendar feed's when the api has it on.
-    ['/account/preferences (logged in)', '/account/preferences'],
-  ] as const) {
+  // LOGGED_IN_ROUTES (./a11yRoutes.ts): the routes whose logged-in DOM
+  // differs from the anonymous one. The dark run below scans the same list.
+  for (const [name, path] of LOGGED_IN_ROUTES) {
     test(name, async ({ page }) => {
       // Next's error shell is itself accessible, so without this a route that
       // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
@@ -538,383 +429,389 @@ test.describe('accessibility: /train/[uid]/[date]', () => {
 // The states below do not exist in any page's first-paint DOM, so a
 // route-level sweep cannot see them however many rules it runs. Every one
 // of these found at least one real defect on its first run.
-test.describe('accessibility: interactive sub-states', () => {
-  test(`/lines/${REAL_LINE_ID}/history, Trends tab`, async ({ page }) => {
-    await page.goto(`/lines/${REAL_LINE_ID}/history`);
-    await page.getByRole('tab', { name: 'Trends' }).click();
-    await expect(page.getByRole('tabpanel')).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test(`/lines/${REAL_LINE_ID}, every issue accordion expanded`, async ({ page }) => {
-    // `IssueList` is `keepMounted={false}`, so `DisruptionDetail` and its
-    // badges and "View full incident details" link do not exist in the DOM
-    // until the panel is opened.
-    await page.goto(`/lines/${REAL_LINE_ID}`);
-    await expandAllAccordions(page);
-    await expectNoViolations(page);
-  });
-
-  test(`/stations/${REAL_STATION_CRS}, every disclosure expanded`, async ({ page }) => {
-    // Every `StationAccessibilitySection` disclosure is `keepMounted={false}`;
-    // that is where duplicate `role="region"` landmark names showed up.
-    await page.goto(`/stations/${REAL_STATION_CRS}`);
-    await expandAllAccordions(page);
-    await expectNoViolations(page);
-  });
-
-  test('/incidents, results rendered', async ({ page }) => {
-    await page.goto('/incidents?period=all');
-    await expect(page.locator('[data-incident-results]')).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/incidents, filters panel open', async ({ page }) => {
-    await page.goto('/incidents?period=custom');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/trains, filters panel open after a search', async ({ page }) => {
-    await page.goto(`/trains?station=${REAL_STATION_CRS}&stops_at=PBO`);
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  // "Find a stop", the search-only bar (the e2e seed has no operators, so
-  // /operators has no cards to search).
-  test('/transit/metrolink/stops, stops searched', async ({ page }) => {
-    await page.goto('/transit/metrolink/stops?q=picc');
-    await expect(page.getByRole('textbox', { name: 'Find a stop' })).toHaveValue('picc');
-    await expectNoViolations(page);
-  });
-
-  // The network page's "Find a stop" type-ahead, open on its matches and
-  // with one highlighted, and with none.
-  test('/transit/metrolink, stop finder open', async ({ page }) => {
-    await page.goto('/transit/metrolink');
-    const finder = page.getByRole('combobox', { name: 'Find a stop' });
-    await finder.fill('a');
-    await expect(page.getByRole('listbox')).toBeVisible();
-    await finder.press('ArrowDown');
-    await expect(finder).toHaveAttribute('aria-expanded', 'true');
-    await expectNoViolations(page);
-    await finder.fill('zzzz');
-    await expect(page.getByRole('option', { name: /No stops match/ })).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/trains, results rendered', async ({ page }) => {
-    await page.goto(`/trains?station=${REAL_STATION_CRS}`);
-    await expectNoViolations(page);
-  });
-
-  test('/track, departure picker populated', async ({ page }) => {
-    // The picker's cancelled rows are the only place in the app that dims a
-    // whole row, which is how a `filled` badge -- already AA-safe at full
-    // strength -- ended up composited below AA.
-    await page.goto(`/track?origin=${REAL_STATION_CRS}`);
-    await expectNoViolations(page);
-  });
-
-  test('/track, a station picked in a station field', async ({ page }) => {
-    // The field shows the station by name with its clear button, and its
-    // live region says what was picked.
-    await page.goto('/track');
-    const origin = page.getByRole('combobox', { name: 'Origin station' });
-    await origin.fill(REAL_STATION_CRS);
-    await origin.press('Tab');
-    await expect(origin).toHaveValue(new RegExp(`\\(${REAL_STATION_CRS}\\)$`));
-    await expect(page.getByRole('button', { name: 'Clear Origin station' })).toBeVisible();
-    await expect(page.getByRole('status').filter({ hasText: 'Origin station set to' })).toBeAttached();
-    await expectNoViolations(page);
-  });
-
-  test('/lines/new, advanced options expanded', async ({ page }) => {
-    await page.goto('/lines/new');
-    await page.getByRole('button', { name: /Show advanced options/i }).click();
-    await expectNoViolations(page);
-  });
-
-  test('/lines, filters panel open', async ({ page }) => {
-    await page.goto('/lines');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/lines, filters sheet open on a phone viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/lines');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/lines, operator filter dropdown open', async ({ page }) => {
-    await page.goto('/lines');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await page.getByRole('combobox', { name: 'Operator' }).click();
-    await expect(page.getByRole('listbox', { name: 'Operator' })).toBeVisible();
-    await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
-  });
-
-  // `/lines`'s operator filter is not the only combobox in the app, and a
-  // dropdown that is never opened is a dropdown that is never scanned --
-  // the whole reason this describe block exists. These are the other three
-  // surfaces that mount one.
-  test('/incidents, operator and line comboboxes open', async ({ page }) => {
-    await page.goto('/incidents');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await page.getByRole('combobox', { name: /Operator/i }).click();
-    await expect(page.getByRole('listbox').first()).toBeVisible();
-    await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
-    // Escape closes only the open list, never the whole panel.
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
-    await page.getByRole('combobox', { name: /^Line/i }).click();
-    await expect(page.getByRole('listbox').first()).toBeVisible();
-    await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
-  });
-
-  test('/trains, station autocomplete open with suggestions', async ({ page }) => {
-    await page.goto('/trains');
-    await page
-      .getByRole('combobox', { name: /Station/i })
-      .first()
-      .fill('Lon');
-    await expect(page.getByRole('listbox').first()).toBeVisible();
-    await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
-  });
-
-  test('/lines/new, station autocomplete open with suggestions', async ({ page }) => {
-    await page.goto('/lines/new');
-    await page
-      .getByRole('combobox', { name: /Add station/i })
-      .first()
-      .fill('Lon');
-    await expect(page.getByRole('listbox').first()).toBeVisible();
-    await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
-  });
-
-  // A conditional banner, not an interaction: the yellow retention `Alert`
-  // only renders when the requested range reaches past the server's real
-  // `line_status_history` ceiling, so the default `/lines/[id]/history` view
-  // never shows it -- and a whole failing `variant="light"` colour hid
-  // behind exactly that. Included as the standing reminder that "every
-  // route, every sub-state" has to mean data-conditional states too.
-  test(`/lines/${REAL_LINE_ID}/history, retention shortfall banner`, async ({ page }) => {
-    await page.goto(`/lines/${REAL_LINE_ID}/history?range=30d`);
-    const banner = page.getByText(/isn't available/i);
-    test.skip(
-      (await banner.count()) === 0,
-      "this deployment's history retention covers 30 days, so the banner never renders",
-    );
-    await expectNoViolations(page);
-  });
-
-  test('combobox keyboard reachability (the evidence behind COMBOBOX_PORTAL_WAIVERS)', async ({ page }) => {
-    // Not a duplicate of the axe run above: this is the assertion that
-    // earns the `scrollable-region-focusable` waiver, by demonstrating the
-    // thing that rule cannot see. If Mantine ever changes its combobox away
-    // from `aria-activedescendant`, or the list stops scrolling to the
-    // active option, this fails and the waiver has to be re-argued.
-    await page.goto('/lines');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    const combobox = page.getByRole('combobox', { name: 'Operator' });
-    await combobox.click();
-    await expect(page.getByRole('listbox', { name: 'Operator' })).toBeVisible();
-    expect(await combobox.getAttribute('aria-activedescendant')).toBeNull();
-
-    await page.keyboard.press('ArrowDown');
-    expect(await combobox.getAttribute('aria-activedescendant')).not.toBeNull();
-
-    // Scoped to the portal node, which is the exact element axe reports:
-    // `.mantine-ScrollArea-viewport` on its own also matches in-page scroll
-    // areas, and a page-level one that never scrolls would make this pass
-    // or fail for the wrong reason.
-    const viewport = page.locator('[data-mantine-shared-portal-node] .mantine-ScrollArea-viewport');
-    const { scrollable, options } = await viewport.evaluate((el) => ({
-      scrollable: el.scrollHeight > el.clientHeight,
-      options: el.querySelectorAll('[role="option"]').length,
-    }));
-    // A deployment with few enough operators to fit the dropdown without
-    // scrolling has nothing to prove here -- and `scrollable-region-focusable`
-    // would not have fired against it in the first place.
-    test.skip(!scrollable, 'operator list is short enough not to scroll on this deployment');
-    expect(await viewport.evaluate((el) => el.scrollTop)).toBe(0);
-
-    // Stop one short of the end: Mantine's combobox WRAPS from the last
-    // option back to the first, which would scroll the viewport back to 0
-    // and make an over-long loop here look like a failure.
-    for (let i = 0; i < options - 2; i++) await page.keyboard.press('ArrowDown');
-    await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
-  });
-
-  // The nav drawer (components/AppNavDrawer.tsx) is this app's first
-  // `Drawer`, and it exists only below `md` -- so on the desktop viewport
-  // every other case here uses, it is not merely closed, it is unmountable.
-  // Its contents are the ENTIRE navigation on a phone, which makes an
-  // unaudited opened state the single largest a11y blind spot the mobile
-  // collapse could have introduced.
-  test('the nav drawer, opened on a phone viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/lines');
-    await openNavDrawer(page);
-    await expectNoViolations(page);
-  });
-
-  test('skip link: first focusable element, visible on focus, targets main content', async ({ page }) => {
-    // WCAG 2.4.1 (Bypass Blocks): skip link must be the first focusable
-    // element, must be visible on keyboard focus, and must target the main
-    // content area. This test verifies all three requirements.
-    await page.goto('/lines');
-
-    // Get the skip link
-    const skipLink = page.getByRole('link', { name: 'Skip to content' });
-
-    // Verify it exists
-    await expect(skipLink).toBeAttached();
-
-    // Verify it's a real anchor with the correct href
-    const href = await skipLink.getAttribute('href');
-    expect(href).toBe('#main-content');
-
-    // Verify the target main element exists and has the id
-    const mainElement = page.locator('#main-content');
-    await expect(mainElement).toBeAttached();
-
-    // Tab once from page load to focus the skip link (it should be first)
-    await page.keyboard.press('Tab');
-    await expect(skipLink).toBeFocused();
-
-    // Verify it becomes visible on focus (check computed style)
-    const skipLinkBox = await skipLink.boundingBox();
-    expect(skipLinkBox).not.toBeNull();
-    // After focus, the link should be in a reasonable position on screen
-    // (not off at -9999px anymore)
-    expect(skipLinkBox?.x).toBeGreaterThanOrEqual(0);
-    expect(skipLinkBox?.y).toBeGreaterThanOrEqual(0);
-
-    // I3 (2026-09-17 whole-branch review): the link's own filled-blue
-    // background used to be 3.56:1 against its white text -- below WCAG
-    // 1.4.3's 4.5:1 AA threshold, and axe's own `color-contrast` rule
-    // catches it. Running the full sweep here, WHILE the link is focused
-    // (its only visible state), is what actually exercises that pairing --
-    // every other sweep in this file never focuses it, so this is the one
-    // place a regression here would be caught.
-    await expectNoViolations(page);
-  });
-});
-
-test.describe('accessibility: interactive sub-states, logged in', () => {
-  test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
-  test.use({ storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined });
-
-  // The account menu (components/AccountMenu.tsx) is this app's first
-  // `Menu`, it only exists for an authenticated visitor, and its dropdown
-  // is portalled -- so nothing else in this suite has ever put its DOM in
-  // front of axe. It is also the one control that now carries the display
-  // name solely as an accessible name, which is exactly the kind of thing
-  // a full-ruleset sweep is here to keep honest.
-  test('the account menu, opened', async ({ page }) => {
-    await page.goto('/lines');
-    await page
-      .locator('nav[aria-label="Main"]')
-      .getByRole('button', { name: /, account menu for / })
-      .click();
-    await expect(page.getByRole('menu')).toBeVisible();
-    await expectNoViolations(page, MENU_PORTAL_WAIVERS);
-  });
-
-  test('/journeys, stop-tracking confirmation modal', async ({ page }) => {
-    // Mantine's `Modal` close button has no accessible name of its own;
-    // `lib/theme.ts` supplies one for every modal in the app through
-    // `components.Modal.defaultProps`. This is the live check on that.
-    //
-    // Task 3.6.7: the row's Rename/Stop-tracking controls now live behind
-    // one overflow-kebab menu (`More actions for ...`) instead of a
-    // free-standing "Delete" button -- open that first, then its "Stop
-    // tracking" menu item.
-    await page.goto('/journeys');
-    await page
-      .getByRole('button', { name: /^More actions for/ })
-      .first()
-      .click();
-    await page.getByRole('menuitem', { name: 'Stop tracking' }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/groups/[id], share-a-train modal', async ({ page }) => {
-    test.skip(!GROUP_ID, 'set E2E_GROUP_ID');
-    await page.goto(`/groups/${GROUP_ID}`);
-    await page.getByRole('button', { name: /Add one of my trains/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/groups/[id], share-a-custom-line modal', async ({ page }) => {
-    test.skip(!GROUP_ID, 'set E2E_GROUP_ID');
-    await page.goto(`/groups/${GROUP_ID}`);
-    await page.getByRole('button', { name: /Share one of my custom lines/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  test('/groups/[id], rename modal', async ({ page }) => {
-    test.skip(!GROUP_ID, 'set E2E_GROUP_ID');
-    await page.goto(`/groups/${GROUP_ID}`);
-    await page
-      .getByRole('button', { name: /^Rename$/ })
-      .first()
-      .click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expectNoViolations(page);
-  });
-
-  // The state class that got away the first time round. Sixteen components
-  // render a failed action as an inline red `<Text>`, and NONE of them is
-  // reachable by navigating or clicking -- the mutation has to actually
-  // fail. Every one of those sixteen shipped below AA in both colour
-  // schemes, and no amount of route coverage or modal-opening would have
-  // found it, because axe can only see states the page is actually in.
-  //
-  // Failing the request at the network layer, rather than pointing the app
-  // at a broken backend, keeps this a deterministic check of the ERROR
-  // RENDERING and not of the API.
-  test('a failed mutation renders its inline error text readably', async ({ page }) => {
-    await page.goto('/journeys');
-    // A 500 on purpose: a stop-tracking delete shows the API's own sentence
-    // only for a readable 400/403/409/422 body (`failureFromResponse`), so a
-    // 500 always takes `describeFailure('stop tracking', 'this train', 500)`
-    // -- "Couldn't stop tracking this train. Try again." -- a string this
-    // test can match without depending on whatever prose a backend happens
-    // to return. The delete is sent after the 10 second undo window, and
-    // the failure is a toast.
-    await page.route('**/api/**', (route) =>
-      route.request().method() === 'GET' ? route.fallback() : route.fulfill({ status: 500, body: '' }),
-    );
-    // Task 3.6.7: open the row's overflow-kebab menu first, same as the
-    // confirmation-modal test above.
-    await page
-      .getByRole('button', { name: /^More actions for/ })
-      .first()
-      .click();
-    await page.getByRole('menuitem', { name: 'Stop tracking' }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm stop tracking' }).click();
-    // The assertion that keeps this from passing vacuously: if the error
-    // text never rendered, there is nothing here to have measured.
-    await expect(page.getByText("Couldn't stop tracking this train. Try again.").first()).toBeVisible({
-      timeout: 20_000,
+for (const colorScheme of ['light', 'dark'] as const) {
+  test.describe(`accessibility: interactive sub-states${colorScheme === 'dark' ? ', dark scheme' : ''}`, () => {
+    test.use({ colorScheme });
+    test(`/lines/${REAL_LINE_ID}/history, Trends tab`, async ({ page }) => {
+      await page.goto(`/lines/${REAL_LINE_ID}/history`);
+      await page.getByRole('tab', { name: 'Trends' }).click();
+      await expect(page.getByRole('tabpanel')).toBeVisible();
+      await expectNoViolations(page);
     });
-    await expectNoViolations(page);
+
+    test(`/lines/${REAL_LINE_ID}, every issue accordion expanded`, async ({ page }) => {
+      // `IssueList` is `keepMounted={false}`, so `DisruptionDetail` and its
+      // badges and "View full incident details" link do not exist in the DOM
+      // until the panel is opened.
+      await page.goto(`/lines/${REAL_LINE_ID}`);
+      await expandAllAccordions(page);
+      await expectNoViolations(page);
+    });
+
+    test(`/stations/${REAL_STATION_CRS}, every disclosure expanded`, async ({ page }) => {
+      // Every `StationAccessibilitySection` disclosure is `keepMounted={false}`;
+      // that is where duplicate `role="region"` landmark names showed up.
+      await page.goto(`/stations/${REAL_STATION_CRS}`);
+      await expandAllAccordions(page);
+      await expectNoViolations(page);
+    });
+
+    test('/incidents, results rendered', async ({ page }) => {
+      await page.goto('/incidents?period=all');
+      await expect(page.locator('[data-incident-results]')).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/incidents, filters panel open', async ({ page }) => {
+      await page.goto('/incidents?period=custom');
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/trains, filters panel open after a search', async ({ page }) => {
+      await page.goto(`/trains?station=${REAL_STATION_CRS}&stops_at=PBO`);
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    // "Find a stop", the search-only bar (the e2e seed has no operators, so
+    // /operators has no cards to search).
+    test('/transit/metrolink/stops, stops searched', async ({ page }) => {
+      await page.goto('/transit/metrolink/stops?q=picc');
+      await expect(page.getByRole('textbox', { name: 'Find a stop' })).toHaveValue('picc');
+      await expectNoViolations(page);
+    });
+
+    // The network page's "Find a stop" type-ahead, open on its matches and
+    // with one highlighted, and with none.
+    test('/transit/metrolink, stop finder open', async ({ page }) => {
+      await page.goto('/transit/metrolink');
+      const finder = page.getByRole('combobox', { name: 'Find a stop' });
+      await finder.fill('a');
+      await expect(page.getByRole('listbox')).toBeVisible();
+      await finder.press('ArrowDown');
+      await expect(finder).toHaveAttribute('aria-expanded', 'true');
+      await expectNoViolations(page);
+      await finder.fill('zzzz');
+      await expect(page.getByRole('option', { name: /No stops match/ })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/trains, results rendered', async ({ page }) => {
+      await page.goto(`/trains?station=${REAL_STATION_CRS}`);
+      await expectNoViolations(page);
+    });
+
+    test('/track, departure picker populated', async ({ page }) => {
+      // The picker's cancelled rows are the only place in the app that dims a
+      // whole row, which is how a `filled` badge -- already AA-safe at full
+      // strength -- ended up composited below AA.
+      await page.goto(`/track?origin=${REAL_STATION_CRS}`);
+      await expectNoViolations(page);
+    });
+
+    test('/track, a station picked in a station field', async ({ page }) => {
+      // The field shows the station by name with its clear button, and its
+      // live region says what was picked.
+      await page.goto('/track');
+      const origin = page.getByRole('combobox', { name: 'Origin station' });
+      await origin.fill(REAL_STATION_CRS);
+      await origin.press('Tab');
+      await expect(origin).toHaveValue(new RegExp(`\\(${REAL_STATION_CRS}\\)$`));
+      await expect(page.getByRole('button', { name: 'Clear Origin station' })).toBeVisible();
+      await expect(page.getByRole('status').filter({ hasText: 'Origin station set to' })).toBeAttached();
+      await expectNoViolations(page);
+    });
+
+    test('/lines/new, advanced options expanded', async ({ page }) => {
+      await page.goto('/lines/new');
+      await page.getByRole('button', { name: /Show advanced options/i }).click();
+      await expectNoViolations(page);
+    });
+
+    test('/lines, filters panel open', async ({ page }) => {
+      await page.goto('/lines');
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/lines, filters sheet open on a phone viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto('/lines');
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/lines, operator filter dropdown open', async ({ page }) => {
+      await page.goto('/lines');
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await page.getByRole('combobox', { name: 'Operator' }).click();
+      await expect(page.getByRole('listbox', { name: 'Operator' })).toBeVisible();
+      await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
+    });
+
+    // `/lines`'s operator filter is not the only combobox in the app, and a
+    // dropdown that is never opened is a dropdown that is never scanned --
+    // the whole reason this describe block exists. These are the other three
+    // surfaces that mount one.
+    test('/incidents, operator and line comboboxes open', async ({ page }) => {
+      await page.goto('/incidents');
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await page.getByRole('combobox', { name: /Operator/i }).click();
+      await expect(page.getByRole('listbox').first()).toBeVisible();
+      await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
+      // Escape closes only the open list, never the whole panel.
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+      await page.getByRole('combobox', { name: /^Line/i }).click();
+      await expect(page.getByRole('listbox').first()).toBeVisible();
+      await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
+    });
+
+    test('/trains, station autocomplete open with suggestions', async ({ page }) => {
+      await page.goto('/trains');
+      await page
+        .getByRole('combobox', { name: /Station/i })
+        .first()
+        .fill('Lon');
+      await expect(page.getByRole('listbox').first()).toBeVisible();
+      await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
+    });
+
+    test('/lines/new, station autocomplete open with suggestions', async ({ page }) => {
+      await page.goto('/lines/new');
+      await page
+        .getByRole('combobox', { name: /Add station/i })
+        .first()
+        .fill('Lon');
+      await expect(page.getByRole('listbox').first()).toBeVisible();
+      await expectNoViolations(page, COMBOBOX_PORTAL_WAIVERS);
+    });
+
+    // A conditional banner, not an interaction: the yellow retention `Alert`
+    // only renders when the requested range reaches past the server's real
+    // `line_status_history` ceiling, so the default `/lines/[id]/history` view
+    // never shows it -- and a whole failing `variant="light"` colour hid
+    // behind exactly that. Included as the standing reminder that "every
+    // route, every sub-state" has to mean data-conditional states too.
+    test(`/lines/${REAL_LINE_ID}/history, retention shortfall banner`, async ({ page }) => {
+      await page.goto(`/lines/${REAL_LINE_ID}/history?range=30d`);
+      const banner = page.getByText(/isn't available/i);
+      test.skip(
+        (await banner.count()) === 0,
+        "this deployment's history retention covers 30 days, so the banner never renders",
+      );
+      await expectNoViolations(page);
+    });
+
+    test('combobox keyboard reachability (the evidence behind COMBOBOX_PORTAL_WAIVERS)', async ({ page }) => {
+      // Not a duplicate of the axe run above: this is the assertion that
+      // earns the `scrollable-region-focusable` waiver, by demonstrating the
+      // thing that rule cannot see. If Mantine ever changes its combobox away
+      // from `aria-activedescendant`, or the list stops scrolling to the
+      // active option, this fails and the waiver has to be re-argued.
+      await page.goto('/lines');
+      await page.getByRole('button', { name: 'Filters' }).click();
+      const combobox = page.getByRole('combobox', { name: 'Operator' });
+      await combobox.click();
+      await expect(page.getByRole('listbox', { name: 'Operator' })).toBeVisible();
+      expect(await combobox.getAttribute('aria-activedescendant')).toBeNull();
+
+      await page.keyboard.press('ArrowDown');
+      expect(await combobox.getAttribute('aria-activedescendant')).not.toBeNull();
+
+      // Scoped to the portal node, which is the exact element axe reports:
+      // `.mantine-ScrollArea-viewport` on its own also matches in-page scroll
+      // areas, and a page-level one that never scrolls would make this pass
+      // or fail for the wrong reason.
+      const viewport = page.locator('[data-mantine-shared-portal-node] .mantine-ScrollArea-viewport');
+      const { scrollable, options } = await viewport.evaluate((el) => ({
+        scrollable: el.scrollHeight > el.clientHeight,
+        options: el.querySelectorAll('[role="option"]').length,
+      }));
+      // A deployment with few enough operators to fit the dropdown without
+      // scrolling has nothing to prove here -- and `scrollable-region-focusable`
+      // would not have fired against it in the first place.
+      test.skip(!scrollable, 'operator list is short enough not to scroll on this deployment');
+      expect(await viewport.evaluate((el) => el.scrollTop)).toBe(0);
+
+      // Stop one short of the end: Mantine's combobox WRAPS from the last
+      // option back to the first, which would scroll the viewport back to 0
+      // and make an over-long loop here look like a failure.
+      for (let i = 0; i < options - 2; i++) await page.keyboard.press('ArrowDown');
+      await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    });
+
+    // The nav drawer (components/AppNavDrawer.tsx) is this app's first
+    // `Drawer`, and it exists only below `md` -- so on the desktop viewport
+    // every other case here uses, it is not merely closed, it is unmountable.
+    // Its contents are the ENTIRE navigation on a phone, which makes an
+    // unaudited opened state the single largest a11y blind spot the mobile
+    // collapse could have introduced.
+    test('the nav drawer, opened on a phone viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto('/lines');
+      await openNavDrawer(page);
+      await expectNoViolations(page);
+    });
+
+    test('skip link: first focusable element, visible on focus, targets main content', async ({ page }) => {
+      // WCAG 2.4.1 (Bypass Blocks): skip link must be the first focusable
+      // element, must be visible on keyboard focus, and must target the main
+      // content area. This test verifies all three requirements.
+      await page.goto('/lines');
+
+      // Get the skip link
+      const skipLink = page.getByRole('link', { name: 'Skip to content' });
+
+      // Verify it exists
+      await expect(skipLink).toBeAttached();
+
+      // Verify it's a real anchor with the correct href
+      const href = await skipLink.getAttribute('href');
+      expect(href).toBe('#main-content');
+
+      // Verify the target main element exists and has the id
+      const mainElement = page.locator('#main-content');
+      await expect(mainElement).toBeAttached();
+
+      // Tab once from page load to focus the skip link (it should be first)
+      await page.keyboard.press('Tab');
+      await expect(skipLink).toBeFocused();
+
+      // Verify it becomes visible on focus (check computed style)
+      const skipLinkBox = await skipLink.boundingBox();
+      expect(skipLinkBox).not.toBeNull();
+      // After focus, the link should be in a reasonable position on screen
+      // (not off at -9999px anymore)
+      expect(skipLinkBox?.x).toBeGreaterThanOrEqual(0);
+      expect(skipLinkBox?.y).toBeGreaterThanOrEqual(0);
+
+      // I3 (2026-09-17 whole-branch review): the link's own filled-blue
+      // background used to be 3.56:1 against its white text -- below WCAG
+      // 1.4.3's 4.5:1 AA threshold, and axe's own `color-contrast` rule
+      // catches it. Running the full sweep here, WHILE the link is focused
+      // (its only visible state), is what actually exercises that pairing --
+      // every other sweep in this file never focuses it, so this is the one
+      // place a regression here would be caught.
+      await expectNoViolations(page);
+    });
   });
-});
+}
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  test.describe(`accessibility: interactive sub-states, logged in${colorScheme === 'dark' ? ', dark scheme' : ''}`, () => {
+    test.use({ colorScheme });
+    test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to a raw distant_signal_session value');
+    test.use({ storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined });
+
+    // The account menu (components/AccountMenu.tsx) is this app's first
+    // `Menu`, it only exists for an authenticated visitor, and its dropdown
+    // is portalled -- so nothing else in this suite has ever put its DOM in
+    // front of axe. It is also the one control that now carries the display
+    // name solely as an accessible name, which is exactly the kind of thing
+    // a full-ruleset sweep is here to keep honest.
+    test('the account menu, opened', async ({ page }) => {
+      await page.goto('/lines');
+      await page
+        .locator('nav[aria-label="Main"]')
+        .getByRole('button', { name: /, account menu for / })
+        .click();
+      await expect(page.getByRole('menu')).toBeVisible();
+      await expectNoViolations(page, MENU_PORTAL_WAIVERS);
+    });
+
+    test('/journeys, stop-tracking confirmation modal', async ({ page }) => {
+      // Mantine's `Modal` close button has no accessible name of its own;
+      // `lib/theme.ts` supplies one for every modal in the app through
+      // `components.Modal.defaultProps`. This is the live check on that.
+      //
+      // Task 3.6.7: the row's Rename/Stop-tracking controls now live behind
+      // one overflow-kebab menu (`More actions for ...`) instead of a
+      // free-standing "Delete" button -- open that first, then its "Stop
+      // tracking" menu item.
+      await page.goto('/journeys');
+      await page
+        .getByRole('button', { name: /^More actions for/ })
+        .first()
+        .click();
+      await page.getByRole('menuitem', { name: 'Stop tracking' }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/groups/[id], share-a-train modal', async ({ page }) => {
+      test.skip(!GROUP_ID, 'set E2E_GROUP_ID');
+      await page.goto(`/groups/${GROUP_ID}`);
+      await page.getByRole('button', { name: /Add one of my trains/i }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/groups/[id], share-a-custom-line modal', async ({ page }) => {
+      test.skip(!GROUP_ID, 'set E2E_GROUP_ID');
+      await page.goto(`/groups/${GROUP_ID}`);
+      await page.getByRole('button', { name: /Share one of my custom lines/i }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    test('/groups/[id], rename modal', async ({ page }) => {
+      test.skip(!GROUP_ID, 'set E2E_GROUP_ID');
+      await page.goto(`/groups/${GROUP_ID}`);
+      await page
+        .getByRole('button', { name: /^Rename$/ })
+        .first()
+        .click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    // The state class that got away the first time round. Sixteen components
+    // render a failed action as an inline red `<Text>`, and NONE of them is
+    // reachable by navigating or clicking -- the mutation has to actually
+    // fail. Every one of those sixteen shipped below AA in both colour
+    // schemes, and no amount of route coverage or modal-opening would have
+    // found it, because axe can only see states the page is actually in.
+    //
+    // Failing the request at the network layer, rather than pointing the app
+    // at a broken backend, keeps this a deterministic check of the ERROR
+    // RENDERING and not of the API.
+    test('a failed mutation renders its inline error text readably', async ({ page }) => {
+      await page.goto('/journeys');
+      // A 500 on purpose: a stop-tracking delete shows the API's own sentence
+      // only for a readable 400/403/409/422 body (`failureFromResponse`), so a
+      // 500 always takes `describeFailure('stop tracking', 'this train', 500)`
+      // -- "Couldn't stop tracking this train. Try again." -- a string this
+      // test can match without depending on whatever prose a backend happens
+      // to return. The delete is sent after the 10 second undo window, and
+      // the failure is a toast.
+      await page.route('**/api/**', (route) =>
+        route.request().method() === 'GET' ? route.fallback() : route.fulfill({ status: 500, body: '' }),
+      );
+      // Task 3.6.7: open the row's overflow-kebab menu first, same as the
+      // confirmation-modal test above.
+      await page
+        .getByRole('button', { name: /^More actions for/ })
+        .first()
+        .click();
+      await page.getByRole('menuitem', { name: 'Stop tracking' }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.getByRole('button', { name: 'Confirm stop tracking' }).click();
+      // The assertion that keeps this from passing vacuously: if the error
+      // text never rendered, there is nothing here to have measured.
+      await expect(page.getByText("Couldn't stop tracking this train. Try again.").first()).toBeVisible({
+        timeout: 20_000,
+      });
+      await expectNoViolations(page);
+    });
+  });
+}
 
 test.describe('accessibility: logged in, dark scheme', () => {
   // The logged-in pages carry most of this app's `c="dimmed"` density (the
@@ -927,13 +824,7 @@ test.describe('accessibility: logged in, dark scheme', () => {
     storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined,
   });
 
-  for (const [name, path] of [
-    ['/', '/'],
-    ['/journeys', '/journeys'],
-    ['/groups', '/groups'],
-    [`/stations/${REAL_STATION_CRS}`, `/stations/${REAL_STATION_CRS}`],
-    [`/lines/${REAL_LINE_ID}`, `/lines/${REAL_LINE_ID}`],
-  ] as const) {
+  for (const [name, path] of LOGGED_IN_ROUTES) {
     test(name, async ({ page }) => {
       // Next's error shell is itself accessible, so without this a route that
       // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
@@ -949,6 +840,126 @@ test.describe('accessibility: logged in, dark scheme', () => {
     await expectNoViolations(page);
   });
 });
+
+// Loading, empty and error states. Like the interactive states above, none of
+// them is on a route's settled first paint, so the route sweeps never see
+// them: a skeleton is on screen for a moment, an empty list needs an account
+// or a search with nothing in it, and an error needs a request that fails.
+// Each test asserts the state is really showing before it runs axe, so it
+// can't pass vacuously. Both colour schemes, as everywhere else.
+//
+// Not covered: `app/error.tsx` (the error boundary). It renders only when a
+// Server Component throws, and no request the browser makes can make the
+// server's own fetch fail, so there is no deterministic way to reach it here;
+// `app/error.test.tsx` renders it under vitest instead.
+for (const colorScheme of ['light', 'dark'] as const) {
+  test.describe(`accessibility: loading, empty and error states, ${colorScheme} scheme`, () => {
+    test.use({ colorScheme });
+
+    // Anonymous empty states: searches that match nothing.
+    for (const [name, path, empty] of [
+      ['/trains, no train with that headcode', '/trains?headcode=9Z99&date=2099-01-05', /No train runs as 9Z99/],
+      ['/incidents, no incidents match', '/incidents?q=zzzz-no-such-incident', /No incidents match/],
+      ['/lines, no lines match', '/lines?q=zzzz-no-such-line', /No lines match|No lines/],
+    ] as const) {
+      test(name, async ({ page }) => {
+        const response = await page.goto(path);
+        expect(response?.status() ?? 0).toBeLessThan(500);
+        await expect(page.getByText(empty).first()).toBeVisible();
+        await expectNoViolations(page);
+      });
+    }
+
+    test('/operators, a search with no operator', async ({ page }) => {
+      await page.goto('/operators');
+      await page
+        .getByRole('textbox', { name: /Find an operator|Search/i })
+        .first()
+        .fill('zzzz-no-such-operator');
+      await expect(page.getByText(/No operators match|No operators/i).first()).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    // /plan: the planner's own request held (loading), failed (error) and
+    // answered with nothing (empty). Mocked at the browser, so this stays
+    // inside `/Trips/plan`'s rate limit, which plan.spec.ts also draws on.
+    const PLAN_URL = '/plan?origin=KGX&destination=EUS&date=2026-09-17&departAfter=08:00';
+
+    test('/plan, route search in flight', async ({ page }) => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      await page.route('**/api/Trips/plan?*', async (route) => {
+        await gate;
+        await route.fulfill({ status: 500, body: '' });
+      });
+      await page.goto(PLAN_URL);
+      await page.getByRole('button', { name: 'Find routes' }).click();
+      // In flight: the form's button reads "Searching" with its spinner, disabled.
+      await expect(page.getByRole('button', { name: 'Searching' })).toBeDisabled();
+      await expectNoViolations(page);
+      release();
+    });
+
+    test('/plan, route search failed', async ({ page }) => {
+      await page.route('**/api/Trips/plan?*', (route) => route.fulfill({ status: 500, body: '' }));
+      await page.goto(PLAN_URL);
+      await page.getByRole('button', { name: 'Find routes' }).click();
+      await expect(page.getByText("Couldn't plan this trip").first()).toBeVisible();
+      await expectNoViolations(page);
+    });
+
+    // The Journeys skeleton (app/journeys/loading.tsx), held on screen by
+    // delaying the client navigation's own request: `Link` shows the
+    // route's loading boundary until the page's payload arrives.
+    test('/journeys, skeleton while the page loads', async ({ page }) => {
+      await page.goto('/attribution');
+      // Once the nav's links have been prefetched, which is what puts the
+      // route's loading boundary on screen the moment one is followed.
+      await page.waitForLoadState('networkidle');
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      await page.route(/\/journeys\?_rsc=/, async (route) => {
+        const headers = route.request().headers();
+        if (headers['next-router-prefetch'] || headers['next-router-segment-prefetch']) return route.fallback();
+        await gate;
+        return route.fallback();
+      });
+      await page.locator('nav[aria-label="Main"]').getByRole('link', { name: 'Journeys' }).first().click();
+      await expect(page.locator('[data-page-skeleton]')).toBeVisible();
+      // `page-has-heading-one` is waived for this one assertion: a route's
+      // skeleton is deliberately headingless (components/PageSkeleton.tsx:
+      // one `role="status"` region named by a visually hidden label, with
+      // the bars `aria-hidden`), for the moment before the page's own h1
+      // arrives. Every settled page keeps the rule, in every other scan.
+      await expectNoViolations(page, ['page-has-heading-one']);
+      release();
+    });
+
+    // Signed in with nothing in the account: every list's empty state.
+    test.describe('an account with nothing in it', () => {
+      test.use({ storageState: sessionState(EMPTY_USER_SESSION_COOKIE) });
+      for (const [name, path] of [
+        ['/', '/'],
+        ['/journeys', '/journeys'],
+        ['/groups', '/groups'],
+        ['/journeys/regular', '/journeys/regular'],
+        ['/journeys/recently-deleted', '/journeys/recently-deleted'],
+        ['/account/connected-apps', '/account/connected-apps'],
+        ['/account/notifications', '/account/notifications'],
+        ['/account', '/account'],
+      ] as const) {
+        test(name, async ({ page }) => {
+          const response = await page.goto(path);
+          expect(response?.status() ?? 0, `${path} returned a server error`).toBeLessThan(500);
+          // The signed-in page, not the login prompt: the empty user's
+          // session must be live, or this would audit the wrong state.
+          await expect(page.getByRole('button', { name: /^Log in/ })).toHaveCount(0);
+          await expectNoViolations(page);
+        });
+      }
+    });
+  });
+}
 
 /** Opens every `Accordion` control on the page. Both accordion users in
  * this app are `keepMounted={false}`, so their panels are not merely hidden

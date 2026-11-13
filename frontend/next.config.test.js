@@ -139,10 +139,10 @@ describe('next.config.mjs redirects', () => {
   });
 });
 
-// Cloudflare caches /robots.txt and /sitemap.xml by the `Cache-Control` the
-// origin sends (DS-170). The sitemap's `s-maxage` is shorter because it
-// falls back to no station URLs when the api is down.
-describe('next.config.mjs robots.txt and sitemap.xml caching', () => {
+// Cloudflare's Browser Cache TTL overrides an origin `max-age=0` (Next's
+// default for public/ files), so each static class states its own lifetime.
+// /robots.txt and /sitemap.xml have their own edge rules (DS-170), tested below.
+describe('next.config.mjs static Cache-Control headers', () => {
   /** @param {string} source */
   async function cacheControlFor(source) {
     if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
@@ -155,6 +155,36 @@ describe('next.config.mjs robots.txt and sitemap.xml caching', () => {
     expect(values).toHaveLength(1);
     return values[0];
   }
+
+  it.each(['/sw.js', '/sw-cache-rules.js'])('revalidates %s on every use', async (source) => {
+    expect(await cacheControlFor(source)).toBe('no-cache');
+  });
+
+  it('keeps the offline page short-lived', async () => {
+    expect(await cacheControlFor('/offline.html')).toBe('public, max-age=300');
+  });
+
+  it.each([
+    '/icon-192.png',
+    '/icon-512.png',
+    '/icon-maskable-512.png',
+    '/opengraph-image.png',
+    '/icon.svg',
+    '/apple-icon.png',
+    '/manifest.webmanifest',
+  ])('caches un-hashed %s for a day with a week of stale-while-revalidate', async (source) => {
+    expect(await cacheControlFor(source)).toBe('public, max-age=86400, stale-while-revalidate=604800');
+  });
+
+  it('sets no Cache-Control on pages or the api, and none on /_next/static (Next makes it immutable)', async () => {
+    if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
+    const entries = await nextConfig.headers();
+    const sources = entries
+      .filter((entry) => entry.headers.some((h) => h.key === 'Cache-Control'))
+      .map((entry) => entry.source);
+    expect(sources).not.toContain('/api/:path*');
+    expect(sources.some((s) => s.startsWith('/_next') || s.includes(':path'))).toBe(false);
+  });
 
   it('lets the edge keep robots.txt for a day and serve it stale while the origin rolls', async () => {
     expect(await cacheControlFor('/robots.txt')).toBe(

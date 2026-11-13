@@ -100,6 +100,9 @@ export function PinToggle({
    * per-item add/remove endpoints or optimistic state lifted to the page,
    * both out of scope for this plan. */
   async function toggle() {
+    // Not `disabled` while busy (below), so a second press has to be refused
+    // here.
+    if (busy) return;
     setBusy(true);
     setLoginPromptMounted(true);
     needsLoginState.reset();
@@ -211,7 +214,11 @@ export function PinToggle({
           // so pinned/unpinned don't rely on icon fill alone.
           color={pinned ? 'yellow' : 'gray'}
           onClick={toggle}
-          disabled={busy}
+          // `aria-disabled` and `data-disabled`, not `disabled`: a disabled
+          // button drops keyboard focus to the page, so the login prompt
+          // this press opens would have nowhere to give focus back to when
+          // it closes (e2e/keyboard-focus.spec.ts).
+          {...(busy && { 'aria-disabled': true, 'data-disabled': true })}
           aria-label={label}
           // 44px, not Mantine's default `md` (28px): review §2.10 calls this
           // out by name as one of "the two actions a returning user taps

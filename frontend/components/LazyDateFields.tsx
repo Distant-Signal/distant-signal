@@ -53,6 +53,10 @@ function FieldPlaceholder({ label, description, placeholder, required, withAster
       {...(disabled !== undefined && { disabled })}
       readOnly
       aria-busy
+      // Not a tab stop: the real field replaces this input when the chunk
+      // arrives, and focus on a replaced element drops to the page (a keyboard
+      // user's first Tab into a filter panel lost its place that way).
+      tabIndex={-1}
     />
   );
 }
