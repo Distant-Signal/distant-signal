@@ -51,6 +51,18 @@ ON CONFLICT (id) DO NOTHING;
 -- the question by answering GET /api/preferences itself.
 UPDATE users SET bank_holiday_division = 'england-and-wales' WHERE id = 'fixture-owner';
 
+-- A third user with no journeys, groups, pins or tokens, for the empty-state
+-- accessibility scans (e2e/accessibility.spec.ts, EMPTY_USER_SESSION_COOKIE).
+-- Nothing else uses it, so no other spec or screenshot changes. Its session
+-- stores the SHA-256 hex of the raw token 'fixture-empty-session-token-0123456789abcdef'.
+INSERT INTO users (id, name, username, groups, created_at, last_login_at)
+VALUES ('fixture-empty', 'Blank Fixture', 'blank-fixture', '{}', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO sessions (id, user_id, refresh_token, created_at, expires_at)
+VALUES ('2fec45ae28057518b67e48f9f610de5a2cce25a12d904749269d14e100afd249', 'fixture-empty', NULL, NOW(), NOW() + INTERVAL '14 days')
+ON CONFLICT (id) DO NOTHING;
+
 -- Session for fixture-owner. Cookie value is the RAW token (E2E_SESSION_COOKIE,
 -- set on the browser via Playwright storageState); this row stores its
 -- SHA-256 hex digest, per auth::hash_session_token.

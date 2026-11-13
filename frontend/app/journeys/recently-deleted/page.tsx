@@ -59,7 +59,9 @@ export default async function RecentlyDeletedPage() {
         />
       )}
       <Text size="sm">
-        <TextLink href="/journeys">Back to journeys</TextLink>
+        <TextLink href="/journeys" inline>
+          Back to journeys
+        </TextLink>
       </Text>
     </Stack>
   );

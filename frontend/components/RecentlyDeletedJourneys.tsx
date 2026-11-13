@@ -65,7 +65,9 @@ export function RecentlyDeletedJourneys({ data, now }: { data: RecentlyDeletedDa
               </List>
             )}
             <Text size="sm">
-              <TextLink href={`/journeys/${saved.journeyId}`}>Open the journey</TextLink>
+              <TextLink href={`/journeys/${saved.journeyId}`} inline>
+                Open the journey
+              </TextLink>
             </Text>
           </Stack>
         </Alert>
@@ -73,7 +75,10 @@ export function RecentlyDeletedJourneys({ data, now }: { data: RecentlyDeletedDa
 
       {data.items.length === 0 ? (
         <Text c="dimmed">
-          Nothing deleted in the last {ownDays} days. <TextLink href="/journeys">Back to journeys</TextLink>
+          Nothing deleted in the last {ownDays} days.{' '}
+          <TextLink href="/journeys" inline>
+            Back to journeys
+          </TextLink>
         </Text>
       ) : (
         <Stack component="section" aria-labelledby="recently-deleted-list-heading" gap="sm">
