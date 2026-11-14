@@ -1,10 +1,13 @@
 import { Card, Group, Stack, Text } from '@mantine/core';
+import { useOperatorNames } from './OperatorNamesContext';
 import { EditUntrackedLegButton } from './EditUntrackedLegButton';
 import { RemoveJourneyLegButton } from './RemoveJourneyLegButton';
 import { StateBadge } from './StateBadge';
 import { TextLink } from './TextLink';
 import { TimetabledLegDetails } from './TimetabledLegDetails';
+import { TrainOperator } from './TrainOperator';
 import { formatDate } from '@/lib/dateFormat';
+import { transitOperatorName } from '@/lib/displayLabels';
 import {
   UNTRACKED_STATUS_LABEL,
   untrackedLegPlaceNames,
@@ -42,6 +45,8 @@ export function UntrackedLegCard({
   neighbours?: UntrackedLegNeighbours | undefined;
 }) {
   const times = untrackedLegTimes(leg);
+  const operatorNames = useOperatorNames();
+  const operatorCode = leg.timetable?.line?.operator;
   const status = leg.untrackedStatus ?? 'planned';
   return (
     <Card withBorder data-untracked-leg>
@@ -64,6 +69,9 @@ export function UntrackedLegCard({
           {formatDate(leg.plannedDeparture ?? `${leg.serviceDate}T12:00:00Z`)}
           {times ? `, ${times}` : ''}
         </Text>
+        {operatorCode && (
+          <TrainOperator name={transitOperatorName(operatorCode, operatorNames)} code={operatorCode} size="xs" />
+        )}
         {leg.timetable ? (
           <TimetabledLegDetails leg={leg} timetable={leg.timetable} />
         ) : (
