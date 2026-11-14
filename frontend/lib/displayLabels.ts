@@ -75,6 +75,24 @@ export function operatorNameAndCode(name?: string | null, code?: string | null):
   return n ?? c;
 }
 
+/** Display names for the four operator codes a timetabled Tube, DLR, tram
+ * or Metrolink ride carries (`timetable.line.operator`). The reference list
+ * (`getAllTocs()`) is the ATOC table: it can name `LT` but has no row for
+ * the `ds:` codes, which the api itself only knows as "DLR" and so on. Used
+ * only when the list has no entry, so a name from the list always wins. */
+const TRANSIT_OPERATOR_NAMES: Readonly<Record<string, string>> = {
+  LT: 'London Underground',
+  'ds:DLR': 'Docklands Light Railway',
+  'ds:LONDON_TRAMS': 'London Trams',
+  'ds:METROLINK': 'Metrolink',
+};
+
+/** A transit operator's name: the reference list's, else the fixed name
+ * above, else `undefined` (the code is then shown alone). */
+export function transitOperatorName(code: string, names: Readonly<Record<string, string>>): string | undefined {
+  return ownValue(names, code) ?? ownValue(TRANSIT_OPERATOR_NAMES, code);
+}
+
 const TRANSFER_MODE_LABELS: Record<string, string> = {
   WALK: 'Walk',
   TUBE: 'Tube',

@@ -6,6 +6,7 @@ import {
   tocNameLookup,
   operatorLabel,
   operatorNameAndCode,
+  transitOperatorName,
   transferLabel,
   transferLegLabel,
   transferLegMode,
@@ -204,5 +205,23 @@ describe('withStationWalks', () => {
     const { originStop: _stop, ...oneStop } = hop;
     expect(withStationWalks(oneStop)).toEqual([oneStop]);
     expect(withStationWalks({ ...hop, minutes: 5 })).toEqual([{ ...hop, minutes: 5 }]);
+  });
+});
+
+describe('transitOperatorName', () => {
+  it('names the four transit operator codes when the list has no entry', () => {
+    expect(transitOperatorName('LT', {})).toBe('London Underground');
+    expect(transitOperatorName('ds:DLR', {})).toBe('Docklands Light Railway');
+    expect(transitOperatorName('ds:LONDON_TRAMS', {})).toBe('London Trams');
+    expect(transitOperatorName('ds:METROLINK', {})).toBe('Metrolink');
+  });
+
+  it("prefers the list's name", () => {
+    expect(transitOperatorName('LT', { LT: 'London Underground Ltd' })).toBe('London Underground Ltd');
+  });
+
+  it('is undefined for any other code, including inherited property names', () => {
+    expect(transitOperatorName('VT', {})).toBeUndefined();
+    expect(transitOperatorName('constructor', {})).toBeUndefined();
   });
 });

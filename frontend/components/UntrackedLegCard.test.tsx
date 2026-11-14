@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { UntrackedLegCard } from './UntrackedLegCard';
+import { OperatorNamesProvider } from './OperatorNamesContext';
 import type { JourneyLegDetail } from '@/lib/types';
 import { JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
 
@@ -233,5 +234,63 @@ describe('UntrackedLegCard stop links', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Times are planned. We have no live data for this leg.')).not.toBeInTheDocument();
     expect(screen.queryByText(/on time|expected|delayed/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('UntrackedLegCard operator', () => {
+  function timetabled(operator?: string): JourneyLegDetail {
+    return leg({
+      transitNetwork: 'tfl',
+      timetable: {
+        network: 'tfl',
+        line: {
+          id: 'tfl:victoria',
+          name: 'Victoria line',
+          colour: '#0098d4',
+          mode: 'tube',
+          ...(operator ? { operator } : {}),
+        },
+        state: 'matched',
+        scheduledDeparture: '2026-10-21T07:06:00Z',
+        scheduledArrival: '2026-10-21T07:21:00Z',
+        headsign: null,
+        calls: [],
+        notices: [],
+      },
+    });
+  }
+
+  it('names the operator from the reference list, with its code', () => {
+    renderWithMantine(
+      <OperatorNamesProvider names={{ LT: 'London Underground Ltd' }}>
+        <UntrackedLegCard journeyId={1} leg={timetabled('LT')} isOwner={false} isOnlyLeg={false} />
+      </OperatorNamesProvider>,
+    );
+    expect(screen.getByText('Operated by London Underground Ltd (LT)')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['LT', 'Operated by London Underground (LT)'],
+    ['ds:DLR', 'Operated by Docklands Light Railway (ds:DLR)'],
+    ['ds:LONDON_TRAMS', 'Operated by London Trams (ds:LONDON_TRAMS)'],
+    ['ds:METROLINK', 'Operated by Metrolink (ds:METROLINK)'],
+  ])('falls back to a fixed name for %s when the list has none', (code, text) => {
+    renderWithMantine(<UntrackedLegCard journeyId={1} leg={timetabled(code)} isOwner={false} isOnlyLeg={false} />);
+    expect(screen.getByText(text)).toBeInTheDocument();
+  });
+
+  it('shows the code alone for an operator it has no name for', () => {
+    renderWithMantine(<UntrackedLegCard journeyId={1} leg={timetabled('ds:NET')} isOwner={false} isOnlyLeg={false} />);
+    expect(screen.getByText('Operated by ds:NET')).toBeInTheDocument();
+  });
+
+  it('shows no operator line without one, or on a leg with no timetable', () => {
+    const { unmount } = renderWithMantine(
+      <UntrackedLegCard journeyId={1} leg={timetabled()} isOwner={false} isOnlyLeg={false} />,
+    );
+    expect(screen.queryByTestId('train-operator')).toBeNull();
+    unmount();
+    renderWithMantine(<UntrackedLegCard journeyId={1} leg={leg()} isOwner={false} isOnlyLeg={false} />);
+    expect(screen.queryByTestId('train-operator')).toBeNull();
   });
 });
