@@ -883,8 +883,11 @@ ON CONFLICT DO NOTHING;
 -- this journey again" and "Move this journey" (journey-repeat.spec.ts),
 -- changing at ZRB. Each day's timetable is published
 -- (`schedule_destination_departures`), which the repeat route checks
--- before it plans. Not today: /trains (the `trains-searched` baseline)
--- would find today's timetable published. Just after midnight, so "track
+-- before it plans. Not today: /trains would find today's timetable
+-- published. A stack seeded before London midnight and used after it has
+-- tomorrow's become today's, so visual.spec.ts answers the
+-- `trains-searched` shot's search itself rather than rely on this. Just
+-- after midnight, so "track
 -- again" starts on tomorrow, whenever the spec runs. Made-up codes (ZRA,
 -- ZRB, ZRC) and TIPLOCs in `stanox_crs` only, as the /plan fixture above.
 --   E2ERP1  ZRA 00:05 -> ZRB 00:35  (SW)   E2ERP2  ZRB 00:45 -> ZRC 01:15  (SN)
