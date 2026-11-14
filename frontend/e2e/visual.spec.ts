@@ -139,6 +139,15 @@ const PAGES: [name: string, path: string][] = [
   ['ireland-train', '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17'],
 ];
 
+/** Pages whose timetable search the shot answers with a 404, "no timetable
+ * published for the day". The seed publishes tomorrow's and the day after's
+ * fixture timetables (journey-repeat.spec.ts), so a stack seeded before London
+ * midnight and shot after it has today's published, and the real api then
+ * answers 200 with no trains instead: a different page from the baseline's.
+ * The page's "unpublished" state is what the baseline is of, so it is asked
+ * for here, whatever day the stack was seeded. */
+const UNPUBLISHED_TIMETABLE_PAGES: ReadonlySet<string> = new Set(['trains-searched']);
+
 /** The pages shot with the seed's session cookie (E2E_SESSION_COOKIE). */
 const LOGGED_IN_PAGES: ReadonlySet<string> = new Set([
   'home-logged-in',
@@ -380,6 +389,11 @@ for (const scheme of SCHEMES) {
           if (LOGGED_IN_PAGES.has(name)) {
             test.skip(!SESSION_COOKIE, 'E2E_SESSION_COOKIE is unset');
             await context.addCookies([sessionCookie(SESSION_COOKIE!)]);
+          }
+          if (UNPUBLISHED_TIMETABLE_PAGES.has(name)) {
+            await page.route('**/api/trains/search?*', (route) =>
+              route.fulfill({ status: 404, contentType: 'text/plain', body: 'no timetable published' }),
+            );
           }
           await page.clock.setFixedTime(FIXED_NOW);
           await page.goto(path, { waitUntil: 'networkidle' });
