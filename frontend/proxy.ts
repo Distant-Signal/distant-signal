@@ -57,7 +57,12 @@ export function proxy(request: NextRequest) {
 //   next.config.mjs gives `/api/*`, the service worker scripts and
 //   `/offline.html` static policies of their own;
 // - `/healthz`: the probes' plain-text liveness route (app/healthz), which
-//   must stay dependency-free and cheap.
+//   must stay dependency-free and cheap;
+// - link-preview images (lib/livePreview.ts): every `.../card.png` route and
+//   the `opengraph-image` metadata routes. A PNG has no scripts for a nonce
+//   to guard, and the hop and a per-request header only get in the way of
+//   caching it. next.config.mjs gives `card.png` a locked-down policy of its
+//   own, as it does `/api/*`; the metadata routes' images are static.
 //
 // Prefetches are NOT skipped, unlike Next's CSP guide's example matcher
 // (`missing: next-router-prefetch / purpose: prefetch`). The guide skips
@@ -76,7 +81,7 @@ export const config = {
   matcher: [
     {
       source:
-        '/((?!(?:api|_next/static|_next/image)(?:/|$)|(?:healthz|favicon\\.ico|robots\\.txt|\\.well-known/security\\.txt|sw\\.js|sw-cache-rules\\.js|offline\\.html|manifest\\.webmanifest|icon\\.svg|apple-icon\\.png|icon-192\\.png|icon-512\\.png|icon-maskable-512\\.png|opengraph-image\\.png)$).*)',
+        '/((?!(?:api|_next/static|_next/image)(?:/|$)|(?:healthz|favicon\\.ico|robots\\.txt|\\.well-known/security\\.txt|sw\\.js|sw-cache-rules\\.js|offline\\.html|manifest\\.webmanifest|icon\\.svg|apple-icon\\.png|icon-192\\.png|icon-512\\.png|icon-maskable-512\\.png|opengraph-image\\.png)$|.*/(?:card\\.png|opengraph-image(?:-[A-Za-z0-9]+)?)$).*)',
     },
   ],
 };

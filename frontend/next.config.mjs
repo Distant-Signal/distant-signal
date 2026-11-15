@@ -229,6 +229,13 @@ const nextConfig = {
         source: '/api/:path*',
         headers: [{ key: 'Content-Security-Policy', value: API_CSP }],
       },
+      // Link-preview images (`.../card.png`, lib/livePreview.ts): proxy.ts
+      // skips them, and a PNG should be able to do nothing if a browser ever
+      // rendered it as a document. Their Cache-Control is the route's own.
+      {
+        source: '/:path*/card.png',
+        headers: [{ key: 'Content-Security-Policy', value: API_CSP }],
+      },
       {
         source: '/robots.txt',
         headers: [{ key: 'Cache-Control', value: ROBOTS_CACHE_CONTROL }],

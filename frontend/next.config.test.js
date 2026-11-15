@@ -54,7 +54,7 @@ describe('next.config.mjs static Content-Security-Policy headers', () => {
       .filter((entry) => entry.headers.some((h) => h.key === 'Content-Security-Policy'))
       .map((entry) => entry.source)
       .sort();
-    expect(sources).toEqual(['/api/:path*', '/offline.html', '/sw-cache-rules.js', '/sw.js']);
+    expect(sources).toEqual(['/:path*/card.png', '/api/:path*', '/offline.html', '/sw-cache-rules.js', '/sw.js']);
   });
 
   it('gives the service worker scripts no inline script', async () => {
@@ -76,8 +76,8 @@ describe('next.config.mjs static Content-Security-Policy headers', () => {
     expect(csp).not.toContain('*');
   });
 
-  it('locks /api/* responses down completely', async () => {
-    const csp = await cspFor('/api/:path*');
+  it.each(['/api/:path*', '/:path*/card.png'])('locks %s responses down completely', async (source) => {
+    const csp = await cspFor(source);
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
   });

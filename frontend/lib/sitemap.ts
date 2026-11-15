@@ -52,6 +52,14 @@ export function isExcludedPath(path: string): boolean {
     /^\/incidents\/[^/]+/.test(path) ||
     /^\/(lines|operators)\/[^/]+\/history(\/|$)/.test(path) ||
     path.startsWith('/network/history') ||
+    // Capability-token pages (`/journeys/shared/<token>`, `/groups/join/<token>`)
+    // and every other per-user page under these: the token is the access.
+    path.startsWith('/journeys/') ||
+    path === '/journeys' ||
+    path.startsWith('/groups') ||
+    // Link-preview images are not pages.
+    path.endsWith('/card.png') ||
+    /^\/island-of-ireland\/[^/]+\/trains\//.test(path) ||
     path.includes('?')
   );
 }
