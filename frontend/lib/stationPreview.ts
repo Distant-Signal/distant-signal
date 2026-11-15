@@ -96,3 +96,17 @@ export function stationPreviewImage(
 ): PreviewImage {
   return livePreviewImage(`/stations/${encodeURIComponent(crs)}/card.png`, stationPreviewVersion(heading, state), alt);
 }
+
+/** The credits a station card's data needs: Knowledgebase Stations' and
+ * Darwin's always, Network Rail's for a National Rail line's status (and so
+ * for "No disruptions", which is that status), TfL's for a TfL line's. */
+export function stationCreditIds(state: StationDisruptionState): ('national-rail' | 'network-rail' | 'tfl')[] {
+  const lineIds = state.coverage === 'covered' ? state.reports.map((report) => report.id) : [];
+  const nationalRail =
+    state.coverage === 'covered' && (lineIds.length === 0 || lineIds.some((id) => !id.startsWith('tfl-')));
+  return [
+    'national-rail',
+    ...(nationalRail ? (['network-rail'] as const) : []),
+    ...(lineIds.some((id) => id.startsWith('tfl-')) ? (['tfl'] as const) : []),
+  ];
+}

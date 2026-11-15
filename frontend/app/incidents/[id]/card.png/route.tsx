@@ -1,4 +1,6 @@
+import { guardPreview } from '@/lib/previewRoute';
 import { ApiNotFoundError, getPreviewIncident, getPreviewStationName, getPreviewTocs } from '@/lib/api';
+import { INCIDENT_ID } from '@/lib/incidents';
 import { tocNameLookup } from '@/lib/displayLabels';
 import { incidentPreviewCard, incidentStatusCard, MAX_PREVIEW_STATIONS } from '@/lib/incidentPreview';
 import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
@@ -23,8 +25,12 @@ export function generateStaticParams(): { id: string }[] {
   return [];
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
+async function handle(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await params;
+  // The page's own id check: never build a request from anything else.
+  if (!INCIDENT_ID.test(id)) {
+    return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
+  }
   let incident;
   try {
     incident = await getPreviewIncident(id);
@@ -49,3 +55,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
   });
 }
+
+export const GET = guardPreview(handle);

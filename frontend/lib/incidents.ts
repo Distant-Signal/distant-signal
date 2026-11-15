@@ -71,3 +71,8 @@ export function validityEndedDescription(validityEndedAt: string): string {
 export function upcomingDescription(startsAt: string): string {
   return `Not in effect yet: starts ${formatDateTime(startsAt)}`;
 }
+
+/** An incident id as the api issues it (Knowledgebase ids are hex, the
+ * seed's are `12345` and `FIXTURE-INCIDENT-1`): checked before any request
+ * is built from the URL. */
+export const INCIDENT_ID = /^[A-Za-z0-9_-]{1,128}$/;

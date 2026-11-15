@@ -1,7 +1,8 @@
+import { guardPreview } from '@/lib/previewRoute';
 import { ApiNotFoundError, getPreviewStationName, getPreviewStopPointDisruption } from '@/lib/api';
 import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
-import { type StationDisruptionState, stationPreviewCard } from '@/lib/stationPreview';
+import { type StationDisruptionState, stationCreditIds, stationPreviewCard } from '@/lib/stationPreview';
 import { plainCredits } from '@/lib/creditText';
 
 // A station's link-preview image, listed by the page's `generateMetadata`
@@ -21,13 +22,19 @@ function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ crs: string }> }): Promise<Response> {
+async function handle(_request: Request, { params }: { params: Promise<{ crs: string }> }): Promise<Response> {
   const { crs: raw } = await params;
   // The page's own code check, and its upper-case canonical form.
   if (!/^[A-Za-z]{3}$/.test(raw)) return notFound();
   const crs = raw.toUpperCase();
 
-  const name = await getPreviewStationName(crs);
+  // The name is a nicety: without it the card is headed by the bare code.
+  let name: string | null;
+  try {
+    name = await getPreviewStationName(crs);
+  } catch {
+    name = crs;
+  }
   if (name === null) return notFound();
   let state: StationDisruptionState;
   try {
@@ -37,13 +44,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ crs
     state = { coverage: 'none' };
   }
   const card = stationPreviewCard(`${name} (${crs})`, state, Date.now());
-  const lineIds = state.coverage === 'covered' ? state.reports.map((report) => report.id) : [];
-  // Station information is Knowledgebase Stations'; a National Rail line's
-  // status is worked out from Darwin and TRUST, a TfL line's is TfL's.
-  const credit = plainCredits([
-    'national-rail',
-    ...(lineIds.some((lineId) => !lineId.startsWith('tfl-')) ? (['network-rail'] as const) : []),
-    ...(lineIds.some((lineId) => lineId.startsWith('tfl-')) ? (['tfl'] as const) : []),
-  ]);
+  const credit = plainCredits(stationCreditIds(state));
   return renderStatusPreviewImage(card, credit, { headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
 }
+
+export const GET = guardPreview(handle);

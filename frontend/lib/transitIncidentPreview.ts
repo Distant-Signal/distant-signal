@@ -1,4 +1,5 @@
-import { listPhrase, livePreviewImage, previewDigest, previewSpan, previewWhen, tidy } from './livePreview';
+import { formatTime } from './dateFormat';
+import { listPhrase, livePreviewImage, plainText, previewDigest, previewSpan, previewWhen, tidy } from './livePreview';
 import type { PreviewBandTone, StatusPreviewCard } from './livePreview';
 import type { PreviewImage } from './pageMetadata';
 import { severityBadgeLabel, severityGroup } from './severity';
@@ -75,10 +76,16 @@ export function transitIncidentPreviewCard(
 ): StatusPreviewCard {
   const lines = situation.affects.map((line) => tidy(line.name)).filter((name) => name !== '');
   const timing = transitIncidentTiming(situation, lookups.now);
-  const rows = [lookups.networkName, timing.length > 0 ? `${timing.join(' · ')} (UK time)` : null];
+  // The band's time is the snapshot's own, so a card a chat app keeps for
+  // hours does not read as live; the last change is a fact below it.
+  const rows = [
+    lookups.networkName,
+    timing.length > 0 ? `${timing.join(' · ')} (UK time)` : null,
+    `Updated ${previewWhen(situation.updatedAt)}`,
+  ];
   return {
-    band: { ...band(situation), aside: `Updated ${previewWhen(situation.updatedAt)}` },
-    title: tidy(situation.summary),
+    band: { ...band(situation), aside: `As of ${formatTime(new Date(lookups.now))}` },
+    title: plainText(situation.summary) || 'Disruption',
     lead: stopPhrase(situation, lookups.stopNames),
     chips: { names: lines.slice(0, MAX_LIST_ITEMS), more: Math.max(0, lines.length - MAX_LIST_ITEMS) },
     rows: rows.filter((row): row is string => row !== null && row !== ''),

@@ -1,5 +1,6 @@
+import { guardPreview } from '@/lib/previewRoute';
 import { ApiNotFoundError, getPreviewTrain } from '@/lib/api';
-import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
+import { isCalendarDate, LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 import { trainPreviewCard } from '@/lib/trainPreview';
 import { plainCredits } from '@/lib/creditText';
@@ -25,14 +26,14 @@ function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
 }
 
-export async function GET(
+async function handle(
   _request: Request,
   { params }: { params: Promise<{ uid: string; date: string }> },
 ): Promise<Response> {
   const { uid, date } = await params;
   // The page's own date check, and a UID's shape: never build a request
   // from anything else.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^[A-Za-z0-9]{1,16}$/.test(uid)) return notFound();
+  if (!isCalendarDate(date) || !/^[A-Za-z0-9]{1,16}$/.test(uid)) return notFound();
 
   let train;
   try {
@@ -49,3 +50,5 @@ export async function GET(
     },
   );
 }
+
+export const GET = guardPreview(handle);
