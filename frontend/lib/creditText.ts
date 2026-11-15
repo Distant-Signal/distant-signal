@@ -24,6 +24,15 @@ export const NRIL_LICENCE_URL =
 /** The CIF timetable's credit (LEG-22). */
 export const RSP_STATEMENT = 'Source: RSP';
 
+/** The island of Ireland's credits (`IrelandAttributionNote`): the NTA's
+ * timetable, Iarnród Éireann's realtime boards, and Translink's data via
+ * OpenDataNI, with each licence's address written out. */
+const NTA_STATEMENT =
+  'Irish Rail timetable data © National Transport Authority, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). The GTFS data is provided "as is", without warranty of any kind';
+const IRISH_RAIL_REALTIME_STATEMENT = 'Live Irish Rail data from Iarnród Éireann, provided "as is"';
+const OPENDATANI_STATEMENT =
+  'Contains public sector information licensed under the Open Government Licence v3.0 (https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Translink data from OpenDataNI';
+
 /** The credits a preview image can carry as text. Network Rail's statement
  * carries its licence's address written out, since an image can't link it
  * (the api's Atom feeds write it the same way). */
@@ -32,6 +41,9 @@ export const PLAIN_CREDITS = {
   'network-rail': `${NRIL_STATEMENT}: ${NRIL_LICENCE_URL}`,
   'rsp-timetable': RSP_STATEMENT,
   tfl: TFL_CREDIT,
+  'nta-gtfs': NTA_STATEMENT,
+  'irish-rail-realtime': IRISH_RAIL_REALTIME_STATEMENT,
+  opendatani: OPENDATANI_STATEMENT,
   'knowledgebase-incidents': KNOWLEDGEBASE_INCIDENTS_STATEMENT,
 } as const;
 

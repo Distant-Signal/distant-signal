@@ -9,7 +9,8 @@ import { GranularityControl } from '@/app/lines/[id]/history/GranularityControl'
 import { HistoryRangePicker } from '@/app/lines/[id]/history/HistoryRangePicker';
 import { OperatorTrendsResults } from './OperatorTrendsResults';
 import type { Metadata } from 'next';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { operatorPreviewCard, operatorPreviewImage } from '@/lib/operatorPreview';
 import { feedTarget, operatorFeedPath } from '@/lib/feeds';
 import { FeedLink } from '@/components/FeedLink';
 import { DataCredits } from '@/components/DataCredits';
@@ -76,10 +77,16 @@ async function resolveRetention(): Promise<{
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params;
-  const name = await resolveOperatorName(code);
+  const [name, lineCount] = await Promise.all([resolveOperatorName(code), resolveLineCount(code)]);
   return pageMetadata(`${name} history`, `Delays and cancellations across ${name}'s lines over time.`, {
     noindex: true,
     feed: feedTarget(operatorFeedPath(code), name),
+    // An operator the api doesn't know has no card to list.
+    ...(lineCount === null
+      ? {}
+      : {
+          image: operatorPreviewImage(code, operatorPreviewCard(name, lineCount), previewImageAlt(`${name} history`)),
+        }),
   });
 }
 

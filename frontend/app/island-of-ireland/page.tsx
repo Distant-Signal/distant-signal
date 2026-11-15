@@ -4,12 +4,12 @@ import { CardTitleLink, ClickableCard } from '@/components/ClickableCard';
 import { IrelandAttributionNote } from '@/components/IrelandAttributionNote';
 import { IRELAND_LABEL, IRELAND_PATH, irelandNetworkHref, networkSummary } from '@/lib/ireland';
 import { loadIreland } from '@/lib/irelandData';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
 
 export const metadata: Metadata = pageMetadata(
   IRELAND_LABEL,
   'Iarnród Éireann and NI Railways lines and stations, with live departures where we have them.',
-  { path: IRELAND_PATH },
+  { ...OWN_PREVIEW_IMAGE, path: IRELAND_PATH },
 );
 
 /** `/island-of-ireland`: the two Irish networks, one card each, and what

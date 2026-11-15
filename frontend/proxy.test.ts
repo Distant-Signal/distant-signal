@@ -105,6 +105,9 @@ describe('proxy matcher', () => {
     '/terms',
     '/account',
     '/healthzz',
+    '/lines/c2c/card.png/extra',
+    '/lines/card.png.html',
+    '/plan/opengraph-image/extra',
   ])('runs for page %s', (path) => {
     expect(re.test(path)).toBe(true);
   });
@@ -129,6 +132,13 @@ describe('proxy matcher', () => {
     '/icon-512.png',
     '/icon-maskable-512.png',
     '/opengraph-image.png',
+    '/lines/c2c/card.png',
+    '/train/C12345/2026-10-30/card.png',
+    '/journeys/shared/abc_123-x/card.png',
+    '/groups/join/abc_123-x/card.png',
+    '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17/card.png',
+    '/plan/opengraph-image',
+    '/plan/opengraph-image-1a2b3c',
   ])('skips %s', (path) => {
     expect(re.test(path)).toBe(false);
   });

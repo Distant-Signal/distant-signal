@@ -3,7 +3,8 @@ import { Divider, Group, Stack, Text, Title } from '@mantine/core';
 import { SectionTitle } from '@/components/SectionTitle';
 import type { Metadata } from 'next';
 import { ApiNotFoundError, getAllTocs, getIncident, getPreviewTocs, getStationName } from '@/lib/api';
-import { endedDescription, upcomingDescription, validityEndedDescription } from '@/lib/incidents';
+import { boundedTitle } from '@/lib/livePreview';
+import { endedDescription, INCIDENT_ID, upcomingDescription, validityEndedDescription } from '@/lib/incidents';
 import { sanitizeDescription } from '@/lib/sanitizeHtml';
 import { IncidentStateBadge } from '@/components/IncidentStateBadge';
 import { ShareButton } from '@/components/ShareButton';
@@ -62,6 +63,7 @@ function describeChanges(entry: IncidentHistoryEntry, older: IncidentHistoryEntr
  * `notFound()`-on-`ApiNotFoundError` handling as the page component. */
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
+  if (!INCIDENT_ID.test(id)) notFound();
 
   let incident: IncidentDetail;
   try {
@@ -80,7 +82,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   // One incident, gone within hours: worth following, not worth indexing.
   // Its preview image is its own (`card.png`), versioned by what it shows.
-  return pageMetadata(incident.summary, incidentPreviewDescription(incident, operatorNames), {
+  return pageMetadata(boundedTitle(incident.summary, 'Incident'), incidentPreviewDescription(incident, operatorNames), {
+    path: `/incidents/${encodeURIComponent(incident.incidentId)}`,
     noindex: true,
     image: incidentPreviewImage(incident, incidentPreviewAlt(card, SITE_NAME)),
   });
@@ -88,6 +91,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!INCIDENT_ID.test(id)) notFound();
 
   let incident: IncidentDetail;
   try {

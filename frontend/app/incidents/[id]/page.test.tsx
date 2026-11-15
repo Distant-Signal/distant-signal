@@ -341,6 +341,28 @@ describe('generateMetadata', () => {
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
   });
 
+  it('bounds a long summary in the title, falls back for an empty one and names its own URL', async () => {
+    vi.mocked(api.getIncident).mockResolvedValue(
+      detail({ summary: `Delays ${'between Chester and Llandudno '.repeat(8)}` }),
+    );
+    const long = await generateMetadata({ params: Promise.resolve({ id: '12345' }) });
+    expect(String(long.title).length).toBeLessThanOrEqual(100);
+    expect(long.alternates?.canonical).toBe('/incidents/12345');
+    vi.mocked(api.getIncident).mockResolvedValue(detail({ summary: '   ' }));
+    expect((await generateMetadata({ params: Promise.resolve({ id: '12345' }) })).title).toBe('Incident');
+  });
+
+  it('is not found for a malformed id, before any request is built', async () => {
+    vi.mocked(api.getIncident).mockClear();
+    vi.mocked(notFound).mockClear();
+    vi.mocked(notFound).mockImplementationOnce(() => {
+      throw new Error('NEXT_NOT_FOUND');
+    });
+    await expect(generateMetadata({ params: Promise.resolve({ id: '../x' }) })).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(vi.mocked(notFound)).toHaveBeenCalled();
+    expect(api.getIncident).not.toHaveBeenCalled();
+  });
+
   it("lists the incident's own versioned preview image, with alt text naming it", async () => {
     vi.mocked(api.getIncident).mockResolvedValue(detail());
     const metadata = await generateMetadata({ params: Promise.resolve({ id: '12345' }) });

@@ -31,7 +31,9 @@ import {
   trainCallRows,
 } from '@/lib/ireland';
 import { createLogger } from '@/lib/logger';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { irelandTrainPreviewImage } from '@/lib/irelandPreview';
+import { getPreviewIrelandTrain } from '@/lib/api';
 import classes from '@/components/ServiceRow.module.css';
 
 const log = createLogger('app/island-of-ireland/train');
@@ -77,9 +79,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const train = await loadTrain(code, date);
   if (train === null) notFound();
   const title = train === 'failed' ? `Train ${code}` : irelandTrainName(train);
+  // The live state goes in the preview image (`card.png`), its URL versioned
+  // by it. Read through the image route's own shared, minute-cached entry
+  // (`getPreviewIrelandTrain`): the version and the image come from the same
+  // data. An outage leaves the URL unversioned, not the page failing.
+  const preview = await getPreviewIrelandTrain(code, date).catch(() => null);
   return pageMetadata(title, `${title}: calling points and live running from ${info.name}'s departure boards.`, {
     path: irelandTrainHref(info.slug, code, date),
     noindex: true,
+    image: irelandTrainPreviewImage(info.slug, code, date, preview, info, previewImageAlt(title)),
   });
 }
 

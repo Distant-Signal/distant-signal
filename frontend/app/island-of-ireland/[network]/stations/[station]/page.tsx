@@ -18,6 +18,7 @@ import {
 import { idFromSegment, loadIrelandNetwork } from '@/lib/irelandData';
 import { createLogger } from '@/lib/logger';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { irelandStationPreviewCard, irelandStationPreviewImage } from '@/lib/irelandPreview';
 
 const log = createLogger('app/island-of-ireland/station');
 
@@ -35,14 +36,19 @@ async function load(network: string, segment: string) {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { network, station: segment } = await params;
-  const { info, station } = await load(network, segment);
+  const { info, station, lines } = await load(network, segment);
   const title = `${station.name}, ${info.name}`;
   const description = mayHaveLiveBoard(station)
     ? `Live departures from ${station.name} and the ${info.name} lines that call there.`
     : `The ${info.name} lines that call at ${station.name}.`;
   return pageMetadata(title, description, {
     path: irelandStationHref(info.slug, station.id),
-    imageAlt: previewImageAlt(title),
+    image: irelandStationPreviewImage(
+      info.slug,
+      station.id,
+      irelandStationPreviewCard(station, info, lines),
+      previewImageAlt(title),
+    ),
   });
 }
 

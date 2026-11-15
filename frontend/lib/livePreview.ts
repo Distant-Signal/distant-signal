@@ -29,6 +29,11 @@ export const LIVE_PREVIEW_REVALIDATE_SECONDS = 60;
  * shared after the change never waits for this. */
 export const LIVE_PREVIEW_CACHE_CONTROL = `public, max-age=${LIVE_PREVIEW_REVALIDATE_SECONDS}, s-maxage=${LIVE_PREVIEW_REVALIDATE_SECONDS}, stale-while-revalidate=300`;
 
+/** Sent with a capability-token page's card image
+ * (`/journeys/shared/<token>/card.png`, `/groups/join/<token>/card.png`) so
+ * no search engine that reaches it indexes it. */
+export const NOINDEX_HEADER = { 'X-Robots-Tag': 'noindex' } as const;
+
 /** A title this long always shows whole on the card (two or three lines
  * at `cardTitleFontSize`); a longer one may be clamped. */
 export const TITLE_FITS_LENGTH = 90;
@@ -110,4 +115,36 @@ export function plainText(text: string): string {
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&'),
   );
+}
+
+/** A failed read of the api behind a card: the chat app can retry, so it
+ * is cached for seconds, never as long as a card (`LIVE_PREVIEW_CACHE_CONTROL`). */
+export const PREVIEW_ERROR_CACHE_CONTROL = 'public, max-age=10, s-maxage=10';
+
+/** True for a real calendar date, `YYYY-MM-DD` ("2026-02-30" is not). */
+export function isCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+/** An api-supplied title for `<title>` and `og:title`: whitespace tidied,
+ * cut at a word boundary under `max` characters, with no ellipsis (the
+ * copy rules ban one), `fallback` when nothing is left. */
+export function boundedTitle(text: string, fallback: string, max = 100): string {
+  const tidied = tidy(text);
+  if (tidied === '') return fallback;
+  if (tidied.length <= max) return tidied;
+  const cut = tidied.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  const atWord = space > 0 ? cut.slice(0, space).replace(/[\s,;:.-]+$/, '') : '';
+  return atWord === '' ? cut : atWord;
+}
+
+/** An api-supplied credit for a card, tidied and bounded so it can't take
+ * the card's room. */
+export function boundedCredit(text: string, max = 300): string {
+  return boundedTitle(text, '', max);
 }

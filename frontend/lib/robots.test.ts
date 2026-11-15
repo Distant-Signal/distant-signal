@@ -4,7 +4,14 @@ import { describe, it, expect } from 'vitest';
 // crawler actually receives, not just the object. It's an internal module
 // path; if a Next upgrade moves it, update this import.
 import { resolveRobots } from 'next/dist/build/webpack/loaders/metadata/resolve-route-data';
-import { AI_TRAINING_CRAWLERS, BLOCK_AI_TRAINING_CRAWLERS, buildRobots, renderRobots } from './robots';
+import {
+  AI_TRAINING_CRAWLERS,
+  BLOCK_AI_TRAINING_CRAWLERS,
+  buildRobots,
+  LINK_PREVIEW_FETCHERS,
+  renderRobots,
+  TOKEN_PAGE_PATHS,
+} from './robots';
 
 const render = (...args: Parameters<typeof buildRobots>) => resolveRobots(buildRobots(...args));
 const lines = (text: string) => text.split('\n');
@@ -25,7 +32,7 @@ describe('buildRobots', () => {
     const out = lines(render({ origin: undefined }));
     expect(out[0]).toBe('User-Agent: *');
     expect(out).toContain('Allow: /');
-    expect(out.filter((line) => line.startsWith('Allow: /journeys'))).toEqual([]);
+    expect(starGroup(out.join('\n')).filter((line) => line.startsWith('Allow: /journeys'))).toEqual([]);
   });
 
   it.each([
@@ -52,6 +59,23 @@ describe('buildRobots', () => {
     for (const tokenPath of ['/journeys/shared/abc123', '/groups/join/abc123', '/chat/callback']) {
       expect(disallowed.some((prefix) => tokenPath.startsWith(prefix))).toBe(true);
     }
+  });
+
+  it.each(LINK_PREVIEW_FETCHERS)('lets %s read share and invite links, with every other rule kept', (agent) => {
+    const out = lines(render({ origin: undefined }));
+    const start = out.indexOf(`User-Agent: ${agent}`);
+    expect(start).toBeGreaterThan(-1);
+    const header = out.slice(0, start).lastIndexOf('') + 1;
+    const group = out.slice(header, out.indexOf('', start));
+    for (const path of TOKEN_PAGE_PATHS) expect(group).toContain(`Allow: ${path}`);
+    const star = starGroup(out.join('\n')).filter((l) => l.startsWith('Disallow: '));
+    for (const rule of star) expect(group).toContain(rule);
+  });
+
+  it('allows the token pages to the link-preview fetchers only', () => {
+    const star = starGroup(render({ origin: undefined }));
+    for (const path of TOKEN_PAGE_PATHS) expect(star).not.toContain(`Allow: ${path}`);
+    expect(star).toContain('Disallow: /*?');
   });
 
   it('does not disallow the public pages', () => {

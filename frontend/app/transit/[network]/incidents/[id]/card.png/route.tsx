@@ -1,10 +1,11 @@
+import { guardPreview } from '@/lib/previewRoute';
 import {
   ApiNotFoundError,
   getPreviewTransitNetwork,
   getPreviewTransitSituation,
   getPreviewTransitStops,
 } from '@/lib/api';
-import { LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
+import { boundedCredit, LIVE_PREVIEW_CACHE_CONTROL } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 import { TRANSIT_ID } from '@/lib/transit';
 import { transitIncidentPreviewCard } from '@/lib/transitIncidentPreview';
@@ -23,12 +24,13 @@ function notFoundResponse(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
 }
 
-export async function GET(
+async function handle(
   _request: Request,
   { params }: { params: Promise<{ network: string; id: string }> },
 ): Promise<Response> {
   const { network, id } = await params;
-  if (!TRANSIT_ID.test(network)) return notFoundResponse();
+  // The page's own checks: never build a request from anything else.
+  if (!TRANSIT_ID.test(network) || id.length === 0 || id.length > 128) return notFoundResponse();
   let situation;
   let detail;
   try {
@@ -47,7 +49,9 @@ export async function GET(
     stopNames: new Map(stops.map((stop) => [stop.id, stop.name])),
     now: Date.now(),
   });
-  return renderStatusPreviewImage(card, detail.attribution.text, {
+  return renderStatusPreviewImage(card, boundedCredit(detail.attribution.text), {
     headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL },
   });
 }
+
+export const GET = guardPreview(handle);

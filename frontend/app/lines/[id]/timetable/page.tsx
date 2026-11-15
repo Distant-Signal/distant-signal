@@ -25,7 +25,8 @@ import { ServiceRow, ServiceRowList } from '@/components/ServiceRow';
 import classes from '../LineTrains.module.css';
 import { TimetableMore, type TimetableQuery } from './TimetableMore';
 import { describeFailure } from '@/lib/failure';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { lineCardImage } from '@/lib/lineCardImage';
+import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
 import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 const log = createLogger('app/lines/timetable');
@@ -83,8 +84,13 @@ function dateOptions(today: string): { value: string; label: string }[] {
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   if (!/^[a-z0-9-]+$/.test(id)) notFound();
-  const title = `Timetable: ${await resolveLineName(id)}`;
-  return pageMetadata(title, 'The booked timetable for this line, by day.', { path: `/lines/${id}/timetable` });
+  const name = await resolveLineName(id);
+  const title = `Timetable: ${name}`;
+  return pageMetadata(title, 'The booked timetable for this line, by day.', {
+    path: `/lines/${id}/timetable`,
+    // The line's own card (`/lines/{id}/card.png`): its live status.
+    image: await lineCardImage(id, name, previewImageAlt(title)),
+  });
 }
 
 function Empty({ children }: { children: React.ReactNode }) {

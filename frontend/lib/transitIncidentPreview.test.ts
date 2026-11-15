@@ -20,10 +20,14 @@ function detail(overrides: Partial<TransitSituationDetail> = {}): TransitSituati
 describe('transitIncidentPreviewCard', () => {
   it('bands an active disruption with its status, and names its lines and network', () => {
     const card = transitIncidentPreviewCard(detail(), LOOKUPS);
-    expect(card.band).toEqual({ tone: 'mild', label: 'Minor delays', aside: 'Updated Wed 14 Oct, 10:00' });
+    expect(card.band).toEqual({ tone: 'mild', label: 'Minor delays', aside: 'As of 11:00' });
     expect(card.title).toBe('Delays between Piccadilly and Eccles');
     expect(card.chips).toEqual({ names: ['Blue Line'], more: 0 });
-    expect(card.rows).toEqual(['Manchester Metrolink', 'Since Wed 14 Oct, 07:00 · No end time given (UK time)']);
+    expect(card.rows).toEqual([
+      'Manchester Metrolink',
+      'Since Wed 14 Oct, 07:00 · No end time given (UK time)',
+      'Updated Wed 14 Oct, 10:00',
+    ]);
     expect(card.lead).toBeNull();
   });
 

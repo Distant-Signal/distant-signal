@@ -1,7 +1,9 @@
+import { formatTime } from './dateFormat';
 import type { IncidentState } from './incidents';
 import {
   listPhrase,
   livePreviewImage,
+  plainText,
   previewDigest,
   previewSpan,
   previewWhen,
@@ -50,6 +52,8 @@ export interface IncidentPreviewCard {
   timing: string[];
   /** "Updated Thu 30 Oct, 14:03": the last recorded change. */
   updated: string;
+  /** "As of 14:03": when the card was drawn (UK time), the band's time. */
+  asOf: string;
 }
 
 export interface IncidentPreviewLookups {
@@ -78,9 +82,9 @@ const STATUS: Record<IncidentState, (planned: boolean) => IncidentPreviewCard['s
 
 /** The summary without a leading "CLEARED:" (the band says it). */
 export function previewTitle(summary: string): string {
-  const title = tidy(summary);
+  const title = plainText(summary);
   const stripped = title.replace(/^cleared\s*:\s*/i, '');
-  return stripped === '' ? title : stripped;
+  return stripped === '' ? (title === '' ? 'Incident' : title) : stripped;
 }
 
 /** The place an incident's summary names, as Knowledgebase summaries put
@@ -162,14 +166,17 @@ export function incidentPreviewCard(incident: IncidentDetail, lookups: IncidentP
     route: place ? capitalise(place) : stations.length > 0 ? `At ${listPhrase(stations)}` : null,
     timing: timing(incident, state, lookups.now),
     updated: `Updated ${previewWhen(lastChange(incident))}`,
+    asOf: `As of ${formatTime(new Date(lookups.now))}`,
   };
 }
 
 /** The card as the shared renderer draws it: where, who, then when. */
 export function incidentStatusCard(card: IncidentPreviewCard): StatusPreviewCard {
-  const rows = [card.operators, card.timing.length > 0 ? `${card.timing.join(' · ')} (UK time)` : null];
+  // The band's time is the snapshot's own, so a card a chat app keeps for
+  // hours does not read as live; the last change is a fact below it.
+  const rows = [card.operators, card.timing.length > 0 ? `${card.timing.join(' · ')} (UK time)` : null, card.updated];
   return {
-    band: { ...card.status, aside: card.updated },
+    band: { ...card.status, aside: card.asOf },
     title: card.title,
     lead: card.route,
     chips: card.lines,

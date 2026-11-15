@@ -11,6 +11,7 @@ import { TransitStopBoard } from '@/components/TransitStopBoard';
 import { getTransitDepartures, getTransitNetwork, getTransitNetworks, getTransitStop } from '@/lib/api';
 import { formatDate } from '@/lib/dateFormat';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { transitStopPreviewCard, transitStopPreviewImage } from '@/lib/transitPreview';
 import { localLineId, orNotFound, TRANSIT_ID, TRANSIT_STOP_ID } from '@/lib/transit';
 import { tflStopIdOf } from '@/lib/transitStops';
 
@@ -46,7 +47,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const title = `${stopDetail.name}, ${detail.name}`;
   return pageMetadata(title, `Scheduled departures from ${stopDetail.name}.`, {
     path: `/transit/${encodeURIComponent(network)}/stops/${encodeURIComponent(stop)}`,
-    imageAlt: previewImageAlt(title),
+    image: transitStopPreviewImage(
+      network,
+      stop,
+      transitStopPreviewCard(stopDetail, detail.name),
+      previewImageAlt(title),
+    ),
   });
 }
 

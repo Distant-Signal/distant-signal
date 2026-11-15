@@ -17,6 +17,7 @@ import {
 } from '@/lib/ireland';
 import { idFromSegment, loadIrelandNetwork } from '@/lib/irelandData';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { irelandLinePreviewCard, irelandLinePreviewImage } from '@/lib/irelandPreview';
 import { lineColour } from '@/lib/transitStops';
 
 interface Params {
@@ -33,13 +34,18 @@ async function load(network: string, segment: string) {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { network, line: segment } = await params;
-  const { info, line, stops } = await load(network, segment);
+  const { info, line, stops, stations } = await load(network, segment);
   const first = stops[0];
   const last = stops[stops.length - 1];
   const route = first && last && first.id !== last.id ? ` from ${first.name} to ${last.name}` : '';
   return pageMetadata(line.name, `${line.name}, ${info.name}: its stations in order${route}.`, {
     path: irelandLineHref(info.slug, line.id),
-    imageAlt: previewImageAlt(line.name),
+    image: irelandLinePreviewImage(
+      info.slug,
+      line.id,
+      irelandLinePreviewCard(line, info, stationsById(stations)),
+      previewImageAlt(line.name),
+    ),
   });
 }
 

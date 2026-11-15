@@ -1,3 +1,4 @@
+import { guardPreview } from '@/lib/previewRoute';
 import { ApiNotFoundError, getPreviewLines, getPreviewLineStatus, getPreviewTocs } from '@/lib/api';
 import { tocNameLookup } from '@/lib/displayLabels';
 import { linePreviewCard } from '@/lib/linePreview';
@@ -24,7 +25,7 @@ function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
+async function handle(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await params;
   // The page's own id check: never build a request from anything else.
   if (!/^[a-z0-9-]+$/.test(id)) return notFound();
@@ -44,8 +45,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     name = summary.name;
     operators = summary.operators;
   }
-  const tocs = await getPreviewTocs().catch(() => []);
-  const card = linePreviewCard(name ?? id, report, operators, tocNameLookup(tocs));
+  // No operator names (the list could not be read) is no operators row, never raw codes.
+  const tocs = await getPreviewTocs().catch(() => null);
+  const card = linePreviewCard(name ?? id, report, tocs ? operators : [], tocNameLookup(tocs ?? []));
   return renderStatusPreviewImage(
     card,
     plainCredits(id.startsWith('tfl-') ? ['tfl'] : ['national-rail', 'network-rail']),
@@ -54,3 +56,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     },
   );
 }
+
+export const GET = guardPreview(handle);

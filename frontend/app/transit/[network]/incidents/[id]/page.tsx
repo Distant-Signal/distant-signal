@@ -11,6 +11,7 @@ import { TextLink } from '@/components/TextLink';
 import { TransitAttributionNote } from '@/components/TransitAttributionNote';
 import { getTransitNetwork, getTransitSituation, getTransitStops } from '@/lib/api';
 import { formatDateTime, formatTime, TIMES_IN_UK_LOCAL_TIME } from '@/lib/dateFormat';
+import { boundedTitle } from '@/lib/livePreview';
 import { pageMetadata, SITE_NAME } from '@/lib/pageMetadata';
 import { localLineId, orNotFound, TRANSIT_ID, transitIncidentHref, transitStopHref } from '@/lib/transit';
 import {
@@ -38,11 +39,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const [detail, situation] = await load(network, id);
   const card = transitIncidentPreviewCard(situation, { networkName: detail.name, now: Date.now() });
   // One disruption, gone within days: worth following, not worth indexing.
-  return pageMetadata(situation.summary, transitIncidentPreviewDescription(situation, detail.name), {
-    path: transitIncidentHref(network, situation.id),
-    noindex: true,
-    image: transitIncidentPreviewImage(network, situation, transitIncidentPreviewAlt(card, SITE_NAME)),
-  });
+  return pageMetadata(
+    boundedTitle(situation.summary, 'Disruption'),
+    transitIncidentPreviewDescription(situation, detail.name),
+    {
+      path: transitIncidentHref(network, situation.id),
+      noindex: true,
+      image: transitIncidentPreviewImage(network, situation, transitIncidentPreviewAlt(card, SITE_NAME)),
+    },
+  );
 }
 
 function formatPeriod(period: { start: string; end: string | null }): string {

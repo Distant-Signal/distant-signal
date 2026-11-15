@@ -156,6 +156,11 @@ describe('isExcludedPath', () => {
     '/operators/VT/history',
     '/network/history',
     '/stations?q=x',
+    '/journeys/shared/abc_123-x',
+    '/journeys',
+    '/groups/join/abc_123-x',
+    '/lines/wcml-north/card.png',
+    '/island-of-ireland/iarnrod-eireann/trains/A101/2026-09-17',
   ])('excludes %s', (path) => {
     expect(isExcludedPath(path)).toBe(true);
   });

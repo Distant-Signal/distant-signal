@@ -9,7 +9,13 @@ import {
 } from '@/lib/api';
 import { LoginControl } from '@/components/LoginControl';
 import { JoinGroupButton } from '@/components/JoinGroupButton';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { NOINDEX_NOFOLLOW, pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import {
+  groupInviteDescription,
+  groupInvitePreviewCard,
+  groupInvitePreviewImage,
+  groupInviteTitle,
+} from '@/lib/groupInvitePreview';
 import { ButtonLink } from '@/components/ButtonLink';
 
 export const revalidate = 0;
@@ -26,8 +32,8 @@ export const revalidate = 0;
  * carry a session cookie, so this is the only way they ever see a real
  * preview instead of a fallback.
  *
- * Falls back to the root layout's site-wide metadata (returns `{}`, which
- * Next merges over that fallback) on `ApiNotFoundError`, the same error
+ * Falls back to the root layout's site-wide metadata (plus `noindex,
+ * nofollow`, which Next merges over that fallback) on `ApiNotFoundError`, the same error
  * the page component's own "invite link not found" branch below handles
  * -- **not** `notFound()`: calling `notFound()` from `generateMetadata`
  * 404s the whole route, not just the metadata, which pre-empted the page
@@ -52,11 +58,15 @@ function isValidInviteToken(token: string): boolean {
   return /^[A-Za-z0-9_-]+$/.test(token);
 }
 
+/** What an invite that doesn't resolve says to a crawler: the site-wide
+ * cards (Next merges this over the root layout's), not indexed. */
+const NO_INVITE_METADATA: Metadata = { robots: NOINDEX_NOFOLLOW };
+
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
 
   if (!isValidInviteToken(token)) {
-    return {};
+    return NO_INVITE_METADATA;
   }
 
   let preview;
@@ -64,15 +74,19 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     preview = await getGroupJoinPreview(token);
   } catch (err) {
     if (err instanceof ApiNotFoundError) {
-      return {};
+      return NO_INVITE_METADATA;
     }
     throw err;
   }
 
-  const title = `Join ${preview.groupName}`;
-  const description = `${preview.memberCount} member${preview.memberCount === 1 ? '' : 's'} already in ${preview.groupName}. Follow this link to join and share tracked trains with the group.`;
-
-  return pageMetadata(title, description);
+  const title = groupInviteTitle(preview);
+  // The card (`card.png`, `lib/groupInvitePreview.ts`) is the same facts as
+  // the description: the group's name and member count, which this page
+  // shows anyone holding the link. A capability page: noindex, nofollow.
+  return pageMetadata(title, groupInviteDescription(preview), {
+    capability: true,
+    image: groupInvitePreviewImage(token, groupInvitePreviewCard(preview), previewImageAlt(title)),
+  });
 }
 
 /** `/groups/join/{token}` -- confirm-before-join (spec §2.3): resolves the

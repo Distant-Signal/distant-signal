@@ -15,9 +15,16 @@ import {
   renderStatusPreviewImage,
   renderPreviewImage,
 } from './previewImage';
-import { linePreviewCard } from './linePreview';
+import { linePreviewCard, SNAPSHOT_NOTE } from './linePreview';
 import type { StatusPreviewCard } from './livePreview';
+import { layoutStatusCard } from './previewLayout';
 import { stationPreviewCard } from './stationPreview';
+import { groupInvitePreviewCard } from './groupInvitePreview';
+import { irelandTrainPreviewCard } from './irelandPreview';
+import { networkBySlug } from './ireland';
+import { operatorPreviewCard } from './operatorPreview';
+import { sharedJourneyPreviewCard } from './sharedJourneyPreview';
+import { tflStopPreviewCard, transitLinePreviewCard } from './transitPreview';
 import { trainPreviewCard } from './trainPreview';
 import {
   CANCELLED_TRAIN,
@@ -29,6 +36,9 @@ import {
 import type { IncidentDetail, LineStatus, LineStatusReport, SampleStats } from './types';
 import { INCIDENT_TIMING_DEFAULTS } from '@/test/apiDefaults';
 import { plainCredits } from '@/lib/creditText';
+import { A101_TRAIN } from '@/test/irelandFixtures';
+import { LINE as TRANSIT_LINE } from '@/test/transitFixtures';
+import type { JourneyLegDetail } from './types';
 
 describe('previewTitleFromMetadata', () => {
   it('takes a plain or absolute title, and nothing else', () => {
@@ -286,6 +296,28 @@ function previewLineReport(id: string, name: string, statuses: LineStatus[]): Li
     computedAt: '2026-10-30T14:03:00Z',
   };
 }
+/** A rail leg of a shared journey, for the sample card. */
+function sharedLeg(
+  originCrs: string,
+  originName: string,
+  destinationCrs: string,
+  destinationName: string,
+  operatorName: string,
+  departure: string,
+): JourneyLegDetail {
+  return {
+    kind: 'train',
+    originCrs,
+    originName,
+    destinationCrs,
+    destinationName,
+    serviceDate: '2026-10-30',
+    trackedTrainState: {
+      operatorName,
+      journeyStops: [{ crs: originCrs, name: originName, passingPoint: false, publicDeparture: departure }],
+    },
+  } as unknown as JourneyLegDetail;
+}
 /** Every sample card: the incidents, a disrupted line, a station and the trains. */
 const PREVIEW_CARDS: [name: string, card: StatusPreviewCard][] = [
   ...INCIDENT_PREVIEWS.map(([name, incident]): [string, StatusPreviewCard] => [
@@ -334,6 +366,130 @@ const PREVIEW_CARDS: [name: string, card: StatusPreviewCard][] = [
   ['train-delayed', trainPreviewCard(DELAYED_TRAIN, TRAIN_PREVIEW_NOW)],
   ['train-cancelled', trainPreviewCard(CANCELLED_TRAIN, TRAIN_PREVIEW_NOW)],
   ['train-not-yet-running', trainPreviewCard(PLANNED_TRAIN, TRAIN_PREVIEW_NOW)],
+  [
+    'journey-shared',
+    sharedJourneyPreviewCard([
+      sharedLeg('KGX', 'London Kings Cross', 'YRK', 'York', 'LNER', '2026-10-30T14:00:00Z'),
+      sharedLeg('YRK', 'York', 'EDB', 'Edinburgh', 'LNER', '2026-10-30T16:20:00Z'),
+      sharedLeg('EDB', 'Edinburgh', 'GLC', 'Glasgow Central', 'ScotRail', '2026-10-30T18:05:00Z'),
+    ])!,
+  ],
+  ['group-invite', groupInvitePreviewCard({ groupName: 'Family trains', memberCount: 4 })],
+  [
+    'transit-line',
+    transitLinePreviewCard(
+      {
+        ...TRANSIT_LINE,
+        status: {
+          state: 'current',
+          asOf: '2026-10-30T14:00:00Z',
+          upcoming: [],
+          statuses: [
+            {
+              severity: 9,
+              description: 'Minor Delays',
+              reason: 'Delays between Eccles and Piccadilly',
+              situationId: null,
+            },
+          ],
+        },
+      },
+      'Manchester Metrolink',
+    ),
+  ],
+  [
+    'tfl-stop',
+    tflStopPreviewCard(
+      { name: "King's Cross St. Pancras", modes: ['tube'] },
+      ['Underground'],
+      [
+        previewLineReport('tfl-northern', 'Northern', [
+          previewLineStatus(6, 'Severe delays: signal failure at Camden Town'),
+        ]),
+        previewLineReport('tfl-victoria', 'Victoria', [previewLineStatus(10, '')]),
+      ],
+      PREVIEW_NOW,
+    ),
+  ],
+  ['ireland-train', irelandTrainPreviewCard(A101_TRAIN, networkBySlug('iarnrod-eireann')!)],
+  ['operator-history', operatorPreviewCard('South Western Railway', 12)],
+  // Regression fixtures for the facts' vertical budget (lib/previewLayout.ts):
+  // each is the worst case of a kind of card, and none may overlap the credit.
+  [
+    'regression-journey-two-line-title',
+    sharedJourneyPreviewCard([
+      sharedLeg('KGX', 'London Kings Cross', 'YRK', 'York', 'LNER', '2026-10-30T14:00:00Z'),
+      sharedLeg('YRK', 'York', 'EDB', 'Edinburgh', 'LNER', '2026-10-30T16:20:00Z'),
+      sharedLeg(
+        'EDB',
+        'Edinburgh Waverley',
+        'GLC',
+        'Glasgow Queen Street Low Level',
+        'ScotRail',
+        '2026-10-30T18:05:00Z',
+      ),
+      sharedLeg('GLC', 'Glasgow Queen Street Low Level', 'OBN', 'Oban', 'ScotRail', '2026-10-30T20:05:00Z'),
+    ])!,
+  ],
+  [
+    'regression-incident-long-all-facts',
+    incidentStatusCard(
+      incidentPreviewCard(
+        previewIncident({
+          summary:
+            'Disruption between Chester and Llandudno Junction expected until 15:00 due to a fault with the signalling',
+          operators: ['VT', 'AW', 'NT', 'SN'],
+          state: 'active',
+          validityPeriods: [{ fromDate: '2026-10-30T13:50:00Z', toDate: '2026-10-30T15:00:00Z', isNow: true }],
+          currentlyAffectsLines: [
+            { id: 'a', name: 'North Wales Coast Line' },
+            { id: 'b', name: 'West Coast Main Line: North Wales' },
+            { id: 'c', name: 'Conwy Valley Line' },
+            { id: 'd', name: 'Welsh Marches Line' },
+          ],
+        }),
+        { operatorNames: PREVIEW_TOCS, now: PREVIEW_NOW },
+      ),
+    ),
+  ],
+  [
+    'regression-station-three-line-name',
+    stationPreviewCard(
+      'Newcastle upon Tyne Central Station and Metro Interchange Facility Extended Name Limited (NCL)',
+      {
+        coverage: 'covered',
+        reports: [
+          previewLineReport('northern-tyne', 'Tyne Valley Line and Northumberland Coast Services', [
+            previewLineStatus(6, 'Signalling fault: trains may be cancelled or delayed by up to 30 minutes', {
+              total: 42,
+              delayed: 5,
+              cancelled: 1,
+              skipped: 0,
+              avgDelayMinutes: 3.2,
+            }),
+          ]),
+          previewLineReport('tfl-victoria', 'Victoria', [previewLineStatus(9, 'Minor delays')]),
+          previewLineReport('lner-ecml', 'East Coast Main Line', [previewLineStatus(9, 'Minor delays')]),
+        ],
+      },
+      PREVIEW_NOW,
+    ),
+  ],
+  [
+    'regression-ireland-long-train',
+    irelandTrainPreviewCard(
+      {
+        ...A101_TRAIN,
+        origin: 'Dublin Connolly Station and Maynooth Commuter Interchange',
+        destination: 'Belfast Grand Central Station and Lanyon Place Terminal',
+        live: {
+          ...A101_TRAIN.live,
+          lastLocation: { event: 'departed', place: 'Drogheda McBride Street Platform Two' },
+        },
+      },
+      networkBySlug('iarnrod-eireann')!,
+    ),
+  ],
 ];
 const PREVIEW_FIXTURES = 'test/fixtures/preview-cards';
 /** Each kind of card's credit, as its route passes it. */
@@ -342,6 +498,14 @@ const PREVIEW_CREDITS: Record<string, string> = {
   line: plainCredits(['national-rail', 'network-rail']),
   station: plainCredits(['national-rail', 'network-rail']),
   train: plainCredits(['national-rail', 'network-rail', 'rsp-timetable']),
+  journey: plainCredits(['national-rail', 'network-rail', 'rsp-timetable']),
+  // A group invite has no data to credit.
+  group: '',
+  transit: 'Contains public sector information licensed under the Open Government Licence v3.0.',
+  tfl: plainCredits(['tfl']),
+  ireland: plainCredits(['nta-gtfs', 'irish-rail-realtime']),
+  operator: plainCredits(['national-rail', 'network-rail']),
+  regression: plainCredits(['national-rail', 'network-rail', 'rsp-timetable', 'tfl']),
 };
 
 describe('renderStatusPreviewImage', () => {
@@ -351,6 +515,13 @@ describe('renderStatusPreviewImage', () => {
       const response = renderStatusPreviewImage(card, PREVIEW_CREDITS[name.split('-')[0]!]!, {
         headers: { 'Cache-Control': 'public, max-age=60' },
       });
+      // Nothing may overflow the credit: the facts fit their budget, and the
+      // snapshot note is drawn among them or in the credit block.
+      const layout = layoutStatusCard(card, PREVIEW_CREDITS[name.split('-')[0]!]!, card.chips.names.length);
+      expect(layout.used).toBeLessThanOrEqual(layout.available);
+      if (card.rows.includes(SNAPSHOT_NOTE)) {
+        expect(layout.rows.includes(SNAPSHOT_NOTE) || layout.credit.includes(SNAPSHOT_NOTE)).toBe(true);
+      }
       expect(response.headers.get('content-type')).toBe('image/png');
       expect(response.headers.get('cache-control')).toBe('public, max-age=60');
       const png = Buffer.from(await response.arrayBuffer());

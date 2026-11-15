@@ -89,6 +89,7 @@ describe('incidentPreviewCard', () => {
       route: null,
       timing: ['Since Fri 30 Oct, 13:50', 'No end time given'],
       updated: 'Updated Fri 30 Oct, 13:58',
+      asOf: 'As of 14:00',
     });
   });
 
@@ -299,12 +300,18 @@ describe('incidentStatusCard', () => {
   it('puts the place first, then who and when, and leaves out what is missing', () => {
     const long = `Disruption between Chester and Llandudno Junction ${'with a very long explanation '.repeat(4)}`;
     expect(incidentStatusCard(card({ summary: long }))).toEqual({
-      band: { tone: 'mild', label: 'Disruption in progress', aside: 'Updated Fri 30 Oct, 13:58' },
+      band: { tone: 'mild', label: 'Disruption in progress', aside: 'As of 14:00' },
       title: long.trim(),
       lead: 'Between Chester and Llandudno Junction with a very long explanation with a very long explanation with a very long explanation with a very long explanation',
       chips: { names: ['North Wales Coast Line', 'West Coast Main Line: North Wales'], more: 0 },
-      rows: ['Avanti West Coast and Transport for Wales', 'Since Fri 30 Oct, 13:50 · No end time given (UK time)'],
+      rows: [
+        'Avanti West Coast and Transport for Wales',
+        'Since Fri 30 Oct, 13:50 · No end time given (UK time)',
+        'Updated Fri 30 Oct, 13:58',
+      ],
     });
-    expect(incidentStatusCard(card({ operators: [], validityPeriods: [], state: 'ended' })).rows).toEqual([]);
+    expect(incidentStatusCard(card({ operators: [], validityPeriods: [], state: 'ended' })).rows).toEqual([
+      'Updated Fri 30 Oct, 13:58',
+    ]);
   });
 });
