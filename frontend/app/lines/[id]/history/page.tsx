@@ -24,7 +24,8 @@ import { HistoryRangePicker } from './HistoryRangePicker';
 import { TrendsResults } from './TrendsResults';
 import { CoverageTrendsResults } from './CoverageTrendsResults';
 import type { Metadata } from 'next';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { lineCardImage } from '@/lib/lineCardImage';
 import { DataCredits, lineCredits } from '@/components/DataCredits';
 
 const log = createLogger('app/lines/history');
@@ -88,8 +89,11 @@ async function resolveRetention(): Promise<{
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const name = await resolveLineName((await params).id);
+  const id = (await params).id;
   return pageMetadata(`${name} history`, `Delays, cancellations and status changes on ${name} over time.`, {
     noindex: true,
+    // The line's own card (`/lines/{id}/card.png`): its live status.
+    image: await lineCardImage(id, name, previewImageAlt(`${name} history`)),
   });
 }
 

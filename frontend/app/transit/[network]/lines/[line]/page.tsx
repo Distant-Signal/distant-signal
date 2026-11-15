@@ -23,6 +23,7 @@ import { TransitStatusBadge } from '@/components/TransitStatusBadge';
 import { getPreferences, getTransitLine, getTransitNetwork } from '@/lib/api';
 import { formatDate } from '@/lib/dateFormat';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { transitLinePreviewImage } from '@/lib/transitPreview';
 import { lineColour, orNotFound, TRANSIT_ID } from '@/lib/transit';
 import { buildLineDiagram } from '@/lib/transitLineDiagram';
 import { branchesHeading, directionHeading } from '@/lib/transitModes';
@@ -60,7 +61,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const title = `${lineDetail.name}, ${detail.name}`;
   return pageMetadata(title, `${lineDetail.name} stops, how often it runs and scheduled times.`, {
     path: `/transit/${encodeURIComponent(network)}/lines/${encodeURIComponent(line)}`,
-    imageAlt: previewImageAlt(title),
+    // The live status goes in the preview image (`card.png`), its URL versioned
+    // by it, from the line the page has already read.
+    image: transitLinePreviewImage(network, line, lineDetail, previewImageAlt(title)),
   });
 }
 

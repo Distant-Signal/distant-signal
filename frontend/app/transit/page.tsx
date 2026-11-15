@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { CardTitleLink, ClickableCard } from '@/components/ClickableCard';
 import { getTransitNetworks } from '@/lib/api';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { OWN_PREVIEW_IMAGE, pageMetadata } from '@/lib/pageMetadata';
 import { transitNetworkSummary } from '@/lib/transitModes';
 
 export const metadata: Metadata = pageMetadata(
   'Trams and metros',
   'Tram and metro networks: lines, stops and scheduled departures.',
-  { path: '/transit' },
+  { ...OWN_PREVIEW_IMAGE, path: '/transit' },
 );
 
 /** `/transit`: the tram and metro networks we show. Not found while there

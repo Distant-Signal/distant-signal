@@ -13,6 +13,7 @@ import { TflArrivalsBoard } from '@/components/TflArrivalsBoard';
 import { DataCredits } from '@/components/DataCredits';
 import { TflStopTimetable } from '@/components/TflStopTimetable';
 import {
+  getPreviewLinesStatus,
   ApiNotFoundError,
   getLineStatus,
   getTflStop,
@@ -23,6 +24,7 @@ import {
 } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import { completeLineReports, tflStopPreviewImage } from '@/lib/transitPreview';
 import { stationLabel } from '@/lib/stationLabel';
 import { journeyFromTflStopHref, TFL_LINE_ID, TFL_STOP_ID, tflLineHref, tflModeBadge } from '@/lib/tflStops';
 import type { LineStatusReport, TflStopArrivals, TflStopDetail, TransitBoard, TransitStopDetail } from '@/lib/types';
@@ -128,10 +130,39 @@ function modesPhrase(stop: TflStopDetail): string {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const stop = await loadStop(id);
+  // The live line status goes in the preview image (`card.png`), its URL
+  // versioned by it. Read through the image route's own shared, minute-cached
+  // entry (`getPreviewLinesStatus`), so the version and the image come from
+  // the same data; an outage leaves the URL unversioned, not the page failing.
+  const reports = await previewLineStatus(stop);
   return pageMetadata(stop.name, `Live arrivals and line status at ${stop.name} (${modesPhrase(stop)}).`, {
     path: `/tfl/stops/${encodeURIComponent(stop.id)}`,
-    imageAlt: previewImageAlt(stop.name),
+    image: tflStopPreviewImage(
+      stop.id,
+      stop.name,
+      completeLineReports(reports, expectedLineCount(stop)),
+      previewImageAlt(stop.name),
+    ),
   });
+}
+
+function expectedLineCount(stop: TflStopDetail): number {
+  return stop.lines.filter((line) => TFL_LINE_ID.test(line.id)).length;
+}
+
+/** The stop's lines' statuses as its preview card reads them (`null` when
+ * they can't be read). */
+async function previewLineStatus(stop: TflStopDetail): Promise<LineStatusReport[] | null> {
+  const ids = stop.lines.filter((line) => TFL_LINE_ID.test(line.id)).map((line) => `tfl-${line.id}`);
+  if (ids.length === 0) return [];
+  try {
+    return await getPreviewLinesStatus(ids);
+  } catch (err) {
+    if (!(err instanceof ApiNotFoundError)) {
+      log.warn('TfL line status preview unavailable', { stopId: stop.id, error: String(err) });
+    }
+    return null;
+  }
 }
 
 /** The stop's live and scheduled parts: its arrivals, timetable and lines'

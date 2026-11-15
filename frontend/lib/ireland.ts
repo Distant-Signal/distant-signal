@@ -367,3 +367,10 @@ export function networkNotice(
     live === 0 ? `We don't have live ${info.name} times yet` : 'Station pages show live departures where we have them';
   return `Lines and stations from the published timetable. ${times}. We don't show line status for ${info.name}.`;
 }
+
+/** The plain-text credit (`lib/creditText.ts`) for a network's timetable
+ * data, as `IrelandAttributionNote` gives each page. */
+export const IRELAND_CREDIT_FOR_NETWORK = {
+  'republic-of-ireland': 'nta-gtfs',
+  'northern-ireland': 'opendatani',
+} as const satisfies Record<IslandOfIrelandNetwork, 'nta-gtfs' | 'opendatani'>;

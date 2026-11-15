@@ -53,3 +53,13 @@ export function idFromSegment(segment: string): string {
   if (!IRELAND_ID.test(id)) notFound();
   return id;
 }
+
+/** `idFromSegment`, for a route handler: `null` instead of `notFound()`. */
+export function idFromSegmentOrNull(segment: string): string | null {
+  try {
+    const id = decodeURIComponent(segment);
+    return IRELAND_ID.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}

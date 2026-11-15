@@ -1144,6 +1144,11 @@ export async function getPreviewLines(): Promise<LineSummary[]> {
   return previewJson(`${baseUrl()}/public/lines`, 3600);
 }
 
+/** `GET /public/operators/{code}`, as a preview read (above): the operator card. */
+export async function getPreviewOperator(code: string): Promise<OperatorSummary> {
+  return previewJson(`${baseUrl()}/public/operators/${encodeURIComponent(code)}`, LIVE_PREVIEW_REVALIDATE_SECONDS);
+}
+
 /** `getAllTocs`, as a preview read (above). */
 export async function getPreviewTocs(): Promise<Suggestion[]> {
   return previewJson(`${baseUrl()}/public/tocs/all`, 3600);
@@ -1383,6 +1388,30 @@ export async function getPreviewTransitNetwork(network: string): Promise<Transit
   return previewJson(transitUrl(network, []), LIVE_PREVIEW_REVALIDATE_SECONDS);
 }
 
+/** `GET /public/transit/{network}/lines/{line}`, as a preview read: the
+ * line card. */
+export async function getPreviewTransitLine(network: string, line: string): Promise<TransitLineDetail> {
+  return previewJson(transitUrl(network, ['lines', line]), LIVE_PREVIEW_REVALIDATE_SECONDS);
+}
+
+/** `GET /public/transit/{network}/stops/{stop}`, as a preview read: the stop card. */
+export async function getPreviewTransitStop(network: string, stop: string): Promise<TransitStopDetail> {
+  return previewJson(transitUrl(network, ['stops', stop]), LIVE_PREVIEW_REVALIDATE_SECONDS);
+}
+
+/** `GET /public/tfl/stops/{id}`, as a preview read: the TfL stop card
+ * (cached five minutes, as the page reads it). */
+export async function getPreviewTflStop(id: string): Promise<TflStopDetail> {
+  return previewJson(`${baseUrl()}/public/tfl/stops/${encodeURIComponent(id)}`, 300);
+}
+
+/** `GET /Line/{ids}/Status?detail=true`, as a preview read: several lines'
+ * statuses in one call (the TfL stop card), in the api's order. */
+export async function getPreviewLinesStatus(ids: readonly string[]): Promise<LineStatusReport[]> {
+  const idsParam = ids.map((id) => encodeURIComponent(id)).join(',');
+  return previewJson(`${baseUrl()}/Line/${idsParam}/Status?detail=true`, LIVE_PREVIEW_REVALIDATE_SECONDS);
+}
+
 /** `GET /public/transit/{network}/stops`, as an hour-long preview read:
  * the stop names on the disruption card. */
 export async function getPreviewTransitStops(network: string): Promise<TransitStop[]> {
@@ -1581,6 +1610,31 @@ export async function getIrelandStationsOrNone(): Promise<IrelandStation[]> {
   } catch (err) {
     log.warn('island of Ireland stations lookup failed; hiding its links', { error: err });
     return [];
+  }
+}
+
+/** `getIrelandStations()`, as an hour-long preview read (`getPreviewIncident`'s
+ * section): the Irish station and line cards. */
+export async function getPreviewIrelandStations(): Promise<IrelandStation[]> {
+  return previewJson(`${baseUrl()}/public/island-of-ireland/stations`, 3600);
+}
+
+/** `getIrelandLines()`, as an hour-long preview read. */
+export async function getPreviewIrelandLines(): Promise<IrelandLine[]> {
+  return previewJson(`${baseUrl()}/public/island-of-ireland/lines`, 3600);
+}
+
+/** `getIrelandTrain()`, as a preview read: the Irish train card; `null`
+ * when no board has shown it (404). */
+export async function getPreviewIrelandTrain(trainCode: string, serviceDate: string): Promise<IrelandTrain | null> {
+  try {
+    return await previewJson<IrelandTrain>(
+      `${baseUrl()}/public/island-of-ireland/trains/${encodeURIComponent(trainCode)}/${encodeURIComponent(serviceDate)}`,
+      LIVE_PREVIEW_REVALIDATE_SECONDS,
+    );
+  } catch (err) {
+    if (err instanceof ApiNotFoundError) return null;
+    throw err;
   }
 }
 
