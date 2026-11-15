@@ -255,6 +255,15 @@ describe('generateMetadata', () => {
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image', title: 'Join Family · Distant Signal' });
   });
 
+  it('lists its own card image and is noindex, nofollow', async () => {
+    vi.mocked(getGroupJoinPreview).mockResolvedValue({ groupId: 'grp-1', groupName: 'Family', memberCount: 3 });
+    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    const images = metadata.openGraph?.images as { url: string }[];
+    expect(images[0]?.url).toMatch(/^\/groups\/join\/tok123\/card\.png\?v=[0-9a-f]{8}$/);
+    expect(JSON.stringify(metadata)).not.toContain('grp-1');
+  });
+
   it('uses singular "member" for a group of one', async () => {
     vi.mocked(getGroupJoinPreview).mockResolvedValue({ groupId: 'grp-1', groupName: 'Solo', memberCount: 1 });
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
@@ -274,7 +283,7 @@ describe('generateMetadata', () => {
     const { notFound } = await import('next/navigation');
     vi.mocked(notFound).mockClear();
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'bad-token' }) });
-    expect(metadata).toEqual({});
+    expect(metadata).toEqual({ robots: { index: false, follow: false } });
     expect(notFound).not.toHaveBeenCalled();
   });
 
@@ -285,7 +294,7 @@ describe('generateMetadata', () => {
   it('falls back to site-wide metadata for a malformed token, without ever calling getGroupJoinPreview', async () => {
     vi.mocked(getGroupJoinPreview).mockClear();
     const metadata = await generateMetadata({ params: Promise.resolve({ token: '../evil' }) });
-    expect(metadata).toEqual({});
+    expect(metadata).toEqual({ robots: { index: false, follow: false } });
     expect(getGroupJoinPreview).not.toHaveBeenCalled();
   });
 });

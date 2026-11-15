@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SHARED_JOURNEY_TOKEN } from './a11yRoutes';
 
 // SEO phase 1 against the real app: the sitemap, a station page's canonical
 // URL and structured data, the case redirect for station codes, and the
@@ -95,4 +96,63 @@ test('a station page names its canonical URL and describes itself as structured 
   const data = JSON.parse(jsonLd ?? '[]') as { '@type': string; identifier?: string }[];
   expect(data[0]).toMatchObject({ '@type': 'TrainStation', identifier: CRS });
   expect(data[1]?.['@type']).toBe('BreadcrumbList');
+});
+
+// Capability-token pages (lib/sharedJourneyPreview.ts, lib/groupInvitePreview.ts):
+// anyone holding the link gets a card, no search engine gets the page, and a
+// token that does not resolve keeps the site card.
+const GROUP_INVITE_TOKEN = process.env.E2E_GROUP_INVITE_TOKEN;
+const TOKEN_PREVIEWS: [name: string, path: string | undefined][] = [
+  ['a shared journey', `/journeys/shared/${SHARED_JOURNEY_TOKEN}`],
+  ['a group invite', GROUP_INVITE_TOKEN ? `/groups/join/${GROUP_INVITE_TOKEN}` : undefined],
+];
+
+for (const [name, path] of TOKEN_PREVIEWS) {
+  test(`${name} lists its own card, is noindex and never leaks into the sitemap`, async ({ page, request }) => {
+    test.skip(!path, 'set the fixture token for this link');
+    await page.goto(path!);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /nofollow/);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Distant Signal$/);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    const url = await page.locator('meta[property="og:image"]').getAttribute('content');
+    expect(url).toMatch(new RegExp(`${path}/card\\.png\\?v=[0-9a-f]{8}$`));
+
+    const response = await request.get(new URL(url!).pathname + new URL(url!).search);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toBe('image/png');
+    expect(response.headers()['cache-control']).toMatch(/public/);
+    expect(response.headers()['x-robots-tag']).toBe('noindex');
+    const png = await response.body();
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+
+    const sitemap = await (await request.get('/sitemap.xml')).text();
+    expect(sitemap).not.toContain('/journeys');
+    expect(sitemap).not.toContain('/groups');
+  });
+}
+
+test('an unknown share or invite token keeps the site card, noindexed, and has no card image', async ({
+  page,
+  request,
+}) => {
+  for (const path of ['/journeys/shared/no-such-token', '/groups/join/no-such-token']) {
+    await page.goto(path);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/opengraph-image\.png$/);
+    const card = await request.get(`${path}/card.png`);
+    expect(card.status()).toBe(404);
+    expect(card.headers()['x-robots-tag']).toBe('noindex');
+  }
+});
+
+test('robots.txt lets link-preview fetchers read share and invite links and nobody else', async ({ request }) => {
+  const text = await (await request.get('/robots.txt')).text();
+  const groups = text.split('\n\n');
+  const slack = groups.find((group) => group.includes('User-Agent: Slackbot'));
+  expect(slack).toContain('Allow: /journeys/shared/');
+  expect(slack).toContain('Allow: /groups/join/');
+  const star = groups.find((group) => group.startsWith('User-Agent: *'));
+  expect(star).not.toContain('Allow: /journeys/shared/');
+  expect(star).toContain('Disallow: /journeys/');
 });

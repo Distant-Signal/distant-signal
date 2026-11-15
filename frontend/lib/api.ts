@@ -1109,6 +1109,20 @@ export async function getPreviewLineStatus(id: string): Promise<LineStatusReport
   return previewJson(`${baseUrl()}/Line/${encodeURIComponent(id)}/Status?detail=true`, LIVE_PREVIEW_REVALIDATE_SECONDS);
 }
 
+/** `GET /Journeys/shared/{token}`, as a preview read (above): the shared
+ * journey's card. The same unauthenticated answer the page reads (what
+ * anyone holding the link sees); shared for a minute, so a revoked link's
+ * card goes within that. The token is encoded, and the route checks its
+ * shape first. */
+export async function getPreviewSharedJourney(token: string): Promise<JourneyDetail> {
+  return previewJson(`${baseUrl()}/Journeys/shared/${encodeURIComponent(token)}`, LIVE_PREVIEW_REVALIDATE_SECONDS);
+}
+
+/** `GET /public/groups/join/{token}`, as a preview read (above): the invite's card. */
+export async function getPreviewGroupJoin(token: string): Promise<GroupJoinPreview> {
+  return previewJson(`${baseUrl()}/public/groups/join/${encodeURIComponent(token)}`, LIVE_PREVIEW_REVALIDATE_SECONDS);
+}
+
 /** `GET /StopPoint/{crs}/Disruption`, as a preview read (above): the station card. */
 export async function getPreviewStopPointDisruption(crs: string): Promise<LineStatusReport[]> {
   return previewJson(`${baseUrl()}/StopPoint/${encodeURIComponent(crs)}/Disruption`, LIVE_PREVIEW_REVALIDATE_SECONDS);

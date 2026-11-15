@@ -9,7 +9,13 @@ import { formatDate } from '@/lib/dateFormat';
 import { journeyDefaultName, journeyNameInputFromLegs } from '@/lib/journeyName';
 import { journeyDetailSummary, type JourneySummaryGroup } from '@/lib/journeyStatus';
 import type { JourneyDetail, JourneyLegDetail } from '@/lib/types';
-import { pageMetadata } from '@/lib/pageMetadata';
+import { NOINDEX_NOFOLLOW, pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
+import {
+  sharedJourneyPreviewCard,
+  sharedJourneyPreviewImage,
+  sharedJourneySummary,
+  sharedJourneySummarySentences,
+} from '@/lib/sharedJourneyPreview';
 import { DataCredits, journeyCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
@@ -94,6 +100,10 @@ function journeyStatusPhrase(legs: JourneyLegDetail[]): string {
   return PHRASE[summary.group];
 }
 
+/** What a link that doesn't resolve says to a crawler: nothing of its own
+ * (the root layout's site-wide cards), and not to be indexed. */
+const NO_LINK_METADATA: Metadata = { robots: NOINDEX_NOFOLLOW };
+
 /** Per-page Open Graph/Twitter/`<title>` metadata for a journey's unlisted
  * share link -- so pasting one into Discord/Slack/iMessage/etc. shows a
  * journey-specific preview rather than generic site metadata. Fetches the
@@ -106,7 +116,7 @@ function journeyStatusPhrase(legs: JourneyLegDetail[]): string {
  * carry a session cookie, so this is the only way they ever see a real
  * preview instead of a fallback.
  *
- * Falls back to `{}` (the root layout's site-wide metadata) on
+ * Falls back to the site-wide metadata plus `noindex` (`NO_LINK_METADATA`) on
  * `ApiNotFoundError` -- the same error the page component's own "link not
  * found" branch below handles -- **not** `notFound()`, for the exact
  * reason `app/groups/join/[token]/page.tsx`'s own `generateMetadata` gives
@@ -117,12 +127,14 @@ function journeyStatusPhrase(legs: JourneyLegDetail[]): string {
  * short-circuit as the page component's own `isValidShareToken` check,
  * for the same reason that page's doc comment gives.
  *
- * Deliberately never includes the token itself, or the journey's own
- * numeric `id`, anywhere in the returned metadata -- the token is the
- * bearer secret that grants access to this journey at all, and embedding
- * it in a publicly-crawlable `<title>`/`og:` tag would hand that secret to
- * every unfurler bot and search index that ever sees the pasted link,
- * independent of whether a human ever clicks it. Nor does it include the
+ * Never includes the journey's own numeric `id`, nor puts the token in a title, description or `og:url`: it is the
+ * bearer secret, and text a search index or a chat quotes is the wrong
+ * place for it. The one exception is the preview image's own URL
+ * (`/journeys/shared/{token}/card.png`), which a chat app can only fetch
+ * with the token in its path; whoever's crawler reads this page was already
+ * given that same token in the link, and the page is `noindex`
+ * (`NOINDEX_NOFOLLOW`; robots.txt keeps indexing crawlers off `/journeys/`
+ * altogether, `lib/robots.ts` lets link-preview fetchers in). Nor does it include the
  * journey's own `customName` (an owner-chosen free-text label, unlike a
  * group's `groupName` in `groups/join`'s own equivalent function) -- title
  * and description are built from the route and a coarse status only, the
@@ -135,7 +147,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const { token } = await params;
 
   if (!isValidShareToken(token)) {
-    return {};
+    return NO_LINK_METADATA;
   }
 
   let journey: JourneyDetail;
@@ -143,7 +155,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     journey = await getJourneyByShareToken(token);
   } catch (err) {
     if (err instanceof ApiNotFoundError) {
-      return {};
+      return NO_LINK_METADATA;
     }
     throw err;
   }
@@ -156,11 +168,19 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const hasRoute =
     !!(firstLeg?.originCrs || firstLeg?.originName) && !!(lastLeg?.destinationCrs || lastLeg?.destinationName);
   const title = hasRoute ? journeyDefaultName(journeyNameInputFromLegs(null, journey.legs)) : 'Shared journey';
-  const description = firstLeg
-    ? `A journey on ${formatDate(firstLeg.serviceDate)}, ${journeyStatusPhrase(journey.legs)}.`
-    : 'A shared journey on Distant Signal.';
+  const summary = sharedJourneySummary(journey.legs);
+  const description =
+    firstLeg && summary
+      ? `A journey on ${formatDate(firstLeg.serviceDate)}, ${journeyStatusPhrase(journey.legs)}. ${sharedJourneySummarySentences(summary)}`
+      : 'A shared journey on Distant Signal.';
 
-  return pageMetadata(title, description);
+  // The card (`card.png`, `lib/sharedJourneyPreview.ts`) is the timetable
+  // side of the same summary; a journey with no legs keeps the site image.
+  const card = sharedJourneyPreviewCard(journey.legs);
+  return pageMetadata(title, description, {
+    capability: true,
+    ...(card ? { image: sharedJourneyPreviewImage(token, card, previewImageAlt(title)) } : {}),
+  });
 }
 
 export default async function SharedJourneyPage({ params }: { params: Promise<{ token: string }> }) {

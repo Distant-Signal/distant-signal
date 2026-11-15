@@ -207,6 +207,38 @@ describe('SharedJourneyPage', () => {
 });
 
 describe('generateMetadata', () => {
+  it('lists its own card image, noindexes the page, and summarises departure, legs and operator', async () => {
+    vi.mocked(getJourneyByShareToken).mockResolvedValue(
+      sharedJourney({
+        legs: [
+          matchedLeg({
+            trackedTrainState: baseTrackedTrainState({
+              operatorName: 'LNER',
+              journeyStops: [
+                {
+                  crs: 'KGX',
+                  name: 'London Kings Cross',
+                  passingPoint: false,
+                  publicDeparture: '2026-09-22T15:00:00Z',
+                } as never,
+              ],
+            }),
+          }),
+        ],
+      }),
+    );
+
+    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(metadata.description).toBe(
+      'A journey on 22 Sep 2026, on time. Departs 16:00. 1 leg, direct. Operated by LNER.',
+    );
+    expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
+    const images = metadata.openGraph?.images as { url: string; width: number }[];
+    expect(images[0]?.url).toMatch(/^\/journeys\/shared\/tok123\/card\.png\?v=[0-9a-f]{8}$/);
+  });
+
   it('titles the page with the route from first leg origin to last leg destination', async () => {
     vi.mocked(getJourneyByShareToken).mockResolvedValue(
       sharedJourney({
@@ -273,8 +305,8 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
 
-    expect(metadata.description).toBe('A journey on 22 Sep 2026, on time.');
-    expect(metadata.openGraph?.description).toBe('A journey on 22 Sep 2026, on time.');
+    expect(metadata.description).toBe('A journey on 22 Sep 2026, on time. 1 leg, direct.');
+    expect(metadata.openGraph?.description).toBe('A journey on 22 Sep 2026, on time. 1 leg, direct.');
   });
 
   it('describes a delayed journey without quoting the exact delay figure', async () => {
@@ -288,7 +320,7 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
 
-    expect(metadata.description).toBe('A journey on 22 Sep 2026, running delayed.');
+    expect(metadata.description).toBe('A journey on 22 Sep 2026, running delayed. 1 leg, direct.');
     expect(metadata.description).not.toMatch(/47/);
     expect(metadata.description).not.toMatch(/m late/);
   });
@@ -302,7 +334,7 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
 
-    expect(metadata.description).toBe('A journey on 22 Sep 2026, cancelled.');
+    expect(metadata.description).toBe('A journey on 22 Sep 2026, cancelled. 1 leg, direct.');
   });
 
   it('describes an unmatched leg as still needing a train picked', async () => {
@@ -312,7 +344,7 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
 
-    expect(metadata.description).toBe('A journey on 22 Sep 2026, still needs a train picked.');
+    expect(metadata.description).toBe('A journey on 22 Sep 2026, still needs a train picked. 1 leg, direct.');
   });
 
   // Never leaks the bearer token (or the journey's own internal numeric id)
@@ -332,7 +364,9 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'super-secret-tok-abc123' }) });
 
-    const rendered = JSON.stringify(metadata);
+    // The token appears only in the preview image's own path, which a chat
+    // app can't fetch without it.
+    const rendered = JSON.stringify(metadata).replaceAll('/journeys/shared/super-secret-tok-abc123/card.png', '');
     expect(rendered).not.toContain('super-secret-tok-abc123');
     expect(rendered).not.toContain('167');
     expect(rendered).not.toContain("Mum's birthday trip");
@@ -349,7 +383,7 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: 'bad-token' }) });
 
-    expect(metadata).toEqual({});
+    expect(metadata).toEqual({ robots: { index: false, follow: false } });
   });
 
   it('falls back to site-wide metadata for a malformed token, without ever calling getJourneyByShareToken', async () => {
@@ -357,7 +391,7 @@ describe('generateMetadata', () => {
 
     const metadata = await generateMetadata({ params: Promise.resolve({ token: '../evil' }) });
 
-    expect(metadata).toEqual({});
+    expect(metadata).toEqual({ robots: { index: false, follow: false } });
     expect(getJourneyByShareToken).not.toHaveBeenCalled();
   });
 
