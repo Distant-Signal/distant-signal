@@ -53,6 +53,31 @@ export const DISALLOWED_PATHS: readonly string[] = [
  * did, redirects to `/plan` (DS-194). */
 export const ALLOWED_PATHS: readonly string[] = ['/'];
 
+/** Link-preview fetchers: what a chat app or social site sends to read a
+ * pasted link's title, description and image. Slack's and X's obey
+ * robots.txt, so under `*` they would never unfurl a share or invite link;
+ * the others (Discord, iMessage, WhatsApp, Telegram, ...) mostly ignore it,
+ * and are listed so the intent is on record. */
+export const LINK_PREVIEW_FETCHERS: readonly string[] = [
+  'Slackbot',
+  'Slackbot-LinkExpanding',
+  'Twitterbot',
+  'facebookexternalhit',
+  'LinkedInBot',
+  'WhatsApp',
+  'TelegramBot',
+  'Discordbot',
+];
+
+/** The capability-token pages (`/journeys/shared/<token>` share links,
+ * `/groups/join/<token>` invites), and the card images under them, which
+ * only `LINK_PREVIEW_FETCHERS` may read. Under `*` they stay disallowed
+ * (no search crawler sees them), the pages are `noindex, nofollow`, their
+ * images send `X-Robots-Tag: noindex` and the sitemap never lists them.
+ * These longer `Allow` rules beat the `/journeys/`, `/groups` and `/*?`
+ * (the card's `?v=`) disallows for those agents. */
+export const TOKEN_PAGE_PATHS: readonly string[] = ['/journeys/shared/', '/groups/join/'];
+
 /** Crawlers that collect content to train AI models. **Blocked**: the
  * owner opted out of AI training (2026-09-27), so `BLOCK_AI_TRAINING_CRAWLERS`
  * is `true` and each of these user agents gets `Disallow: /`. Set it back to
@@ -106,6 +131,13 @@ export function buildRobots({
     // expensive URLs (query-string variants and `/api/`) are disallowed
     // outright instead.
     { userAgent: '*', allow: [...ALLOWED_PATHS], disallow: [...DISALLOWED_PATHS] },
+    // A crawler obeys only its most specific group, so this one repeats
+    // every `*` rule and adds the token pages.
+    {
+      userAgent: [...LINK_PREVIEW_FETCHERS],
+      allow: [...ALLOWED_PATHS, ...TOKEN_PAGE_PATHS],
+      disallow: [...DISALLOWED_PATHS],
+    },
   ];
   if (blockAiTrainingCrawlers) {
     rules.push({ userAgent: [...AI_TRAINING_CRAWLERS], disallow: '/' });

@@ -42,6 +42,12 @@ export const OWN_PREVIEW_IMAGE = { ownPreviewImage: true } as const;
  * `Disallow`, or they would never see this tag. */
 export const NOINDEX_FOLLOW = { index: false, follow: true } as const;
 
+/** `robots` for a page whose URL is a capability (`/journeys/shared/<token>`,
+ * `/groups/join/<token>`): not indexed, no links followed. robots.txt
+ * keeps search crawlers off these paths; only link-preview fetchers are let
+ * in (`lib/robots.ts`), and this is the tag for any that index anyway. */
+export const NOINDEX_NOFOLLOW = { index: false, follow: false } as const;
+
 /** `path` reduced to the bare path a search engine should index: no query
  * string or fragment and no trailing slash (but `/` stays `/`). Every query
  * variant of a page (`/lines/x?dir=up`, `/incidents?severity=...`) names
@@ -120,6 +126,8 @@ export function previewImageAlt(subject: string): string {
 export interface PageMetadataOptions extends PreviewCardOptions {
   /** Mark the page `noindex, follow` (`NOINDEX_FOLLOW`). */
   noindex?: boolean;
+  /** A capability-token page: `NOINDEX_NOFOLLOW`, overriding `noindex`. */
+  capability?: boolean;
   /** The page's Atom feed, as `<link rel="alternate"
    * type="application/atom+xml">` so feed readers find it. */
   feed?: FeedLinkTarget;
@@ -136,7 +144,7 @@ export interface PageMetadataOptions extends PreviewCardOptions {
  * layout's `metadataBase`. Every indexable public page passes it, so each
  * query-string variant of a page names the bare path as its canonical. */
 export function pageMetadata(title: string, description: string, options: PageMetadataOptions = {}): Metadata {
-  const { noindex = false, feed, ...cardOptions } = options;
+  const { noindex = false, capability = false, feed, ...cardOptions } = options;
   const alternates = {
     ...(options.path === undefined ? {} : { canonical: canonicalPath(options.path) }),
     ...(feed === undefined ? {} : { types: { 'application/atom+xml': [feed] } }),
@@ -145,7 +153,7 @@ export function pageMetadata(title: string, description: string, options: PageMe
     title,
     description,
     ...(Object.keys(alternates).length === 0 ? {} : { alternates }),
-    ...(noindex ? { robots: NOINDEX_FOLLOW } : {}),
+    ...(capability ? { robots: NOINDEX_NOFOLLOW } : noindex ? { robots: NOINDEX_FOLLOW } : {}),
     ...previewCards(fullTitle(title), description, cardOptions),
   };
 }
