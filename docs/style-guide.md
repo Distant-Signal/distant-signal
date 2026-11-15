@@ -462,6 +462,57 @@ used, rather than as a literal in a component.
   strip. A tracked train's `/train/by-id/...` page needs its owner's
   session, so it has no card and keeps the site-wide image.
   Sample cards: `frontend/test/fixtures/preview-cards/`.
+  Every card route follows one convention, so a new one is a copy of
+  `app/stations/[crs]/card.png/route.tsx`: `revalidate = 60` and
+  `generateStaticParams() { return []; }`; reads only through the
+  `getPreview*` functions in `lib/api.ts` (no session cookie, no client IP,
+  so Next's data cache is shared); the id checked against the page's own
+  pattern before any request; `LIVE_PREVIEW_CACHE_CONTROL` on the PNG and on
+  a 404 (never `notFound()`, never a thrown 404); the data's credit as
+  `plainCredits` text, drawn on the card. The route's `GET` is wrapped in
+  `guardPreview` (`lib/previewRoute.ts`), so an api outage is a 503 cached
+  for ten seconds (`PREVIEW_ERROR_CACHE_CONTROL`), never an uncached 500 and
+  never a failure cached as long as a card; a missing name or operator list
+  degrades the card (the bare code, no operators row), not the response.
+  Ids are checked against the page's own pattern before any read
+  (`INCIDENT_ID`, `isCalendarDate` for a service date).
+  The card's vertical budget is worked out before drawing
+  (`lib/previewLayout.ts`), not left to `overflow: hidden`: a title wraps to
+  two lines when there are three or more facts; when it is still too tall the
+  last facts go first, then the chips, then the snapshot note moves into the
+  credit block, which is never clipped, so the note can never be lost; the
+  lead and the credit always stay. A long unbroken word in a title wraps
+  (`word-break: break-word`) and facts end in an ellipsis. The sample cards
+  include the worst cases (`regression-*`); add one when a card gains a row.
+  A live incident's band time is the card's own ("As of 14:00"), with the last
+  change as a fact, so a cached card does not read as live. The page lists the image with
+  `livePreviewImage` and a `?v=` digest of the card, and its
+  `generateMetadata` calls `notFound()` for a missing public resource, as
+  the page does. `proxy.ts` skips `card.png` and `opengraph-image` routes
+  (an image has no scripts for a nonce to guard), and `next.config.mjs` locks
+  `card.png` down with `default-src 'none'`.
+  Cards added with that convention: a transit line and stop, a TfL stop,
+  an Irish line, station and train (`lib/transitPreview.ts`,
+  `lib/irelandPreview.ts`); a line's history and timetable reuse the line's
+  own card (`lib/lineCardImage.ts`) and an operator's history has a neutral
+  card (`lib/operatorPreview.ts`; none is listed for an operator the api does
+  not know). `/transit` and `/island-of-ireland` have static title cards (an
+  `opengraph-image.tsx` and `OWN_PREVIEW_IMAGE`).
+- **Capability-token link previews** (a shared journey,
+  `/journeys/shared/{token}`, and a group invite, `/groups/join/{token}`;
+  `lib/sharedJourneyPreview.ts`, `lib/groupInvitePreview.ts`): the page
+  and its `{token}/card.png` show only what the page shows anyone holding
+  the link, and only the timetable side of it: a shared journey's route,
+  day, departure time, legs and changes and operators, never a live status,
+  an owner-chosen name or an id; an invite's group name and member count. The
+  band is neutral. The page is `noindex, nofollow` (`NOINDEX_NOFOLLOW`), the
+  image sends `X-Robots-Tag: noindex`, and neither is in the sitemap
+  (`isExcludedPath`). An invalid, expired or revoked token keeps the
+  site-wide card and a friendly page, never `notFound()`. robots.txt
+  disallows both paths for `*` and allows them only to the link-preview
+  fetchers (`LINK_PREVIEW_FETCHERS` in `lib/robots.ts`), since Slack and X
+  obey it and would not unfurl them otherwise. The token appears in the
+  image's URL and nowhere else in the metadata.
 - **Preferences** (`app/account/preferences/page.tsx`): open to everyone,
   never a redirect. Each section is a `PreferencesSection` card.
   - Device-local, no account needed: Appearance (colour theme, pride

@@ -1,7 +1,15 @@
 import { ImageResponse } from 'next/og';
 import type { Metadata } from 'next';
 import { type MarkBox, signalMarkBounds, signalMarkSvg } from './brand';
-import { type PreviewBandTone, type StatusPreviewCard, TITLE_FITS_LENGTH } from './livePreview';
+import { type PreviewBandTone, type StatusPreviewCard } from './livePreview';
+import {
+  cardTitleFontSize,
+  CHIP_HEIGHT,
+  FACTS_BOTTOM_SPACER,
+  layoutStatusCard,
+  LEAD_HEIGHT,
+  ROW_HEIGHT,
+} from './previewLayout';
 import { SITE_NAME } from './pageMetadata';
 
 /** The link-preview (Open Graph) image template (round 2, item 9): the
@@ -146,12 +154,7 @@ export const STATUS_BAND_COLORS: Record<PreviewBandTone, { fill: string; text: s
   early: { fill: '#076b4c', text: '#ffffff' },
 };
 
-/** Titles step down so three lines fit; past that the title is clamped. */
-export function cardTitleFontSize(title: string): number {
-  if (title.length <= 50) return 60;
-  if (title.length <= TITLE_FITS_LENGTH) return 52;
-  return 44;
-}
+export { cardTitleFontSize };
 
 /** The line chips' row: the card's width less its padding. */
 const CHIP_ROW_WIDTH = 1200 - 2 * 64;
@@ -207,6 +210,10 @@ export function renderStatusPreviewImage(
 ): ImageResponse {
   const band = STATUS_BAND_COLORS[card.band.tone];
   const chips = fitLineChips(card.chips.names, card.chips.more);
+  // What fits is decided up front (`lib/previewLayout.ts`), so a row is
+  // drawn whole or not at all, and the credit and snapshot note are never
+  // clipped.
+  const layout = layoutStatusCard(card, credit, chips.names.length);
   return new ImageResponse(
     <div
       style={{
@@ -225,6 +232,7 @@ export function renderStatusPreviewImage(
           justifyContent: 'space-between',
           gap: 32,
           height: 96,
+          flexShrink: 0,
           padding: '0 64px',
           backgroundColor: band.fill,
           color: band.text,
@@ -239,10 +247,9 @@ export function renderStatusPreviewImage(
           flexDirection: 'column',
           justifyContent: 'space-between',
           flexGrow: 1,
-          // The facts give way, not the credit below: it is drawn outside.
           flexShrink: 1,
           overflow: 'hidden',
-          padding: '36px 64px 16px',
+          padding: '36px 64px 0',
           gap: 24,
         }}
       >
@@ -255,8 +262,9 @@ export function renderStatusPreviewImage(
             style={{
               display: 'block',
               overflow: 'hidden',
-              lineClamp: 3,
-              fontSize: cardTitleFontSize(card.title),
+              lineClamp: layout.titleLines,
+              wordBreak: 'break-word',
+              fontSize: layout.titleFontSize,
               lineHeight: 1.12,
               letterSpacing: -1,
             }}
@@ -265,12 +273,22 @@ export function renderStatusPreviewImage(
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 28 }}>
-          {card.lead && <div style={{ ...SINGLE_LINE, fontSize: 32 }}>{card.lead}</div>}
-          {chips.names.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: CHIP_GAP, overflow: 'hidden' }}>
-              {chips.names.map((name) => (
+          {layout.lead && (
+            <div style={{ ...SINGLE_LINE, height: LEAD_HEIGHT, lineHeight: 1.25, fontSize: 32 }}>{layout.lead}</div>
+          )}
+          {layout.showChips && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: CHIP_GAP,
+                height: CHIP_HEIGHT,
+                overflow: 'hidden',
+              }}
+            >
+              {chips.names.map((name, index) => (
                 <div
-                  key={name}
+                  key={`${index}-${name}`}
                   style={{
                     ...SINGLE_LINE,
                     flexShrink: 0,
@@ -280,6 +298,7 @@ export function renderStatusPreviewImage(
                     border: '2px solid rgba(255, 255, 255, 0.7)',
                     backgroundColor: 'rgba(255, 255, 255, 0.14)',
                     fontSize: 26,
+                    lineHeight: 1.25,
                   }}
                 >
                   {name}
@@ -290,20 +309,36 @@ export function renderStatusPreviewImage(
               )}
             </div>
           )}
-          {card.rows.map((row) => (
-            <div key={row} style={{ ...SINGLE_LINE, opacity: 0.94 }}>
+          {layout.rows.map((row, index) => (
+            <div
+              key={`${index}-${row}`}
+              style={{ ...SINGLE_LINE, height: ROW_HEIGHT, lineHeight: 1.25, opacity: 0.94 }}
+            >
               {row}
             </div>
           ))}
         </div>
       </div>
+      <div style={{ display: 'flex', flexShrink: 0, height: FACTS_BOTTOM_SPACER }} />
       {/* Its own block, below the facts and never clipped by them; it wraps
-          rather than ending in an ellipsis, since licence text is never cut. */}
-      <div
-        style={{ display: 'block', flexShrink: 0, padding: '0 64px 28px', fontSize: 18, lineHeight: 1.3, opacity: 0.8 }}
-      >
-        {credit}
-      </div>
+          rather than ending in an ellipsis, since licence text is never cut.
+          A card with no data to credit (a group invite) has none. */}
+      {layout.credit ? (
+        <div
+          style={{
+            display: 'block',
+            flexShrink: 0,
+            padding: '0 64px 28px',
+            fontSize: 18,
+            lineHeight: 1.3,
+            opacity: 0.8,
+          }}
+        >
+          {layout.credit}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexShrink: 0, height: 28 }} />
+      )}
     </div>,
     { ...PREVIEW_IMAGE_SIZE, ...init },
   );
