@@ -72,6 +72,11 @@ function XIcon() {
 
 /** A typed station, `tiploc:` or `group:` code in "Call at"; From and To
  * also take a TfL stop's id. */
+/** How often the untouched "now" date and time defaults catch up with the
+ * clock: well inside a minute, so the time shown is never a minute behind
+ * for long. */
+const DEFAULT_TIME_REFRESH_MS = 15_000;
+
 const typedWaypointCode = (text: string) => typedPlannerCode(text, { tflStops: false });
 const typedEndCode = (text: string) => typedPlannerCode(text, { tflStops: true });
 
@@ -239,11 +244,14 @@ export function PlanTripForm({
   // A restored date in the past is dropped: the picker can't show it
   // (`minDate`), and a shared link from last week means "this trip", today.
   // So is one past `maxDate`, which the picker can't show either.
-  const [date, setDate] = useState<string | null>(() =>
+  const restoredDate =
     initial.date && initial.date >= londonToday() && (maxDate === undefined || initial.date <= maxDate)
       ? initial.date
-      : nowInLondon().format('YYYY-MM-DD'),
-  );
+      : null;
+  const [date, setDate] = useState<string | null>(() => restoredDate ?? nowInLondon().format('YYYY-MM-DD'));
+  // Whether `date` and `time` are still the "now" defaults, which follow the
+  // clock (the effect below) until the visitor sets them or the URL did.
+  const [dateIsDefault, setDateIsDefault] = useState(restoredDate === null);
   // Defaults to "now" (`'HH:MM'`, the same value contract `TimeFilterInput`'s
   // own `onChange` and every other `TimeInput` field in this codebase
   // already use), not `''` -- computed once via lazy `useState` initializer,
@@ -267,6 +275,29 @@ export function PlanTripForm({
   // or, with "Arrive by", the latest arrival. Switching keeps the time.
   const [mode, setMode] = useState<TimingMode>(() => timingMode(initial));
   const [time, setTime] = useState(() => initial.arriveBy ?? initial.departAfter ?? nowInLondon().format('HH:mm'));
+  const [timeIsDefault, setTimeIsDefault] = useState(
+    initial.arriveBy === undefined && initial.departAfter === undefined,
+  );
+  // The defaults were fixed at first render, so a form left open searched
+  // from a time long past (and from yesterday after midnight). Until the
+  // visitor sets them, they follow London's clock: once just after mount
+  // (which also replaces a server-rendered minute that went by before
+  // hydration; the time input suppresses that mismatch warning), then every
+  // `DEFAULT_TIME_REFRESH_MS`.
+  useEffect(() => {
+    if (!dateIsDefault && !timeIsDefault) return;
+    const refresh = () => {
+      const now = nowInLondon();
+      if (dateIsDefault) setDate(now.format('YYYY-MM-DD'));
+      if (timeIsDefault) setTime(now.format('HH:mm'));
+    };
+    const first = setTimeout(refresh, 0);
+    const every = setInterval(refresh, DEFAULT_TIME_REFRESH_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(every);
+    };
+  }, [dateIsDefault, timeIsDefault]);
   const timingLabelId = useId();
   const [results, setResults] = useState<'fastest' | 'options'>(initial.results ?? 'fastest');
   const resultsLabelId = useId();
@@ -434,7 +465,10 @@ export function PlanTripForm({
         label="Date"
         valueFormat={PICKER_DATE_FORMAT}
         value={date}
-        onChange={setDate}
+        onChange={(value) => {
+          setDate(value);
+          setDateIsDefault(false);
+        }}
         minDate={londonToday()}
         {...(maxDate !== undefined && { maxDate })}
       />
@@ -461,9 +495,15 @@ export function PlanTripForm({
         <TimeInput
           label={mode === 'arriveBy' ? 'Time' : 'Time (optional)'}
           value={time}
-          onChange={(event) => setTime(event.currentTarget.value)}
+          onChange={(event) => {
+            setTime(event.currentTarget.value);
+            setTimeIsDefault(false);
+          }}
           required={mode === 'arriveBy'}
           withAsterisk={false}
+          // The default is "now": the server's minute can differ from the
+          // browser's at hydration, and the effect above corrects it.
+          suppressHydrationWarning
         />
       </Group>
       {/* I3: mirrors `TrackTrainForm.tsx`'s own `modeLabelId` +

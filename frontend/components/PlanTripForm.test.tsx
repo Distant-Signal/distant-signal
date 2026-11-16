@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithMantine } from '@/test/render';
 import { PlanTripForm } from './PlanTripForm';
@@ -189,6 +189,40 @@ describe('PlanTripForm', () => {
       fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'EDB' } });
       fireEvent.click(screen.getByRole('button', { name: 'Find routes' }));
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-09-05' }));
+    });
+
+    // The default was fixed at first render, so a form left open searched
+    // from a time long past.
+    it('keeps the untouched default time and date following the clock', () => {
+      vi.setSystemTime(new Date('2026-07-15T22:58:10Z')); // 23:58 BST
+      const onSubmit = vi.fn();
+      renderWithMantine(<PlanTripForm onSubmit={onSubmit} />);
+      expect(screen.getByLabelText('Time (optional)')).toHaveValue('23:58');
+      act(() => {
+        vi.advanceTimersByTime(3 * 60 * 1000);
+      });
+      expect(screen.getByLabelText('Time (optional)')).toHaveValue('00:01');
+      fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'EUS' } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'EDB' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Find routes' }));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-07-16', departAfter: '00:01' }));
+    });
+
+    it('stops following the clock once the visitor sets the time', () => {
+      renderWithMantine(<PlanTripForm onSubmit={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText('Time (optional)'), { target: { value: '09:15' } });
+      act(() => {
+        vi.advanceTimersByTime(5 * 60 * 1000);
+      });
+      expect(screen.getByLabelText('Time (optional)')).toHaveValue('09:15');
+    });
+
+    it('never moves a time restored from the URL', () => {
+      renderWithMantine(<PlanTripForm onSubmit={vi.fn()} initial={{ departAfter: '07:45' }} />);
+      act(() => {
+        vi.advanceTimersByTime(5 * 60 * 1000);
+      });
+      expect(screen.getByLabelText('Time (optional)')).toHaveValue('07:45');
     });
 
     it('still lets a visitor clear the field back to no lower bound at all', () => {
