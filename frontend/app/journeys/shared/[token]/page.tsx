@@ -5,6 +5,7 @@ import { getJourney, getJourneyByShareToken, ApiNotFoundError, ApiUnauthorizedEr
 import { JourneyDetailView } from '@/components/JourneyDetailView';
 import { FollowJourneyButton } from '@/components/FollowJourneyButton';
 import { getSiteOrigin } from '@/lib/siteOrigin';
+import { createLogger } from '@/lib/logger';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDefaultName, journeyNameInputFromLegs } from '@/lib/journeyName';
 import { journeyDetailSummary, type JourneySummaryGroup } from '@/lib/journeyStatus';
@@ -19,6 +20,8 @@ import {
 import { DataCredits, journeyCredits } from '@/components/DataCredits';
 
 export const revalidate = 0;
+
+const log = createLogger('app/journeys/shared/[token]');
 
 /** `/journeys/shared/{token}` -- the unlisted-share-link landing page
  * (2026-09-23 unlisted-links plan, Task 6): resolves an unlisted share
@@ -221,13 +224,19 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
   // A logged-in visitor who can't open it otherwise (the probe's 404) can
   // follow it with the link's token (DS-146), and is then sent to the real
   // page; a logged-out one (401) is not offered it.
+  //
+  // Any other probe failure (a 5xx, a timeout, a 403) is treated as "not a
+  // member" too, with no follow offer since it says nothing of a login: the
+  // token already resolved, so a transient api error on this second call
+  // still shows the shared journey rather than the error page.
   let loggedIn = false;
+  let readable = false;
   try {
     await getJourney(journey.id);
-    redirect(`/journeys/${journey.id}`);
+    readable = true;
   } catch (err) {
     if (!(err instanceof ApiNotFoundError) && !(err instanceof ApiUnauthorizedError)) {
-      throw err;
+      log.warn('shared journey membership probe failed; showing the shared view', { error: err });
     }
     loggedIn = err instanceof ApiNotFoundError;
     // Falls through: this viewer is relying on the token itself, either
@@ -239,6 +248,8 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
     // reason: the token is what's carrying their access regardless of which
     // case they're in.
   }
+  // Outside the `try`: `redirect()` works by throwing.
+  if (readable) redirect(`/journeys/${journey.id}`);
 
   const fetchedAt = new Date().toISOString();
   // `JourneyDetailView` requires `origin` to build `ShareJourneyLinkButton`'s

@@ -184,12 +184,18 @@ describe('SharedJourneyPage', () => {
     expect(screen.getByRole('button', { name: 'Follow this journey' })).toBeInTheDocument();
   });
 
-  it('propagates an unexpected error from the authorized-probe call', async () => {
+  // The token resolved, so a transient failure of the membership probe (a
+  // 5xx, a timeout) used to show the error page instead of the journey.
+  it('still renders the token-scoped view, with no follow offer, when the authorized-probe call fails otherwise', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.mocked(getJourneyByShareToken).mockResolvedValue(sharedJourney());
-    vi.mocked(getJourney).mockRejectedValue(new Error('boom'));
+    vi.mocked(getJourney).mockRejectedValue(new Error('API request to /Journeys/42 failed: 503'));
 
-    await expect(renderPage()).rejects.toThrow('boom');
+    await renderPage();
+
     expect(redirectMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/You're viewing this journey via a shared link/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Follow this journey' })).not.toBeInTheDocument();
   });
 
   it('shows no owner-only actions in the token-scoped view (isOwner: false)', async () => {

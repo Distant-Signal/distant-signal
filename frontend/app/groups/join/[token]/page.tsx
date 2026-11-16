@@ -17,8 +17,11 @@ import {
   groupInviteTitle,
 } from '@/lib/groupInvitePreview';
 import { ButtonLink } from '@/components/ButtonLink';
+import { createLogger } from '@/lib/logger';
 
 export const revalidate = 0;
+
+const log = createLogger('app/groups/join/[token]');
 
 /** Per-page Open Graph/Twitter/`<title>` metadata for a shared invite link
  * -- so pasting one into Discord/Slack/iMessage/etc. shows a group-specific
@@ -159,9 +162,12 @@ export default async function JoinGroupPage({ params }: { params: Promise<{ toke
       // `DeleteTrainButton`'s own doc comment names: `getSession()` above
       // and this call aren't atomic. Either way, falling through to the
       // normal `JoinGroupButton` branch is safe -- it re-checks auth on
-      // its own click and every other unexpected error still propagates.
+      // its own click. Any other failure (a 5xx, a timeout, a 403) falls
+      // through the same way: the invite already resolved, so a transient
+      // api error on this second call still shows the invite rather than
+      // the error page.
       if (!(err instanceof ApiNotFoundError) && !(err instanceof ApiUnauthorizedError)) {
-        throw err;
+        log.warn('group membership probe failed; showing the invite', { error: err });
       }
     }
   }
