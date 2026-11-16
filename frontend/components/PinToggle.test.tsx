@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { PinToggle } from './PinToggle';
 
@@ -28,9 +29,6 @@ describe('PinToggle', () => {
   });
 
   it('states both the action and the current state in its accessible name', () => {
-    // Two separate instances rather than rerendering one: `pinned` is
-    // seeded from `initiallyPinned` via `useState` and, by design, doesn't
-    // resync to a changed prop on rerender of the same component instance.
     renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
     expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
 
@@ -227,19 +225,119 @@ describe('PinToggle', () => {
     expect(await screen.findByText('Log in to pin this line.')).toBeInTheDocument();
   });
 
-  // A non-401 failure (e.g. a 500) keeps the old silent-bail behaviour —
-  // only 401 is documented as "you need to log in".
-  it('a non-401 failure does not show the login prompt', async () => {
+  // Only a 401 means "you need to log in"; any other failure used to bail
+  // silently, a click that did nothing.
+  it('a non-401 failure of the read says so, without the login prompt', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation(async () => new Response('server error', { status: 500 }));
 
     renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
     fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Pin (currently not pinned)')).not.toBeDisabled();
-    });
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't pin this line. Try again.");
     expect(screen.queryByText('Log in to pin this line.')).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a non-401 failure of the write says why, for an unpin too', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      url === '/api/preferences'
+        ? new Response(JSON.stringify({ pinnedLines: [], pinnedStations: ['KGX'], pinnedOperators: [] }), {
+            status: 200,
+          })
+        : new Response('slow down', { status: 429 }),
+    );
+    renderWithMantine(<PinToggle kind="station" id="KGX" initiallyPinned={true} />);
+    fireEvent.click(screen.getByLabelText('Unpin (currently pinned)'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Couldn't unpin this station. Too many requests. Wait a minute and try again.",
+    );
+    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+  });
+
+  // Two stars pressed quickly (one per row on /lines): both used to read the
+  // list before either write landed, so the second write dropped the first
+  // pin. Queued, the second read sees the first write.
+  it('runs two toggles one after another so neither pin is lost', async () => {
+    let server: string[] = ['x'];
+    let releaseFirstPut: () => void = () => {};
+    const firstPutHeld = new Promise<void>((resolve) => {
+      releaseFirstPut = resolve;
+    });
+    let puts = 0;
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      if (url === '/api/preferences') {
+        return new Response(JSON.stringify({ pinnedLines: server, pinnedStations: [], pinnedOperators: [] }), {
+          status: 200,
+        });
+      }
+      puts += 1;
+      if (puts === 1) await firstPutHeld;
+      server = JSON.parse(init!.body as string) as string[];
+      return new Response(null, { status: 204 });
+    });
+
+    renderWithMantine(
+      <>
+        <PinToggle kind="line" id="a" initiallyPinned={false} />
+        <PinToggle kind="line" id="b" initiallyPinned={false} />
+      </>,
+    );
+    const [first, second] = screen.getAllByLabelText('Pin (currently not pinned)');
+    fireEvent.click(first!);
+    fireEvent.click(second!);
+    await waitFor(() => expect(puts).toBe(1));
+    // The second read waits for the first write.
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/preferences')).toHaveLength(1);
+    releaseFirstPut();
+
+    await waitFor(() => expect(server).toEqual(['x', 'a', 'b']));
+  });
+
+  it('keeps the queue moving after a failed toggle', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      url === '/api/preferences'
+        ? new Response(JSON.stringify({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] }), { status: 200 })
+        : new Response(null, { status: 204 }),
+    );
+    renderWithMantine(<PinToggle kind="station" id="KGX" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't pin this station. Try again.");
+    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    await waitFor(() => expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument());
+  });
+
+  // A pin made in another tab: the server list already holds the id, and a
+  // refresh hands this star the new state.
+  it('follows a changed initiallyPinned and never writes an id twice', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      url === '/api/preferences'
+        ? new Response(JSON.stringify({ pinnedLines: ['wcml'], pinnedStations: [], pinnedOperators: [] }), {
+            status: 200,
+          })
+        : new Response(null, { status: 204 }),
+    );
+    let setPinnedProp: (value: boolean) => void = () => {};
+    function Harness() {
+      const [value, setValue] = useState(false);
+      setPinnedProp = setValue;
+      return <PinToggle kind="line" id="wcml" initiallyPinned={value} />;
+    }
+    renderWithMantine(<Harness />);
+    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    act(() => setPinnedProp(true));
+    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+    act(() => setPinnedProp(false));
+    // Stale again (another tab pinned it): pinning writes it once.
+    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        '/api/preferences/pinned-lines',
+        expect.objectContaining({ method: 'PUT', body: JSON.stringify(['wcml']) }),
+      ),
+    );
   });
 
   // Same reasoning one step later in the flow: the read succeeded but the
@@ -278,7 +376,7 @@ describe('PinToggle', () => {
     renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
     fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
 
-    expect(await screen.findByText("Couldn't update. Check your connection and try again.")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't pin this line. Try again.")).toBeInTheDocument();
     // The button recovers rather than staying stuck disabled/loading
     // forever -- the `finally` block already reset `busy`; what was
     // missing was only the visible error.
@@ -301,7 +399,7 @@ describe('PinToggle', () => {
     renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
     fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
 
-    expect(await screen.findByText("Couldn't update. Check your connection and try again.")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't pin this line. Try again.")).toBeInTheDocument();
     expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
   });
 
@@ -320,12 +418,10 @@ describe('PinToggle', () => {
     renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
     const button = screen.getByLabelText('Pin (currently not pinned)');
     fireEvent.click(button);
-    expect(await screen.findByText("Couldn't update. Check your connection and try again.")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't pin this line. Try again.")).toBeInTheDocument();
 
     fireEvent.click(button);
-    await waitFor(() =>
-      expect(screen.queryByText("Couldn't update. Check your connection and try again.")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText("Couldn't pin this line. Try again.")).not.toBeInTheDocument());
   });
   it('asks to alert about a line just pinned, on by default, and saves turning it off', async () => {
     const fetchMock = vi.mocked(fetch);

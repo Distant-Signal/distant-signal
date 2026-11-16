@@ -8,15 +8,21 @@ import { LoginPromptModal } from './LoginPromptModal';
 import { LazyTooltip } from './LazyTooltip';
 import type { Preferences } from '@/lib/types';
 import { tokens } from '@/lib/theme';
+import { describeFailure } from '@/lib/failure';
 
-/** Shown for any network failure in `toggle()` -- a rejected `fetch()`
- * (offline, DNS failure, the request aborted mid-flight, ...) on either the
- * read or the write. Mirrors `NotificationsToggle.tsx`'s own
- * `ENABLE_ERROR_MESSAGE` constant: deliberately generic rather than the raw
- * `Error#message`, which for a `fetch()` rejection is a browser-specific,
- * not-written-for-end-users string ("Failed to fetch" / "NetworkError when
- * attempting to fetch resource", depending on browser). */
-const TOGGLE_ERROR_MESSAGE = "Couldn't update. Check your connection and try again.";
+/** Every pin write in the tab, one after another (see `toggle()`). Each
+ * toggle reads the whole pinned list and writes it back whole, so two
+ * running at once (star A, then B on /lines before A's write lands) both
+ * read the list without the other's change and the second write drops the
+ * first pin. Queued, B's read happens after A's write. A failed task never
+ * stalls the queue. Two tabs can still race, but only a click apart. */
+let pinWrites: Promise<unknown> = Promise.resolve();
+
+export function serialisePinWrite<T>(task: () => Promise<T>): Promise<T> {
+  const run = pinWrites.then(task, task);
+  pinWrites = run.catch(() => undefined);
+  return run;
+}
 
 type PinKind = 'line' | 'station' | 'operator';
 
@@ -68,6 +74,15 @@ export function PinToggle({
 }) {
   const router = useRouter();
   const [pinned, setPinned] = useState(initiallyPinned);
+  // Follows a changed `initiallyPinned` (a `router.refresh()` after a pin
+  // made in another tab or row), so the star and the next toggle start from
+  // what the server says. Adjusted while rendering, React's pattern for
+  // state that follows a prop, rather than in an effect.
+  const [seenInitiallyPinned, setSeenInitiallyPinned] = useState(initiallyPinned);
+  if (seenInitiallyPinned !== initiallyPinned) {
+    setSeenInitiallyPinned(initiallyPinned);
+    setPinned(initiallyPinned);
+  }
   const [busy, setBusy] = useState(false);
   // Set on a 401 from either request below, reset at the start of every
   // fresh attempt. Surfaces *why* the click did nothing, instead of the
@@ -87,85 +102,79 @@ export function PinToggle({
   // a 401 opens it with its usual transition.
   const [loginPromptMounted, setLoginPromptMounted] = useState(false);
 
-  /** Known tradeoff: this is a full read-modify-write against the whole
-   * pinned list, not a per-item mutation. Each toggle re-fetches
-   * `/api/preferences`, computes the next array locally, then `PUT`s the
-   * entire list back — there's no server-side reconciliation (no
-   * version/ETag, the PUT is an unconditional whole-list replace). The
-   * `busy` state only disables *this* button, so clicking pin A then pin B
-   * in quick succession (before A's PUT lands) means B reads the list
-   * before A's write is visible, and B's PUT silently drops A's change —
-   * last write wins, earlier changes can be lost. Accepted for now given
-   * this app's single-user, low-cardinality scale; a proper fix would need
-   * per-item add/remove endpoints or optimistic state lifted to the page,
-   * both out of scope for this plan. */
+  /** A read-modify-write of the whole pinned list (there are no per-item
+   * endpoints): re-fetch `/api/preferences`, add or remove `id`, `PUT` the
+   * list back. The read and write run in `serialisePinWrite`'s queue, so
+   * stars pressed quickly in one tab can't drop each other's pins. The new
+   * list is the server's list with `id` added or removed as this press
+   * asks, so a pin made in another tab is never added twice. */
   async function toggle() {
     // Not `disabled` while busy (below), so a second press has to be refused
     // here.
     if (busy) return;
+    const wantPinned = !pinned;
+    const verb = wantPinned ? 'pin' : 'unpin';
+    const noun = `this ${kind}`;
     setBusy(true);
     setLoginPromptMounted(true);
     needsLoginState.reset();
     setError(null);
     try {
-      const prefsResponse = await fetch('/api/preferences');
-      // Both endpoints below require an authenticated user, so an
-      // anonymous visitor gets a 401 from each of them. Neither response
-      // may be assumed parseable or applied: a 401 body is not JSON, so
-      // parsing it unguarded threw inside this `try` (which has no
-      // `catch`) and left the click silently dead. Bailing out without
-      // touching `pinned` is the honest outcome — the pin was not saved,
-      // so the star must not claim it was. Same reasoning for the PUT:
-      // only flip the star and re-render once the write actually landed.
-      // A 401 specifically also flips `needsLogin`, so the click leaves
-      // some visible trace instead of doing nothing — every other
-      // non-ok status still just bails silently, unchanged from before.
-      if (!prefsResponse.ok) {
-        if (prefsResponse.status === 401) {
-          needsLoginState.markNeedsLogin();
+      await serialisePinWrite(async () => {
+        const prefsResponse = await fetch('/api/preferences');
+        // Both endpoints require an authenticated user, so an anonymous
+        // visitor gets a 401 from each. A failed response is never parsed
+        // or applied (a 401 body is not JSON), and the star only flips once
+        // the write landed. A 401 opens the log-in prompt; any other
+        // failure says so, rather than a click that does nothing.
+        if (!prefsResponse.ok) {
+          fail(prefsResponse.status, verb, noun);
+          return;
         }
-        return;
-      }
-      const prefs = (await prefsResponse.json()) as Preferences;
-      let key: 'pinnedLines' | 'pinnedStations' | 'pinnedOperators';
-      let endpoint: string;
-      if (kind === 'line') {
-        key = 'pinnedLines';
-        endpoint = '/api/preferences/pinned-lines';
-      } else if (kind === 'station') {
-        key = 'pinnedStations';
-        endpoint = '/api/preferences/pinned-stations';
-      } else {
-        key = 'pinnedOperators';
-        endpoint = '/api/preferences/pinned-operators';
-      }
-      const current = prefs[key];
-      const next = pinned ? current.filter((existing) => existing !== id) : [...current, id];
-      const putResponse = await fetch(endpoint, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next),
+        const prefs = (await prefsResponse.json()) as Preferences;
+        let key: 'pinnedLines' | 'pinnedStations' | 'pinnedOperators';
+        let endpoint: string;
+        if (kind === 'line') {
+          key = 'pinnedLines';
+          endpoint = '/api/preferences/pinned-lines';
+        } else if (kind === 'station') {
+          key = 'pinnedStations';
+          endpoint = '/api/preferences/pinned-stations';
+        } else {
+          key = 'pinnedOperators';
+          endpoint = '/api/preferences/pinned-operators';
+        }
+        const without = prefs[key].filter((existing) => existing !== id);
+        const next = wantPinned ? [...without, id] : without;
+        const putResponse = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next),
+        });
+        if (!putResponse.ok) {
+          fail(putResponse.status, verb, noun);
+          return;
+        }
+        setPinned(wantPinned);
+        setAlerts(kind === 'line' && wantPinned ? true : null);
+        router.refresh();
       });
-      if (!putResponse.ok) {
-        if (putResponse.status === 401) {
-          needsLoginState.markNeedsLogin();
-        }
-        return;
-      }
-      setPinned(!pinned);
-      setAlerts(kind === 'line' && !pinned ? true : null);
-      router.refresh();
     } catch {
-      // Bug: this used to be a bare `try`/`finally` with no `catch` -- a
-      // rejected `fetch()` (offline, DNS failure, a dropped connection
-      // mid-request) threw as an unhandled promise rejection, the `finally`
-      // below still re-enabled the button, and the click just silently did
-      // nothing from the user's point of view: a dead click with no
-      // indication anything went wrong. Mirrors `NotificationsToggle.tsx`'s
-      // `enable()` -- same bug, same fix shape.
-      setError(TOGGLE_ERROR_MESSAGE);
+      // A rejected `fetch()` (offline, DNS failure, a dropped connection):
+      // say so, never a dead click or the browser's own message.
+      setError(describeFailure(verb, noun));
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** A failed read or write: the log-in prompt for a 401, otherwise the
+   * failure in words. */
+  function fail(status: number, verb: string, noun: string) {
+    if (status === 401) {
+      needsLoginState.markNeedsLogin();
+    } else {
+      setError(describeFailure(verb, noun, status));
     }
   }
 
@@ -184,11 +193,11 @@ export function PinToggle({
       });
       if (!response.ok) {
         setAlerts(!next);
-        setError(TOGGLE_ERROR_MESSAGE);
+        setError(describeFailure('save', 'this setting', response.status));
       }
     } catch {
       setAlerts(!next);
-      setError(TOGGLE_ERROR_MESSAGE);
+      setError(describeFailure('save', 'this setting'));
     } finally {
       setAlertsBusy(false);
     }
@@ -243,7 +252,7 @@ export function PinToggle({
         />
       )}
       {error && (
-        <Text size="xs" c="var(--ds-color-error-text)">
+        <Text size="xs" c="var(--ds-color-error-text)" role="alert">
           {error}
         </Text>
       )}
