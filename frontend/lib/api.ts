@@ -177,13 +177,33 @@ async function requestClientIp(): Promise<string | null> {
   return clientIpFromHeaders(incoming);
 }
 
+/** True for a read Next's data cache keeps (`next.revalidate` > 0 and not
+ * `cache: 'no-store'`): one answer for every visitor, see `apiFetch`. */
+function isSharedCachedRead(init: RequestInit | undefined): boolean {
+  const revalidate = init?.next?.revalidate;
+  return typeof revalidate === 'number' && revalidate > 0 && init?.cache !== 'no-store';
+}
+
 /** Every `fetch` in this module goes through here, so none of them is
- * unbounded -- see `API_FETCH_TIMEOUT_MS` -- and each carries the visitor's
- * `X-Real-IP` (`requestClientIp`). The header is merged into `init.headers`
- * only when there is an IP, so a call with no other headers still sends
- * none. Every caller passes `headers` as a plain object (`cookieForwardInit`). */
+ * unbounded -- see `API_FETCH_TIMEOUT_MS` -- and each uncached one carries
+ * the visitor's `X-Real-IP` (`requestClientIp`). The header is merged into
+ * `init.headers` only when there is an IP, so a call with no other headers
+ * still sends none. Every caller passes `headers` as a plain object
+ * (`cookieForwardInit`).
+ *
+ * A shared cached read (`isSharedCachedRead`: the station index, TOC list,
+ * transit networks and the like) goes without it, as the preview reads
+ * below do. Next keys its data cache on the request headers, so a per-visitor
+ * IP gave every visitor their own cache entry and their own api call, and
+ * the `revalidate` did nothing. This weakens no rate limit: the api's
+ * limited classes (`classify` in ds-api's `crates/api/src/rate_limit.rs`:
+ * login, `/Trips/plan` and replans, `/Train/by-uid`, TfL arrivals, feeds,
+ * calendars, island-of-Ireland trains, events, writes) are all read
+ * uncached or are writes, so they keep the visitor's IP; the cached reads
+ * are unlimited GETs, and now reach the api at most once per URL per
+ * `revalidate` instead of once per visitor. */
 async function apiFetch(url: string, init?: RequestInit, timeoutMs: number = API_FETCH_TIMEOUT_MS): Promise<Response> {
-  const ip = await requestClientIp();
+  const ip = isSharedCachedRead(init) ? null : await requestClientIp();
   const withIp: RequestInit | undefined = ip
     ? { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), [REAL_IP_HEADER]: ip } }
     : init;

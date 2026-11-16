@@ -1725,6 +1725,20 @@ describe('api client X-Real-IP forwarding', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(sentHeaders()).toBeUndefined();
   });
+
+  // Next keys its data cache on the request headers: a per-visitor IP on a
+  // `revalidate` read gave every visitor their own cache entry and api call.
+  it('leaves X-Real-IP off shared cached reads so every visitor shares one cache entry', async () => {
+    incomingRequest.headers = { 'cf-connecting-ip': '203.0.113.5' };
+    vi.mocked(fetch).mockImplementation(async () => new Response('[]', { status: 200 }));
+    await getAllTocs();
+    await getStationName('LWS');
+    for (const [, init] of vi.mocked(fetch).mock.calls) {
+      expect((init as RequestInit).next?.revalidate).toBeGreaterThan(0);
+      expect((init as RequestInit).headers).toBeUndefined();
+    }
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 });
 
 // Reads for link-preview images: shared by every requester, so no cookie and
