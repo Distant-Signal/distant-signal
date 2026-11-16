@@ -61,8 +61,10 @@ function isValidShareToken(token: string): boolean {
 /** Coarse, non-numeric phrasing for a journey's worst-leg status, built on
  * `lib/journeyStatus.ts::journeyDetailSummary` -- the same whole-journey
  * summary `JourneyStatusBadge` already renders on-page as
- * its single header badge. This page has no live preview card, so its
- * description is the only status a pasted link's unfurl can show; a train
+ * its single header badge. This page's preview card
+ * (`card.png`, `lib/sharedJourneyPreview.ts`) shows only the timetable side
+ * of the journey, never a live status, so its description is the only
+ * status a pasted link's unfurl can show; a train
  * page (`app/train/[uid]/[date]/page.tsx`) has one, so its description is
  * evergreen (`trainPageDescription`) and its card image quotes the exact
  * delay and where the train is. That page is fully public (no token gates
