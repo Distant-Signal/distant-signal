@@ -15,11 +15,9 @@ import { plainCredits } from '@/lib/creditText';
 // Every read is a preview read (`lib/api.ts`, "Reads for link-preview
 // images"): the status for a minute, the names for an hour. Anonymous, so
 // a private custom line is a 404 here, as its page is to anyone else.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { id: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

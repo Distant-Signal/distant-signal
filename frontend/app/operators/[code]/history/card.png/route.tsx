@@ -9,11 +9,9 @@ import { plainCredits } from '@/lib/creditText';
 // `generateMetadata` as `/operators/{code}/history/card.png?v={digest}`
 // (`lib/operatorPreview.ts`). Both reads are preview reads (`lib/api.ts`,
 // "Reads for link-preview images"). An unknown operator is a 404.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { code: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

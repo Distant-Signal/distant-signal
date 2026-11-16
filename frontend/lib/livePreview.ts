@@ -19,7 +19,18 @@ import type { SeverityGroup } from './severity';
  *   `LIVE_PREVIEW_REVALIDATE_SECONDS` and answers with
  *   `LIVE_PREVIEW_CACHE_CONTROL`, so a burst of unfurls costs one api call
  *   per minute per page and the CDN can serve the rest;
- * - `og:description` stays evergreen: the live part is in the image only. */
+ * - `og:description` stays evergreen: the live part is in the image only.
+ *
+ * Caching: every card route is `dynamic = 'force-dynamic'`, never ISR.
+ * Next's ISR keeps an entry for a year and serves a stale one once while
+ * it regenerates, so a revoked share link's card would come back once, a
+ * failed read's 503 would replace a good card for a minute, and every
+ * well-formed id a client tried would leave a file on disk. Instead the
+ * api reads are cached (only 200s are stored), the PNG is drawn per
+ * request, the CDN in front caches it by `Cache-Control`, and
+ * `guardPreview` (`lib/previewRoute.ts`) limits each client's renders.
+ * The capability-token cards (`TOKEN_PREVIEW_CACHE_CONTROL`) cache
+ * nothing anywhere. */
 
 /** How long an image route's api reads are shared, in seconds. */
 export const LIVE_PREVIEW_REVALIDATE_SECONDS = 60;
@@ -28,6 +39,14 @@ export const LIVE_PREVIEW_REVALIDATE_SECONDS = 60;
  * state. A changed state also gets a new `?v=` on the page, so a link
  * shared after the change never waits for this. */
 export const LIVE_PREVIEW_CACHE_CONTROL = `public, max-age=${LIVE_PREVIEW_REVALIDATE_SECONDS}, s-maxage=${LIVE_PREVIEW_REVALIDATE_SECONDS}, stale-while-revalidate=300`;
+
+/** A capability-token card (`/journeys/shared/<token>/card.png`,
+ * `/groups/join/<token>/card.png`), its 404 and its errors: stored by no
+ * CDN or shared cache, so once the owner revokes the link the next fetch
+ * of its card is a 404. Its api read is uncached too
+ * (`getPreviewSharedJourney`, `getPreviewGroupJoin`). A chat app that
+ * already copied the image keeps its copy: nothing here can reach that. */
+export const TOKEN_PREVIEW_CACHE_CONTROL = 'private, no-store';
 
 /** Sent with a capability-token page's card image
  * (`/journeys/shared/<token>/card.png`, `/groups/join/<token>/card.png`) so

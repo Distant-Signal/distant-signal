@@ -16,14 +16,10 @@ import { plainCredits } from '@/lib/creditText';
 //
 // Cheap to unfurl many times: every read is a preview read (`lib/api.ts`,
 // "Reads for link-preview images"), the incident's for a minute and
-// the names for an hour, and the PNG itself is regenerated at most once a
-// minute (`revalidate`, with no params prerendered at build time). The
-// `.png` path lets the CDN in front cache it too.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { id: string }[] {
-  return [];
-}
+// the names for an hour. The PNG is drawn per request (no ISR:
+// `lib/livePreview.ts`, "Caching") and the CDN in front caches it by its
+// `Cache-Control`, which the `.png` path lets it do.
+export const dynamic = 'force-dynamic';
 
 async function handle(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await params;

@@ -620,11 +620,12 @@ describe('the live preview routes', () => {
     const source = readFileSync(route, 'utf8').replace(/\/\/.*$/gm, '');
     expect(source).toContain('renderStatusPreviewImage(');
     expect(source).toContain(read);
-    // A cookie, a header or a dynamic read would make the route dynamic
-    // (re-rendered per hit) and split the shared data cache per requester.
+    // A cookie, a header or a request read would split the shared data
+    // cache per requester; the card shows the same to everyone.
     expect(source).not.toMatch(/searchParams|request\.|nextUrl|cookies\(|headers\(/);
     expect(source).not.toMatch(/import \{[^}]*\bget(?!Preview)[^}]*\} from '@\/lib\/api'/);
-    expect(source).toMatch(/export const revalidate = 60;/);
+    // Never ISR (`lib/livePreview.ts`, "Caching"; `app/cardRoutes.test.ts`).
+    expect(source).toMatch(/export const dynamic = 'force-dynamic';/);
     expect(source).toContain('LIVE_PREVIEW_CACHE_CONTROL');
     // Its page lists it, not a file-convention image that would win over it.
     expect(existsSync(route.replace('card.png/route.tsx', 'opengraph-image.tsx'))).toBe(false);

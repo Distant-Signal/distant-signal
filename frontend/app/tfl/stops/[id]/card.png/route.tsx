@@ -12,11 +12,9 @@ import { completeLineReports, tflStopPreviewCard } from '@/lib/transitPreview';
 // the worst status on the lines through the stop, as a station's card. Every
 // read is a preview read (`lib/api.ts`, "Reads for link-preview images"). A
 // status that can't be read draws "Status unavailable", never a guess.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { id: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFoundResponse(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

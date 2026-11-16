@@ -11,11 +11,9 @@ import { transitLinePreviewCard } from '@/lib/transitPreview';
 // `opengraph-image.tsx`). `?v=` is never read: the image always shows the
 // line as it is now. Both reads are preview reads (`lib/api.ts`, "Reads for
 // link-preview images"), shared for a minute.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { network: string; line: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFoundResponse(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

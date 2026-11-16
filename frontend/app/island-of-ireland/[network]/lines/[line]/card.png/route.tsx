@@ -11,11 +11,9 @@ import { renderStatusPreviewImage } from '@/lib/previewImage';
 // as `/island-of-ireland/{network}/lines/{line}/card.png?v={digest}`
 // (`lib/irelandPreview.ts`). Both reads are hour-long preview reads
 // (`lib/api.ts`, "Reads for link-preview images").
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { network: string; line: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

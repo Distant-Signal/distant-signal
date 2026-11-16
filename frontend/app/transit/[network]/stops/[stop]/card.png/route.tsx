@@ -9,11 +9,9 @@ import { transitStopPreviewCard } from '@/lib/transitPreview';
 // `generateMetadata` as `/transit/{network}/stops/{stop}/card.png?v={digest}`
 // (`lib/transitPreview.ts`). Not live: the stop's lines and notices. Both
 // reads are preview reads (`lib/api.ts`), shared for a minute.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { network: string; stop: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFoundResponse(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

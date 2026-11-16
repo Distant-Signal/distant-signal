@@ -11,11 +11,9 @@ import { renderStatusPreviewImage } from '@/lib/previewImage';
 // (`lib/irelandPreview.ts`). Live: what the boards say about it now. One
 // preview read (`lib/api.ts`), shared for a minute. Only Iarnród Éireann has
 // live boards, so only it has train pages and cards.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { network: string; train: string; date: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

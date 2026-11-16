@@ -14,11 +14,9 @@ import { transitIncidentPreviewCard } from '@/lib/transitIncidentPreview';
 // `generateMetadata` as `/transit/{network}/incidents/{id}/card.png?v=...`:
 // the same pattern, caching and renderer as `/incidents/[id]/card.png`
 // (see that route's comment). `?v=` is never read here.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { network: string; id: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFoundResponse(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

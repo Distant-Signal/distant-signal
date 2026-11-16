@@ -1,7 +1,7 @@
 import { guardPreview } from '@/lib/previewRoute';
 import { ApiNotFoundError, getPreviewSharedJourney } from '@/lib/api';
 import { plainCredits } from '@/lib/creditText';
-import { LIVE_PREVIEW_CACHE_CONTROL, NOINDEX_HEADER } from '@/lib/livePreview';
+import { TOKEN_PREVIEW_CACHE_CONTROL, NOINDEX_HEADER } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 import { sharedJourneyPreviewCard } from '@/lib/sharedJourneyPreview';
 
@@ -12,20 +12,19 @@ import { sharedJourneyPreviewCard } from '@/lib/sharedJourneyPreview';
 //
 // One preview read (`lib/api.ts`, "Reads for link-preview images"): the
 // unauthenticated share-token call, which answers with exactly what the page
-// shows anyone holding the link, shared for a minute. A
-// revoked, expired or malformed token, or a journey with no legs, is a 404
-// with the same short cache, so a chat app falls back to no image. The
-// short `max-age` keeps a revoked link's card from living long in a CDN.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { token: string }[] {
-  return [];
-}
+// shows anyone holding the link. A revoked, expired or malformed token, or a
+// journey with no legs, is a 404, so a chat app falls back to no image.
+//
+// Nothing here is cached by us: the read is uncached, the route is rendered
+// per request (never an ISR entry, so no token is written to disk) and every
+// answer is `TOKEN_PREVIEW_CACHE_CONTROL`, so the first fetch after the
+// owner revokes the link is a 404, never the old card.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', {
     status: 404,
-    headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
+    headers: { 'Cache-Control': TOKEN_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
   });
 }
 
@@ -44,8 +43,8 @@ async function handle(_request: Request, { params }: { params: Promise<{ token: 
   const card = sharedJourneyPreviewCard(journey.legs);
   if (!card) return notFound();
   return renderStatusPreviewImage(card, plainCredits(['national-rail', 'network-rail', 'rsp-timetable']), {
-    headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
+    headers: { 'Cache-Control': TOKEN_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
   });
 }
 
-export const GET = guardPreview(handle);
+export const GET = guardPreview(handle, { token: true });
