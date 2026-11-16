@@ -227,6 +227,19 @@ async function readCappedBody(req: NextRequest): Promise<ArrayBuffer | 'too-larg
 
 /** Structural, not `instanceof Error`: the abort reason is a `DOMException`,
  * which isn't an `Error` subclass in every runtime. */
+/** A Referer cut to its origin, as a browser sends it under
+ * `strict-origin` (`https://host/`), or null when absent or unparseable or
+ * not an http(s) URL. See where `proxy` forwards it. */
+export function originOfReferer(referer: string | null): string | null {
+  if (!referer) return null;
+  try {
+    const url = new URL(referer);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? `${url.origin}/` : null;
+  } catch {
+    return null;
+  }
+}
+
 function isTimeout(err: unknown): boolean {
   const name = typeof err === 'object' && err !== null ? (err as { name?: unknown }).name : undefined;
   return name === 'TimeoutError' || name === 'AbortError';
@@ -346,9 +359,15 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   if (origin) {
     headers.Origin = origin;
   }
-  const referer = req.headers.get('referer');
-  if (referer) {
-    headers.Referer = referer;
+  // Only the Referer's origin: every api check that reads it (logout, the
+  // personal-token, calendar, connected-app and admin routes, the
+  // cookie-mutation guard; `is_same_origin` in ds-api's
+  // crates/api/src/auth.rs) compares origins only, and the full URL put a
+  // share or invite page's bearer token (`/journeys/shared/<token>`,
+  // `/groups/join/<token>`) into the api's request.
+  const refererOrigin = originOfReferer(req.headers.get('referer'));
+  if (refererOrigin) {
+    headers.Referer = refererOrigin;
   }
   // The browser's privacy signals, Global Privacy Control (`Sec-GPC`) and
   // Do Not Track (`DNT`): `POST /public/events` drops any usage event that

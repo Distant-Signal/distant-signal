@@ -139,6 +139,35 @@ describe('next.config.mjs redirects', () => {
   });
 });
 
+// A shared journey link or group invite carries its bearer token in the
+// path; with no Referrer-Policy anywhere, a request from such a page sent
+// it on in a Referer.
+describe('next.config.mjs Referrer-Policy headers', () => {
+  /** @param {string} source */
+  async function policiesFor(source) {
+    if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
+    const entries = await nextConfig.headers();
+    return entries.flatMap((entry, index) =>
+      entry.source === source
+        ? entry.headers.filter((h) => h.key === 'Referrer-Policy').map((h) => ({ index, value: h.value }))
+        : [],
+    );
+  }
+
+  it('states strict-origin-when-cross-origin for every path', async () => {
+    expect(await policiesFor('/:path*')).toEqual([{ index: 0, value: 'strict-origin-when-cross-origin' }]);
+  });
+
+  it.each(['/journeys/shared/:token*', '/groups/join/:token*'])(
+    'sends no referrer at all from %s, later than the site-wide entry so it wins',
+    async (source) => {
+      const [policy] = await policiesFor(source);
+      expect(policy?.value).toBe('no-referrer');
+      expect(policy?.index).toBeGreaterThan(0);
+    },
+  );
+});
+
 // Cloudflare's Browser Cache TTL overrides an origin `max-age=0` (Next's
 // default for public/ files), so each static class states its own lifetime.
 // /robots.txt and /sitemap.xml have their own edge rules (DS-170), tested below.
