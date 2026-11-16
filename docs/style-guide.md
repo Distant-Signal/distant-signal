@@ -471,7 +471,10 @@ used, rather than as a literal in a component.
   so Next's data cache is shared); the id checked against the page's own
   pattern before any request; `LIVE_PREVIEW_CACHE_CONTROL` on the PNG and on
   a 404 (never `notFound()`, never a thrown 404); the data's credit as
-  `plainCredits` text, drawn on the card. The route's `GET` is wrapped in
+  `plainCredits` text, drawn on the card. Every string drawn is cut to the
+  characters the bundled Geist has (`lib/previewGlyphs.ts`: an emoji or an
+  unsupported script is left out), since next/og would otherwise fetch a
+  font or emoji from a third party mid-render. The route's `GET` is wrapped in
   `guardPreview` (`lib/previewRoute.ts`), which limits each client's
   renders (`lib/previewRateLimit.ts`, a 429) and makes an api outage a
   noindexed 503 cached

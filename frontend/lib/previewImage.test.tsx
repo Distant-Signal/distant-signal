@@ -12,9 +12,11 @@ import {
   cardTitleFontSize,
   previewTitleFontSize,
   previewTitleFromMetadata,
+  renderableCard,
   renderStatusPreviewImage,
   renderPreviewImage,
 } from './previewImage';
+import { renderableText } from './previewGlyphs';
 import { linePreviewCard, SNAPSHOT_NOTE } from './linePreview';
 import type { StatusPreviewCard } from './livePreview';
 import { layoutStatusCard } from './previewLayout';
@@ -519,6 +521,10 @@ describe('renderStatusPreviewImage', () => {
       // snapshot note is drawn among them or in the credit block.
       const layout = layoutStatusCard(card, PREVIEW_CREDITS[name.split('-')[0]!]!, card.chips.names.length);
       expect(layout.used).toBeLessThanOrEqual(layout.available);
+      // Every sample draws whole with the bundled font (`lib/previewGlyphs.ts`):
+      // nothing in it is cut, so the saved sample is what it was.
+      expect(renderableCard(card)).toEqual(card);
+      expect(renderableText(PREVIEW_CREDITS[name.split('-')[0]!]!)).toBe(PREVIEW_CREDITS[name.split('-')[0]!]!);
       if (card.rows.includes(SNAPSHOT_NOTE)) {
         expect(layout.rows.includes(SNAPSHOT_NOTE) || layout.credit.includes(SNAPSHOT_NOTE)).toBe(true);
       }
