@@ -183,3 +183,75 @@ describe('renderRobots', () => {
     expect(renderRobots(buildRobots(options))).toBe(resolveRobots(buildRobots(options)));
   });
 });
+
+/** RFC 9309 matching in `agent`'s group of `text`: the longest matching
+ * rule wins, `Allow` on a tie; `*` matches any run of characters and a
+ * final `$` anchors the end. `path` includes its query string. */
+function allowedFor(text: string, agent: string, path: string): boolean {
+  const all = lines(text);
+  const at = all.indexOf(`User-Agent: ${agent}`);
+  if (at === -1) throw new Error(`no group for ${agent}`);
+  const group = all.slice(all.slice(0, at).lastIndexOf('') + 1, all.indexOf('', at));
+  let best: { length: number; allow: boolean } | null = null;
+  for (const line of group) {
+    const rule = /^(Allow|Disallow): (.*)$/.exec(line);
+    if (!rule) continue;
+    const pattern = rule[2]!;
+    const anchored = pattern.endsWith('$');
+    const body = (anchored ? pattern.slice(0, -1) : pattern)
+      .split('*')
+      .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.*');
+    if (!new RegExp(`^${body}${anchored ? '$' : ''}`).test(path)) continue;
+    const allow = rule[1] === 'Allow';
+    if (!best || pattern.length > best.length || (pattern.length === best.length && allow)) {
+      best = { length: pattern.length, allow };
+    }
+  }
+  return best === null || best.allow;
+}
+
+describe('preview images in robots.txt', () => {
+  const text = render({ origin: undefined });
+  const CARDS = [
+    '/incidents/42/card.png?v=abcd1234',
+    '/lines/southern/card.png?v=abcd1234',
+    '/stations/KGX/card.png?v=abcd1234',
+    '/train/C12345/2026-11-16/card.png?v=abcd1234',
+    '/transit/metrolink/lines/blue/card.png?v=abcd1234',
+    '/island-of-ireland/irish-rail/stations/CNLLY/card.png?v=abcd1234',
+    '/operators/SN/history/card.png?v=abcd1234',
+    '/journeys/shared/abc123/card.png?v=abcd1234',
+    '/groups/join/abc123/card.png?v=abcd1234',
+    '/lines/opengraph-image?3f2a1b0c',
+  ];
+
+  it.each(LINK_PREVIEW_FETCHERS.flatMap((agent) => CARDS.map((card) => [agent, card])))(
+    'lets %s read %s',
+    (agent, card) => {
+      expect(allowedFor(text, agent, card)).toBe(true);
+    },
+  );
+
+  it.each(CARDS)('keeps %s from every other crawler (a search engine indexes the page, not its card)', (card) => {
+    expect(allowedFor(text, '*', card)).toBe(false);
+  });
+
+  it('still keeps the link-preview fetchers off query-string pages and private paths', () => {
+    for (const agent of LINK_PREVIEW_FETCHERS) {
+      expect(allowedFor(text, agent, '/trains?q=brighton')).toBe(false);
+      expect(allowedFor(text, agent, '/train/by-id/7')).toBe(false);
+      expect(allowedFor(text, agent, '/chat')).toBe(false);
+      expect(allowedFor(text, agent, '/lines/bakerloo')).toBe(true);
+      expect(allowedFor(text, agent, '/opengraph-image.png')).toBe(true);
+    }
+  });
+
+  it('matches public pages and the anchored and prefix rules as a crawler does', () => {
+    expect(allowedFor(text, '*', '/lines/bakerloo')).toBe(true);
+    expect(allowedFor(text, '*', '/journeys')).toBe(false);
+    expect(allowedFor(text, '*', '/journeys-x')).toBe(true);
+    expect(allowedFor(text, '*', '/journeys/shared/abc')).toBe(false);
+    expect(allowedFor(text, '*', '/lines/x/edit')).toBe(false);
+  });
+});

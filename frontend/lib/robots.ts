@@ -78,6 +78,17 @@ export const LINK_PREVIEW_FETCHERS: readonly string[] = [
  * (the card's `?v=`) disallows for those agents. */
 export const TOKEN_PAGE_PATHS: readonly string[] = ['/journeys/shared/', '/groups/join/'];
 
+/** Every page's preview image, which only `LINK_PREVIEW_FETCHERS` need.
+ * Each is listed with a query string: a live card as `.../card.png?v=<digest>`
+ * (`livePreviewImage`), a file-convention image as
+ * `.../opengraph-image?<hash>` (Next adds it). Under `*` the `/*?` disallow
+ * keeps them out, deliberately: a search engine indexes the page, not its
+ * card. For the fetchers these longer rules beat `/*?`; without them Slack
+ * and X, which obey robots.txt (X shows no image it blocks), unfurl a page
+ * with no card. The bare site-wide `/opengraph-image.png` has no query and
+ * is allowed by `/` already. */
+export const PREVIEW_IMAGE_PATHS: readonly string[] = ['/*/card.png', '/*/opengraph-image'];
+
 /** Crawlers that collect content to train AI models. **Blocked**: the
  * owner opted out of AI training (2026-09-27), so `BLOCK_AI_TRAINING_CRAWLERS`
  * is `true` and each of these user agents gets `Disallow: /`. Set it back to
@@ -132,10 +143,10 @@ export function buildRobots({
     // outright instead.
     { userAgent: '*', allow: [...ALLOWED_PATHS], disallow: [...DISALLOWED_PATHS] },
     // A crawler obeys only its most specific group, so this one repeats
-    // every `*` rule and adds the token pages.
+    // every `*` rule and adds the token pages and the preview images.
     {
       userAgent: [...LINK_PREVIEW_FETCHERS],
-      allow: [...ALLOWED_PATHS, ...TOKEN_PAGE_PATHS],
+      allow: [...ALLOWED_PATHS, ...TOKEN_PAGE_PATHS, ...PREVIEW_IMAGE_PATHS],
       disallow: [...DISALLOWED_PATHS],
     },
   ];

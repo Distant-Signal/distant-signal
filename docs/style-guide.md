@@ -515,7 +515,9 @@ used, rather than as a literal in a component.
   site-wide card and a friendly page, never `notFound()`. robots.txt
   disallows both paths for `*` and allows them only to the link-preview
   fetchers (`LINK_PREVIEW_FETCHERS` in `lib/robots.ts`), since Slack and X
-  obey it and would not unfurl them otherwise. The token appears in the
+  obey it and would not unfurl them otherwise; those fetchers are also
+  allowed every `*/card.png` and `*/opengraph-image` URL, which `/*?` would
+  otherwise block for its query string. The token appears in the
   image's URL and nowhere else in the metadata. The card, its 404 and its
   errors are `TOKEN_PREVIEW_CACHE_CONTROL` (`private, no-store`) and its
   read is uncached, so a revoked link's card goes with the next fetch.
