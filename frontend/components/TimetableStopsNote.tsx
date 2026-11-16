@@ -26,9 +26,11 @@ export type TimetableStopsNoteFields = Pick<
 
 /** Whether the train has reported running: live, on its way or arrived. A
  * train waiting for its first report, or one that is cancelled, has no live
- * position to show in place of its stops. */
+ * position to show in place of its stops. The api's `live` phase includes
+ * a cancelled train (`data::tracking_phase`), so a cancellation is ruled
+ * out first. */
 function hasLiveRunning(train: TimetableStopsNoteFields): boolean {
-  if (isTimetableOnly(train)) return false;
+  if (isTimetableOnly(train) || train.status === 'cancelled') return false;
   return train.trackingPhase === 'live' || train.status === 'en_route' || train.status === 'completed';
 }
 

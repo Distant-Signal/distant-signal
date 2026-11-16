@@ -55,6 +55,8 @@ describe('timetableStopsNoteKind', () => {
     ['waiting for its first report', { status: 'awaiting_activation', trackingPhase: 'awaitingReport' }],
     ['not in the timetable', { status: null, trackingPhase: 'noTimetable' }],
     ['cancelled', { status: 'cancelled', trackingPhase: null }],
+    // The api's live phase covers a cancellation too.
+    ['cancelled in the live phase', { status: 'cancelled', trackingPhase: 'live' }],
     ['unknown', { status: null, trackingPhase: null }],
   ] as const)('has no note without live running (%s)', (_name, overrides) => {
     expect(timetableStopsNoteKind(train(overrides))).toBeNull();

@@ -215,7 +215,7 @@ describe('TrackedTrainByUidPage success path', () => {
     expect(screen.getByText(/Last reported: HAT/)).toBeInTheDocument();
   });
 
-  it('shows no stops note when the train has its stops', async () => {
+  it("doesn't explain missing stops when the train has its stops", async () => {
     vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
       publicTrainState({ trackingPhase: 'live', journeyStops: [ORIGIN_STOP] }),
     );
@@ -224,7 +224,7 @@ describe('TrackedTrainByUidPage success path', () => {
     expect(screen.getAllByText('London Waterloo').length).toBeGreaterThan(0);
   });
 
-  it('shows no stops note for a train with no stops and no live running yet', async () => {
+  it("doesn't explain missing stops before the train is running", async () => {
     vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
       publicTrainState({
         trainId: null,
@@ -754,10 +754,21 @@ describe('trainPageDescription', () => {
     ).toBe('13:42 Woking to London Waterloo, Sun 1 Nov: calling points, platforms and live running.');
   });
 
-  it.each([null, []])('a live train with stops %j promises no calling points', (journeyStops) => {
+  it.each([null, []])('a live train with no stops (%j) promises no calling points', (journeyStops) => {
     expect(trainPageDescription('Train U06535', { ...running, serviceDate: '2026-11-16', journeyStops })).toBe(
       'Train U06535, Mon 16 Nov: live running.',
     );
+  });
+
+  it('a cancelled train with no stops keeps the usual description', () => {
+    expect(
+      trainPageDescription('Train U06535', {
+        ...running,
+        serviceDate: '2026-11-16',
+        status: 'cancelled',
+        journeyStops: null,
+      }),
+    ).toBe('Train U06535, Mon 16 Nov: calling points, platforms and live running.');
   });
 
   it('a service never tracked live has its timetable only', () => {
