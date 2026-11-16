@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import type { NotificationPreferences, PushDevice } from '@/lib/types';
-import { NotificationSettings } from './NotificationSettings';
+import { NotificationSettings, untilSevenTomorrow } from './NotificationSettings';
 
 // NotificationsToggle's login prompt reads the router hooks.
 vi.mock('next/navigation', () => ({
@@ -267,5 +267,28 @@ describe('NotificationSettings', () => {
     fireEvent.click(pause.getByRole('button', { name: 'Resume now' }));
     expect(await pause.findByRole('button', { name: 'Pause for 4 hours' })).toBeInTheDocument();
     expect(putBodies(fetchMock, '/api/preferences/notifications').at(-1)).toEqual({ snoozedUntil: null });
+  });
+});
+
+// "Pause until 07:00 tomorrow" used the device's zone (setDate/setHours), so
+// a visitor on CET paused until 06:00 UK time.
+describe('untilSevenTomorrow', () => {
+  const originalTz = process.env.TZ;
+  afterEach(() => {
+    process.env.TZ = originalTz;
+  });
+
+  it.each([
+    ['GMT evening', '2026-01-15T22:30:00Z', '2026-01-16T07:00:00.000Z'],
+    ['BST just after London midnight', '2026-07-15T23:30:00Z', '2026-07-17T06:00:00.000Z'],
+    ['the day before the clocks go forward', '2026-03-28T12:00:00Z', '2026-03-29T06:00:00.000Z'],
+    ['the day before the clocks go back', '2026-10-24T12:00:00Z', '2026-10-25T07:00:00.000Z'],
+  ])('is 07:00 UK time the next London day (%s)', (_name, now, expected) => {
+    expect(untilSevenTomorrow(new Date(now)).toISOString()).toBe(expected);
+  });
+
+  it.each(['Europe/Paris', 'America/New_York', 'Asia/Tokyo'])('ignores a device zone of %s', (zone) => {
+    process.env.TZ = zone;
+    expect(untilSevenTomorrow(new Date('2026-01-15T22:30:00Z')).toISOString()).toBe('2026-01-16T07:00:00.000Z');
   });
 });
