@@ -212,3 +212,7 @@ README index); code, ds-deploy's chart README and top-level docs/ are the truth.
   `pyproject.toml`'s `lint` group, `.python-version`); bash only for trivial
   one-liners. No pip or requirements files.
 - Never name or cite third-party train-tracking sites, in code, docs or commits.
+  The rule is about documentation. The one intentional exception is the
+  user-facing `RealTimeTrainsLink` component (`frontend/components/RealTimeTrainsLink.tsx`,
+  used by the train page and the journey panel) and its tests: it is a deliberate
+  outbound link to a service page, so reviews should not flag it.
