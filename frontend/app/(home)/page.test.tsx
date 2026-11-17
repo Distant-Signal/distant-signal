@@ -1753,7 +1753,12 @@ describe('DashboardPage -- journey sections', () => {
   it('logged out: an Upcoming journeys teaser with a log in or sign up button and the planner', async () => {
     renderWithMantine(await resolveAsync(await DashboardPage()));
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
-    expect(headings.slice(0, 3)).toEqual(['Live UK rail status', 'Upcoming journeys', 'Right now']);
+    expect(headings.slice(0, 4)).toEqual([
+      'Live UK rail status',
+      'Upcoming journeys',
+      'Track a journey to see it here',
+      'Right now',
+    ]);
     expect(screen.getByRole('heading', { name: 'Upcoming journeys', level: 2 })).toBeInTheDocument();
 
     const teaser = screen.getByRole('region', { name: 'Upcoming journeys' });

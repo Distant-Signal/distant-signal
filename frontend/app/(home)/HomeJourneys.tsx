@@ -540,10 +540,14 @@ export function UpcomingJourneysTeaser() {
         <SectionTitle id="upcoming-journeys-heading">Upcoming journeys</SectionTitle>
         <TextLink href={PLAN_JOURNEY_HREF}>{PLAN_JOURNEY_LABEL}</TextLink>
       </Group>
-      <Card {...tokens.card.static}>
-        <Stack gap="sm" align="flex-start">
-          <Stack gap={4}>
-            <Text fw={600}>Track a journey to see it here</Text>
+      <Card {...tokens.card.static} padding="lg">
+        {/* Start-aligned, as every card on the site is: the heading, the
+            text and the button share one left edge. The text keeps to a
+            readable measure (`maw`) so it doesn't run the card's width at
+            desktop, and the button sits under it, never beside. */}
+        <Stack gap="md" align="flex-start">
+          <Stack gap="xs" maw={560}>
+            <SectionTitle order={3}>Track a journey to see it here</SectionTitle>
             <Text c="dimmed" size="sm">
               Live delays and platform changes for every leg, a warning when a connection is at risk, other trains if it
               breaks, and help claiming Delay Repay.

@@ -21,7 +21,13 @@ import {
 } from '@/lib/homeJourneys';
 import { trackedTrainRowStatus } from '@/lib/trackedRowStatus';
 import type { JourneyDetail, TrackedTrainListItem } from '@/lib/types';
-import { CurrentJourneyCard, CurrentJourneySection, sharedViaLabel, UpcomingJourneysSection } from './HomeJourneys';
+import {
+  CurrentJourneyCard,
+  CurrentJourneySection,
+  sharedViaLabel,
+  UpcomingJourneysSection,
+  UpcomingJourneysTeaser,
+} from './HomeJourneys';
 import { openBreakSummary } from '@/test/replanFixtures';
 import { testPublicId } from '@/test/apiDefaults';
 
@@ -612,5 +618,29 @@ describe('UpcomingJourneysSection', () => {
     const section = screen.getByRole('region', { name: 'Upcoming journeys' });
     expect(within(section).getByText("Couldn't load your journeys. Try again.")).toBeInTheDocument();
     expect(within(section).getByRole('link', { name: /to York/ })).toHaveAttribute('href', '/train/W5/2026-09-17');
+  });
+});
+
+describe('UpcomingJourneysTeaser (logged out)', () => {
+  it('names the section, then a subheading, the text and one log in button in order', () => {
+    renderWithMantine(<UpcomingJourneysTeaser />);
+    const section = screen.getByRole('region', { name: 'Upcoming journeys' });
+    expect(within(section).getByRole('heading', { level: 2, name: 'Upcoming journeys' })).toBeInTheDocument();
+    const subheading = within(section).getByRole('heading', { level: 3, name: 'Track a journey to see it here' });
+    const text = within(section).getByText(/platform changes for every leg/);
+    const login = within(section).getByRole('link', { name: 'Log in or sign up' });
+    expect(subheading.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(text.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(section).getAllByRole('link', { name: 'Plan a journey' })).toHaveLength(1);
+  });
+});
+
+describe('UpcomingJourneysSection (logged in, nothing upcoming)', () => {
+  it('says so as plain text with a Plan a journey button and no log in prompt', () => {
+    renderWithMantine(<UpcomingJourneysSection upcoming={[]} />);
+    const section = screen.getByRole('region', { name: 'Upcoming journeys' });
+    expect(within(section).getByText('No upcoming journeys.')).toBeInTheDocument();
+    expect(within(section).getByRole('link', { name: 'Plan a journey' })).toHaveAttribute('href', '/plan');
+    expect(within(section).queryByRole('link', { name: /Log in/ })).toBeNull();
   });
 });
