@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { LONDON_TZ } from './londonWallClock';
 import { stopDisplayArrival, stopDisplayTime } from './stopTimes';
+import { legRef } from './publicId';
 import { isUntrackedLeg } from './untrackedLeg';
 import type { JourneyDetail, JourneyLegDetail, JourneyStop, Suggestion } from './types';
 
@@ -253,7 +254,8 @@ export function connectionText(leg: JourneyLegDetail, next: JourneyLegDetail): s
  * start" (inserting before it, spec 2026-10-20 §2.3) seeds a new leg's
  * end from. `null` for a journey with no legs. */
 export function journeyFirstLegStart(journey: JourneyDetail): {
-  legId: number;
+  /** The leg's opaque id, for `POST .../legs?before=`. */
+  legRef: string;
   place: string | null;
   crs: string | null;
   stopId: string | null;
@@ -264,7 +266,7 @@ export function journeyFirstLegStart(journey: JourneyDetail): {
   const crs = first.originCrs ?? first.trackedTrainState?.pinOriginCrs ?? null;
   const departure = legDepartureInstant(first);
   return {
-    legId: first.id,
+    legRef: legRef(first),
     place: first.originName ?? first.trackedTrainState?.pinOriginName ?? crs,
     crs,
     // The TfL stop an untracked first leg starts from, so "Add a leg at the

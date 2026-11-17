@@ -94,6 +94,48 @@ test.describe('group dialogs', () => {
     await expect(page).toHaveURL(/\/groups$/);
   });
 
+  test('a delete shown a stale member count is refused, saying who is in the group now', async ({ page, request }) => {
+    // A group of two, as the owner's page shows it...
+    const created = await request.post('/api/groups', {
+      headers: asUser(MISS_SESSION_COOKIE),
+      data: { name: 'Fixture Changed' },
+    });
+    const { id } = (await created.json()) as { id: string };
+    const invite = await request.post(`/api/groups/${id}/invite-link`, { headers: asUser(MISS_SESSION_COOKIE) });
+    const { token } = (await invite.json()) as { token: string };
+    const joined = await request.post(`/api/groups/join/${token}`, { headers: asUser(FRIEND_SESSION_COOKIE) });
+    expect(joined.ok(), await joined.text()).toBe(true);
+    await page.goto(`/groups/${id}`);
+    await page.getByRole('button', { name: 'Delete group' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Delete Fixture Changed?' });
+    await expect(dialog).toBeVisible();
+
+    // ...then the friend leaves while the dialog is open.
+    const asFriend = await request.get(`/api/groups/${id}`, { headers: asUser(FRIEND_SESSION_COOKIE) });
+    const { memberId } = (await asFriend.json()) as { memberId: string };
+    const left = await request.delete(`/api/groups/${id}/members/${memberId}`, {
+      headers: asUser(FRIEND_SESSION_COOKIE),
+    });
+    expect(left.ok(), await left.text()).toBe(true);
+
+    // The delete carries the count the owner was shown (2): the api deletes
+    // nothing, and the dialog says the group has changed.
+    await dialog.getByRole('button', { name: 'Confirm delete group' }).click();
+    await expect(
+      dialog.getByText(
+        'People have joined or left since you opened this page. The group now has 1 member. Check who is in the group, then try again.',
+      ),
+    ).toBeVisible();
+    const still = await request.get(`/api/groups/${id}`, { headers: asUser(MISS_SESSION_COOKIE) });
+    expect(still.status()).toBe(200);
+
+    // Cleaning up after itself: the group is the owner's alone now.
+    const removed = await request.delete(`/api/groups/${id}?expectedMemberCount=1`, {
+      headers: asUser(MISS_SESSION_COOKIE),
+    });
+    expect(removed.status()).toBe(204);
+  });
+
   test('confirming the sole owner prompt deletes the group and goes back to the list', async ({ page, request }) => {
     const created = await request.post('/api/groups', {
       headers: asUser(MISS_SESSION_COOKIE),

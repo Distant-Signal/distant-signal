@@ -18,6 +18,7 @@ import {
   JOURNEY_LEG_DEFAULTS,
   JOURNEY_STOP_DEFAULTS,
   TRACKED_TRAIN_STATE_DEFAULTS,
+  testLegId,
 } from '@/test/apiDefaults';
 
 function leg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
@@ -415,12 +416,13 @@ describe('journeyFirstLegStart', () => {
   it('names where and when the first leg starts, for a leg inserted before it', () => {
     const train = leg({
       id: 4,
+      publicId: testLegId(4),
       originCrs: 'WAT',
       originName: 'London Waterloo',
       trackedTrainState: trackedState({ journeyStops: [stop('WAT', { publicDeparture: '2026-09-22T08:00:00Z' })] }),
     });
     expect(journeyFirstLegStart(journey([train]))).toEqual({
-      legId: 4,
+      legRef: testLegId(4),
       place: 'London Waterloo',
       crs: 'WAT',
       stopId: null,

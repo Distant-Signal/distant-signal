@@ -114,12 +114,13 @@ export function AddJourneyLegButton({
   onAdded,
 }: {
   journeyId: string;
-  /** Insert the new leg in front of this leg (`POST .../legs?before=`)
+  /** Insert the new leg in front of this leg, named by its opaque id
+   * (`POST .../legs?before=`)
    * instead of after the last one (spec 2026-10-20 §2.3): for a Tube or
    * walk start added to a journey that already has its trains. The dialog
    * then opens on the time-window search ending where and when
    * `nextLegStart` starts (or "Tube, bus or walk" when that is no station). */
-  beforeLegId?: number | null;
+  beforeLegId?: string | null;
   /** Where and when the leg being inserted before starts: the new leg's
    * default "to" place (and, for a train search, destination station) and
    * arrival. */

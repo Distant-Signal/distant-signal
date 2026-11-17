@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { renderWithMantine } from '@/test/render';
 import { theme } from '@/lib/theme';
+import { testLegId } from '@/test/apiDefaults';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
 import { trackFeature } from '@/lib/usageAnalytics';
 
@@ -735,7 +736,7 @@ describe('AddJourneyLegButton', () => {
       <AddJourneyLegButton
         journeyId="1"
         priorDestinationCrs={null}
-        beforeLegId={7}
+        beforeLegId={testLegId(7)}
         nextLegStart={{ place: 'London Waterloo', crs: 'WAT', departure: { date: '2026-10-21', time: '09:30' } }}
         label="Add a leg at the start"
       />,
@@ -757,7 +758,7 @@ describe('AddJourneyLegButton', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/Journeys/1/legs?before=7',
+        `/api/Journeys/1/legs?before=${testLegId(7)}`,
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -778,7 +779,7 @@ describe('AddJourneyLegButton', () => {
       <AddJourneyLegButton
         journeyId="1"
         priorDestinationCrs={null}
-        beforeLegId={7}
+        beforeLegId={testLegId(7)}
         nextLegStart={{
           place: 'Euston',
           crs: null,
@@ -805,7 +806,7 @@ describe('AddJourneyLegButton', () => {
       <AddJourneyLegButton
         journeyId="1"
         priorDestinationCrs={null}
-        beforeLegId={7}
+        beforeLegId={testLegId(7)}
         nextLegStart={{ place: 'Home', crs: null, departure: { date: '2026-10-21', time: '09:30' } }}
         label="Add a leg at the start"
       />,
@@ -821,7 +822,7 @@ describe('AddJourneyLegButton', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/Journeys/1/legs?before=7',
+        `/api/Journeys/1/legs?before=${testLegId(7)}`,
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -997,7 +998,7 @@ describe('AddJourneyLegButton', () => {
         <AddJourneyLegButton
           journeyId="1"
           priorDestinationCrs={null}
-          beforeLegId={7}
+          beforeLegId={testLegId(7)}
           nextLegStart={{ place: 'London Waterloo', crs: 'WAT', departure: { date: '2026-10-21', time: '09:30' } }}
           label="Add a leg at the start"
         />,
@@ -1011,7 +1012,7 @@ describe('AddJourneyLegButton', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add leg' }));
 
       await waitFor(() => expect(legPosts()).toHaveLength(1));
-      expect(legPosts()[0]?.[0]).toBe('/api/Journeys/1/legs?before=7');
+      expect(legPosts()[0]?.[0]).toBe(`/api/Journeys/1/legs?before=${testLegId(7)}`);
       expect(JSON.parse(String(legPosts()[0]?.[1]?.body))).toEqual({
         mode: 'window',
         originCrs: 'WOK',
