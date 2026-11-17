@@ -742,6 +742,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.getByRole('menuitem', { name: 'Stop tracking' }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+      // The item's click closes the menu as it opens the dialog, and the
+      // dropdown fades out for a moment, portalled outside every landmark
+      // (axe `region`). Mantine unmounts it once the transition ends, so wait
+      // for that. A CSS locator rather than `getByRole`: the open modal hides
+      // the rest of the page from the accessibility tree, and a role query
+      // would stop matching the still-fading dropdown straight away.
+      await expect(page.locator('[role="menu"]')).toHaveCount(0);
       await expectNoViolations(page);
     });
 
