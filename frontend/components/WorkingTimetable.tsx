@@ -14,6 +14,7 @@ import {
   Text,
   VisuallyHidden,
 } from '@mantine/core';
+import { formatTime } from '@/lib/dateFormat';
 import { formatWorkingTime, isPassingPoint, stopDirectionLabels, workingTimeAccessibleLabel } from '@/lib/stopTimes';
 import type { JourneyStop } from '@/lib/types';
 
@@ -34,6 +35,36 @@ function WorkingTime({ value }: { value: string | null | undefined }) {
     <>
       <span aria-hidden="true">{formatWorkingTime(value)}</span>
       <VisuallyHidden>{workingTimeAccessibleLabel(value)}</VisuallyHidden>
+    </>
+  );
+}
+
+/** The observed times at a location, for the "Actual" column: reported
+ * arrival, departure, or for a passing point the time the train passed.
+ * ONLY `actual*` fields, which are movement reports: `estimated*` is a
+ * forecast from the current delay and never appears here. A passing point
+ * (or any location reported by a PASS event) has the one pass time in both
+ * `actualArrival` and `actualDeparture`, so equal times read "Passed". A
+ * booked stop the train ran through without calling has no times, so is
+ * blank. Times are London `HH:mm`; the api reports to the minute. */
+export function ActualTimes({ stop }: { stop: JourneyStop }) {
+  const arrival = stop.actualArrival;
+  const departure = stop.actualDeparture;
+  if (!arrival && !departure) return null;
+  const lines: { label: string; value: string }[] = [];
+  if (arrival && departure && arrival === departure && (isPassingPoint(stop) || stop.lastEventType === 'PASS')) {
+    lines.push({ label: 'Passed', value: arrival });
+  } else {
+    if (arrival) lines.push({ label: 'Arrived', value: arrival });
+    if (departure) lines.push({ label: 'Departed', value: departure });
+  }
+  return (
+    <>
+      {lines.map((line) => (
+        <Text key={line.label} size="sm" component="div">
+          {line.label} {formatTime(line.value)}
+        </Text>
+      ))}
     </>
   );
 }
@@ -73,9 +104,10 @@ export function WorkingTimetable({ stops }: { stops: JourneyStop[] }) {
           <Stack gap="xs">
             <Text size="sm" c="dimmed">
               Working timetable times, as used by signallers: ½ means half a minute past. Passing points are places the
-              train runs through without stopping. Times elsewhere on this page are the public timetable&apos;s.
+              train runs through without stopping. Actual times are those the train has been reported at. Other times on
+              this page are the public timetable&apos;s.
             </Text>
-            <TableScrollContainer minWidth={420}>
+            <TableScrollContainer minWidth={520}>
               <Table verticalSpacing={4} horizontalSpacing="sm" aria-label="Working timetable">
                 <TableThead>
                   <TableTr>
@@ -83,6 +115,7 @@ export function WorkingTimetable({ stops }: { stops: JourneyStop[] }) {
                     <TableTh>Arrive</TableTh>
                     <TableTh>Depart</TableTh>
                     <TableTh>Pass</TableTh>
+                    <TableTh>Actual</TableTh>
                     <TableTh>Notes</TableTh>
                   </TableTr>
                 </TableThead>
@@ -111,6 +144,9 @@ export function WorkingTimetable({ stops }: { stops: JourneyStop[] }) {
                           <Text size="sm" c="dimmed">
                             <WorkingTime value={stop.workingPass} />
                           </Text>
+                        </TableTd>
+                        <TableTd>
+                          <ActualTimes stop={stop} />
                         </TableTd>
                         <TableTd>
                           <Text size="sm" c="dimmed">
