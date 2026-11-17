@@ -1,5 +1,8 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { openNavDrawer } from './navDrawer';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // /account/preferences in both auth states (app/account/preferences/page.tsx).
 //

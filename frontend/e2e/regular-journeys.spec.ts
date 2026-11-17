@@ -8,6 +8,9 @@ import {
   TRIP_PLAN_DEFAULTS,
   plannedTrainLeg,
 } from '../test/apiDefaults';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // Regular journeys (docs/superpowers/specs/2026-11-06-regular-journeys-design.md
 // §4.4): the old /journeys/templates pages redirect, a regular journey is

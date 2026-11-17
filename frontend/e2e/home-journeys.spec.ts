@@ -1,5 +1,8 @@
 import { test, expect, type APIRequestContext, type BrowserContext } from '@playwright/test';
 import { scanPage } from './a11y-helpers';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // The logged-in home page's journey sections: "Current journey" for the
 // journey under way, and "Upcoming journeys" for the ones still to come; a

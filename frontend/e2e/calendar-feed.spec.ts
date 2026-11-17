@@ -1,3 +1,4 @@
+import { testPublicId } from '../test/apiDefaults';
 import { test, expect, request as playwrightRequest, type BrowserContext, type Page } from '@playwright/test';
 
 // The opt-in calendar feed (app/account/preferences/CalendarFeedSection.tsx,
@@ -98,7 +99,10 @@ test.describe('Calendar feed', () => {
     const add = page.getByRole('button', { name: 'Download calendar file' });
     await expect(add).toBeVisible();
     const [download] = await Promise.all([page.waitForEvent('download'), add.click()]);
-    expect(download.suggestedFilename()).toBe(`journey-${JOURNEY_ID}.ics`);
+    // Named by the public id for a journey made since the api's cutover (2026-11-25), else by its number.
+    expect([`journey-${JOURNEY_ID}.ics`, `journey-${testPublicId(Number(JOURNEY_ID))}.ics`]).toContain(
+      download.suggestedFilename(),
+    );
     const response = await page.request.get(`/api/Journeys/${JOURNEY_ID}/calendar.ics`);
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/calendar');

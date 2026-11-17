@@ -1,6 +1,9 @@
 import { test, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { scanPage } from './a11y-helpers';
 import { testPublicId } from '../test/apiDefaults';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // Journeys shared with you (DS-199), against the seeded backend
 // (e2e/fixtures/seed.sql): fixture-member shares two 2099 train journeys

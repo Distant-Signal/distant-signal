@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // Reliability and Delay Repay on journey legs (2026-11-06), against the
 // seeded backend: fixture-owner's two-revision journey 900301 (seed.sql),
