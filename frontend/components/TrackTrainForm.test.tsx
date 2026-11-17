@@ -7,6 +7,7 @@ import { GroupSummariesProvider } from '@/lib/useGroupSummaries';
 import { TrackTrainForm } from './TrackTrainForm';
 import type { GroupSummary } from '@/lib/types';
 import { visibleText } from '@/test/routeText';
+import { testPublicId } from '@/test/apiDefaults';
 
 /** `useGroupSummaries` now reads from `GroupSummariesProvider`'s context
  * instead of fetching `/api/groups` itself (see `lib/useGroupSummaries.tsx`'s
@@ -64,9 +65,18 @@ function mockFetchByUrl(
       return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
     }
     return Promise.resolve(
-      new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({
+          journeyId: 99,
+          journeyPublicId: testPublicId(99),
+          legId: 1,
+          trackingId: 42,
+          resolutionStatus: 'pending',
+        }),
+        {
+          status: 200,
+        },
+      ),
     );
   });
 }
@@ -455,7 +465,7 @@ describe('TrackTrainForm', () => {
       expect(fetchMock).toHaveBeenCalledWith('/api/Journeys', expect.objectContaining({ method: 'POST' }));
     });
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/journeys/99');
+      expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`);
     });
   });
 
@@ -480,6 +490,7 @@ describe('TrackTrainForm', () => {
     await waitFor(() => {
       expect(onCreated).toHaveBeenCalledWith({
         journeyId: 99,
+        journeyPublicId: testPublicId(99),
         legId: 1,
         trackingId: 42,
         resolutionStatus: 'pending',
@@ -587,7 +598,7 @@ describe('TrackTrainForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /Track this train/ }));
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/journeys/99');
+      expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`);
     });
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/attach'), expect.anything());
   });
@@ -706,9 +717,18 @@ describe('TrackTrainForm', () => {
         return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
       }
       return Promise.resolve(
-        new Response(JSON.stringify({ journeyId: 199, legId: 1, trackingId: 99, resolutionStatus: 'pending' }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({
+            journeyId: 199,
+            journeyPublicId: testPublicId(199),
+            legId: 1,
+            trackingId: 99,
+            resolutionStatus: 'pending',
+          }),
+          {
+            status: 200,
+          },
+        ),
       );
     });
 
@@ -723,7 +743,7 @@ describe('TrackTrainForm', () => {
     expect(body.leg.serviceDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(() => new Date(body.leg.scheduledDeparture).toISOString()).not.toThrow();
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/journeys/199');
+      expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(199)}`);
     });
   });
 
@@ -960,7 +980,7 @@ describe('TrackTrainForm', () => {
         arriveWindow: { after: null, before: '11:30' },
       });
       await waitFor(() => {
-        expect(pushMock).toHaveBeenCalledWith('/journeys/99');
+        expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`);
       });
     });
 
@@ -984,6 +1004,7 @@ describe('TrackTrainForm', () => {
       await waitFor(() => {
         expect(onCreated).toHaveBeenCalledWith({
           journeyId: 99,
+          journeyPublicId: testPublicId(99),
           legId: 1,
           trackingId: 42,
           resolutionStatus: 'pending',
@@ -2341,7 +2362,7 @@ describe('TrackTrainForm', () => {
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith('/api/Journeys', expect.objectContaining({ method: 'POST' }));
       });
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
       expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/groups/'), expect.anything());
     });
 
@@ -2353,9 +2374,18 @@ describe('TrackTrainForm', () => {
         }
         if (url === '/api/Journeys') {
           return Promise.resolve(
-            new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-              status: 200,
-            }),
+            new Response(
+              JSON.stringify({
+                journeyId: 99,
+                journeyPublicId: testPublicId(99),
+                legId: 1,
+                trackingId: 42,
+                resolutionStatus: 'pending',
+              }),
+              {
+                status: 200,
+              },
+            ),
           );
         }
         if (url === '/api/groups/grp-1/journeys') return Promise.resolve(new Response(null, { status: 204 }));
@@ -2379,7 +2409,7 @@ describe('TrackTrainForm', () => {
           expect.objectContaining({ method: 'POST', body: JSON.stringify({ journeyId: 99 }) }),
         );
       });
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
 
       // The share call must happen strictly after the track call -- the
       // share body needs the real journeyId the track call returns.
@@ -2395,9 +2425,18 @@ describe('TrackTrainForm', () => {
         }
         if (url === '/api/Journeys') {
           return Promise.resolve(
-            new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-              status: 200,
-            }),
+            new Response(
+              JSON.stringify({
+                journeyId: 99,
+                journeyPublicId: testPublicId(99),
+                legId: 1,
+                trackingId: 42,
+                resolutionStatus: 'pending',
+              }),
+              {
+                status: 200,
+              },
+            ),
           );
         }
         if (url === '/api/groups/grp-1/journeys') return Promise.reject(new Error('network blip'));
@@ -2412,7 +2451,7 @@ describe('TrackTrainForm', () => {
       fireEvent.click(await screen.findByText('Family'));
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
       expect(screen.queryByText("Couldn't track this train. Try again.")).not.toBeInTheDocument();
     });
 
@@ -2423,7 +2462,7 @@ describe('TrackTrainForm', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /Track this train/ }));
 
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
       expect(screen.queryAllByLabelText('Track into')).toHaveLength(0);
     });
   });

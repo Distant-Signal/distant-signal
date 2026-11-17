@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { nowInLondon } from '@/lib/londonWallClock';
 import { renderWithMantine } from '@/test/render';
 import { RunTemplateNowButton } from './RunTemplateNowButton';
+import { testPublicId } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -47,7 +48,9 @@ describe('RunTemplateNowButton', () => {
 
   it('submits {serviceDate} to the materialize endpoint', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1] }), { status: 200 }));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1] }), { status: 200 }),
+    );
 
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
@@ -66,13 +69,17 @@ describe('RunTemplateNowButton', () => {
 
   it('navigates to /journeys/{journeyId} using the response journeyId on success', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1, 2] }), { status: 200 }));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1, 2] }), {
+        status: 200,
+      }),
+    );
 
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/42'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(42)}`));
   });
 
   it('a 401 shows a login prompt instead of the raw backend error text', async () => {
@@ -106,7 +113,9 @@ describe('RunTemplateNowButton', () => {
   // nothing malformed can reach `POST /JourneyTemplates/{id}/materialize`.
   it('keeps the last good service date when the typed text is not a date', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1] }), { status: 200 }));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1] }), { status: 200 }),
+    );
     renderWithMantine(<RunTemplateNowButton templateId={167} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
 
@@ -148,7 +157,9 @@ describe('RunTemplateNowButton', () => {
 
   it('still adds tomorrow at once', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ journeyId: 42, legIds: [1] }), { status: 200 }));
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1] }), { status: 200 }),
+    );
     const tomorrow = nowInLondon().add(1, 'day');
     renderWithMantine(<RunTemplateNowButton templateId={167} keepLaterDates />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
@@ -157,7 +168,7 @@ describe('RunTemplateNowButton', () => {
     fireEvent.change(serviceDate, { target: { value: tomorrow.format('D MMM YYYY') } });
     fireEvent.blur(serviceDate);
     fireEvent.click(screen.getByRole('button', { name: 'Add journey' }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/42'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(42)}`));
     expect(String(fetchMock.mock.calls[0]![0])).toBe('/api/JourneyTemplates/167/materialize');
   });
 });

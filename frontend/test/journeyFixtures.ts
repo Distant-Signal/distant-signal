@@ -216,7 +216,6 @@ export function loneTrain(id: number, overrides: Partial<TrackedTrainListItem> =
     customName: null,
     sharedGroupCount: 0,
     journeyIds: [],
-    journeyPublicIds: [],
     travelled: false,
     trackingPhase: 'planned',
     ...overrides,

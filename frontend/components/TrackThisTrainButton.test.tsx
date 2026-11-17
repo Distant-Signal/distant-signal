@@ -5,6 +5,7 @@ import { renderWithMantine } from '@/test/render';
 import { GroupSummariesProvider } from '@/lib/useGroupSummaries';
 import { TrackThisTrainButton } from './TrackThisTrainButton';
 import type { GroupSummary } from '@/lib/types';
+import { testPublicId } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -37,9 +38,18 @@ function mockFetchByUrl(
 ) {
   const {
     track = () =>
-      new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({
+          journeyId: 99,
+          journeyPublicId: testPublicId(99),
+          legId: 1,
+          trackingId: 42,
+          resolutionStatus: 'pending',
+        }),
+        {
+          status: 200,
+        },
+      ),
     attach = () => new Response(JSON.stringify({ ticketId: 7, trackedTrainId: 42 }), { status: 200 }),
   } = options;
   return vi.fn((input: RequestInfo | URL) => {
@@ -81,7 +91,7 @@ describe('TrackThisTrainButton', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
   });
 
   it('makes no ticket-attach call', async () => {
@@ -139,9 +149,18 @@ describe('TrackThisTrainButton', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Tracking' })).toBeDisabled());
 
     resolveTrack(
-      new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({
+          journeyId: 99,
+          journeyPublicId: testPublicId(99),
+          legId: 1,
+          trackingId: 42,
+          resolutionStatus: 'pending',
+        }),
+        {
+          status: 200,
+        },
+      ),
     );
     await waitFor(() => expect(pushMock).toHaveBeenCalled());
   });
@@ -178,7 +197,7 @@ describe('TrackThisTrainButton', () => {
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith('/api/Journeys', expect.objectContaining({ method: 'POST' }));
       });
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
       expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/groups/'), expect.anything());
     });
 
@@ -187,9 +206,18 @@ describe('TrackThisTrainButton', () => {
         const url = String(input);
         if (url.endsWith('/api/Journeys')) {
           return Promise.resolve(
-            new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-              status: 200,
-            }),
+            new Response(
+              JSON.stringify({
+                journeyId: 99,
+                journeyPublicId: testPublicId(99),
+                legId: 1,
+                trackingId: 42,
+                resolutionStatus: 'pending',
+              }),
+              {
+                status: 200,
+              },
+            ),
           );
         }
         if (url.endsWith('/api/groups/grp-1/journeys')) return Promise.resolve(new Response(null, { status: 204 }));
@@ -213,7 +241,7 @@ describe('TrackThisTrainButton', () => {
           expect.objectContaining({ method: 'POST', body: JSON.stringify({ journeyId: 99 }) }),
         );
       });
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
 
       // The share call must happen strictly after the track call, not
       // before/concurrently -- the share body needs the real journeyId the
@@ -227,9 +255,18 @@ describe('TrackThisTrainButton', () => {
         const url = String(input);
         if (url.endsWith('/api/Journeys')) {
           return Promise.resolve(
-            new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-              status: 200,
-            }),
+            new Response(
+              JSON.stringify({
+                journeyId: 99,
+                journeyPublicId: testPublicId(99),
+                legId: 1,
+                trackingId: 42,
+                resolutionStatus: 'pending',
+              }),
+              {
+                status: 200,
+              },
+            ),
           );
         }
         if (url.endsWith('/groups/grp-1/journeys')) return Promise.reject(new Error('network blip'));
@@ -244,7 +281,7 @@ describe('TrackThisTrainButton', () => {
       fireEvent.click(await screen.findByText('Family'));
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
       expect(screen.queryByText("Couldn't track this train. Try again.")).not.toBeInTheDocument();
     });
 
@@ -255,7 +292,7 @@ describe('TrackThisTrainButton', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
 
-      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/99'));
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));
       expect(screen.queryAllByLabelText('Track into')).toHaveLength(0);
     });
   });
@@ -278,7 +315,10 @@ describe('TrackThisTrainButton for an Irish train', () => {
 
   it('posts the code, date and boarding station, then opens the journey', async () => {
     const fetchMock = irishFetch(
-      () => new Response(JSON.stringify({ journeyId: 812, trackingId: 4411 }), { status: 201 }),
+      () =>
+        new Response(JSON.stringify({ journeyId: 812, journeyPublicId: testPublicId(812), trackingId: 4411 }), {
+          status: 201,
+        }),
     );
     vi.stubGlobal('fetch', fetchMock);
     renderWithGroups(
@@ -287,7 +327,7 @@ describe('TrackThisTrainButton for an Irish train', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/812'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(812)}`));
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/Journeys/irish-train',
       expect.objectContaining({

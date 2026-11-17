@@ -111,6 +111,7 @@ export function JourneyCreationFlow({
   routeShortcuts?: RouteShortcuts | undefined;
 } = {}) {
   const [journeyId, setJourneyId] = useState<number | null>(null);
+  const [journeyPublicId, setJourneyPublicId] = useState<string | null>(null);
   const [journey, setJourney] = useState<JourneyDetail | null>(null);
   const [loadingJourney, setLoadingJourney] = useState(false);
   const [journeyLoadError, setJourneyLoadError] = useState(false);
@@ -143,6 +144,7 @@ export function JourneyCreationFlow({
 
   function handleLegOneCreated(result: CreateJourneyResponse) {
     setJourneyId(result.journeyId);
+    setJourneyPublicId(result.journeyPublicId);
     void refreshJourney(result.journeyId);
   }
 
@@ -300,7 +302,7 @@ export function JourneyCreationFlow({
             onAdded={handleLegAdded}
           />
         )}
-        <Button component={Link} href={`/journeys/${journeyId}`}>
+        <Button component={Link} href={`/journeys/${journeyPublicId ?? journeyId}`}>
           View journey
         </Button>
       </Group>
