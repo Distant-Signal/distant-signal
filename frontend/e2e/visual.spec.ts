@@ -3,7 +3,6 @@ import { test, expect, type Page } from '@playwright/test';
 // container with nothing but @playwright/test beside it.
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse, TripPlanTransitLeg } from '../lib/types';
 import type * as Api from '../lib/api-types';
-import { testPublicId } from '../test/apiDefaults';
 
 // Visual regression screenshots of the main pages, at phone (390px) and
 // desktop (1366px) widths, in the light and dark schemes.
@@ -39,6 +38,10 @@ const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE;
 const TRACKING_ID = process.env.E2E_TRACKING_ID ?? '1';
 const PLANNED_TRACKING_ID = process.env.E2E_PLANNED_TRACKING_ID ?? '3';
 const JOURNEY_ID = process.env.E2E_JOURNEY_ID ?? '1';
+// The seed gives each journey the public id 'j_' and its id as 32 hex digits
+// (the same as test/apiDefaults.ts's testPublicId, which the visual container
+// does not mount).
+const testPublicId = (id: number) => `j_${id.toString(16).padStart(32, '0')}`;
 // The seed's group, with trains and journeys shared into it by both users.
 const GROUP_ID = process.env.E2E_GROUP_ID ?? 'fixture-group-1';
 
