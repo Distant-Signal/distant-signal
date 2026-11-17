@@ -240,7 +240,7 @@ export function JourneyDetailView({
             <AddJourneyLegButton
               journeyId={journey.publicId}
               priorDestinationCrs={null}
-              beforeLegId={firstLegStart.legId}
+              beforeLegId={firstLegStart.legRef}
               nextLegStart={firstLegStart}
               label="Add a leg at the start"
             />
