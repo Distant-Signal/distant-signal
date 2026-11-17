@@ -103,7 +103,7 @@ test.describe('clickable cards', () => {
       // The ring is on the card, not the title.
       expect(await link.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('none');
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/\/journeys\/\d+$/);
+      await expect(page).toHaveURL(/\/journeys\/j_[0-9a-f]{32}$/);
     });
   }
 
@@ -132,7 +132,7 @@ test.describe('clickable cards', () => {
     await expect(card).toContainText('2 legs');
     const box = (await card.boundingBox())!;
     await card.click({ position: { x: box.width - 12, y: box.height - 8 } });
-    await expect(page).toHaveURL(/\/journeys\/\d+$/);
+    await expect(page).toHaveURL(/\/journeys\/j_[0-9a-f]{32}$/);
   });
 
   test('a control inside a card works on its own and does not open the card', async ({ page }) => {

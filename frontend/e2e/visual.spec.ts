@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 // container with nothing but @playwright/test beside it.
 import type { TripPlanItinerary, TripPlanLeg, TripPlanResponse, TripPlanTransitLeg } from '../lib/types';
 import type * as Api from '../lib/api-types';
+import { testPublicId } from '../test/apiDefaults';
 
 // Visual regression screenshots of the main pages, at phone (390px) and
 // desktop (1366px) widths, in the light and dark schemes.
@@ -84,7 +85,7 @@ const PAGES: [name: string, path: string][] = [
   // not in the timetable, a planned train, and a journey with a walk.
   ['train-no-timetable', `/train/by-id/${TRACKING_ID}`],
   ['train-planned', `/train/by-id/${PLANNED_TRACKING_ID}`],
-  ['journey', `/journeys/${JOURNEY_ID}`],
+  ['journey', `/journeys/${testPublicId(Number(JOURNEY_ID))}`],
   // Open to everyone: logged out it is the appearance settings and one log
   // in prompt, logged in the account sections too.
   ['preferences', '/account/preferences'],
@@ -102,7 +103,7 @@ const PAGES: [name: string, path: string][] = [
   ['regular-journey-new', '/journeys/regular/new'],
   // A journey of the seed's regular journey with the day's suggested train
   // (regular journeys design §6.6), logged in.
-  ['regular-journey-day', '/journeys/900203'],
+  ['regular-journey-day', `/journeys/${testPublicId(900203)}`],
   // A group's shared trains and journeys, logged in as its owner: a live
   // train, a planned one, a timetabled bus, a journey whose train is
   // planned and a walk-and-Tube journey (2026-10-20: the owner's own

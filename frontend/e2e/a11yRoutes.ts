@@ -4,6 +4,8 @@
 // ALLOWED_UNSCANNED. Kept apart from the spec because Playwright does not
 // let one spec import another.
 
+import { testPublicId } from '../test/apiDefaults';
+
 /** The raw token of the unlisted link to journey 900002 (seed.sql). */
 export const SHARED_JOURNEY_TOKEN = 'fixture-leg-progress-token-12345';
 
@@ -175,9 +177,9 @@ export const LOGGED_IN_ROUTES: [name: string, path: string][] = [
   ['/journeys/regular/new', '/journeys/regular/new'],
   ['/journeys/regular/[id]', '/journeys/regular/900201'],
   ['/journeys/recently-deleted', '/journeys/recently-deleted'],
-  ['/journeys/900301 (reliability and Delay Repay)', '/journeys/900301'],
-  ['/journeys/900203 (a regular journey in remind mode)', '/journeys/900203'],
-  ['/journeys/[id] (journey 1, with a walk)', '/journeys/1'],
+  ['/journeys/900301 (reliability and Delay Repay)', `/journeys/${testPublicId(900301)}`],
+  ['/journeys/900203 (a regular journey in remind mode)', `/journeys/${testPublicId(900203)}`],
+  ['/journeys/[id] (journey 1, with a walk)', `/journeys/${testPublicId(1)}`],
   ['/track/mine/add-ticket (redirected to /journeys)', '/track/mine/add-ticket'],
   ['/plan (logged in)', '/plan'],
   ['/plan?mode=known (logged in)', '/plan?mode=known'],

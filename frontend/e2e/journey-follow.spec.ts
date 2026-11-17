@@ -58,7 +58,7 @@ test.describe('following a shared journey', () => {
     await page.goto(`/groups/${GROUP_ID}`);
     const card = groupCard(page);
     journeyPath = await card.getByRole('link', { name: JOURNEY_NAME }).getAttribute('href');
-    expect(journeyPath).toMatch(/^\/journeys\/\d+$/);
+    expect(journeyPath).toMatch(/^\/journeys\/j_[0-9a-f]{32}$/);
     await card.getByRole('button', { name: 'Follow this journey' }).click();
     await expect(card.getByRole('button', { name: 'Unfollow' })).toBeVisible();
 

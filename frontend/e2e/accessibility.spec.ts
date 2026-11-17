@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { AXE_TAGS } from './a11y-helpers';
 import { openNavDrawer } from './navDrawer';
 import { LEGAL_ROUTES, LOGGED_IN_ROUTES, PUBLIC_ROUTES, REAL_LINE_ID, REAL_STATION_CRS } from './a11yRoutes';
+import { testPublicId } from '../test/apiDefaults';
 
 // A repeatable axe-core sweep over EVERY route in `app/`, in both colour
 // schemes, logged out and logged in, and across the interactive sub-states
@@ -327,7 +328,7 @@ test.describe('accessibility: logged in', () => {
   // The seed's two-revision journey (900301): a leg's Delay Repay, open
   // because it may qualify, and its ticket details form (2026-11-06).
   test('/journeys/[id], Delay Repay and the ticket details form', async ({ page }) => {
-    await page.goto('/journeys/900301');
+    await page.goto(`/journeys/${testPublicId(900301)}`);
     await expect(page.getByText('Delay Repay', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Add ticket details' }).click();
     await expect(page.getByRole('combobox', { name: 'Ticket type' })).toBeVisible();

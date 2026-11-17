@@ -1459,3 +1459,9 @@ JOIN journey_legs l ON l.journey_id = r.journey_id AND l.leg_order = 1
 JOIN train_subscriptions ts ON ts.id = l.train_subscription_id
 WHERE r.journey_id = 900301 AND r.revision_no = 2
 ON CONFLICT (revision_id, position) DO NOTHING;
+
+-- Opaque journey ids (DS-534): the api hands out journeys.public_id, which a
+-- migration fills with random ids. The specs name seeded journeys by
+-- testPublicId(id) (test/apiDefaults.ts: 'j_' and the id as 32 hex digits),
+-- so give every journey seeded above that id.
+UPDATE journeys SET public_id = 'j_' || lpad(to_hex(id), 32, '0');

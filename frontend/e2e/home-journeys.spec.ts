@@ -132,7 +132,7 @@ test.describe('home page journeys (logged in)', () => {
       // Keyboard: the card's link goes to the journey page.
       await link.focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(new RegExp(`/journeys/${journeyId}$`));
+      await expect(page).toHaveURL(/\/journeys\/j_[0-9a-f]{32}$/);
     });
   }
 });

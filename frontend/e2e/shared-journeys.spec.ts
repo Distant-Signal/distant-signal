@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { scanPage } from './a11y-helpers';
+import { testPublicId } from '../test/apiDefaults';
 
 // Journeys shared with you (DS-199), against the seeded backend
 // (e2e/fixtures/seed.sql): fixture-member shares two 2099 train journeys
@@ -37,8 +38,9 @@ async function logIn(context: BrowserContext) {
 const headers = () => ({ cookie: `distant_signal_session=${SESSION_COOKIE}` });
 
 /** The card in `scope` whose link goes to journey `id`. */
-function card(page: Page, scope: ReturnType<Page['getByRole']>, id: number) {
-  return scope.locator('[data-clickable-card]').filter({ has: page.locator(`a[href="/journeys/${id}"]`) });
+function card(page: Page, scope: ReturnType<Page['getByRole']>, id: number | string) {
+  const publicId = typeof id === 'number' ? testPublicId(id) : id;
+  return scope.locator('[data-clickable-card]').filter({ has: page.locator(`a[href="/journeys/${publicId}"]`) });
 }
 
 async function unfollow(request: APIRequestContext, id: number) {
@@ -51,6 +53,7 @@ test.describe('journeys shared with you', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to the seed session');
 
   let ownJourneyId: number | null = null;
+  let ownJourneyPublicId: string | null = null;
 
   test.beforeEach(async ({ context }) => {
     await logIn(context);
@@ -164,17 +167,20 @@ test.describe('journeys shared with you', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    ownJourneyId = ((await created.json()) as { journeyId: number }).journeyId;
+    const body = (await created.json()) as { journeyId: number; journeyPublicId: string };
+    ownJourneyId = body.journeyId;
+    ownJourneyPublicId = body.journeyPublicId;
 
     await page.goto('/journeys');
-    const row = card(page, page.getByRole('region', { name: 'Upcoming' }), ownJourneyId);
+    const row = card(page, page.getByRole('region', { name: 'Upcoming' }), ownJourneyPublicId);
     await expect(row.getByText('Needs a train picked')).toBeVisible();
 
     await page.goto('/');
-    const homeRow = card(page, page.getByRole('region', { name: 'Upcoming journeys' }), ownJourneyId);
+    const homeRow = card(page, page.getByRole('region', { name: 'Upcoming journeys' }), ownJourneyPublicId);
     await expect(homeRow.getByText('Needs a train picked')).toBeVisible();
 
     await request.delete(`/api/Journeys/${ownJourneyId}`, { headers: headers() });
     ownJourneyId = null;
+    ownJourneyPublicId = null;
   });
 });
