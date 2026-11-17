@@ -153,7 +153,9 @@ repositories above.
   `local.env.example` (the frontend's production build) or
   `dev.env.example` (frontend hot reload) and run
   `docker compose --env-file local.env up --build`. The header of
-  `docker-compose.yml` explains both modes. The feed URLs in the examples
+  `docker-compose.yml` explains both modes. Every published port binds to
+  127.0.0.1, and `SCHEDULE_SFTP_PASSWORD` has no default: generate one with
+  `openssl rand -hex 16` (compose refuses to start without it). The feed URLs in the examples
   are placeholders, so a local stack has no live data until you add your
   own Rail Data Marketplace credentials or load `scripts/dev-seed.sql`.
 - **Only the frontend.** In `frontend/`, `npm ci` then `npm run dev`, with
