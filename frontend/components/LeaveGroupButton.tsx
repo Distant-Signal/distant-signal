@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ConfirmActionButton } from './ConfirmActionButton';
+import { deleteGroup } from '@/lib/groupDelete';
 
 /** The error line shown when the api refused a leave because the caller
  * turned out to be the only member after all. */
@@ -60,6 +62,7 @@ export function LeaveGroupButton({
   willDeleteGroup?: boolean;
   nextOwnerLabel?: string | null;
 }) {
+  const router = useRouter();
   const [refused, setRefused] = useState(false);
   const soleOwner = willDeleteGroup || refused;
 
@@ -70,7 +73,9 @@ export function LeaveGroupButton({
         confirmLabel="Delete group"
         actionName="delete group"
         title="Delete this group?"
-        request={() => fetch(`/api/groups/${groupId}`, { method: 'DELETE' })}
+        // The owner is shown as the only member (1): if anyone has joined
+        // since, the api deletes nothing and the page refreshes (`lib/groupDelete.ts`).
+        request={() => deleteGroup(groupId, 1, () => router.refresh())}
         failure={['delete', 'this group']}
         loginPrompt="Log in to delete this group"
         onSuccess={(router) => router.push('/groups')}

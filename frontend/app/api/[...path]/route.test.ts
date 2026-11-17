@@ -428,6 +428,16 @@ describe('/api/[...path] proxy', () => {
       expect((init as { body?: unknown }).body).toBeUndefined();
     });
 
+    it('forwards the query string of a DELETE (DELETE /groups/{id}?expectedMemberCount=N)', async () => {
+      const req = makeRequest('/api/groups/grp-1?expectedMemberCount=2', {
+        method: 'DELETE',
+        headers: { origin: 'http://localhost:3000' },
+      });
+      await DELETE(req, { params: Promise.resolve({ path: ['groups', 'grp-1'] }) });
+      const [calledUrl] = vi.mocked(fetch).mock.calls[0]!;
+      expect(calledUrl.toString()).toBe('http://test-api:8080/public/groups/grp-1?expectedMemberCount=2');
+    });
+
     it('passes Content-Disposition and Cache-Control through (data export download)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce(
         new Response('{}', {

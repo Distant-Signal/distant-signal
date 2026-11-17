@@ -4,8 +4,9 @@ import { renderWithMantine } from '@/test/render';
 import { LeaveGroupButton } from './LeaveGroupButton';
 
 const pushMock = vi.fn();
+const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: pushMock }),
+  useRouter: () => ({ push: pushMock, refresh: refreshMock }),
   usePathname: () => '/groups/grp-1',
   useSearchParams: () => new URLSearchParams(''),
 }));
@@ -14,6 +15,7 @@ describe('LeaveGroupButton', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
     pushMock.mockClear();
+    refreshMock.mockClear();
   });
 
   afterEach(() => {
@@ -56,8 +58,35 @@ describe('LeaveGroupButton', () => {
     expect(fetchMock).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete group' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1', { method: 'DELETE' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1?expectedMemberCount=1', { method: 'DELETE' }),
+    );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/groups'));
+  });
+
+  it('on group_changed the sole owner deletes nothing, the page refreshes and the dialog says why', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: 'group_changed', message: 'This group has changed.', memberCount: 2 }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" willDeleteGroup />);
+    fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
+    await waitFor(() => screen.getByText('Delete this group?'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete group' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'People have joined or left since you opened this page. The group now has 2 members. Check who is in the group, then try again.',
+    );
+    expect(alert).not.toHaveTextContent(/Couldn't/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1?expectedMemberCount=1', { method: 'DELETE' });
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it('sends nothing when the sole owner cancels', async () => {
@@ -91,7 +120,9 @@ describe('LeaveGroupButton', () => {
     // Only an explicit confirmation deletes, through the delete route.
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete group' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith('/api/groups/grp-1', { method: 'DELETE' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith('/api/groups/grp-1?expectedMemberCount=1', { method: 'DELETE' }),
+    );
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/groups'));
   });
 
