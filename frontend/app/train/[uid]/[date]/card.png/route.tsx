@@ -16,11 +16,9 @@ import { plainCredits } from '@/lib/creditText';
 // is in that answer, so nothing private can reach the card. The
 // session-only `/train/by-id/...` pages have no card: they keep the
 // site-wide image.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { uid: string; date: string }[] {
-  return [];
-}
+// Rendered per request, never stored as an ISR entry (`lib/livePreview.ts`):
+// its reads are cached, the PNG is cached by the CDN.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', { status: 404, headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL } });

@@ -1098,13 +1098,17 @@ export async function getIncident(incidentId: string): Promise<IncidentDetail> {
  * reads on the frontend's own behalf: no session cookie (it can't hold
  * anyone's private custom lines, so one answer suits every requester) and
  * no `X-Real-IP`. Next keys its data cache on the request headers, so a
- * per-requester IP would give every unfurler its own cache entry, and
- * `headers()` would make the route dynamic, re-rendering the PNG on every
- * hit. Without either, one api call a minute (`revalidate`) serves every
- * unfurl of a page, and the route itself is regenerated at most that often.
- * The api's rate limiter keys these on the frontend pod, the right bucket
- * for traffic the frontend originates. Same endpoints the pages read: no
- * new api routes.
+ * per-requester IP would give every unfurler its own cache entry. Without
+ * either, one api call a minute (`revalidate`) serves every unfurl of a
+ * page. The api's rate limiter keys these on the frontend pod, so the card
+ * routes limit each client themselves (`guardPreview`,
+ * `lib/previewRateLimit.ts`). Only 200s are stored. Same endpoints the
+ * pages read: no new api routes.
+ *
+ * The capability-token reads (`getPreviewSharedJourney`,
+ * `getPreviewGroupJoin`) are the exception: uncached, so a revoked link's
+ * card goes with the next fetch and no token's answer is kept on disk, and
+ * so they carry the visitor's `X-Real-IP` like any page read.
  * ------------------------------------------------------------------------- */
 
 async function previewJson<T>(url: string, revalidate: number): Promise<T> {
@@ -1113,6 +1117,11 @@ async function previewJson<T>(url: string, revalidate: number): Promise<T> {
     throw errorForResponse(url, response);
   }
   return response.json() as Promise<T>;
+}
+
+/** A capability-token preview read (above): never cached. */
+async function tokenPreviewJson<T>(url: string): Promise<T> {
+  return fetchJson<T>(url, { cache: 'no-store' });
 }
 
 /** `GET /public/incidents/{incidentId}`, as a preview read (above): the incident card. */
@@ -1131,16 +1140,17 @@ export async function getPreviewLineStatus(id: string): Promise<LineStatusReport
 
 /** `GET /Journeys/shared/{token}`, as a preview read (above): the shared
  * journey's card. The same unauthenticated answer the page reads (what
- * anyone holding the link sees); shared for a minute, so a revoked link's
- * card goes within that. The token is encoded, and the route checks its
- * shape first. */
+ * anyone holding the link sees); uncached, so the first card fetch after
+ * the owner revokes the link is a 404. The token is encoded, and the route
+ * checks its shape first. */
 export async function getPreviewSharedJourney(token: string): Promise<JourneyDetail> {
-  return previewJson(`${baseUrl()}/Journeys/shared/${encodeURIComponent(token)}`, LIVE_PREVIEW_REVALIDATE_SECONDS);
+  return tokenPreviewJson(`${baseUrl()}/Journeys/shared/${encodeURIComponent(token)}`);
 }
 
-/** `GET /public/groups/join/{token}`, as a preview read (above): the invite's card. */
+/** `GET /public/groups/join/{token}`, as an uncached token preview read
+ * (above): the invite's card. */
 export async function getPreviewGroupJoin(token: string): Promise<GroupJoinPreview> {
-  return previewJson(`${baseUrl()}/public/groups/join/${encodeURIComponent(token)}`, LIVE_PREVIEW_REVALIDATE_SECONDS);
+  return tokenPreviewJson(`${baseUrl()}/public/groups/join/${encodeURIComponent(token)}`);
 }
 
 /** `GET /StopPoint/{crs}/Disruption`, as a preview read (above): the station card. */

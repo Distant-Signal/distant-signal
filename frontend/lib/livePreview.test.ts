@@ -13,7 +13,9 @@ import {
 describe('the live preview cache', () => {
   it('is public, a minute fresh, then stale while one request refreshes it', () => {
     expect(LIVE_PREVIEW_REVALIDATE_SECONDS).toBe(60);
-    expect(LIVE_PREVIEW_CACHE_CONTROL).toBe('public, max-age=60, s-maxage=60, stale-while-revalidate=300');
+    expect(LIVE_PREVIEW_CACHE_CONTROL).toBe(
+      'public, max-age=60, s-maxage=60, stale-while-revalidate=300, stale-if-error=3600',
+    );
   });
 });
 

@@ -49,7 +49,9 @@ import {
   ApiUnauthorizedError,
   API_FETCH_TIMEOUT_MS,
   SESSION_FETCH_TIMEOUT_MS,
+  getPreviewGroupJoin,
   getPreviewIncident,
+  getPreviewSharedJourney,
   getPreviewLineStatus,
   getPreviewLines,
   getPreviewStationName,
@@ -1785,6 +1787,20 @@ describe('api client preview reads', () => {
     expect(calledUrl).toBe(url);
     expect(init.headers).toBeUndefined();
     expect(init.next).toEqual({ revalidate });
+  });
+
+  it.each([
+    ['getPreviewSharedJourney', () => getPreviewSharedJourney('ab/c'), 'http://test-api:8080/Journeys/shared/ab%2Fc'],
+    ['getPreviewGroupJoin', () => getPreviewGroupJoin('ab/c'), 'http://test-api:8080/public/groups/join/ab%2Fc'],
+  ])('%s reads a capability token uncached, with the client IP and no cookie', async (_name, read, url) => {
+    incomingCookies.header = 'distant_signal_session=secret';
+    incomingRequest.headers = { 'cf-connecting-ip': '203.0.113.5' };
+    await read();
+    const [calledUrl, init] = vi.mocked(fetch).mock.calls[0]! as [string, RequestInit & { next?: unknown }];
+    expect(calledUrl).toBe(url);
+    expect(init.cache).toBe('no-store');
+    expect(init.next).toBeUndefined();
+    expect(init.headers).toEqual({ 'X-Real-IP': '203.0.113.5' });
   });
 
   it('getPreviewStationName matches the code exactly', async () => {

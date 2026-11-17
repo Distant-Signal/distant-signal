@@ -1,7 +1,7 @@
 import { guardPreview } from '@/lib/previewRoute';
 import { ApiNotFoundError, getPreviewGroupJoin } from '@/lib/api';
 import { groupInvitePreviewCard } from '@/lib/groupInvitePreview';
-import { LIVE_PREVIEW_CACHE_CONTROL, NOINDEX_HEADER } from '@/lib/livePreview';
+import { TOKEN_PREVIEW_CACHE_CONTROL, NOINDEX_HEADER } from '@/lib/livePreview';
 import { renderStatusPreviewImage } from '@/lib/previewImage';
 
 // A group invite's link-preview image, listed by the page's
@@ -11,19 +11,18 @@ import { renderStatusPreviewImage } from '@/lib/previewImage';
 //
 // One preview read (`lib/api.ts`, "Reads for link-preview images"): the
 // unauthenticated join preview, which gives a link holder the group's name
-// and member count and nothing else, shared for a minute. An invalid or
-// expired token, or a malformed one, is a 404 with the same short cache.
-// There is no data to credit, so the card has no credit line.
-export const revalidate = 60; // LIVE_PREVIEW_REVALIDATE_SECONDS: segment config must be a literal
-
-export function generateStaticParams(): { token: string }[] {
-  return [];
-}
+// and member count and nothing else. An invalid or expired token, or a
+// malformed one, is a 404. There is no data to credit, so the card has no
+// credit line.
+//
+// Nothing here is cached by us, as for a shared journey's card: an uncached
+// read, rendered per request, `TOKEN_PREVIEW_CACHE_CONTROL` on every answer.
+export const dynamic = 'force-dynamic';
 
 function notFound(): Response {
   return new Response('Not found', {
     status: 404,
-    headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
+    headers: { 'Cache-Control': TOKEN_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
   });
 }
 
@@ -40,8 +39,8 @@ async function handle(_request: Request, { params }: { params: Promise<{ token: 
     throw err;
   }
   return renderStatusPreviewImage(groupInvitePreviewCard(preview), '', {
-    headers: { 'Cache-Control': LIVE_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
+    headers: { 'Cache-Control': TOKEN_PREVIEW_CACHE_CONTROL, ...NOINDEX_HEADER },
   });
 }
 
-export const GET = guardPreview(handle);
+export const GET = guardPreview(handle, { token: true });

@@ -11,6 +11,7 @@ import {
   ROW_HEIGHT,
 } from './previewLayout';
 import { SITE_NAME } from './pageMetadata';
+import { renderableText } from './previewGlyphs';
 
 /** The link-preview (Open Graph) image template (round 2, item 9): the
  * page's title on the brand background, under the wordmark. A route opts in
@@ -27,7 +28,9 @@ import { SITE_NAME } from './pageMetadata';
  * whatever they like.
  *
  * The type is next/og's bundled Geist Regular: the site loads no web fonts
- * and the image renderer can't use the visitor's system stack. */
+ * and the image renderer can't use the visitor's system stack. Every string
+ * drawn is cut to the characters Geist has first (`lib/previewGlyphs.ts`),
+ * so next/og never fetches a fallback font or an emoji from a third party. */
 
 export const PREVIEW_IMAGE_SIZE = { width: 1200, height: 630 };
 export const PREVIEW_IMAGE_CONTENT_TYPE = 'image/png';
@@ -87,7 +90,10 @@ function Mark({ height }: { height: number }) {
 const BACKGROUND = 'linear-gradient(135deg, #ae3ec9 0%, #862e9c 100%)';
 const TEXT = '#ffffff';
 
-export function renderPreviewImage(title: string | null): ImageResponse {
+export function renderPreviewImage(rawTitle: string | null): ImageResponse {
+  // Only characters the bundled font has (`lib/previewGlyphs.ts`): next/og
+  // would otherwise fetch a font or an emoji from a third party mid-render.
+  const title = rawTitle === null ? null : renderableText(rawTitle) || null;
   if (title === null) {
     // The site's own card: the wordmark large, the strapline under it.
     return new ImageResponse(
@@ -195,6 +201,25 @@ const SINGLE_LINE = {
   textOverflow: 'ellipsis',
 } as const;
 
+/** `card` with every string cut to what the bundled font can draw
+ * (`lib/previewGlyphs.ts`), so next/og never fetches a font or an emoji
+ * mid-render. A part left empty is dropped (a chip, a row, the lead); an
+ * empty title becomes the site's name, so the card still says something. */
+export function renderableCard(card: StatusPreviewCard): StatusPreviewCard {
+  const names = card.chips.names.map(renderableText).filter((name) => name !== '');
+  return {
+    band: {
+      tone: card.band.tone,
+      label: renderableText(card.band.label),
+      aside: renderableText(card.band.aside),
+    },
+    title: renderableText(card.title) || SITE_NAME,
+    lead: card.lead === null ? null : renderableText(card.lead) || null,
+    chips: { names, more: card.chips.more + card.chips.names.length - names.length },
+    rows: card.rows.map(renderableText).filter((row) => row !== ''),
+  };
+}
+
 /** A live link preview (an incident, a line, a station, a train;
  * `lib/livePreview.ts`):
  * the state as a coloured band with the words on it and its time, then the
@@ -204,10 +229,12 @@ const SINGLE_LINE = {
  * (`lib/creditText.ts`), drawn small under the facts, wrapped, never cut short: the
  * image shows the data, so it carries the credit, as the page does. */
 export function renderStatusPreviewImage(
-  card: StatusPreviewCard,
-  credit: string,
+  rawCard: StatusPreviewCard,
+  rawCredit: string,
   init: ResponseInit = {},
 ): ImageResponse {
+  const card = renderableCard(rawCard);
+  const credit = renderableText(rawCredit);
   const band = STATUS_BAND_COLORS[card.band.tone];
   const chips = fitLineChips(card.chips.names, card.chips.more);
   // What fits is decided up front (`lib/previewLayout.ts`), so a row is

@@ -121,7 +121,8 @@ for (const [name, path] of TOKEN_PREVIEWS) {
     const response = await request.get(new URL(url!).pathname + new URL(url!).search);
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toBe('image/png');
-    expect(response.headers()['cache-control']).toMatch(/public/);
+    // Stored by no CDN, so a revoked link's card goes with the next fetch.
+    expect(response.headers()['cache-control']).toBe('private, no-store');
     expect(response.headers()['x-robots-tag']).toBe('noindex');
     const png = await response.body();
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
@@ -143,6 +144,8 @@ test('an unknown share or invite token keeps the site card, noindexed, and has n
     const card = await request.get(`${path}/card.png`);
     expect(card.status()).toBe(404);
     expect(card.headers()['x-robots-tag']).toBe('noindex');
+    // Stored by no CDN, so nothing outlives a revoked link.
+    expect(card.headers()['cache-control']).toBe('private, no-store');
   }
 });
 
@@ -152,6 +155,8 @@ test('robots.txt lets link-preview fetchers read share and invite links and nobo
   const slack = groups.find((group) => group.includes('User-Agent: Slackbot'));
   expect(slack).toContain('Allow: /journeys/shared/');
   expect(slack).toContain('Allow: /groups/join/');
+  // Every card is listed with `?v=`, which `/*?` would otherwise block.
+  expect(slack).toContain('Allow: /*/card.png');
   const star = groups.find((group) => group.startsWith('User-Agent: *'));
   expect(star).not.toContain('Allow: /journeys/shared/');
   expect(star).toContain('Disallow: /journeys/');

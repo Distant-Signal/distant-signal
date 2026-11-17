@@ -12,9 +12,11 @@ import {
   cardTitleFontSize,
   previewTitleFontSize,
   previewTitleFromMetadata,
+  renderableCard,
   renderStatusPreviewImage,
   renderPreviewImage,
 } from './previewImage';
+import { renderableText } from './previewGlyphs';
 import { linePreviewCard, SNAPSHOT_NOTE } from './linePreview';
 import type { StatusPreviewCard } from './livePreview';
 import { layoutStatusCard } from './previewLayout';
@@ -519,6 +521,10 @@ describe('renderStatusPreviewImage', () => {
       // snapshot note is drawn among them or in the credit block.
       const layout = layoutStatusCard(card, PREVIEW_CREDITS[name.split('-')[0]!]!, card.chips.names.length);
       expect(layout.used).toBeLessThanOrEqual(layout.available);
+      // Every sample draws whole with the bundled font (`lib/previewGlyphs.ts`):
+      // nothing in it is cut, so the saved sample is what it was.
+      expect(renderableCard(card)).toEqual(card);
+      expect(renderableText(PREVIEW_CREDITS[name.split('-')[0]!]!)).toBe(PREVIEW_CREDITS[name.split('-')[0]!]!);
       if (card.rows.includes(SNAPSHOT_NOTE)) {
         expect(layout.rows.includes(SNAPSHOT_NOTE) || layout.credit.includes(SNAPSHOT_NOTE)).toBe(true);
       }
@@ -620,11 +626,12 @@ describe('the live preview routes', () => {
     const source = readFileSync(route, 'utf8').replace(/\/\/.*$/gm, '');
     expect(source).toContain('renderStatusPreviewImage(');
     expect(source).toContain(read);
-    // A cookie, a header or a dynamic read would make the route dynamic
-    // (re-rendered per hit) and split the shared data cache per requester.
+    // A cookie, a header or a request read would split the shared data
+    // cache per requester; the card shows the same to everyone.
     expect(source).not.toMatch(/searchParams|request\.|nextUrl|cookies\(|headers\(/);
     expect(source).not.toMatch(/import \{[^}]*\bget(?!Preview)[^}]*\} from '@\/lib\/api'/);
-    expect(source).toMatch(/export const revalidate = 60;/);
+    // Never ISR (`lib/livePreview.ts`, "Caching"; `app/cardRoutes.test.ts`).
+    expect(source).toMatch(/export const dynamic = 'force-dynamic';/);
     expect(source).toContain('LIVE_PREVIEW_CACHE_CONTROL');
     // Its page lists it, not a file-convention image that would win over it.
     expect(existsSync(route.replace('card.png/route.tsx', 'opengraph-image.tsx'))).toBe(false);

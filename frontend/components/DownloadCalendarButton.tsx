@@ -12,6 +12,10 @@ import { describeFailure } from '@/lib/failure';
  * "Couldn't download the calendar file." and never saves an error body as
  * `journey-N.ics`. It is a copy, not the subscription: Preferences has the
  * live feed. */
+
+/** How long the saved file's blob URL outlives the click. */
+export const REVOKE_DELAY_MS = 1000;
+
 export function DownloadCalendarButton({ journeyId }: { journeyId: number }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +36,9 @@ export function DownloadCalendarButton({ journeyId }: { journeyId: number }) {
       document.body.append(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      // Not in this task: WebKit has aborted a download whose blob URL was
+      // revoked straight after `click()`.
+      setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
     } catch {
       setError(describeFailure('download', 'the calendar file'));
     } finally {

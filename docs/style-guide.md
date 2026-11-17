@@ -450,8 +450,8 @@ used, rather than as a literal in a component.
   images; it is not an `opengraph-image.tsx`, whose URL can't carry that.
   `og:description` stays evergreen; the live part is in the image only.
   The routes read through the "Reads for link-preview images" in
-  `lib/api.ts` (anonymous, no client IP, shared for a minute) and
-  regenerate the PNG at most once a minute. No departures on a station
+  `lib/api.ts` (anonymous, no client IP, shared for a minute) and draw
+  the PNG per request, which the CDN caches. No departures on a station
   card: they go stale in minutes and a chat app shows the card for hours.
   A train card's band is its state ("On time", "12 min late" in the late
   badge's orange, "Cancelled", "Terminates at X" in red, "Planned"); the
@@ -463,14 +463,21 @@ used, rather than as a literal in a component.
   session, so it has no card and keeps the site-wide image.
   Sample cards: `frontend/test/fixtures/preview-cards/`.
   Every card route follows one convention, so a new one is a copy of
-  `app/stations/[crs]/card.png/route.tsx`: `revalidate = 60` and
-  `generateStaticParams() { return []; }`; reads only through the
+  `app/stations/[crs]/card.png/route.tsx`: `dynamic = 'force-dynamic'`,
+  never ISR (`revalidate` or `generateStaticParams`: ISR serves a stale
+  card once after a change, would store a 503 over a good card and writes
+  a file per id tried; `lib/livePreview.ts`, "Caching"); reads only through the
   `getPreview*` functions in `lib/api.ts` (no session cookie, no client IP,
   so Next's data cache is shared); the id checked against the page's own
   pattern before any request; `LIVE_PREVIEW_CACHE_CONTROL` on the PNG and on
   a 404 (never `notFound()`, never a thrown 404); the data's credit as
-  `plainCredits` text, drawn on the card. The route's `GET` is wrapped in
-  `guardPreview` (`lib/previewRoute.ts`), so an api outage is a 503 cached
+  `plainCredits` text, drawn on the card. Every string drawn is cut to the
+  characters the bundled Geist has (`lib/previewGlyphs.ts`: an emoji or an
+  unsupported script is left out), since next/og would otherwise fetch a
+  font or emoji from a third party mid-render. The route's `GET` is wrapped in
+  `guardPreview` (`lib/previewRoute.ts`), which limits each client's
+  renders (`lib/previewRateLimit.ts`, a 429) and makes an api outage a
+  noindexed 503 cached
   for ten seconds (`PREVIEW_ERROR_CACHE_CONTROL`), never an uncached 500 and
   never a failure cached as long as a card; a missing name or operator list
   degrades the card (the bare code, no operators row), not the response.
@@ -511,8 +518,12 @@ used, rather than as a literal in a component.
   site-wide card and a friendly page, never `notFound()`. robots.txt
   disallows both paths for `*` and allows them only to the link-preview
   fetchers (`LINK_PREVIEW_FETCHERS` in `lib/robots.ts`), since Slack and X
-  obey it and would not unfurl them otherwise. The token appears in the
-  image's URL and nowhere else in the metadata.
+  obey it and would not unfurl them otherwise; those fetchers are also
+  allowed every `*/card.png` and `*/opengraph-image` URL, which `/*?` would
+  otherwise block for its query string. The token appears in the
+  image's URL and nowhere else in the metadata. The card, its 404 and its
+  errors are `TOKEN_PREVIEW_CACHE_CONTROL` (`private, no-store`) and its
+  read is uncached, so a revoked link's card goes with the next fetch.
 - **Preferences** (`app/account/preferences/page.tsx`): open to everyone,
   never a redirect. Each section is a `PreferencesSection` card.
   - Device-local, no account needed: Appearance (colour theme, pride
