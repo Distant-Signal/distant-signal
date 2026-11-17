@@ -62,31 +62,45 @@ async function getServiceWorker(page: Page): Promise<Worker> {
 }
 
 test.describe('push notification handlers (sw.js)', () => {
-  test('push event with no payload is ignored without throwing', async ({ page }) => {
+  // WebKit revokes a subscription whose pushes show no notification, so a
+  // push with no usable payload still shows a generic one.
+  test('push event with no payload shows a generic notification without throwing', async ({ page }) => {
     await page.goto('/');
     await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true));
     const worker = await getServiceWorker(page);
 
     const calls = await worker.evaluate(async () => {
       const sw = self as unknown as SwScope; // see the file header comment
-      const calls: unknown[] = [];
-      sw.registration.showNotification = (...args: unknown[]) => {
-        calls.push(args);
+      const calls: { title: string; options: unknown }[] = [];
+      sw.registration.showNotification = (title: string, options: unknown) => {
+        calls.push({ title, options });
         return Promise.resolve();
       };
+      sw.clients.matchAll = async () => [];
 
       // No `data` option at all -- PushEvent.data is then `null`, matching
       // a real push service sending an empty message body.
       const event = new sw.PushEvent('push', {});
+      let waited: Promise<unknown> | undefined;
+      event.waitUntil = (p: Promise<unknown>) => {
+        waited = p;
+        return p;
+      };
       sw.dispatchEvent(event);
-      // No waitUntil is ever called on this path (the handler returns
-      // before reaching it) -- a short tick is enough to prove nothing
-      // async was kicked off either.
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waited;
       return calls;
     });
 
-    expect(calls).toEqual([]);
+    expect(calls).toEqual([
+      {
+        title: 'Distant Signal',
+        options: {
+          body: 'There is an update. Open the app to see it.',
+          tag: 'distant-signal-update',
+          data: { url: '/' },
+        },
+      },
+    ]);
   });
 
   test('push event shows a notification when no focused tab already has the url open', async ({ page }) => {
@@ -123,16 +137,16 @@ test.describe('push notification handlers (sw.js)', () => {
     ]);
   });
 
-  test('push event is skipped when a focused tab already has the exact url open', async ({ page }) => {
+  test('push event shows silently when a focused tab already has the exact url open', async ({ page }) => {
     await page.goto('/');
     await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true));
     const worker = await getServiceWorker(page);
 
     const calls = await worker.evaluate(async () => {
       const sw = self as unknown as SwScope;
-      const calls: unknown[] = [];
-      sw.registration.showNotification = (...args: unknown[]) => {
-        calls.push(args);
+      const calls: { title: string; options: unknown }[] = [];
+      sw.registration.showNotification = (title: string, options: unknown) => {
+        calls.push({ title, options });
         return Promise.resolve();
       };
       sw.clients.matchAll = async () => [{ focused: true, url: `${sw.location.origin}/lines/bakerloo` }];
@@ -149,7 +163,12 @@ test.describe('push notification handlers (sw.js)', () => {
       return calls;
     });
 
-    expect(calls).toEqual([]);
+    expect(calls).toEqual([
+      {
+        title: 'Bakerloo line',
+        options: { body: 'Severe delays', tag: 'line-bakerloo', silent: true, data: { url: '/lines/bakerloo' } },
+      },
+    ]);
   });
 
   test('notificationclick closes the notification and opens/focuses its url', async ({ page }) => {
@@ -164,6 +183,7 @@ test.describe('push notification handlers (sw.js)', () => {
         openedUrl = url;
         return null;
       };
+      sw.clients.matchAll = async () => [];
 
       const fakeNotification = {
         closed: false,
@@ -192,6 +212,56 @@ test.describe('push notification handlers (sw.js)', () => {
     expect(result).toEqual({
       closed: true,
       openedUrl: `${result.origin}/lines/victoria`,
+      origin: new URL(page.url()).origin,
+    });
+  });
+
+  // A click used to open a new window every time.
+  test('notificationclick focuses a window already on that page instead of opening one', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => navigator.serviceWorker.ready.then(() => true));
+    const worker = await getServiceWorker(page);
+
+    const result = await worker.evaluate(async () => {
+      const sw = self as unknown as SwScope;
+      let opened = false;
+      let focused = false;
+      let navigatedTo: string | undefined;
+      sw.clients.openWindow = async () => {
+        opened = true;
+        return null;
+      };
+      sw.clients.matchAll = async () => [
+        {
+          url: `${sw.location.origin}/lines/victoria`,
+          focused: false,
+          focus: async () => {
+            focused = true;
+          },
+          navigate: async (url: string) => {
+            navigatedTo = url;
+          },
+        },
+      ];
+      const event = new Event('notificationclick') as Event & {
+        notification?: { close(): void; data: { url: string } };
+        waitUntil?: (p: Promise<unknown>) => unknown;
+      };
+      event.notification = { close: () => undefined, data: { url: '/lines/victoria?src=push' } };
+      let waited: Promise<unknown> | undefined;
+      event.waitUntil = (p: Promise<unknown>) => {
+        waited = p;
+        return p;
+      };
+      sw.dispatchEvent(event);
+      await waited;
+      return { opened, focused, navigatedTo, origin: sw.location.origin };
+    });
+
+    expect(result).toEqual({
+      opened: false,
+      focused: true,
+      navigatedTo: `${result.origin}/lines/victoria?src=push`,
       origin: new URL(page.url()).origin,
     });
   });

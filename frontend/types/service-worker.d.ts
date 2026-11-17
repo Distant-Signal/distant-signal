@@ -17,6 +17,8 @@ interface WorkerGlobalScope {
   // functions are not globals here; the types come from its exports.
   notificationOptions: typeof import('../public/sw-cache-rules.js').notificationOptions;
   isCacheable: typeof import('../public/sw-cache-rules.js').isCacheable;
+  notificationClickClient: typeof import('../public/sw-cache-rules.js').notificationClickClient;
+  pushNotification: typeof import('../public/sw-cache-rules.js').pushNotification;
   parsePushPayload: typeof import('../public/sw-cache-rules.js').parsePushPayload;
   sameOriginNotificationUrl: typeof import('../public/sw-cache-rules.js').sameOriginNotificationUrl;
   showsNotificationPage: typeof import('../public/sw-cache-rules.js').showsNotificationPage;

@@ -220,7 +220,10 @@ describe('JoinGroupPage', () => {
       expect(screen.getByRole('button', { name: 'Join group' })).toBeInTheDocument();
     });
 
-    it('propagates an unexpected error from the membership probe', async () => {
+    // The invite resolved, so a transient probe failure used to show the
+    // error page instead of the invite.
+    it('falls back to the ordinary Join button when the membership probe fails otherwise', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.mocked(getGroupJoinPreview).mockResolvedValue({ groupId: 'grp-1', groupName: 'Family', memberCount: 3 });
       vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
         authenticated: true,
@@ -236,9 +239,10 @@ describe('JoinGroupPage', () => {
         recentlyDeletedEnabled: false,
         analyticsOptIn: false,
       });
-      vi.mocked(getGroup).mockRejectedValue(new Error('boom'));
+      vi.mocked(getGroup).mockRejectedValue(new Error('API request to /Groups/grp-1 failed: 503'));
 
-      await expect(JoinGroupPage({ params: Promise.resolve({ token: 'tok123' }) })).rejects.toThrow('boom');
+      renderWithMantine(await JoinGroupPage({ params: Promise.resolve({ token: 'tok123' }) }));
+      expect(screen.getByRole('button', { name: 'Join group' })).toBeInTheDocument();
     });
   });
 });

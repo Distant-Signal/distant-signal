@@ -16,7 +16,7 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
-import { GET, HEAD, POST, PUT, DELETE, MAX_PROXY_BODY_BYTES } from './route';
+import { GET, HEAD, POST, PUT, DELETE, MAX_PROXY_BODY_BYTES, originOfReferer } from './route';
 
 describe('/api/[...path] proxy', () => {
   beforeEach(() => {
@@ -94,7 +94,37 @@ describe('/api/[...path] proxy', () => {
     expect(calledUrl.toString()).toBe('http://test-api:8080/public/auth/logout');
     const headers = (init as { headers: Record<string, string> }).headers;
     expect(headers.Origin).toBe('http://localhost:3000');
-    expect(headers.Referer).toBe('http://localhost:3000/settings');
+    // Cut to its origin (below).
+    expect(headers.Referer).toBe('http://localhost:3000/');
+  });
+
+  // The full Referer of a request from a shared journey or group invite
+  // page carried the page's bearer token to the api (and its logs). The
+  // api only ever compares the Referer's origin.
+  it('forwards only the origin of a Referer, never a token page path', async () => {
+    const req = makeRequest('/api/Journeys/shared/tok123/follow', {
+      method: 'POST',
+      headers: {
+        origin: 'http://localhost:3000',
+        referer: 'http://localhost:3000/journeys/shared/tok123?x=1#y',
+        cookie: 'distant_signal_session=abc123',
+      },
+    });
+    await POST(req, { params: Promise.resolve({ path: ['Journeys', 'shared', 'tok123', 'follow'] }) });
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    const headers = (init as { headers: Record<string, string> }).headers;
+    expect(headers.Referer).toBe('http://localhost:3000/');
+  });
+
+  it.each([
+    [null, null],
+    ['', null],
+    ['not a url', null],
+    ['data:text/plain,hello', null],
+    ['https://ds.example/groups/join/abc', 'https://ds.example/'],
+    ['http://localhost:3000', 'http://localhost:3000/'],
+  ])('originOfReferer(%j) is %j', (referer, expected) => {
+    expect(originOfReferer(referer)).toBe(expected);
   });
 
   // Delegated access (spec 2026-10-14 §5.7, threat T12): the api accepts a
@@ -810,7 +840,7 @@ describe('/api/[...path] proxy', () => {
       expect(headers['X-Real-IP']).toBe('203.0.113.5');
       expect(Object.keys(headers).map((n) => n.toLowerCase())).not.toContain('x-forwarded-for');
       expect(headers.Origin).toBe('https://evil.example');
-      expect(headers.Referer).toBe('http://localhost:3000/account');
+      expect(headers.Referer).toBe('http://localhost:3000/');
     });
 
     // Prod logged "Request with GET/HEAD method cannot have body" from this

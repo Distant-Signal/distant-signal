@@ -52,9 +52,12 @@ const OFFLINE_PAGE_CSP = [
   "style-src 'self' 'unsafe-inline'",
 ].join('; ');
 
-// `/api/*`: the backend proxy. It returns JSON and redirects, never a page,
-// so if a response were ever rendered as a document it should be able to do
-// nothing at all.
+// Referrer-Policy for every response, and the stricter one for the pages
+// whose path carries a share or invite token (see headers()).
+const REFERRER_POLICY = 'strict-origin-when-cross-origin';
+const TOKEN_PAGE_REFERRER_POLICY = 'no-referrer';
+const TOKEN_PAGE_SOURCES = ['/journeys/shared/:token*', '/groups/join/:token*'];
+
 // Cache-Control values for the static path classes (see headers()).
 const CACHE_NO_CACHE = 'no-cache';
 const CACHE_UNHASHED_ASSET = 'public, max-age=86400, stale-while-revalidate=604800';
@@ -75,6 +78,9 @@ const UNHASHED_ASSET_SOURCES = [
   '/manifest.webmanifest',
 ];
 
+// `/api/*`: the backend proxy. It returns JSON and redirects, never a page,
+// so if a response were ever rendered as a document it should be able to do
+// nothing at all.
 const API_CSP = ["default-src 'none'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'none'"].join('; ');
 
 // Cloudflare is in front of the (single-replica) origin
@@ -199,6 +205,19 @@ const nextConfig = {
   // eslint-disable-next-line @typescript-eslint/require-await -- NextConfig types headers() as returning a Promise
   async headers() {
     return [
+      // Referrer-Policy: stated rather than left to the browser default, and
+      // `no-referrer` on the pages whose URL is a bearer token (a shared
+      // journey link, a group invite), so the token never goes out in a
+      // Referer, to this site's own requests or to a link the page opens.
+      // Order matters: Next lets the later matching entry win a key.
+      {
+        source: '/:path*',
+        headers: [{ key: 'Referrer-Policy', value: REFERRER_POLICY }],
+      },
+      ...TOKEN_PAGE_SOURCES.map((source) => ({
+        source,
+        headers: [{ key: 'Referrer-Policy', value: TOKEN_PAGE_REFERRER_POLICY }],
+      })),
       {
         source: '/sw.js',
         headers: [

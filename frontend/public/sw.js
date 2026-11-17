@@ -147,31 +147,17 @@ self.addEventListener('fetch', (event) => {
 // above, per this file's own header comment.
 
 self.addEventListener('push', (event) => {
-  // FE-10: a missing or non-JSON payload is dropped, not thrown.
+  // FE-10: a missing or non-JSON payload never throws. Every push shows a
+  // notification (`pushNotification`): WebKit revokes a subscription whose
+  // pushes show none, so a bad payload gets a generic one and a page a
+  // focused tab already shows gets a silent one rather than none.
   const payload = self.parsePushPayload(event.data);
-  if (!payload || typeof payload.title !== 'string') {
-    return;
-  }
-  // Only `title` is checked; the notifier always sends all four fields as
-  // strings (the contract above), and `renotify` only when true.
-  const { title, url } = /** @type {PushNotificationPayload} */ (/** @type {unknown} */ (payload));
 
   event.waitUntil(
     (async () => {
-      // Skip showing a notification if a focused client already has this
-      // exact URL open -- AutoRefresh already covers that case within its
-      // existing 30s poll, so a push notification on top of an
-      // already-visible, already-fresh tab would be redundant.
       const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      // By pathname, so a link with a query or hash (a suggestion push's
-      // `?break=..&src=push`) still matches the page a focused tab shows.
-      const alreadyFocused = clientList.some(
-        (client) => client.focused && self.showsNotificationPage(client.url, url, self.location.origin),
-      );
-      if (alreadyFocused) {
-        return;
-      }
-      await self.registration.showNotification(title, self.notificationOptions(payload));
+      const { title, options } = self.pushNotification(payload, clientList, self.location.origin);
+      await self.registration.showNotification(title, options);
     })(),
   );
 });
@@ -186,5 +172,24 @@ self.addEventListener('notificationclick', (event) => {
   if (!target) {
     return;
   }
-  event.waitUntil(self.clients.openWindow(target));
+  event.waitUntil(
+    (async () => {
+      // Bring forward a window already on that page rather than opening
+      // another each click; a new window only when none is, or when the
+      // existing one can't be focused or moved to the link.
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const existing = self.notificationClickClient(clientList, target, self.location.origin);
+      if (existing) {
+        try {
+          // Focus first, while the click still counts as the user's.
+          await existing.focus();
+          if (existing.url !== target) await existing.navigate(target);
+          return;
+        } catch {
+          // Fall through to a new window.
+        }
+      }
+      await self.clients.openWindow(target);
+    })(),
+  );
 });

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BROWSER_ACCOUNT_KEYS, clearBrowserAccountData } from './browserAccountData';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { BROWSER_ACCOUNT_KEYS, clearBrowserAccountData, forgetThisDevicePush } from './browserAccountData';
 
 // DQ5 (FE-3/LEG-11/LEG-26).
 describe('clearBrowserAccountData', () => {
@@ -65,5 +65,77 @@ describe('clearBrowserAccountData', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+// The api's logout keeps push subscriptions, so a shared device kept getting
+// the previous user's alerts.
+describe('forgetThisDevicePush', () => {
+  function stubPush(subscription: { endpoint: string; unsubscribe: () => Promise<boolean> } | null) {
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { getRegistration: async () => ({ pushManager: { getSubscription: async () => subscription } }) },
+    });
+  }
+
+  afterEach(() => {
+    // @ts-expect-error -- undo the test-only stub (jsdom has no serviceWorker).
+    delete navigator.serviceWorker;
+    vi.unstubAllGlobals();
+  });
+
+  it('asks the server to forget this device, then drops the browser subscription', async () => {
+    const calls: string[] = [];
+    const fetchMock = vi.fn(async () => {
+      calls.push('delete');
+      return new Response(null, { status: 204 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    stubPush({
+      endpoint: 'https://push.example/abc',
+      unsubscribe: async () => {
+        calls.push('unsubscribe');
+        return true;
+      },
+    });
+
+    await forgetThisDevicePush();
+
+    expect(calls).toEqual(['delete', 'unsubscribe']);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/notifications/subscribe',
+      expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ endpoint: 'https://push.example/abc' }) }),
+    );
+  });
+
+  it('still drops the browser subscription when the server call fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    const unsubscribe = vi.fn(async () => true);
+    stubPush({ endpoint: 'https://push.example/abc', unsubscribe });
+
+    await expect(forgetThisDevicePush()).resolves.toBeUndefined();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing without a subscription or a service worker, and never throws', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(forgetThisDevicePush()).resolves.toBeUndefined();
+    stubPush(null);
+    await expect(forgetThisDevicePush()).resolves.toBeUndefined();
+    stubPush({
+      endpoint: 'https://push.example/abc',
+      unsubscribe: async () => {
+        throw new Error('InvalidStateError');
+      },
+    });
+    fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
+    await expect(forgetThisDevicePush()).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import cacheRules from './sw-cache-rules.js';
 
-const { isCacheable, notificationOptions, parsePushPayload, sameOriginNotificationUrl, showsNotificationPage } =
-  cacheRules;
+const {
+  isCacheable,
+  notificationClickClient,
+  notificationOptions,
+  parsePushPayload,
+  pushNotification,
+  sameOriginNotificationUrl,
+  showsNotificationPage,
+} = cacheRules;
 
 describe('isCacheable', () => {
   it.each([
@@ -116,5 +123,61 @@ describe('showsNotificationPage', () => {
     expect(showsNotificationPage('https://ds.example/journeys/42', 'https://evil.example/journeys/42', origin)).toBe(
       false,
     );
+  });
+});
+
+// WebKit revokes a push subscription whose pushes show no notification, so
+// every push shows one.
+describe('pushNotification', () => {
+  const origin = 'https://ds.example';
+  const payload = { title: 'Lewes: delays', body: 'Up to 20 minutes', url: '/lines/x', tag: 'line-x', renotify: true };
+
+  it('shows the payload as it is when no focused tab shows the page', () => {
+    const clients = [
+      { url: 'https://ds.example/lines/x', focused: false },
+      { url: 'https://ds.example/lines/y', focused: true },
+    ];
+    expect(pushNotification(payload, clients, origin)).toEqual({
+      title: 'Lewes: delays',
+      options: { body: 'Up to 20 minutes', tag: 'line-x', renotify: true, data: { url: '/lines/x' } },
+    });
+  });
+
+  it('shows it silently, rather than not at all, when a focused tab already shows the page', () => {
+    const clients = [{ url: 'https://ds.example/lines/x?tab=1', focused: true }];
+    expect(pushNotification(payload, clients, origin)).toEqual({
+      title: 'Lewes: delays',
+      options: { body: 'Up to 20 minutes', tag: 'line-x', silent: true, data: { url: '/lines/x' } },
+    });
+  });
+
+  it('shows a generic notification for a missing or titleless payload', () => {
+    for (const bad of [null, { body: 'no title' }, { title: 42 }]) {
+      const { title, options } = pushNotification(bad, [], origin);
+      expect(title).toBe('Distant Signal');
+      expect(options.body).toBe('There is an update. Open the app to see it.');
+      expect(options.data).toEqual({ url: '/' });
+    }
+  });
+});
+
+// A click used to open a new window every time.
+describe('notificationClickClient', () => {
+  const origin = 'https://ds.example';
+
+  it('prefers a window already at the link, then one on the same page', () => {
+    const exact = { url: 'https://ds.example/journeys/42?break=7', id: 'exact' };
+    const samePage = { url: 'https://ds.example/journeys/42', id: 'same' };
+    const other = { url: 'https://ds.example/lines', id: 'other' };
+    const target = 'https://ds.example/journeys/42?break=7';
+    expect(notificationClickClient([other, samePage, exact], target, origin)).toBe(exact);
+    expect(notificationClickClient([other, samePage], target, origin)).toBe(samePage);
+  });
+
+  it('returns null when no window shows that page, so the click opens one', () => {
+    expect(
+      notificationClickClient([{ url: 'https://ds.example/lines' }], 'https://ds.example/journeys/42', origin),
+    ).toBe(null);
+    expect(notificationClickClient([], 'https://ds.example/', origin)).toBe(null);
   });
 });

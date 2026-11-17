@@ -25,8 +25,24 @@ const log = createLogger('app/error');
  * server-error correlation hash, which exists precisely to be quoted by a
  * user -- is what gets shown, and only when there is one (client-side
  * render errors have none). */
-export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function Error({
+  error,
+  reset,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+  retry?: () => void;
+}) {
   const { disconnected } = useConnectivity();
+  // `retry` re-fetches the segment (`router.refresh()`) and clears the
+  // boundary in one transition; `reset` only clears the boundary, which
+  // re-renders the same failed payload and throws again, so a page that
+  // failed on one api error stayed broken until a full reload. Next 16
+  // passes both (ErrorBoundaryHandler in
+  // node_modules/next/dist/client/components/error-boundary.js); `reset` is
+  // the fallback should a version pass only that.
+  const tryAgain = retry ?? reset;
 
   useEffect(() => {
     // The only reporting channel this app has. Previously nothing logged
@@ -44,7 +60,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   // AutoRefresh's router.refresh() never changes the pathname -- so before
   // this effect existed, a visitor who hit this page during a backend
   // outage stayed on it until they manually clicked "Try again" or
-  // navigated away, no matter how long ago the backend came back. `reset`
+  // navigated away, no matter how long ago the backend came back. `retry`
   // is a prop only this component receives; no sibling elsewhere in the
   // tree can call it, which is why this fix can only live here. See
   // docs/superpowers/specs/2026-09-02-frontend-disconnect-reconnect-ux-design.md
@@ -52,17 +68,17 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   //
   // Only ever on a true -> false transition, never on the initial render.
   // A genuine (non-connectivity) Server Component bug renders this page
-  // with `disconnected` already false; calling reset() there would
+  // with `disconnected` already false; calling retry() there would
   // re-render the segment, throw again, and loop the boundary forever.
   // Tracking the previous value makes "the connection came back" the only
   // trigger.
   const wasDisconnected = useRef(disconnected);
   useEffect(() => {
     if (wasDisconnected.current && !disconnected) {
-      reset();
+      tryAgain();
     }
     wasDisconnected.current = disconnected;
-  }, [disconnected, reset]);
+  }, [disconnected, tryAgain]);
 
   return (
     <Stack p="lg" gap="md">
@@ -88,7 +104,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           needs a way to retry, and one looking at the reconnecting state
           shouldn't be forced to wait if they'd rather poke it. */}
       <Group>
-        <Button onClick={reset} w="fit-content">
+        <Button onClick={tryAgain} w="fit-content">
           Try again
         </Button>
         {/* 2026-09-22 UX review §5.1: "your dashboard" assumes a logged-in

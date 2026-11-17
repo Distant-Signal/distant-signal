@@ -20,6 +20,7 @@ function errorWithDigest(message: string, digest?: string): Error & { digest?: s
 }
 
 const reset = vi.fn();
+const retry = vi.fn();
 const connectivityError = Object.assign(new globalThis.Error('API request to /Line/Mode failed: 500'), {
   digest: 'abc123',
 });
@@ -37,7 +38,7 @@ function Harness({ initial }: { initial: boolean }) {
   setDisconnected = setValue;
   return (
     <ConnectivityContext.Provider value={{ disconnected }}>
-      <ErrorBoundary error={connectivityError} reset={reset} />
+      <ErrorBoundary error={connectivityError} reset={reset} retry={retry} />
     </ConnectivityContext.Provider>
   );
 }
@@ -45,6 +46,7 @@ function Harness({ initial }: { initial: boolean }) {
 describe('app/error.tsx', () => {
   beforeEach(() => {
     reset.mockClear();
+    retry.mockClear();
   });
 
   afterEach(() => {
@@ -96,11 +98,23 @@ describe('app/error.tsx', () => {
     expect(screen.queryByText(/your dashboard/)).not.toBeInTheDocument();
   });
 
-  it('still offers a Try again button that calls reset', () => {
+  it('falls back to reset for Try again when no retry is passed', () => {
     const localReset = vi.fn();
     renderWithMantine(<ErrorBoundary error={errorWithDigest('boom')} reset={localReset} />);
     screen.getByRole('button', { name: 'Try again' }).click();
     expect(localReset).toHaveBeenCalled();
+  });
+
+  // reset() only clears the boundary and re-renders the payload that threw,
+  // so a page broken by one api error stayed broken until a full reload;
+  // retry() re-fetches it first (Next 16's ErrorBoundaryHandler).
+  it('Try again calls retry, not reset, when Next passes both', () => {
+    const localReset = vi.fn();
+    const localRetry = vi.fn();
+    renderWithMantine(<ErrorBoundary error={errorWithDigest('boom')} reset={localReset} retry={localRetry} />);
+    screen.getByRole('button', { name: 'Try again' }).click();
+    expect(localRetry).toHaveBeenCalledTimes(1);
+    expect(localReset).not.toHaveBeenCalled();
   });
 
   it('renders a generic heading rather than the old hardcoded "status data" title', () => {
@@ -115,7 +129,7 @@ describe('app/error.tsx', () => {
     renderWithMantine(<Harness initial={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(reset).toHaveBeenCalledTimes(1);
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 
   it('shows the generic fallback copy, not the raw error, when this is not a connectivity failure', () => {
@@ -133,38 +147,39 @@ describe('app/error.tsx', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
-  it('auto-calls reset when the connection comes back', () => {
+  it('auto-calls retry when the connection comes back', () => {
     renderWithMantine(<Harness initial />);
-    expect(reset).not.toHaveBeenCalled();
+    expect(retry).not.toHaveBeenCalled();
 
     act(() => setDisconnected(false));
-    expect(reset).toHaveBeenCalledTimes(1);
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(reset).not.toHaveBeenCalled();
   });
 
   // The infinite-loop regression test, and the important one. A genuine
   // Server Component bug renders this page with `disconnected` already
   // false; auto-resetting there would re-throw and loop the boundary.
-  it('does NOT auto-call reset on an initial render that is not disconnected', () => {
+  it('does NOT auto-call retry on an initial render that is not disconnected', () => {
     renderWithMantine(<Harness initial={false} />);
-    expect(reset).not.toHaveBeenCalled();
+    expect(retry).not.toHaveBeenCalled();
   });
 
-  it('does not auto-call reset while it stays disconnected', () => {
+  it('does not auto-call retry while it stays disconnected', () => {
     renderWithMantine(<Harness initial />);
     act(() => setDisconnected(true));
     act(() => setDisconnected(true));
-    expect(reset).not.toHaveBeenCalled();
+    expect(retry).not.toHaveBeenCalled();
   });
 
   it('auto-resets again on a second disconnect/reconnect cycle', () => {
     renderWithMantine(<Harness initial />);
     act(() => setDisconnected(false));
-    expect(reset).toHaveBeenCalledTimes(1);
+    expect(retry).toHaveBeenCalledTimes(1);
 
     act(() => setDisconnected(true));
-    expect(reset).toHaveBeenCalledTimes(1);
+    expect(retry).toHaveBeenCalledTimes(1);
 
     act(() => setDisconnected(false));
-    expect(reset).toHaveBeenCalledTimes(2);
+    expect(retry).toHaveBeenCalledTimes(2);
   });
 });

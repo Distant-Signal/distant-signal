@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearBrowserAccountData } from '@/lib/browserAccountData';
+import { clearBrowserAccountData, forgetThisDevicePush } from '@/lib/browserAccountData';
 
 /** The log-out action, as a hook rather than as a component — the
  * counterpart to `useLoginHref.ts`, and for the same reason: the control
@@ -22,7 +22,10 @@ import { clearBrowserAccountData } from '@/lib/browserAccountData';
  *
  * DQ5 (FE-3): also clears the browser-held MCP tokens and Anthropic key
  * (`clearBrowserAccountData`), whatever the request's outcome, so the next
- * person to log in on this browser can't use the previous user's grant. */
+ * person to log in on this browser can't use the previous user's grant.
+ * And stops this device's push notifications (`forgetThisDevicePush`),
+ * which the api's logout leaves in place, so the next person on a shared
+ * device doesn't get the previous user's alerts. */
 export function useLogout() {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -30,6 +33,8 @@ export function useLogout() {
   async function logout() {
     setLoggingOut(true);
     try {
+      // First, while the session still exists to authorise the delete.
+      await forgetThisDevicePush();
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
       // Swallowed deliberately, not ignored: every caller wires this

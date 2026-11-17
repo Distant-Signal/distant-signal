@@ -7,6 +7,7 @@ import { NotificationsToggle } from '@/components/NotificationsToggle';
 import { CLOCK_HINT } from '@/components/TimeFilterInput';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { formatDateTime } from '@/lib/dateFormat';
+import { addCalendarDays, londonCalendarDay, londonWallClockToUtc } from '@/lib/londonWallClock';
 import type { NotificationPreferences, NotificationPreferencesUpdate, PushDevice } from '@/lib/types';
 import { PreferencesSection } from '../preferences/PreferencesSection';
 
@@ -338,14 +339,19 @@ const PAUSES: { label: string; until: (now: Date) => Date }[] = [
   { label: 'Pause for 4 hours', until: (now) => new Date(now.getTime() + 4 * 60 * 60 * 1000) },
   {
     label: 'Pause until 07:00 tomorrow',
-    until: (now) => {
-      const until = new Date(now);
-      until.setDate(until.getDate() + 1);
-      until.setHours(7, 0, 0, 0);
-      return until;
-    },
+    until: (now) => untilSevenTomorrow(now),
   },
 ];
+
+/** 07:00 UK time on the London day after `now`'s. In London's zone, not
+ * the device's: a visitor abroad pressing "Pause until 07:00 tomorrow" used
+ * to get 07:00 their own time (06:00 UK from CET), which the confirmation,
+ * shown in UK time, then contradicted. Calendar-day maths in UTC, so it
+ * holds across a clock change too. */
+export function untilSevenTomorrow(now: Date): Date {
+  const tomorrow = addCalendarDays(londonCalendarDay(now.toISOString()), 1);
+  return londonWallClockToUtc(`${tomorrow} 07:00:00`);
+}
 
 /** "Pause notifications" (snooze): held as in quiet hours until the time
  * chosen, then the latest news. */

@@ -112,8 +112,63 @@ function notificationOptions(payload) {
   return options;
 }
 
+/** Title and body for a push with no usable payload. */
+const FALLBACK_NOTIFICATION_TITLE = 'Distant Signal';
+const FALLBACK_NOTIFICATION_BODY = 'There is an update. Open the app to see it.';
+
+/**
+ * The notification to show for a push, always one: WebKit (Safari and iOS
+ * home-screen apps) requires every push to show a notification and revokes
+ * the subscription after repeated pushes that show none. So a push with no
+ * usable payload shows a generic notice, and a push for the page a focused
+ * tab already shows (AutoRefresh keeps that tab fresh) shows quietly
+ * (`silent`, no `renotify`) instead of being skipped.
+ * @param {Record<string, unknown> | null} payload - `parsePushPayload`'s result
+ * @param {readonly { url: string, focused: boolean }[]} clientList - the open windows
+ * @param {string} origin - `self.location.origin`
+ * @returns {{ title: string, options: { body: string, tag?: string, renotify?: boolean, silent?: boolean, data: { url: unknown } } }}
+ */
+function pushNotification(payload, clientList, origin) {
+  if (!payload || typeof payload.title !== 'string') {
+    return {
+      title: FALLBACK_NOTIFICATION_TITLE,
+      options: { body: FALLBACK_NOTIFICATION_BODY, tag: 'distant-signal-update', data: { url: '/' } },
+    };
+  }
+  /** @type {{ body: string, tag?: string, renotify?: boolean, silent?: boolean, data: { url: unknown } }} */
+  const options = notificationOptions(payload);
+  const alreadyShown = clientList.some(
+    (client) => client.focused && showsNotificationPage(client.url, payload.url, origin),
+  );
+  if (alreadyShown) {
+    delete options.renotify;
+    options.silent = true;
+  }
+  return { title: payload.title, options };
+}
+
+/**
+ * The open window a notification click should bring forward instead of
+ * opening another: one already at `target`, else one showing the same page
+ * (whatever its query or hash), else null.
+ * @template {{ url: string }} C
+ * @param {readonly C[]} clientList - the open windows
+ * @param {string} target - `sameOriginNotificationUrl`'s absolute URL
+ * @param {string} origin - `self.location.origin`
+ * @returns {C | null}
+ */
+function notificationClickClient(clientList, target, origin) {
+  return (
+    clientList.find((client) => client.url === target) ??
+    clientList.find((client) => showsNotificationPage(client.url, target, origin)) ??
+    null
+  );
+}
+
 if (typeof self !== 'undefined') {
   self.isCacheable = isCacheable;
+  self.notificationClickClient = notificationClickClient;
+  self.pushNotification = pushNotification;
   self.notificationOptions = notificationOptions;
   self.parsePushPayload = parsePushPayload;
   self.sameOriginNotificationUrl = sameOriginNotificationUrl;
@@ -123,7 +178,9 @@ if (typeof self !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     isCacheable,
+    notificationClickClient,
     notificationOptions,
+    pushNotification,
     parsePushPayload,
     sameOriginNotificationUrl,
     showsNotificationPage,
