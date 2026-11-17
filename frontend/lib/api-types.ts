@@ -1361,6 +1361,13 @@ createdVia?: string,
  */
 isOwner: boolean, 
 /**
+ * Whether the journey has an open break (`openBreak` is not `null`),
+ * for a reader who is not given the break itself: the share-link view
+ * serves `openBreak: null` and `disrupted: true`. Additive
+ * (2026-11-17).
+ */
+disrupted: boolean, 
+/**
  * The journey's currently-active unlisted share link, if any --
  * `Some` only when `is_owner` is `true` (see `build_journey_detail_response`).
  * A non-owner (a fellow group member, or a visitor who reached this
@@ -1390,7 +1397,7 @@ canFollow?: boolean,
 sourceTemplateId: number | null, 
 /**
  * The day's train the regular journeys plan sweep chose for this
- * occurrence: the choice, up to two alternatives and where it stands.
+ * occurrence: the choice, up to four alternatives and where it stands.
  * Owner only; `null` for anyone else and when it was never planned.
  * Additive (2026-11-06).
  */
@@ -2404,7 +2411,13 @@ departureDate: string | null,
  * Whether that departure is on the leg's own date (London); `null`
  * when the pass gives none.
  */
-departureDateMatchesLeg: boolean | null, };
+departureDateMatchesLeg: boolean | null, 
+/**
+ * Send this back with `source: "wallet"` and the `departureDate` above
+ * to save the pass's details as from a pass; good for an hour, for
+ * this leg only.
+ */
+prefillToken: string, };
 
 /**
  * `PUT /Journeys/{id}/legs/{legId}/ticket`'s body.
@@ -2419,14 +2432,20 @@ operatorOnly: boolean,
  */
 name?: string | null, 
 /**
- * `wallet` when the details came from a Wallet pass prefill;
- * `manual` when absent.
+ * `wallet` when the details came from a Wallet pass prefill (with its
+ * `prefillToken`, or when re-saving a ticket already saved from a
+ * pass); `manual` when absent.
  */
 source?: LegTicketSource | null, 
 /**
  * The prefill's departure, kept with a `wallet` source only.
  */
-departureDate?: string | null, };
+departureDate?: string | null, 
+/**
+ * The `prefillToken` the pass upload for this leg answered with; what
+ * a `wallet` source and `departureDate` are checked against.
+ */
+prefillToken?: string | null, };
 
 /**
  * Where a leg's ticket details came from.
@@ -3334,6 +3353,16 @@ export type PreviousWorkingLink = "inferred" | "association";
  */
 export type PublicTrainResponse = { 
 /**
+ * Where `journeyStops` came from: `cif` (the timetable), `darwin` (the
+ * Darwin Push Port's schedule, for a train the timetable lacks, such
+ * as a late-added special or charter) or `trust` (only the stops the
+ * train has reported so far; none ahead are known). `null` when there
+ * are no stops. `darwin` and `trust` are off unless the api's
+ * `DARWIN_STOPS_FALLBACK_ENABLED`/`TRUST_STOPS_FALLBACK_ENABLED` are
+ * set (`data::live_stops`).
+ */
+scheduleSource: ScheduleSource | null, 
+/**
  * The SHARED `trains` row's own surrogate key, serialized as
  * `trainsId`. Deliberately NOT named `id`, which is what this struct
  * used to call it: every `/Train/{trackingId}` route in this app
@@ -3359,7 +3388,12 @@ trainId: string | null,
  * The CIF `BS` Train Identity -- the 4-character signalling headcode
  * (e.g. `"1S00"`) -- read from the published schedule
  * (`schedule_destination_departures.headcode`), not from TRUST. `None`
- * when no row carries one or the rows disagree.
+ * when no row carries one or the rows disagree. The one exception is a
+ * live-only train (a `trains` row with no schedule row at all, such as a
+ * late STP or VSTP working absent from the full timetable): its headcode
+ * is the one embedded in `train_id`, the
+ * only identity it has. A CIF headcode is never overridden, and
+ * schedule rows that disagree stay `None`.
  */
 headcode: string | null, status: JourneyStatus | null, lastReportedLocation: string | null, lastEventType: string | null, 
 /**
@@ -3632,7 +3666,8 @@ acceptedIndex: number | null, };
  */
 export type RegularPlanAcceptRequest = { 
 /**
- * 0: the choice; 1 and 2: the alternatives, in order.
+ * 0: the choice; 1 to 4: the alternatives, in order (up to
+ * `regular_plan::MAX_ALTERNATIVES`, four, since DS-398).
  */
 index: number, 
 /**
@@ -4017,6 +4052,11 @@ uid: string,
  * departure row always has: typed as always set.
  */
 scheduled: string, publicDeparture: string | null, workingDeparture: string | null, workingDayOffset: number, dayOffset: number, destinationCrs: string | null, destinationName: string | null, originCrs: string | null, originName: string | null, live: LineTrainSummaryLive | null, serviceMode: ServiceMode, liveTracking: boolean, };
+
+/**
+ * Where a train's stops came from, served as `scheduleSource`.
+ */
+export type ScheduleSource = "cif" | "darwin" | "trust";
 
 /**
  * A time on the plan's clock: `time` (`HH:MM:SS`) and how many days after

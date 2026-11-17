@@ -74,6 +74,7 @@ describe('LegTicketDetails', () => {
               ticketTypeText: 'Super Off-Peak',
               departureDate: '2026-11-12T08:00:00Z',
               departureDateMatchesLeg: false,
+              prefillToken: '1788000000.abc123',
             }),
             { status: 200 },
           )
@@ -96,7 +97,20 @@ describe('LegTicketDetails', () => {
       ticketType: 'offPeak',
       source: 'wallet',
       departureDate: '2026-11-12T08:00:00Z',
+      prefillToken: '1788000000.abc123',
     });
+  });
+
+  it('sends no token when it re-saves a ticket already saved from a pass', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(SAVED), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    render({ ...SAVED, source: 'wallet', departureDate: '2026-11-12T08:00:00Z' });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit ticket details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(refreshMock).toHaveBeenCalled());
+    const body = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(body).toMatchObject({ source: 'wallet', departureDate: '2026-11-12T08:00:00Z' });
+    expect(body).not.toHaveProperty('prefillToken');
   });
 
   it('says why a file could not be read, and keeps the form', async () => {
