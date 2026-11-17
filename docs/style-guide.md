@@ -1343,8 +1343,9 @@ timetable), Incidents (and its
 filters open), Plan a journey's modes and results, Account, Preferences
 (logged out, logged in and with a pride flag), notifications, a journey,
 the Journeys page, Regular journeys (the list, the new regular journey
-form and a regular journey's day), a group, the TfL and tram pages and an
-Iarnród Éireann train. Every shot is four images in
+form and a regular journey's day), a group (and the owner's leave and
+delete dialogs), the missed-train sheet's states, the TfL and tram pages
+and an Iarnród Éireann train. Every shot is four images in
 `frontend/e2e/visual-baselines/`, named `<shot>-<scheme>-<width>.png`, so
 that directory is the list: `ls frontend/e2e/visual-baselines | wc -l`
 counts them (rather than a number here, which goes stale with every new
