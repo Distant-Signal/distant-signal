@@ -157,7 +157,9 @@ describe('JoinGroupPage', () => {
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
         name: 'Family',
-        ownerId: 'user-1',
+        ownerId: null,
+        ownerMemberId: 'member-1',
+        memberId: 'member-1',
         ownerName: 'Alex',
         ownerTag: null,
         memberCount: 3,

@@ -8,7 +8,6 @@ import {
   getGroupMembers,
   getGroupTrains,
   getLineStatus,
-  getSessionOrLoggedOut,
   ApiNotFoundError,
   ApiUnauthorizedError,
 } from '@/lib/api';
@@ -119,12 +118,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     throw err;
   }
 
-  const [members, trains, customLines, journeys, session] = await Promise.all([
+  const [members, trains, customLines, journeys] = await Promise.all([
     getGroupMembers(id),
     getGroupTrains(id),
     getGroupCustomLines(id),
     getGroupJourneys(id),
-    getSessionOrLoggedOut(),
   ]);
 
   // Live status for the shared custom lines, read through the ordinary
@@ -149,7 +147,6 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     });
   }
   const reportByLineId = new Map(customLineReports.map((r) => [r.id, r]));
-  const currentUserId = session.authenticated ? session.id : null;
   const canManage = group.role === 'owner' || group.role === 'admin';
   // Distinct from `canManage`: the backend gates promotion, demotion and
   // group deletion on `GroupRole::is_owner`, NOT `can_manage`
@@ -167,7 +164,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const nextOwner =
     viewerIsOwner && !willDeleteGroup
       ? [...members]
-          .filter((m) => m.userId !== currentUserId)
+          .filter((m) => !m.isMe)
           .sort((a, b) => {
             const roleRank = (m: GroupMember) => (m.role === 'admin' ? 0 : 1);
             const rankDiff = roleRank(a) - roleRank(b);
@@ -206,14 +203,12 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
             used to sit 12px apart directly against the heading. */}
         <Group gap="xs" className="groupHeaderActions">
           {canManage && <RenameGroupButton groupId={id} currentName={group.name} />}
-          {currentUserId && (
-            <LeaveGroupButton
-              groupId={id}
-              currentUserId={currentUserId}
-              willDeleteGroup={willDeleteGroup}
-              nextOwnerLabel={nextOwnerLabel}
-            />
-          )}
+          <LeaveGroupButton
+            groupId={id}
+            memberId={group.memberId}
+            willDeleteGroup={willDeleteGroup}
+            nextOwnerLabel={nextOwnerLabel}
+          />
         </Group>
       </Group>
 
@@ -226,12 +221,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         <SectionTitle>Members</SectionTitle>
         {members.map((member) => (
           <MemberRow
-            key={member.userId}
+            key={member.memberId}
             groupId={id}
             member={member}
             canManage={canManage}
             viewerIsOwner={viewerIsOwner}
-            currentUserId={currentUserId}
           />
         ))}
         {canManage && <GroupInviteLinkCard groupId={id} inviteLink={group.inviteLink} origin={origin} />}
@@ -248,13 +242,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <Text c="dimmed">No trains have been shared into this group yet.</Text>
         ) : (
           trains.map((train) => (
-            <SharedTrainRow
-              key={train.trainSubscriptionId}
-              groupId={id}
-              train={train}
-              canManage={canManage}
-              currentUserId={currentUserId}
-            />
+            <SharedTrainRow key={train.trainSubscriptionId} groupId={id} train={train} canManage={canManage} />
           ))
         )}
       </Stack>
@@ -283,7 +271,6 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
               line={line}
               report={reportByLineId.get(line.lineId)}
               canManage={canManage}
-              currentUserId={currentUserId}
             />
           ))
         )}
@@ -306,13 +293,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <Text c="dimmed">No journeys have been shared into this group yet.</Text>
         ) : (
           journeys.map((journey) => (
-            <SharedJourneyRow
-              key={journey.journeyId}
-              groupId={id}
-              journey={journey}
-              canManage={canManage}
-              currentUserId={currentUserId}
-            />
+            <SharedJourneyRow key={journey.journeyId} groupId={id} journey={journey} canManage={canManage} />
           ))
         )}
       </Stack>
@@ -348,13 +329,11 @@ function MemberRow({
   member,
   canManage,
   viewerIsOwner,
-  currentUserId,
 }: {
   groupId: string;
   member: GroupMember;
   canManage: boolean;
   viewerIsOwner: boolean;
-  currentUserId: string | null;
 }) {
   // `memberLabel`, not a bare `displayName`: a member whose identity
   // provider has no name on file for them (or only an email-shaped one,
@@ -364,7 +343,7 @@ function MemberRow({
   // `lib/memberLabel.ts`.
   const label = memberLabel(member.displayName, member.displayTag);
   const isOwner = member.role === 'owner';
-  const isCurrentUser = currentUserId !== null && member.userId === currentUserId;
+  const isCurrentUser = member.isMe;
   return (
     // Plain `div`s with `app/globals.css` classes, not nested Mantine
     // `Group`s with responsive props -- `.groupMemberRow` stacks the
@@ -398,33 +377,23 @@ function MemberRow({
             neither (they're a permanent owner -- the backend refuses both
             directions against it). */}
         {viewerIsOwner && member.role === 'member' && (
-          <PromoteMemberButton groupId={groupId} userId={member.userId} name={label} />
+          <PromoteMemberButton groupId={groupId} memberId={member.memberId} name={label} />
         )}
         {viewerIsOwner && member.role === 'admin' && (
-          <DemoteMemberButton groupId={groupId} userId={member.userId} name={label} />
+          <DemoteMemberButton groupId={groupId} memberId={member.memberId} name={label} />
         )}
-        {canManage && !isOwner && <RemoveMemberButton groupId={groupId} userId={member.userId} name={label} />}
+        {canManage && !isOwner && <RemoveMemberButton groupId={groupId} memberId={member.memberId} name={label} />}
       </Group>
     </div>
   );
 }
 
-function SharedTrainRow({
-  groupId,
-  train,
-  canManage,
-  currentUserId,
-}: {
-  groupId: string;
-  train: GroupTrain;
-  canManage: boolean;
-  currentUserId: string | null;
-}) {
+function SharedTrainRow({ groupId, train, canManage }: { groupId: string; train: GroupTrain; canManage: boolean }) {
   // Mirrors `groups::remove_train_from_group`'s own sharer-or-manager
   // check: a plain member may only un-share a train THEY shared. Rendering
   // this for every row meant a plain member saw "Remove from group" on
   // someone else's train and got a 404 for clicking it.
-  const canRemove = canManage || (currentUserId !== null && train.addedBy === currentUserId);
+  const canRemove = canManage || train.addedByIsMe;
   const displayName = trackedTrainDisplayName({
     customName: train.customName,
     pinOriginCrs: train.pinOriginCrs,
@@ -497,17 +466,15 @@ function SharedJourneyRow({
   groupId,
   journey,
   canManage,
-  currentUserId,
 }: {
   groupId: string;
   journey: GroupJourney;
   canManage: boolean;
-  currentUserId: string | null;
 }) {
-  const canRemove = canManage || (currentUserId !== null && journey.addedBy === currentUserId);
+  const canRemove = canManage || journey.addedByIsMe;
   // Anyone but its owner (the sharer) can follow it into their own
   // journeys (DS-146), through this group.
-  const canFollow = currentUserId !== null && journey.addedBy !== currentUserId;
+  const canFollow = !journey.addedByIsMe;
   // The one journey-naming rule (`lib/journeyName.ts`), the same name the
   // owner's own Track list and the journey page show: custom name, else the
   // whole route (first leg's origin to LAST leg's destination) and date. It
@@ -542,7 +509,7 @@ function SharedJourneyRow({
           (`groupJourneyRowStatus`). Only the owner or a follower is asked
           to pick a train; other members read "No train picked yet". */}
       <Group justify="space-between" gap="xs" mt="xs">
-        <TrackedRowStatusBadge status={groupJourneyRowStatus(journey, londonDayKey(new Date()), currentUserId)} />
+        <TrackedRowStatusBadge status={groupJourneyRowStatus(journey, londonDayKey(new Date()))} />
         <Group gap="xs" wrap="wrap">
           {canFollow && (
             <FollowJourneyButton journeyId={journey.journeyId} following={journey.following} groupId={groupId} />
@@ -571,15 +538,13 @@ function SharedCustomLineRow({
   line,
   report,
   canManage,
-  currentUserId,
 }: {
   groupId: string;
   line: GroupCustomLine;
   report: LineStatusReport | undefined;
   canManage: boolean;
-  currentUserId: string | null;
 }) {
-  const canRemove = canManage || (currentUserId !== null && line.grantedBy === currentUserId);
+  const canRemove = canManage || line.grantedByIsMe;
   return (
     <ClickableCard>
       <StatusRow

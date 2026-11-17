@@ -10,7 +10,6 @@ import {
   getGroupMembers,
   getGroupTrains,
   getLineStatus,
-  getSessionOrLoggedOut,
   ApiNotFoundError,
   ApiUnauthorizedError,
 } from '@/lib/api';
@@ -27,13 +26,6 @@ vi.mock('@/lib/api', async () => {
     getGroupMembers: vi.fn(),
     getGroupTrains: vi.fn(),
     getLineStatus: vi.fn(),
-    // `getSessionOrLoggedOut`, not `getSession`: the page now calls the
-    // former (`lib/api.ts` centralizes the "degrade to logged-out, but log
-    // it first" fallback there). Overriding `getSession` alone wouldn't
-    // reach it -- `getSessionOrLoggedOut`'s internal `await getSession()`
-    // is a lexical reference to this module's own real implementation, not
-    // a lookup through the exports object this factory returns.
-    getSessionOrLoggedOut: vi.fn(),
   };
 });
 
@@ -103,7 +95,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 2,
@@ -111,8 +105,24 @@ describe('GroupDetailPage', () => {
       inviteLink: { token: 'tok', expiresAt: '2026-09-18T00:00:00Z' },
     });
     vi.mocked(getGroupMembers).mockResolvedValue([
-      { userId: 'user-1', displayName: 'Alex', displayTag: null, role: 'owner', joinedAt: '2026-09-01T00:00:00Z' },
-      { userId: 'user-2', displayName: 'Sam', displayTag: null, role: 'member', joinedAt: '2026-09-02T00:00:00Z' },
+      {
+        userId: null,
+        memberId: 'member-1',
+        isMe: false,
+        displayName: 'Alex',
+        displayTag: null,
+        role: 'owner',
+        joinedAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        userId: null,
+        memberId: 'member-2',
+        isMe: false,
+        displayName: 'Sam',
+        displayTag: null,
+        role: 'member',
+        joinedAt: '2026-09-02T00:00:00Z',
+      },
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([
       {
@@ -129,25 +139,13 @@ describe('GroupDetailPage', () => {
         status: 'en_route',
         delayMinutes: 5,
         customName: null,
-        addedBy: 'user-2',
+        addedBy: null,
+        addedByMemberId: 'member-2',
+        addedByIsMe: false,
         addedByName: 'Sam',
         addedByTag: null,
       },
     ]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -168,7 +166,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 2,
@@ -191,26 +191,14 @@ describe('GroupDetailPage', () => {
         status: 'en_route',
         delayMinutes: 2,
         customName: null,
-        addedBy: 'user-2',
+        addedBy: null,
+        addedByMemberId: 'member-2',
+        addedByIsMe: false,
         addedByName: 'Sam',
         addedByTag: null,
         irishTrain: { trainCode: 'A120', serviceDate: '2026-11-05' },
       },
     ]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -223,7 +211,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 2,
@@ -243,7 +233,9 @@ describe('GroupDetailPage', () => {
       status: null,
       delayMinutes: null,
       customName: null,
-      addedBy: 'user-2',
+      addedBy: null,
+      addedByMemberId: 'member-2',
+      addedByIsMe: false,
       addedByName: 'Sam',
       addedByTag: null,
     } satisfies Partial<GroupTrain>;
@@ -265,20 +257,6 @@ describe('GroupDetailPage', () => {
         liveTracking: false,
       },
     ]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -308,7 +286,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 2,
@@ -316,8 +296,24 @@ describe('GroupDetailPage', () => {
       inviteLink: null,
     });
     vi.mocked(getGroupMembers).mockResolvedValue([
-      { userId: 'user-1', displayName: 'Alex', displayTag: null, role: 'owner', joinedAt: '2026-09-01T00:00:00Z' },
-      { userId: 'user-2', displayName: '   ', displayTag: null, role: 'member', joinedAt: '2026-09-02T00:00:00Z' },
+      {
+        userId: null,
+        memberId: 'member-1',
+        isMe: false,
+        displayName: 'Alex',
+        displayTag: null,
+        role: 'owner',
+        joinedAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        userId: null,
+        memberId: 'member-2',
+        isMe: false,
+        displayName: '   ',
+        displayTag: null,
+        role: 'member',
+        joinedAt: '2026-09-02T00:00:00Z',
+      },
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([
       {
@@ -334,25 +330,13 @@ describe('GroupDetailPage', () => {
         status: null,
         delayMinutes: null,
         customName: null,
-        addedBy: 'user-2',
+        addedBy: null,
+        addedByMemberId: 'member-2',
+        addedByIsMe: false,
         addedByName: '',
         addedByTag: null,
       },
     ]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -371,7 +355,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: null,
       ownerTag: 'a1b2c3',
       memberCount: 3,
@@ -379,10 +365,28 @@ describe('GroupDetailPage', () => {
       inviteLink: null,
     });
     vi.mocked(getGroupMembers).mockResolvedValue([
-      { userId: 'user-1', displayName: null, displayTag: 'a1b2c3', role: 'owner', joinedAt: '2026-09-01T00:00:00Z' },
-      { userId: 'user-2', displayName: null, displayTag: 'd4e5f6', role: 'member', joinedAt: '2026-09-02T00:00:00Z' },
       {
-        userId: 'user-3',
+        userId: null,
+        memberId: 'member-1',
+        isMe: false,
+        displayName: null,
+        displayTag: 'a1b2c3',
+        role: 'owner',
+        joinedAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        userId: null,
+        memberId: 'member-2',
+        isMe: false,
+        displayName: null,
+        displayTag: 'd4e5f6',
+        role: 'member',
+        joinedAt: '2026-09-02T00:00:00Z',
+      },
+      {
+        userId: null,
+        memberId: 'member-3',
+        isMe: false,
         displayName: 'Ada Rider',
         displayTag: null,
         role: 'member',
@@ -404,25 +408,13 @@ describe('GroupDetailPage', () => {
         status: null,
         delayMinutes: null,
         customName: null,
-        addedBy: 'user-2',
+        addedBy: null,
+        addedByMemberId: 'member-2',
+        addedByIsMe: false,
         addedByName: null,
         addedByTag: 'd4e5f6',
       },
     ]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: null,
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
@@ -443,7 +435,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 1,
@@ -451,23 +445,17 @@ describe('GroupDetailPage', () => {
       inviteLink: null,
     });
     vi.mocked(getGroupMembers).mockResolvedValue([
-      { userId: 'user-1', displayName: 'Alex', displayTag: null, role: 'owner', joinedAt: '2026-09-01T00:00:00Z' },
+      {
+        userId: null,
+        memberId: 'member-1',
+        isMe: false,
+        displayName: 'Alex',
+        displayTag: null,
+        role: 'owner',
+        joinedAt: '2026-09-01T00:00:00Z',
+      },
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     // The arrow is decorative and aria-hidden: the name is just "Groups".
@@ -484,7 +472,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 2,
@@ -492,24 +482,26 @@ describe('GroupDetailPage', () => {
       inviteLink: null,
     });
     vi.mocked(getGroupMembers).mockResolvedValue([
-      { userId: 'user-1', displayName: 'Alex', displayTag: null, role: 'owner', joinedAt: '2026-09-01T00:00:00Z' },
-      { userId: 'user-2', displayName: 'Sam', displayTag: null, role: 'member', joinedAt: '2026-09-02T00:00:00Z' },
+      {
+        userId: 'user-1',
+        memberId: 'member-1',
+        isMe: true,
+        displayName: 'Alex',
+        displayTag: null,
+        role: 'owner',
+        joinedAt: '2026-09-01T00:00:00Z',
+      },
+      {
+        userId: null,
+        memberId: 'member-2',
+        isMe: false,
+        displayName: 'Sam',
+        displayTag: null,
+        role: 'member',
+        joinedAt: '2026-09-02T00:00:00Z',
+      },
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     expect(screen.getAllByText('(you)')).toHaveLength(1);
@@ -520,7 +512,9 @@ describe('GroupDetailPage', () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
       name: 'Family',
-      ownerId: 'user-1',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
       ownerName: 'Alex',
       ownerTag: null,
       memberCount: 1,
@@ -528,23 +522,17 @@ describe('GroupDetailPage', () => {
       inviteLink: null,
     });
     vi.mocked(getGroupMembers).mockResolvedValue([
-      { userId: 'user-1', displayName: 'Alex', displayTag: null, role: 'owner', joinedAt: '2026-09-01T00:00:00Z' },
+      {
+        userId: null,
+        memberId: 'member-1',
+        isMe: false,
+        displayName: 'Alex',
+        displayTag: null,
+        role: 'owner',
+        joinedAt: '2026-09-01T00:00:00Z',
+      },
     ]);
     vi.mocked(getGroupTrains).mockResolvedValue([]);
-    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-      authenticated: true,
-      id: 'user-1',
-      username: null,
-      name: 'Alex',
-      groups: [],
-      personalTokensEnabled: false,
-      regularJourneyRecurrenceEnabled: false,
-      regularJourneyDayOverridesEnabled: false,
-      calendarFeedEnabled: false,
-      webhooksEnabled: false,
-      recentlyDeletedEnabled: false,
-      analyticsOptIn: false,
-    });
 
     renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
@@ -563,28 +551,34 @@ describe('GroupDetailPage', () => {
    * someone else's shared train). */
   describe('role-gated controls', () => {
     const OWNER: GroupMember = {
-      userId: 'user-owner',
+      userId: null,
+      memberId: 'member-owner',
+      isMe: false,
       displayName: 'Olive',
       displayTag: null,
       role: 'owner',
       joinedAt: '2026-09-01T00:00:00Z',
     };
     const ADMIN: GroupMember = {
-      userId: 'user-admin',
+      userId: null,
+      memberId: 'member-admin',
+      isMe: false,
       displayName: 'Adam',
       displayTag: null,
       role: 'admin',
       joinedAt: '2026-09-02T00:00:00Z',
     };
     const PLAIN: GroupMember = {
-      userId: 'user-plain',
+      userId: null,
+      memberId: 'member-plain',
+      isMe: false,
       displayName: 'Priya',
       displayTag: null,
       role: 'member',
       joinedAt: '2026-09-03T00:00:00Z',
     };
 
-    function sharedTrain(addedBy: string, trainSubscriptionId: number): GroupTrain {
+    function sharedTrain(sharer: GroupMember, viewer: GroupMember, trainSubscriptionId: number): GroupTrain {
       return {
         ...GROUP_TRAIN_DEFAULTS,
         trainSubscriptionId,
@@ -599,8 +593,10 @@ describe('GroupDetailPage', () => {
         status: 'en_route',
         delayMinutes: null,
         customName: `Train ${trainSubscriptionId}`,
-        addedBy,
-        addedByName: addedBy,
+        addedBy: sharer.memberId === viewer.memberId ? 'user-viewer' : null,
+        addedByMemberId: sharer.memberId,
+        addedByIsMe: sharer.memberId === viewer.memberId,
+        addedByName: sharer.displayName,
         addedByTag: null,
       };
     }
@@ -623,29 +619,19 @@ describe('GroupDetailPage', () => {
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
         name: 'Family',
-        ownerId: OWNER.userId,
+        ownerId: viewerRole === 'owner' ? 'user-owner' : null,
+        ownerMemberId: OWNER.memberId,
+        memberId: viewer.memberId,
         ownerName: OWNER.displayName,
         ownerTag: null,
         memberCount: 3,
         role: viewerRole,
         inviteLink: null,
       });
-      vi.mocked(getGroupMembers).mockResolvedValue([OWNER, ADMIN, PLAIN]);
+      vi.mocked(getGroupMembers).mockResolvedValue(
+        [OWNER, ADMIN, PLAIN].map((member) => ({ ...member, isMe: member.memberId === viewer.memberId })),
+      );
       vi.mocked(getGroupTrains).mockResolvedValue(trains);
-      vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-        authenticated: true,
-        id: viewer.userId,
-        username: null,
-        name: viewer.displayName,
-        groups: [],
-        personalTokensEnabled: false,
-        regularJourneyRecurrenceEnabled: false,
-        regularJourneyDayOverridesEnabled: false,
-        calendarFeedEnabled: false,
-        webhooksEnabled: false,
-        recentlyDeletedEnabled: false,
-        analyticsOptIn: false,
-      });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     }
 
@@ -689,17 +675,17 @@ describe('GroupDetailPage', () => {
     });
 
     it('a plain member viewer does NOT see "Remove from group" on someone else\'s shared train', async () => {
-      await renderAs(PLAIN, 'member', [sharedTrain(ADMIN.userId, 41)]);
+      await renderAs(PLAIN, 'member', [sharedTrain(ADMIN, PLAIN, 41)]);
       expect(screen.queryByRole('button', { name: 'Remove from group' })).not.toBeInTheDocument();
     });
 
     it('a plain member viewer DOES see "Remove from group" on their own shared train', async () => {
-      await renderAs(PLAIN, 'member', [sharedTrain(PLAIN.userId, 42)]);
+      await renderAs(PLAIN, 'member', [sharedTrain(PLAIN, PLAIN, 42)]);
       expect(screen.getByRole('button', { name: 'Remove from group' })).toBeInTheDocument();
     });
 
     it('an admin viewer sees "Remove from group" on someone else\'s shared train', async () => {
-      await renderAs(ADMIN, 'admin', [sharedTrain(PLAIN.userId, 43)]);
+      await renderAs(ADMIN, 'admin', [sharedTrain(PLAIN, ADMIN, 43)]);
       expect(screen.getByRole('button', { name: 'Remove from group' })).toBeInTheDocument();
     });
 
@@ -710,7 +696,7 @@ describe('GroupDetailPage', () => {
       // 2026-10-20: a bus's two badges plus this button left a phone row's
       // title no room at all, so the status and the button moved under the
       // title, out of its `wrap="nowrap"` row.
-      await renderAs(ADMIN, 'admin', [sharedTrain(PLAIN.userId, 44)]);
+      await renderAs(ADMIN, 'admin', [sharedTrain(PLAIN, ADMIN, 44)]);
       expect(screen.getByRole('button', { name: 'Remove from group' }).closest('[data-status-row]')).toBeNull();
     });
 
@@ -743,29 +729,17 @@ describe('GroupDetailPage', () => {
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
         name: 'Family',
-        ownerId: OWNER.userId,
+        ownerId: 'user-owner',
+        ownerMemberId: OWNER.memberId,
+        memberId: OWNER.memberId,
         ownerName: OWNER.displayName,
         ownerTag: null,
         memberCount: 1,
         role: 'owner',
         inviteLink: null,
       });
-      vi.mocked(getGroupMembers).mockResolvedValue([OWNER]);
+      vi.mocked(getGroupMembers).mockResolvedValue([{ ...OWNER, isMe: true }]);
       vi.mocked(getGroupTrains).mockResolvedValue([]);
-      vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-        authenticated: true,
-        id: OWNER.userId,
-        username: null,
-        name: OWNER.displayName,
-        groups: [],
-        personalTokensEnabled: false,
-        regularJourneyRecurrenceEnabled: false,
-        regularJourneyDayOverridesEnabled: false,
-        calendarFeedEnabled: false,
-        webhooksEnabled: false,
-        recentlyDeletedEnabled: false,
-        analyticsOptIn: false,
-      });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
       fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
@@ -796,29 +770,17 @@ describe('GroupDetailPage', () => {
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
         name: 'Family',
-        ownerId: OWNER.userId,
+        ownerId: 'user-owner',
+        ownerMemberId: OWNER.memberId,
+        memberId: OWNER.memberId,
         ownerName: OWNER.displayName,
         ownerTag: null,
         memberCount: 1,
         role: 'owner',
         inviteLink: null,
       });
-      vi.mocked(getGroupMembers).mockResolvedValue([OWNER]);
+      vi.mocked(getGroupMembers).mockResolvedValue([{ ...OWNER, isMe: true }]);
       vi.mocked(getGroupTrains).mockResolvedValue([]);
-      vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-        authenticated: true,
-        id: OWNER.userId,
-        username: null,
-        name: OWNER.displayName,
-        groups: [],
-        personalTokensEnabled: false,
-        regularJourneyRecurrenceEnabled: false,
-        regularJourneyDayOverridesEnabled: false,
-        calendarFeedEnabled: false,
-        webhooksEnabled: false,
-        recentlyDeletedEnabled: false,
-        analyticsOptIn: false,
-      });
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
 
       fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
@@ -849,12 +811,15 @@ describe('GroupDetailPage', () => {
 
   describe('shared custom lines', () => {
     const SHARER = 'user-sharer';
+    const VIEWER_OWN = (viewerId: string) => viewerId.replace('user-', 'member-');
 
     function line(overrides: Partial<GroupCustomLine> = {}): GroupCustomLine {
       return {
         lineId: 'custom-my-commute',
         lineName: 'My Commute',
-        grantedBy: SHARER,
+        grantedBy: null,
+        grantedByMemberId: 'member-sharer',
+        grantedByIsMe: false,
         grantedByName: 'Sam',
         grantedByTag: null,
         ...overrides,
@@ -885,7 +850,9 @@ describe('GroupDetailPage', () => {
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
         name: 'Family',
-        ownerId: 'user-owner',
+        ownerId: role === 'owner' ? 'user-owner' : null,
+        ownerMemberId: 'member-owner',
+        memberId: VIEWER_OWN(viewerId),
         ownerName: 'Alex',
         ownerTag: null,
         memberCount: 3,
@@ -894,20 +861,10 @@ describe('GroupDetailPage', () => {
       });
       vi.mocked(getGroupMembers).mockResolvedValue([]);
       vi.mocked(getGroupTrains).mockResolvedValue([]);
-      vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-        authenticated: true,
-        id: viewerId,
-        username: null,
-        name: null,
-        groups: [],
-        personalTokensEnabled: false,
-        regularJourneyRecurrenceEnabled: false,
-        regularJourneyDayOverridesEnabled: false,
-        calendarFeedEnabled: false,
-        webhooksEnabled: false,
-        recentlyDeletedEnabled: false,
-        analyticsOptIn: false,
-      });
+      const lines = await getGroupCustomLines('grp-1');
+      vi.mocked(getGroupCustomLines).mockResolvedValue(
+        lines.map((l) => ({ ...l, grantedByIsMe: l.grantedByMemberId === VIEWER_OWN(viewerId) })),
+      );
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     }
 
@@ -1000,6 +957,7 @@ describe('GroupDetailPage', () => {
   // 'shared custom lines' above field-for-field.
   describe('shared journeys', () => {
     const SHARER = 'user-sharer';
+    const VIEWER_OWN = (viewerId: string) => viewerId.replace('user-', 'member-');
 
     function journey(overrides: Partial<GroupJourney> = {}): GroupJourney {
       return {
@@ -1021,7 +979,9 @@ describe('GroupDetailPage', () => {
         trainUid: 'A12345',
         status: 'en_route',
         delayMinutes: 5,
-        addedBy: SHARER,
+        addedBy: null,
+        addedByMemberId: 'member-sharer',
+        addedByIsMe: false,
         addedByName: 'Sam',
         addedByTag: null,
         ...overrides,
@@ -1032,7 +992,9 @@ describe('GroupDetailPage', () => {
       vi.mocked(getGroup).mockResolvedValue({
         id: 'grp-1',
         name: 'Family',
-        ownerId: 'user-owner',
+        ownerId: role === 'owner' ? 'user-owner' : null,
+        ownerMemberId: 'member-owner',
+        memberId: VIEWER_OWN(viewerId),
         ownerName: 'Alex',
         ownerTag: null,
         memberCount: 3,
@@ -1041,20 +1003,10 @@ describe('GroupDetailPage', () => {
       });
       vi.mocked(getGroupMembers).mockResolvedValue([]);
       vi.mocked(getGroupTrains).mockResolvedValue([]);
-      vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
-        authenticated: true,
-        id: viewerId,
-        username: null,
-        name: null,
-        groups: [],
-        personalTokensEnabled: false,
-        regularJourneyRecurrenceEnabled: false,
-        regularJourneyDayOverridesEnabled: false,
-        calendarFeedEnabled: false,
-        webhooksEnabled: false,
-        recentlyDeletedEnabled: false,
-        analyticsOptIn: false,
-      });
+      const journeys = await getGroupJourneys('grp-1');
+      vi.mocked(getGroupJourneys).mockResolvedValue(
+        journeys.map((j) => ({ ...j, addedByIsMe: j.addedByMemberId === VIEWER_OWN(viewerId) })),
+      );
       renderWithMantine(await GroupDetailPage({ params: Promise.resolve({ id: 'grp-1' }) }));
     }
 

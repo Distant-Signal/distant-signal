@@ -16,9 +16,9 @@ import type { GroupRole } from './types';
  * used to read as the identical "A member" -- correct on privacy, useless
  * for telling an eight-person group apart, and actively in the way of an
  * admin working out who shared a train or who to remove. `displayTag` is
- * six hex characters derived from the member's own opaque user id (which
- * these payloads already carry in the clear as `userId`/`addedBy`), so the
- * rows differ without anything about the person being revealed. */
+ * six hex characters the api derives from the member's account id (a
+ * hash: the payloads carry only the opaque per-group `memberId`, never the
+ * account id), so the rows differ without anything about the person being revealed. */
 
 /** The generic placeholder, standing alone (a member row's whole label). */
 export const MEMBER_PLACEHOLDER = 'A member';

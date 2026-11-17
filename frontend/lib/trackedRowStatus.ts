@@ -203,11 +203,8 @@ function singleLegStatus(group: LegStatusGroup, pastDay: boolean): TrackedRowSta
 /** Whether the viewer of a group page is the one to pick a train for a
  * shared journey: its owner (who shared it) or a member following it. The
  * same rule as `viewerCanPickTrain` on the Journeys and home lists (DS-199). */
-export function viewerCanPickGroupJourneyTrain(
-  journey: Pick<GroupJourney, 'addedBy' | 'following'>,
-  currentUserId: string | null,
-): boolean {
-  return currentUserId !== null && (journey.addedBy === currentUserId || journey.following);
+export function viewerCanPickGroupJourneyTrain(journey: Pick<GroupJourney, 'addedByIsMe' | 'following'>): boolean {
+  return journey.addedByIsMe || journey.following;
 }
 
 /** A journey shared into a group (`GroupJourney`), which carries one leg:
@@ -216,16 +213,12 @@ export function viewerCanPickGroupJourneyTrain(
  * owner's own Track list says for the same state. "Needs a train picked"
  * asks only the owner or a follower (`viewerCanPickGroupJourneyTrain`);
  * any other member reads "No train picked yet". */
-export function groupJourneyRowStatus(
-  journey: GroupJourney,
-  today: string,
-  currentUserId: string | null,
-): TrackedRowStatus {
+export function groupJourneyRowStatus(journey: GroupJourney, today: string): TrackedRowStatus {
   const pastDay = journey.serviceDate < today;
   if (isUntrackedLeg(journey)) return singleLegStatus(UNTRACKED_GROUP[journey.untrackedStatus ?? 'planned'], pastDay);
   if (journey.resolutionStatus === null) {
     const status = singleLegStatus('unmatched', pastDay);
-    return status.kind === 'unmatched' && !viewerCanPickGroupJourneyTrain(journey, currentUserId)
+    return status.kind === 'unmatched' && !viewerCanPickGroupJourneyTrain(journey)
       ? { ...status, kind: 'noTrainPickedYet' }
       : status;
   }

@@ -24,26 +24,26 @@ describe('LeaveGroupButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithMantine(<LeaveGroupButton groupId="grp-1" currentUserId="user-1" />);
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm leave group' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm leave group' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/user-1', { method: 'DELETE' });
+      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/member-1', { method: 'DELETE' });
     });
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/groups'));
   });
 
   it('shows the generic warning by default', async () => {
-    renderWithMantine(<LeaveGroupButton groupId="grp-1" currentUserId="user-1" />);
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
     await waitFor(() => screen.getByText(/lose access to every train shared/));
     expect(screen.queryByText(/leaving deletes this group/)).not.toBeInTheDocument();
   });
 
   it('warns that leaving deletes the whole group when willDeleteGroup is set', async () => {
-    renderWithMantine(<LeaveGroupButton groupId="grp-1" currentUserId="user-1" willDeleteGroup />);
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" willDeleteGroup />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
     await waitFor(() => screen.getByText(/leaving deletes this group/));
     expect(screen.queryByText(/lose access to every train shared/)).not.toBeInTheDocument();
@@ -53,13 +53,13 @@ describe('LeaveGroupButton', () => {
   // departing owner would not otherwise guess -- every other member just
   // sees the group carry on unaffected.
   it('names the successor when nextOwnerLabel is set', async () => {
-    renderWithMantine(<LeaveGroupButton groupId="grp-1" currentUserId="user-1" nextOwnerLabel="Adam" />);
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" nextOwnerLabel="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
     await waitFor(() => screen.getByText(/Adam will become the new owner/));
   });
 
   it('says nothing about a successor when nextOwnerLabel is not set', async () => {
-    renderWithMantine(<LeaveGroupButton groupId="grp-1" currentUserId="user-1" />);
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
     await waitFor(() => screen.getByText(/lose access to every train shared/));
     expect(screen.queryByText(/will become the new owner/)).not.toBeInTheDocument();
@@ -68,9 +68,7 @@ describe('LeaveGroupButton', () => {
   // willDeleteGroup takes precedence over nextOwnerLabel: if leaving
   // deletes the group outright there is no successor to name.
   it('does not name a successor when willDeleteGroup is also set', async () => {
-    renderWithMantine(
-      <LeaveGroupButton groupId="grp-1" currentUserId="user-1" willDeleteGroup nextOwnerLabel="Adam" />,
-    );
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" willDeleteGroup nextOwnerLabel="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
     await waitFor(() => screen.getByText(/leaving deletes this group/));
     expect(screen.queryByText(/will become the new owner/)).not.toBeInTheDocument();

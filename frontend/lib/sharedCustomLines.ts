@@ -20,9 +20,11 @@ export interface MergedSharedCustomLine {
  * and picking one server-side would silently drop a group name from the
  * tag. The other fields are identical across those rows by construction --
  * they all describe the same `custom_lines` row, and only its OWNER can
- * grant it (`groups::grant_custom_line` checks ownership), so `grantedBy`
- * can't differ between them either -- which is why keeping the first row's
- * copy of them is lossless rather than an arbitrary pick.
+ * grant it (`groups::grant_custom_line` checks ownership), so the
+ * sharer's name and tag can't differ between them either (the opaque
+ * `grantedByMemberId` does, being per group, and nothing here reads it) --
+ * which is why keeping the first row's copy of them is lossless rather than
+ * an arbitrary pick.
  *
  * `excludeLineIds` drops any line the calling page is ALREADY rendering
  * elsewhere, so it never appears twice on one screen. Two cases matter,

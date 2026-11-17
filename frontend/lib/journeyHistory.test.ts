@@ -69,7 +69,9 @@ function sharedTrain(id: number, pinScheduledDeparture: string, serviceDate: str
     status: 'completed',
     delayMinutes: null,
     customName: null,
-    addedBy: 'u',
+    addedBy: null,
+    addedByMemberId: 'm',
+    addedByIsMe: false,
     addedByName: 'Sam',
     addedByTag: null,
   };

@@ -20,9 +20,11 @@ export interface MergedSharedTrain {
  * picking one server-side would silently drop a group name from the tag.
  * The other fields are identical across those rows by construction -- they
  * all describe the same `train_subscriptions` row, and only its OWNER can
- * share it (`groups::add_train_to_group` checks ownership), so `addedBy`
- * can't differ between them either -- which is why keeping the first row's
- * copy of them is lossless rather than an arbitrary pick.
+ * share it (`groups::add_train_to_group` checks ownership), so the
+ * sharer's name and tag can't differ between them either (the opaque
+ * `addedByMemberId` does, being per group, and nothing here reads it) --
+ * which is why keeping the first row's copy of them is lossless rather than
+ * an arbitrary pick.
  *
  * `ownTrainIds` is belt-and-braces, not the primary defence: the backend's
  * `ts.user_id <> $1` already excludes the caller's own subscriptions, so
