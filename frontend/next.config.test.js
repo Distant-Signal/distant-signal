@@ -54,7 +54,15 @@ describe('next.config.mjs static Content-Security-Policy headers', () => {
       .filter((entry) => entry.headers.some((h) => h.key === 'Content-Security-Policy'))
       .map((entry) => entry.source)
       .sort();
-    expect(sources).toEqual(['/:path*/card.png', '/api/:path*', '/offline.html', '/sw-cache-rules.js', '/sw.js']);
+    expect(sources).toEqual([
+      '/:path*/card.png',
+      '/:path*/opengraph-image',
+      '/:path*/opengraph-image-:hash',
+      '/api/:path*',
+      '/offline.html',
+      '/sw-cache-rules.js',
+      '/sw.js',
+    ]);
   });
 
   it('gives the service worker scripts no inline script', async () => {
@@ -76,11 +84,14 @@ describe('next.config.mjs static Content-Security-Policy headers', () => {
     expect(csp).not.toContain('*');
   });
 
-  it.each(['/api/:path*', '/:path*/card.png'])('locks %s responses down completely', async (source) => {
-    const csp = await cspFor(source);
-    expect(csp).toContain("default-src 'none'");
-    expect(csp).toContain("frame-ancestors 'none'");
-  });
+  it.each(['/api/:path*', '/:path*/card.png', '/:path*/opengraph-image', '/:path*/opengraph-image-:hash'])(
+    'locks %s responses down completely',
+    async (source) => {
+      const csp = await cspFor(source);
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).toContain("frame-ancestors 'none'");
+    },
+  );
 });
 
 describe('next.config.mjs redirects', () => {
@@ -226,4 +237,37 @@ describe('next.config.mjs static Cache-Control headers', () => {
       'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800',
     );
   });
+});
+
+describe('next.config.mjs hardening headers', () => {
+  /** @param {string} source @param {string} key */
+  async function valueFor(source, key) {
+    if (!nextConfig.headers) throw new Error('next.config.mjs defines no headers()');
+    const entries = await nextConfig.headers();
+    return entries
+      .filter((e) => e.source === source)
+      .flatMap((e) => e.headers)
+      .filter((h) => h.key === key)
+      .map((h) => h.value);
+  }
+
+  it('hides the framework header', () => {
+    expect(nextConfig.poweredByHeader).toBe(false);
+  });
+
+  it('sets the policies on every path, keeping geolocation for the app itself', async () => {
+    const [pp] = await valueFor('/:path*', 'Permissions-Policy');
+    for (const feature of ['camera=()', 'microphone=()', 'payment=()', 'usb=()', 'geolocation=(self)']) {
+      expect(pp).toContain(feature);
+    }
+    expect(await valueFor('/:path*', 'Cross-Origin-Opener-Policy')).toEqual(['same-origin']);
+    expect(await valueFor('/:path*', 'Cross-Origin-Resource-Policy')).toEqual(['same-site']);
+  });
+
+  it.each(['/:path*/card.png', '/:path*/opengraph-image', '/:path*/opengraph-image-:hash', '/opengraph-image.png'])(
+    'leaves %s fetchable from other origins (link previews)',
+    async (source) => {
+      expect(await valueFor(source, 'Cross-Origin-Resource-Policy')).toEqual(['cross-origin']);
+    },
+  );
 });

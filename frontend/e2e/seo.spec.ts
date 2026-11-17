@@ -161,3 +161,14 @@ test('robots.txt lets link-preview fetchers read share and invite links and nobo
   expect(star).not.toContain('Allow: /journeys/shared/');
   expect(star).toContain('Disallow: /journeys/');
 });
+
+test('responses carry the hardening headers, and card images stay fetchable cross-origin', async ({ request }) => {
+  const home = (await request.get('/')).headers();
+  expect(home['permissions-policy']).toContain('camera=()');
+  expect(home['cross-origin-opener-policy']).toBe('same-origin');
+  expect(home['cross-origin-resource-policy']).toBe('same-site');
+  expect(home['x-powered-by']).toBeUndefined();
+
+  const card = (await request.get('/stations/ZZZ/card.png')).headers();
+  expect(card['cross-origin-resource-policy']).toBe('cross-origin');
+});

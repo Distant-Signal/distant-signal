@@ -35,6 +35,10 @@ public response. If-None-Match is forwarded as before, and so is
 If-Modified-Since for a candidate, so a revalidation gets the api's 304. A
 candidate whose response fails any test is locked.
 
+Independent of the flag, the proxy gives every response the api sent no
+`Cache-Control` with `Cache-Control: private, no-store` (an upstream value is
+kept), so personal JSON is never stored by a heuristic cache.
+
 Locking means a signed-in browser no longer caches these routes for an hour
 through the proxy, and Atom feeds are served `private, no-store` (their
 validators still work).

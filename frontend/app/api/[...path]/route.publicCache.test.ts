@@ -85,13 +85,15 @@ describe('/api/[...path] proxy public cache policy', () => {
       expect(res.headers.getSetCookie()).toEqual(['a=1; Path=/']);
     });
 
-    it('adds nothing to a response the api sent no Cache-Control with, nor to a proxy error', async () => {
+    it('makes private any response the api sent no Cache-Control with, and any proxy error', async () => {
       upstream(200, {});
-      expect((await call(GET, ['stations', 'index'])).headers.get('cache-control')).toBeNull();
+      expect((await call(GET, ['stations', 'index'])).headers.get('cache-control')).toBe('private, no-store');
+      upstream(200, {});
+      expect((await call(GET, ['preferences'])).headers.get('cache-control')).toBe('private, no-store');
       vi.mocked(fetch).mockRejectedValueOnce(new Error('boom'));
       const failed = await call(GET, ['stations', 'index']);
       expect(failed.status).toBe(502);
-      expect(failed.headers.get('cache-control')).toBeNull();
+      expect(failed.headers.get('cache-control')).toBe('private, no-store');
     });
   });
 

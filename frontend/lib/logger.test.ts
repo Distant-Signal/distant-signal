@@ -40,6 +40,13 @@ describe('formatLogLine', () => {
     expect(String(line.stack)).toContain('logger.test.ts');
   });
 
+  it('redacts a share token from the stack as well as the message', () => {
+    const err = new Error('API request to http://api/Journeys/shared/s3cret failed: 500');
+    const line = parse(formatLogLine('ERROR', 't', 'm', { error: err }, NOW));
+    expect(String(line.stack)).not.toContain('s3cret');
+    expect(String(line.stack)).toContain('/Journeys/shared/[REDACTED]');
+  });
+
   it('records a non-Error error value as text', () => {
     const line = parse(formatLogLine('WARN', 't', 'm', { error: { status: 502 } }, NOW));
     expect(line.error).toBe('{"status":502}');
@@ -144,5 +151,8 @@ describe('helpers', () => {
   it('renders error text for odd values', () => {
     expect(errorText('plain')).toBe('plain');
     expect(errorText(new RangeError('bad'))).toBe('RangeError: bad');
+    expect(errorText(new Error('API request to http://api/Journeys/shared/s3cret failed: 500'))).toBe(
+      'API request to http://api/Journeys/shared/[REDACTED] failed: 500',
+    );
   });
 });

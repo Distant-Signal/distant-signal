@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { clientIpFromHeaders, REAL_IP_HEADER } from './clientIp';
+import { redactTokens } from './redactUrl';
 import type {
   ConnectedAppGrant,
   ConnectedAppsData,
@@ -116,7 +117,7 @@ function baseUrl(): string {
  * fail identically for every status it does *not* special-case) so the two
  * paths can't drift on which statuses map to `ApiNotFoundError`. */
 function errorForResponse(url: string, response: Response): Error {
-  const message = `API request to ${url} failed: ${response.status} ${response.statusText}`;
+  const message = `API request to ${redactTokens(url)} failed: ${response.status} ${response.statusText}`;
   if (response.status === 404) return new ApiNotFoundError(message);
   if (response.status === 401) return new ApiUnauthorizedError(message);
   if (response.status === 403) return new ApiForbiddenError(message);
@@ -731,7 +732,7 @@ export async function getCustomLine(id: string): Promise<CustomLineDetail> {
     ...(await cookieForwardInit()),
   });
   if (response.status === 401 || response.status === 404) {
-    throw new ApiNotFoundError(`API request to ${url} failed: ${response.status}`);
+    throw new ApiNotFoundError(`API request to ${redactTokens(url)} failed: ${response.status}`);
   }
   if (!response.ok) throw errorForResponse(url, response);
   return response.json() as Promise<CustomLineDetail>;

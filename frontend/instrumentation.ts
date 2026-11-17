@@ -1,5 +1,6 @@
 import type { Instrumentation } from 'next';
 import { createLogger } from '@/lib/logger';
+import { redactTokens } from '@/lib/redactUrl';
 
 const log = createLogger('next');
 
@@ -20,7 +21,7 @@ export const onRequestError: Instrumentation.onRequestError = (error, request, c
   log.error('unhandled error handling a request', {
     error,
     method: request.method,
-    path: request.path.split('?')[0],
+    path: redactTokens(request.path.split('?')[0] ?? ''),
     route_path: context.routePath,
     route_type: context.routeType,
     router_kind: context.routerKind,
