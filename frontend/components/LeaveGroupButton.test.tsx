@@ -42,11 +42,71 @@ describe('LeaveGroupButton', () => {
     expect(screen.queryByText(/leaving deletes this group/)).not.toBeInTheDocument();
   });
 
-  it('warns that leaving deletes the whole group when willDeleteGroup is set', async () => {
+  it('asks "Delete this group?" and deletes the group, not the membership, when willDeleteGroup is set', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
     renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" willDeleteGroup />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
-    await waitFor(() => screen.getByText(/leaving deletes this group/));
+    await waitFor(() => screen.getByText('Delete this group?'));
+    expect(screen.getByText(/leaving would delete this group/)).toBeInTheDocument();
     expect(screen.queryByText(/lose access to every train shared/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm leave group' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete group' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1', { method: 'DELETE' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/groups'));
+  });
+
+  it('sends nothing when the sole owner cancels', async () => {
+    const fetchMock = vi.mocked(fetch);
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" willDeleteGroup />);
+    fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
+    await waitFor(() => screen.getByText('Delete this group?'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('turns into the deletion prompt, deleting nothing, when the api answers owner_must_delete', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ error: 'owner_must_delete', message: 'Delete the group instead.', memberCount: 1 }),
+        { status: 409, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Confirm leave group' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm leave group' }));
+
+    await waitFor(() => screen.getByText('Delete this group?'));
+    expect(screen.getByRole('alert')).toHaveTextContent(/only member, so you can't leave without deleting this group/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).not.toHaveBeenCalled();
+
+    // Only an explicit confirmation deletes, through the delete route.
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete group' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith('/api/groups/grp-1', { method: 'DELETE' }));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/groups'));
+  });
+
+  it('keeps the generic failure for any other 409', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(new Response('something else', { status: 409 }));
+
+    renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Confirm leave group' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm leave group' }));
+
+    await waitFor(() => screen.getByRole('alert'));
+    expect(screen.getByText('Leave this group?')).toBeInTheDocument();
+    expect(screen.queryByText('Delete this group?')).not.toBeInTheDocument();
   });
 
   // Review §3.2.1: ownership transfer is the one consequence of leaving a
@@ -70,7 +130,7 @@ describe('LeaveGroupButton', () => {
   it('does not name a successor when willDeleteGroup is also set', async () => {
     renderWithMantine(<LeaveGroupButton groupId="grp-1" memberId="member-1" willDeleteGroup nextOwnerLabel="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
-    await waitFor(() => screen.getByText(/leaving deletes this group/));
+    await waitFor(() => screen.getByText(/leaving would delete this group/));
     expect(screen.queryByText(/will become the new owner/)).not.toBeInTheDocument();
   });
 });
