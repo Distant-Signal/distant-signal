@@ -103,6 +103,7 @@ export const PUBLIC_TRAIN_DEFAULTS = {
   headcode: null,
   provisional: false,
   provisionalFrom: '2099-01-01',
+  scheduleSource: null,
 } satisfies Partial<Api.PublicTrainResponse>;
 
 /** A `TrackedTrainListItem` (`GET /Train/mine`), less its id, date and pin. */
@@ -163,6 +164,7 @@ export const JOURNEY_DETAIL_DEFAULTS = {
   isOwner: true,
   shareLink: null,
   openBreak: null,
+  disrupted: false,
   revisionCount: 0,
   sourceTemplateId: null,
   regularPlan: null,
