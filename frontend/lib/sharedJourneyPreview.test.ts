@@ -55,6 +55,14 @@ describe('sharedJourneySummary', () => {
     });
   });
 
+  // DS-534: the share view's legs carry no train label or saved search.
+  it('builds the same summary from legs with no custom name or search filters', () => {
+    const trimmed = trainLeg({ searchFilters: null }, { customName: null });
+    const full = trainLeg({ searchFilters: { operator: 'GR' } }, { customName: 'Mum train' });
+    expect(sharedJourneySummary([trimmed])).toEqual(sharedJourneySummary([full]));
+    expect(JSON.stringify(sharedJourneyPreviewCard([trimmed]))).not.toContain('Mum train');
+  });
+
   it('runs from the first leg origin to the last leg destination and counts changes', () => {
     const summary = sharedJourneySummary([
       trainLeg(),
