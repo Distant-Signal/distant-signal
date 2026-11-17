@@ -251,7 +251,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
     // case they're in.
   }
   // Outside the `try`: `redirect()` works by throwing.
-  if (readable) redirect(`/journeys/${journey.id}`);
+  if (readable) redirect(`/journeys/${journey.publicId}`);
 
   const fetchedAt = new Date().toISOString();
   // `JourneyDetailView` requires `origin` to build `ShareJourneyLinkButton`'s
@@ -275,7 +275,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
           journeyId={journey.id}
           following={false}
           shareToken={token}
-          afterFollowHref={`/journeys/${journey.id}`}
+          afterFollowHref={`/journeys/${journey.publicId}`}
         />
       )}
       <JourneyDetailView journey={journey} fetchedAt={fetchedAt} origin={origin} viaShareLink />

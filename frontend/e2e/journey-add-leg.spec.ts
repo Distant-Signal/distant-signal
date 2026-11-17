@@ -1,6 +1,7 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import { scanPageBothSchemes } from './a11y-helpers';
 import type * as Api from '../lib/api-types';
+import { testPublicId } from '../test/apiDefaults';
 
 // "Add a leg" on /plan (components/AddJourneyLegButton.tsx): its
 // From and To fields are the site's standard station search, so a station
@@ -134,7 +135,7 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
     if (path === '/api/Journeys' && request.method() === 'POST') {
       return json(route, {
         journeyId: JOURNEY_ID,
-        journeyPublicId: `j_${JOURNEY_ID}`,
+        journeyPublicId: testPublicId(JOURNEY_ID),
         legId: 1,
         trackingId: 42,
         resolutionStatus: 'pending',

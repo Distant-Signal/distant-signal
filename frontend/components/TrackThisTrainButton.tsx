@@ -122,7 +122,7 @@ export function TrackThisTrainButton({
           // train's new one-leg journey (DS-124).
           await shareTrackedTrainToGroup(groupId, result.journeyId);
         }
-        router.push(`/journeys/${result.journeyId}`);
+        router.push(`/journeys/${result.journeyPublicId}`);
         return;
       }
       if (response.status === 401) {

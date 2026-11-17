@@ -330,7 +330,7 @@ function JourneyListRow({
           align="flex-start"
           title={
             <Text fw={500} lineClamp={2} miw={0}>
-              <CardTitleLink href={`/journeys/${journey.id}`}>{journeyDisplayName(name)}</CardTitleLink>
+              <CardTitleLink href={`/journeys/${journey.publicId}`}>{journeyDisplayName(name)}</CardTitleLink>
             </Text>
           }
           trailing={<TrackedRowStatusBadge status={status} />}

@@ -77,7 +77,7 @@ function PunctualitySection({ summary }: { summary: PunctualitySummary }) {
           </Text>
           {summary.worstTrains.map((train) => (
             <Group key={train.key} gap="xs">
-              <TextLink href={`/journeys/${train.journeyId}`} underline="always" inline>
+              <TextLink href={`/journeys/${train.journeyPublicId}`} underline="always" inline>
                 {formatDate(train.serviceDate)}
               </TextLink>
               <Text size="sm" c="dimmed">
@@ -156,7 +156,7 @@ function DelayRepaySection({ rollup }: { rollup: DelayRepayRollup }) {
         <Stack gap={2}>
           {rollup.qualifying.map((journey) => (
             <Group key={journey.journeyId} gap="xs">
-              <TextLink href={`/journeys/${journey.journeyId}`} underline="always" inline>
+              <TextLink href={`/journeys/${journey.journeyPublicId}`} underline="always" inline>
                 {journey.customName ?? formatDate(journey.serviceDate)}
               </TextLink>
               <Text size="sm" c="dimmed">

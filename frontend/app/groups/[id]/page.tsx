@@ -487,7 +487,7 @@ function SharedJourneyRow({
       <StatusRow
         title={
           <Text fw={500}>
-            <CardTitleLink href={`/journeys/${journey.journeyId}`}>{journeyDisplayName(name)}</CardTitleLink>
+            <CardTitleLink href={`/journeys/${journey.journeyPublicId}`}>{journeyDisplayName(name)}</CardTitleLink>
           </Text>
         }
         subtitle={

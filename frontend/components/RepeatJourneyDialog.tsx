@@ -137,8 +137,8 @@ export function RepeatJourneyDialog({
         return;
       }
       if (mode === 'repeat') {
-        const body = (await response.json()) as { journeyId: number };
-        router.push(`/journeys/${body.journeyId}`);
+        const body = (await response.json()) as { journeyPublicId: string };
+        router.push(`/journeys/${body.journeyPublicId}`);
       } else {
         setSaving(null);
         onClose();

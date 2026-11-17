@@ -86,7 +86,7 @@ export function RunTemplateNowButton({
       const result = (await response.json()) as MaterializeTemplateResponse;
       setSubmitting(false);
       close();
-      router.push(`/journeys/${result.journeyId}`);
+      router.push(`/journeys/${result.journeyPublicId}`);
     } catch {
       setError(describeFailure('add', 'this date'));
       setSubmitting(false);

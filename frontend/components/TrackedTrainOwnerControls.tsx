@@ -67,17 +67,20 @@ export function TrackedTrainOwnerControls({
     sharedGroupCount: number;
     journeyIds?: number[] | undefined;
     singleLegJourneyIds?: number[] | undefined;
+    journeyPublicIds?: string[] | undefined;
+    singleLegJourneyPublicIds?: string[] | undefined;
   };
   afterDelete?: 'redirect' | 'refresh' | undefined;
 }) {
   const journeyIds = train.journeyIds ?? [];
   const ownJourneyIds = train.singleLegJourneyIds;
   const keptBy = ownJourneyIds === undefined ? journeyIds : journeyIds.filter((id) => !ownJourneyIds.includes(id));
-  const journeyId = ownJourneyIds?.[0] ?? journeyIds[0];
+  // The opaque ids run parallel to the numeric ones (DS-534).
+  const journeyPublicId = train.singleLegJourneyPublicIds?.[0] ?? train.journeyPublicIds?.[0];
   return (
     <>
-      {journeyId !== undefined && (
-        <TextLink href={`/journeys/${String(journeyId)}`} size="sm">
+      {journeyPublicId !== undefined && (
+        <TextLink href={`/journeys/${journeyPublicId}`} size="sm">
           Open journey
         </TextLink>
       )}

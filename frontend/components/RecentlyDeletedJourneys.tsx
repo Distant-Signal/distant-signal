@@ -17,7 +17,7 @@ import type { RecentlyDeletedData, RecentlyDeletedJourney, RestoreDeletedJourney
 /** A journey saved again: the new journey, and what needs the visitor. */
 interface Saved {
   title: string;
-  journeyId: number;
+  journeyPublicId: string;
   notes: string[];
 }
 
@@ -65,7 +65,7 @@ export function RecentlyDeletedJourneys({ data, now }: { data: RecentlyDeletedDa
               </List>
             )}
             <Text size="sm">
-              <TextLink href={`/journeys/${saved.journeyId}`} inline>
+              <TextLink href={`/journeys/${saved.journeyPublicId}`} inline>
                 Open the journey
               </TextLink>
             </Text>
@@ -150,7 +150,7 @@ function DeletedJourneyCard({
       }
       const body = (await response.json()) as RestoreDeletedJourneyResponse;
       setBusy(false);
-      onSaved({ title, journeyId: body.journeyId, notes: restoreNotes(body.legs) });
+      onSaved({ title, journeyPublicId: body.journeyPublicId, notes: restoreNotes(body.legs) });
     } catch {
       setError(describeFailure('save', 'this journey again'));
       setBusy(false);

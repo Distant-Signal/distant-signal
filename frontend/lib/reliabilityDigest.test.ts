@@ -9,6 +9,7 @@ import {
 } from './reliabilityDigest';
 import type { DelayRepayEstimate, ReliabilityJourney, ReliabilityTrain } from './types';
 import {
+  testPublicId,
   DELAY_REPAY_ESTIMATE_DEFAULTS,
   RELIABILITY_JOURNEY_DEFAULTS,
   RELIABILITY_TRAIN_DEFAULTS,
@@ -90,12 +91,18 @@ describe('computePunctualitySummary', () => {
 
   it('lists the five latest trains, most delayed first, linking to their journeys', () => {
     const trains = [1, 2, 3, 4, 5, 6].map((n) =>
-      train({ journeyId: n, legId: n * 10, delayMinutes: n * 5, serviceDate: `2026-09-0${n}` }),
+      train({
+        journeyId: n,
+        journeyPublicId: testPublicId(n),
+        legId: n * 10,
+        delayMinutes: n * 5,
+        serviceDate: `2026-09-0${n}`,
+      }),
     );
     trains.push(train({ journeyId: 9, legId: 90, delayMinutes: -2 }));
     const summary = computePunctualitySummary(trains);
     expect(summary.worstTrains.map((t) => t.delayMinutes)).toEqual([30, 25, 20, 15, 10]);
-    expect(summary.worstTrains[0]?.journeyId).toBe(6);
+    expect(summary.worstTrains[0]?.journeyPublicId).toBe(testPublicId(6));
   });
 });
 

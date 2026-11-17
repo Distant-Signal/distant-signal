@@ -113,7 +113,7 @@ export function breakResponse(overrides: Partial<BreakResponse> = {}): BreakResp
   return {
     id: 5,
     journeyId: 42,
-    journeyPublicId: 'j_test42',
+    journeyPublicId: 'j_0000000000000000000000000000002a',
     cause: 'connection_missed',
     fault: 'operator',
     severity: 3,
