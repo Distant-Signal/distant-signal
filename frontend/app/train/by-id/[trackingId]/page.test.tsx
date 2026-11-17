@@ -5,7 +5,7 @@ import TrackedTrainByIdPage from './page';
 import * as api from '@/lib/api';
 import { ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import type { TrackedTrainState } from '@/lib/types';
-import { TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
+import { TRACKED_TRAIN_STATE_DEFAULTS, testPublicId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -125,10 +125,17 @@ describe('TrackedTrainByIdPage success path', () => {
   // DS-124: a tracked train is a one-leg journey; the page links to it.
   it('links to the train’s own journey', async () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
-      trackedTrainState({ resolutionStatus: 'pending', trainUid: null, journeyIds: [7], singleLegJourneyIds: [7] }),
+      trackedTrainState({
+        resolutionStatus: 'pending',
+        trainUid: null,
+        journeyIds: [7],
+        journeyPublicIds: [testPublicId(7)],
+        singleLegJourneyIds: [7],
+        singleLegJourneyPublicIds: [testPublicId(7)],
+      }),
     );
     await renderPage('42');
-    expect(screen.getByRole('link', { name: 'Open journey' })).toHaveAttribute('href', '/journeys/7');
+    expect(screen.getByRole('link', { name: 'Open journey' })).toHaveAttribute('href', `/journeys/${testPublicId(7)}`);
   });
 
   // Unresolved (no trainUid yet): there's no canonical uid/date URL to send

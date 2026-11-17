@@ -4,7 +4,12 @@ import { renderWithMantine } from '@/test/render';
 import SharedJourneyPage, { generateMetadata } from './page';
 import { getJourney, getJourneyByShareToken, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
-import { JOURNEY_DETAIL_DEFAULTS, JOURNEY_LEG_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
+import {
+  JOURNEY_DETAIL_DEFAULTS,
+  JOURNEY_LEG_DEFAULTS,
+  TRACKED_TRAIN_STATE_DEFAULTS,
+  testPublicId,
+} from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -102,7 +107,7 @@ function sharedJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   return {
     ...JOURNEY_DETAIL_DEFAULTS,
     id: 167,
-    publicId: 'j_167',
+    publicId: testPublicId(167),
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     legs: [matchedLeg()],
@@ -150,9 +155,9 @@ describe('SharedJourneyPage', () => {
     vi.mocked(getJourneyByShareToken).mockResolvedValue(sharedJourney({ id: 167 }));
     vi.mocked(getJourney).mockResolvedValue(sharedJourney({ id: 167, isOwner: true }));
 
-    await expect(renderPage()).rejects.toThrow('NEXT_REDIRECT:/journeys/167');
+    await expect(renderPage()).rejects.toThrow(`NEXT_REDIRECT:/journeys/${testPublicId(167)}`);
 
-    expect(redirectMock).toHaveBeenCalledWith('/journeys/167');
+    expect(redirectMock).toHaveBeenCalledWith(`/journeys/${testPublicId(167)}`);
     // The token-scoped view must never have rendered any leg content on the
     // way to the redirect -- this is a redirect, not a second, degraded
     // rendering of the same data.

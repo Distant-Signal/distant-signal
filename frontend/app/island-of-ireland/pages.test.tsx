@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
-import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import { TRACKED_TRAIN_LIST_ITEM_DEFAULTS, testPublicId } from '@/test/apiDefaults';
 import * as api from '@/lib/api';
 import { A101_TRAIN, BANGOR, BELFAST, CONNOLLY, DEPARTURES, LINES, STATIONS } from '@/test/irelandFixtures';
 import IrelandPage, { metadata } from './page';
@@ -308,13 +308,17 @@ describe('/island-of-ireland/[network]/trains/[train]/[date]', () => {
           resolutionStatus: 'resolved',
           trainUid: 'ie:A101',
           journeyIds: [812],
+          journeyPublicIds: [testPublicId(812)],
           singleLegJourneyIds: [812],
+          singleLegJourneyPublicIds: [testPublicId(812)],
           irishTrain: { trainCode: 'A101', serviceDate: '2026-09-17' },
         },
       ]);
       renderWithMantine(await IrelandTrainPage(train('iarnrod-eireann', 'A101', '2026-09-17')));
       expect(screen.queryByRole('button', { name: 'Track this train' })).toBeNull();
-      expect(screen.getByRole('link', { name: 'Open journey' }).getAttribute('href')).toBe('/journeys/812');
+      expect(screen.getByRole('link', { name: 'Open journey' }).getAttribute('href')).toBe(
+        `/journeys/${testPublicId(812)}`,
+      );
     });
   });
 });

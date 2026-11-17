@@ -5,6 +5,7 @@ import JourneyDetailPage from './page';
 import * as api from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import {
+  testPublicId,
   JOURNEY_DETAIL_DEFAULTS,
   JOURNEY_LEG_DEFAULTS,
   JOURNEY_STOP_DEFAULTS,
@@ -25,6 +26,9 @@ vi.mock('@/lib/api', async () => {
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
+  },
+  redirect: (url: string) => {
+    throw new Error(`NEXT_REDIRECT ${url}`);
   },
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
   usePathname: () => '/journeys/167',
@@ -139,7 +143,7 @@ function baseJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   return {
     ...JOURNEY_DETAIL_DEFAULTS,
     id: 167,
-    publicId: 'j_167',
+    publicId: testPublicId(167),
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     legs: [matchedLeg()],
@@ -149,9 +153,43 @@ function baseJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   };
 }
 
-async function renderPage(id = '167') {
+async function renderPage(id = testPublicId(167)) {
   return renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id }) }));
 }
+
+describe('JourneyDetailPage ids in the URL', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+    vi.mocked(api.getJourney).mockReset();
+  });
+
+  it('moves a numeric URL to the opaque one after the read, keeping the query', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney());
+    await expect(
+      JourneyDetailPage({
+        params: Promise.resolve({ id: '167' }),
+        searchParams: Promise.resolve({ break: '5', src: 'push' }),
+      }),
+    ).rejects.toThrow(`NEXT_REDIRECT /journeys/${testPublicId(167)}?break=5&src=push`);
+    expect(api.getJourney).toHaveBeenCalledWith('167');
+  });
+
+  it('never redirects when the read is refused', async () => {
+    vi.mocked(api.getJourney).mockRejectedValue(new api.ApiNotFoundError('http://api/Journeys/167'));
+    await expect(JourneyDetailPage({ params: Promise.resolve({ id: '167' }) })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('renders an opaque URL without redirecting', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney());
+    await renderPage();
+    expect(api.getJourney).toHaveBeenCalledWith(testPublicId(167));
+  });
+
+  it('answers 404 for an id of neither form without asking the api', async () => {
+    await expect(JourneyDetailPage({ params: Promise.resolve({ id: 'j_nope' }) })).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(api.getJourney).not.toHaveBeenCalled();
+  });
+});
 
 describe('JourneyDetailPage', () => {
   beforeEach(() => {
@@ -354,7 +392,7 @@ describe('JourneyDetailPage title (M18)', () => {
       openSuiteJourney({ legs: [openLeg({ originName: 'London Kings Cross', destinationName: 'Edinburgh' })] }),
     );
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
     await screen.findAllByText(/No scheduled trains match this window\./);
 
     expect(
@@ -370,7 +408,7 @@ describe('JourneyDetailPage title (M18)', () => {
     );
     vi.mocked(api.getJourney).mockResolvedValue(openSuiteJourney());
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
     await screen.findAllByText(/No scheduled trains match this window\./);
 
     expect(screen.getByRole('heading', { level: 1, name: 'KGX to EDB, 22 Sep 2026' })).toBeInTheDocument();
@@ -383,7 +421,7 @@ describe('JourneyDetailPage title (M18)', () => {
     );
     vi.mocked(api.getJourney).mockResolvedValue(openSuiteJourney({ customName: 'My commute' }));
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
     await screen.findAllByText(/No scheduled trains match this window\./);
 
     expect(screen.getByRole('heading', { level: 1, name: 'My commute' })).toBeInTheDocument();
@@ -395,7 +433,7 @@ describe('JourneyDetailPage title (M18)', () => {
   it('names a journey with no legs plainly', async () => {
     vi.mocked(api.getJourney).mockResolvedValue(openSuiteJourney({ legs: [] }));
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
 
     expect(screen.getByRole('heading', { level: 1, name: 'Journey with no legs yet' })).toBeInTheDocument();
   });
@@ -414,7 +452,7 @@ describe('JourneyDetailPage title (M18)', () => {
       }),
     );
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
     await screen.findAllByText(/No scheduled trains match this window\./);
 
     expect(screen.getByRole('heading', { level: 1, name: 'KGX to NCL, 22 Sep 2026' })).toBeInTheDocument();
@@ -433,7 +471,7 @@ describe('JourneyDetailPage "Add a leg" gating (M16)', () => {
     );
     vi.mocked(api.getJourney).mockResolvedValue(openSuiteJourney());
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
     await screen.findAllByText(/No scheduled trains match this window\./);
 
     expect(screen.queryByRole('button', { name: 'Add a leg' })).not.toBeInTheDocument();
@@ -444,7 +482,7 @@ describe('JourneyDetailPage "Add a leg" gating (M16)', () => {
       openSuiteJourney({ legs: [openLeg({ matchMode: 'manual', trackedTrainState: openSuiteTrackedState() })] }),
     );
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
 
     expect(screen.getByRole('button', { name: 'Add a leg' })).toBeInTheDocument();
   });
@@ -457,7 +495,7 @@ describe('JourneyDetailPage "Add a leg" gating (M16)', () => {
       }),
     );
 
-    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: '1' }) }));
+    renderWithMantine(await JourneyDetailPage({ params: Promise.resolve({ id: testPublicId(167) }) }));
 
     expect(screen.queryByRole('button', { name: 'Add a leg' })).not.toBeInTheDocument();
   });
@@ -693,7 +731,10 @@ describe('JourneyDetailPage break deep link', () => {
 
   async function renderWithQuery(query: Record<string, string>) {
     return renderWithMantine(
-      await JourneyDetailPage({ params: Promise.resolve({ id: '167' }), searchParams: Promise.resolve(query) }),
+      await JourneyDetailPage({
+        params: Promise.resolve({ id: testPublicId(167) }),
+        searchParams: Promise.resolve(query),
+      }),
     );
   }
 
@@ -812,7 +853,7 @@ describe('JourneyDetailPage following', () => {
       vi.mocked(api.getJourney).mockResolvedValue(occurrence());
       renderWithMantine(
         await JourneyDetailPage({
-          params: Promise.resolve({ id: '167' }),
+          params: Promise.resolve({ id: testPublicId(167) }),
           searchParams: Promise.resolve({ pick: 'usual' }),
         }),
       );

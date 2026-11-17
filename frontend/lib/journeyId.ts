@@ -17,10 +17,7 @@ export function isLegacyJourneyId(id: string): boolean {
 
 /** `/journeys/{publicId}` with `query`'s entries, in order; a repeated key
  * keeps every value. Empty values are kept: `?break=` stays `?break=`. */
-export function journeyUrlWithQuery(
-  publicId: string,
-  query: Record<string, string | string[] | undefined>,
-): string {
+export function journeyUrlWithQuery(publicId: string, query: Record<string, string | string[] | undefined>): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined) continue;
