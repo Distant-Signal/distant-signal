@@ -378,6 +378,13 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       headers[name] = value;
     }
   }
+  // The browser's `Idempotency-Key` (the itinerary save, a replan accept or
+  // a leg replace): the api answers a retry with the first response only if
+  // it sees the key. It validates the value itself (1 to 200 visible ASCII).
+  const idempotencyKey = req.headers.get('idempotency-key');
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
   // A conditional GET, so a feed reader (or the edge) revalidating an Atom
   // feed (`/api/feeds/...`, docs/feeds.md) gets the api's 304.
   const ifNoneMatch = req.headers.get('if-none-match');

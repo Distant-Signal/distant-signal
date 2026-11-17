@@ -184,6 +184,27 @@ describe('/api/[...path] proxy', () => {
     expect(plainHeaders.DNT).toBeUndefined();
   });
 
+  // A retried itinerary save must reach the api with its key, or every retry
+  // saves another journey.
+  it("forwards the browser's Idempotency-Key, and adds none it didn't send", async () => {
+    const path = ['Journeys', 'itinerary'];
+    const req = makeRequest('/api/Journeys/itinerary', {
+      method: 'POST',
+      headers: { origin: 'http://localhost:3000', 'idempotency-key': 'key-123' },
+      body: '{}',
+    });
+    await POST(req, { params: Promise.resolve({ path }) });
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect((init as { headers: Record<string, string> }).headers['Idempotency-Key']).toBe('key-123');
+
+    vi.mocked(fetch).mockClear();
+    await POST(makeRequest('/api/Journeys/itinerary', { method: 'POST', body: '{}' }), {
+      params: Promise.resolve({ path }),
+    });
+    const [, plain] = vi.mocked(fetch).mock.calls[0]!;
+    expect((plain as { headers: Record<string, string> }).headers['Idempotency-Key']).toBeUndefined();
+  });
+
   it('omits Origin/Referer from the outbound fetch when the browser sent neither', async () => {
     const req = makeRequest('/api/auth/logout', { method: 'POST' });
     await POST(req, { params: Promise.resolve({ path: ['auth', 'logout'] }) });
