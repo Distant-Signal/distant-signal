@@ -76,6 +76,7 @@ function captureRedirect(provider: BrowserMcpOAuthProvider): { url: () => URL | 
 describe('MCP sign-in recovery against the real SDK auth()', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -114,7 +115,7 @@ describe('MCP sign-in recovery against the real SDK auth()', () => {
   it('re-registers a registration older than the server TTL BEFORE going to /authorize (which would 400)', async () => {
     const { fetchMock, calls } = fakeAuthServer();
     const provider = new BrowserMcpOAuthProvider(CALLBACK);
-    localStorage.setItem(
+    sessionStorage.setItem(
       'ds-mcp-oauth:client-information',
       JSON.stringify({
         client_id: 'expired-client',
@@ -171,7 +172,7 @@ describe('MCP sign-in recovery against the real SDK auth()', () => {
       /client information is required/,
     );
     expect(provider.clientInformation()).toBeUndefined();
-    expect(localStorage.getItem('ds-mcp-oauth:code-verifier')).toBeNull();
+    expect(sessionStorage.getItem('ds-mcp-oauth:code-verifier')).toBeNull();
 
     // Reconnect: fresh DCR + redirect with the new client.
     vi.stubGlobal('fetch', fetchMock);

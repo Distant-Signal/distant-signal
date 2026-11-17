@@ -85,7 +85,7 @@ interface ChatPanelProps {
 
 /** The chat UI's own message list + input (embedded-chatbot-option-b-
  * client-side-tokens plan, Task 10). A Client Component -- it needs the
- * user's own localStorage-held Anthropic key and MCP tokens, and runs the
+ * user's own session-held Anthropic key and MCP tokens, and runs the
  * tool-calling loop (`runChatTurn`, Task 1's `orchestrator/src/chat.ts`
  * relocated) directly in the browser now, not through a server-side
  * proxy -- there is no longer a server-side orchestrator to talk to

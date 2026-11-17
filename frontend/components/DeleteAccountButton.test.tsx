@@ -27,6 +27,7 @@ describe('DeleteAccountButton', () => {
     pushMock.mockClear();
     refreshMock.mockClear();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -57,8 +58,8 @@ describe('DeleteAccountButton', () => {
 
   it('sends DELETE /api/account with the confirmation body, clears browser-only data and leaves the page', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 204 }));
-    localStorage.setItem('ds-anthropic-api-key', 'sk-test');
-    localStorage.setItem('ds-mcp-oauth:tokens', '{}');
+    sessionStorage.setItem('ds-anthropic-api-key', 'sk-test');
+    sessionStorage.setItem('ds-mcp-oauth:tokens', '{}');
     localStorage.setItem('ds-color-scheme', 'dark');
 
     renderWithMantine(<DeleteAccountButton />);
@@ -71,8 +72,8 @@ describe('DeleteAccountButton', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirm: DELETE_ACCOUNT_CONFIRMATION }),
     });
-    expect(localStorage.getItem('ds-anthropic-api-key')).toBeNull();
-    expect(localStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
+    expect(sessionStorage.getItem('ds-anthropic-api-key')).toBeNull();
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
     expect(localStorage.getItem('ds-color-scheme')).toBe('dark');
   });
 

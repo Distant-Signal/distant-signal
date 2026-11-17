@@ -106,13 +106,13 @@ test.describe('/chat, mocked network', () => {
   test.use({ storageState: SESSION_COOKIE ? sessionState(SESSION_COOKIE) : undefined });
 
   test.beforeEach(async ({ page }) => {
-    // Seed localStorage with a fake Anthropic key + MCP tokens before any
+    // Seed sessionStorage with a fake Anthropic key + MCP tokens before any
     // app JS runs, via an init script -- avoids re-driving the full OAuth
     // redirect chain for every case below, which is Decision 6's UX
     // trade-off (Open questions/risks #4), not this spec's own concern.
     await page.addInitScript(() => {
-      window.localStorage.setItem('ds-anthropic-api-key', 'sk-ant-e2e-test');
-      window.localStorage.setItem(
+      window.sessionStorage.setItem('ds-anthropic-api-key', 'sk-ant-e2e-test');
+      window.sessionStorage.setItem(
         'ds-mcp-oauth:tokens',
         JSON.stringify({ access_token: 'e2e-test-token', token_type: 'Bearer' }),
       );

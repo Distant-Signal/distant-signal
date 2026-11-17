@@ -5,7 +5,9 @@ import type {
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 
-const STORAGE_PREFIX = 'ds-mcp-oauth:';
+import { MCP_OAUTH_STORAGE_PREFIX, secretStorage } from './secretStorage';
+
+const STORAGE_PREFIX = MCP_OAUTH_STORAGE_PREFIX;
 const CLIENT_INFO_KEY = `${STORAGE_PREFIX}client-information`;
 const TOKENS_KEY = `${STORAGE_PREFIX}tokens`;
 const CODE_VERIFIER_KEY = `${STORAGE_PREFIX}code-verifier`;
@@ -23,7 +25,7 @@ const CLIENT_SAVED_AT_KEY = `${STORAGE_PREFIX}client-saved-at`;
 export const MCP_CLIENT_MAX_AGE_MS = 29 * 24 * 60 * 60 * 1000;
 
 /** The prefix every key this provider stores starts with. */
-export const MCP_OAUTH_STORAGE_PREFIX = STORAGE_PREFIX;
+export { MCP_OAUTH_STORAGE_PREFIX };
 
 /** Every key this provider stores -- cleared on logout and account
  * deletion (`lib/browserAccountData.ts`). */
@@ -43,10 +45,8 @@ export type McpCredentialScope = 'all' | 'client' | 'tokens' | 'verifier' | 'dis
  * own OAuth 2.1 authorization server -- the same DCR/PKCE-only public-
  * client shape Claude Desktop already gets from `RailMcpOAuthProvider`,
  * just run inside the browser instead of a native app. Backed by
- * `localStorage`, matching this app's existing precedent
- * (the theme and pride preferences) -- see the client-side-tokens
- * design doc's Decision 6 for why `localStorage` over `sessionStorage`/
- * IndexedDB.
+ * `sessionStorage` (`lib/secretStorage.ts`): gone when the tab closes, but
+ * it survives the same-tab redirect to the authorization server and back.
  *
  * Implements the MCP SDK's own `OAuthClientProvider` interface
  * (`@modelcontextprotocol/sdk/client/auth.js`) so both the SDK's exported
@@ -98,10 +98,10 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
   }
 
   saveClientInformation(clientInformation: OAuthClientInformationFull): void {
-    localStorage.setItem(CLIENT_INFO_KEY, JSON.stringify(clientInformation));
+    secretStorage().setItem(CLIENT_INFO_KEY, JSON.stringify(clientInformation));
     // Fallback age source for a registration response without
     // `client_id_issued_at` (RFC 7591 makes it optional).
-    localStorage.setItem(CLIENT_SAVED_AT_KEY, String(this.now()));
+    secretStorage().setItem(CLIENT_SAVED_AT_KEY, String(this.now()));
   }
 
   private isStale(info: OAuthClientInformationFull): boolean {
@@ -114,7 +114,7 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
     if (typeof info.client_id_issued_at === 'number' && info.client_id_issued_at > 0) {
       issuedAtMs = info.client_id_issued_at * 1000;
     } else {
-      const savedAt = Number(localStorage.getItem(CLIENT_SAVED_AT_KEY));
+      const savedAt = Number(secretStorage().getItem(CLIENT_SAVED_AT_KEY));
       // No recorded time at all (saved by a provider version that predates
       // this check): treat as stale -- re-registering costs one request,
       // keeping a dead one strands the user on the server's 400 page.
@@ -135,17 +135,17 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
    * `'discovery'` is a no-op -- this provider caches no discovery state. */
   invalidateCredentials(scope: McpCredentialScope): void {
     if (scope === 'all' || scope === 'client') {
-      localStorage.removeItem(CLIENT_INFO_KEY);
-      localStorage.removeItem(CLIENT_SAVED_AT_KEY);
+      secretStorage().removeItem(CLIENT_INFO_KEY);
+      secretStorage().removeItem(CLIENT_SAVED_AT_KEY);
     }
     if (scope === 'all' || scope === 'tokens') {
-      localStorage.removeItem(TOKENS_KEY);
+      secretStorage().removeItem(TOKENS_KEY);
     }
     if (scope === 'all' || scope === 'verifier') {
-      localStorage.removeItem(CODE_VERIFIER_KEY);
+      secretStorage().removeItem(CODE_VERIFIER_KEY);
     }
     if (scope === 'all') {
-      localStorage.removeItem(OAUTH_STATE_KEY);
+      secretStorage().removeItem(OAUTH_STATE_KEY);
     }
   }
 
@@ -155,7 +155,7 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
    * the stored `client_id` with a bare 400 page -- nothing to redirect back
    * from -- so the visitor returns to `/chat` by hand. */
   hasAbandonedAuthorization(): boolean {
-    return localStorage.getItem(OAUTH_STATE_KEY) !== null;
+    return secretStorage().getItem(OAUTH_STATE_KEY) !== null;
   }
 
   tokens(): OAuthTokens | undefined {
@@ -163,7 +163,7 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
   }
 
   saveTokens(tokens: OAuthTokens): void {
-    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+    secretStorage().setItem(TOKENS_KEY, JSON.stringify(tokens));
   }
 
   /** `auth()` only gets here once it has no usable tokens (none stored, or
@@ -172,19 +172,19 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
    * "Connect" instead of re-sending a dead token into the same 401 ->
    * redirect loop. */
   redirectToAuthorization(authorizationUrl: URL): void {
-    localStorage.removeItem(TOKENS_KEY);
+    secretStorage().removeItem(TOKENS_KEY);
     window.location.href = authorizationUrl.toString();
   }
 
   saveCodeVerifier(codeVerifier: string): void {
-    localStorage.setItem(CODE_VERIFIER_KEY, codeVerifier);
+    secretStorage().setItem(CODE_VERIFIER_KEY, codeVerifier);
   }
 
   codeVerifier(): string {
-    const verifier = localStorage.getItem(CODE_VERIFIER_KEY);
+    const verifier = secretStorage().getItem(CODE_VERIFIER_KEY);
     if (!verifier) {
       throw new Error(
-        'No PKCE code verifier found in localStorage -- the authorization flow was not started from this browser',
+        'No PKCE code verifier found in this tab -- the authorization flow was not started from this browser',
       );
     }
     return verifier;
@@ -207,7 +207,7 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
    * e.g. a stale/replayed callback URL or a mixed-up multi-tab flow. */
   state(): string {
     const value = crypto.randomUUID();
-    localStorage.setItem(OAUTH_STATE_KEY, value);
+    secretStorage().setItem(OAUTH_STATE_KEY, value);
     return value;
   }
 
@@ -219,14 +219,14 @@ export class BrowserMcpOAuthProvider implements OAuthClientProvider {
    * flow was ever started from this browser), a `null` received value (the
    * callback URL carried none), or a mismatch are all treated as invalid. */
   consumeAndVerifyState(receivedState: string | null): boolean {
-    const expected = localStorage.getItem(OAUTH_STATE_KEY);
-    localStorage.removeItem(OAUTH_STATE_KEY);
+    const expected = secretStorage().getItem(OAUTH_STATE_KEY);
+    secretStorage().removeItem(OAUTH_STATE_KEY);
     return expected !== null && receivedState !== null && receivedState === expected;
   }
 }
 
 function readJson(key: string): unknown {
-  const raw = localStorage.getItem(key);
+  const raw = secretStorage().getItem(key);
   if (!raw) return undefined;
   try {
     return JSON.parse(raw);

@@ -4,6 +4,7 @@ import { BrowserMcpOAuthProvider, MCP_CLIENT_MAX_AGE_MS, MCP_OAUTH_STORAGE_KEYS 
 describe('BrowserMcpOAuthProvider', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('returns undefined tokens/clientInformation before anything is saved', () => {
@@ -12,26 +13,26 @@ describe('BrowserMcpOAuthProvider', () => {
     expect(provider.clientInformation()).toBeUndefined();
   });
 
-  it('round-trips tokens through localStorage', () => {
+  it('round-trips tokens through sessionStorage', () => {
     const provider = new BrowserMcpOAuthProvider('https://status.example.com/chat/callback');
     const tokens = { access_token: 'abc123', token_type: 'Bearer' as const };
     provider.saveTokens(tokens);
     expect(provider.tokens()).toEqual(tokens);
 
     // A second provider instance reads the same persisted value -- proof
-    // this isn't in-memory state, it's actually localStorage-backed.
+    // this isn't in-memory state, it's actually sessionStorage-backed.
     const reloaded = new BrowserMcpOAuthProvider('https://status.example.com/chat/callback');
     expect(reloaded.tokens()).toEqual(tokens);
   });
 
-  it('round-trips client information through localStorage', () => {
+  it('round-trips client information through sessionStorage', () => {
     const provider = new BrowserMcpOAuthProvider('https://status.example.com/chat/callback');
     const info = { client_id: 'c1', redirect_uris: ['https://status.example.com/chat/callback'] };
     provider.saveClientInformation(info);
     expect(provider.clientInformation()).toEqual(info);
   });
 
-  it('round-trips the PKCE code verifier through localStorage', () => {
+  it('round-trips the PKCE code verifier through sessionStorage', () => {
     const provider = new BrowserMcpOAuthProvider('https://status.example.com/chat/callback');
     provider.saveCodeVerifier('a-verifier-value');
     expect(provider.codeVerifier()).toBe('a-verifier-value');
@@ -113,7 +114,7 @@ describe('BrowserMcpOAuthProvider', () => {
 
     function present(): string[] {
       return Object.entries(KEYS)
-        .filter(([, key]) => localStorage.getItem(key) !== null)
+        .filter(([, key]) => sessionStorage.getItem(key) !== null)
         .map(([name]) => name)
         .sort();
     }
@@ -136,7 +137,7 @@ describe('BrowserMcpOAuthProvider', () => {
       const provider = new BrowserMcpOAuthProvider(CALLBACK);
       seedEverything(provider);
       provider.invalidateCredentials('all');
-      for (const key of MCP_OAUTH_STORAGE_KEYS) expect(localStorage.getItem(key)).toBeNull();
+      for (const key of MCP_OAUTH_STORAGE_KEYS) expect(sessionStorage.getItem(key)).toBeNull();
     });
   });
 
@@ -162,7 +163,7 @@ describe('BrowserMcpOAuthProvider', () => {
       provider.saveTokens({ access_token: 'a', token_type: 'Bearer', refresh_token: 'r' });
       expect(provider.clientInformation()).toBeUndefined();
       expect(provider.tokens()).toBeUndefined();
-      expect(localStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
+      expect(sessionStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
     });
 
     it('falls back to the time it was saved when the registration has no client_id_issued_at', () => {
@@ -176,7 +177,7 @@ describe('BrowserMcpOAuthProvider', () => {
     });
 
     it('treats a registration with no known age at all as stale', () => {
-      localStorage.setItem('ds-mcp-oauth:client-information', JSON.stringify({ client_id: 'legacy' }));
+      sessionStorage.setItem('ds-mcp-oauth:client-information', JSON.stringify({ client_id: 'legacy' }));
       const provider = new BrowserMcpOAuthProvider(CALLBACK, () => NOW);
       expect(provider.clientInformation()).toBeUndefined();
     });

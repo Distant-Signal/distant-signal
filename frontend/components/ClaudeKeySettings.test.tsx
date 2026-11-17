@@ -7,12 +7,13 @@ import { getAnthropicApiKey } from '@/lib/anthropicKey';
 describe('ClaudeKeySettings', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('says where the key is kept, and that no key is set', () => {
     renderWithMantine(<ClaudeKeySettings />);
     expect(screen.getByLabelText('Claude API key')).toHaveAccessibleDescription(
-      "Saved in this browser and sent only to Anthropic. Distant Signal's servers never see it.",
+      "Kept in this browser tab until you close it, and sent only to Anthropic. Distant Signal's servers never see it. You will need to enter it again in a new tab.",
     );
     expect(screen.getByText(/no key set/i)).toBeInTheDocument();
   });
@@ -23,7 +24,7 @@ describe('ClaudeKeySettings', () => {
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
     expect(getAnthropicApiKey()).toBe('sk-ant-abc123');
     expect(screen.getByText(/key saved/i)).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Saved in this browser.');
+    expect(screen.getByRole('status')).toHaveTextContent('Saved for this tab.');
   });
 
   it('masks a previously saved key rather than showing it in full', () => {
@@ -43,5 +44,5 @@ describe('ClaudeKeySettings', () => {
 });
 
 function setAnthropicApiKeyForTest(key: string) {
-  localStorage.setItem('ds-anthropic-api-key', key);
+  sessionStorage.setItem('ds-anthropic-api-key', key);
 }

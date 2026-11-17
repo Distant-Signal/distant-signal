@@ -50,6 +50,7 @@ function renderAtWithValidState(search: string) {
 describe('ChatCallback', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     mockAuth.mockReset();
     mockReplace.mockReset();
     vi.stubEnv('NEXT_PUBLIC_RAILMCP_PUBLIC_URL', 'https://mcp.example.com');
@@ -118,7 +119,7 @@ describe('ChatCallback', () => {
       mockAuth.mockRejectedValueOnce(
         new Error('Existing OAuth client information is required when exchanging an authorization code'),
       );
-      localStorage.setItem('ds-mcp-oauth:client-information', JSON.stringify({ client_id: 'dead' }));
+      sessionStorage.setItem('ds-mcp-oauth:client-information', JSON.stringify({ client_id: 'dead' }));
       renderAtWithValidState('?code=abc123');
       const reconnect = await screen.findByRole('button', { name: 'Reconnect' });
       expect(screen.getByText(/reconnect to log in again/i)).toBeInTheDocument();
@@ -126,7 +127,7 @@ describe('ChatCallback', () => {
 
       mockAuth.mockReturnValueOnce(new Promise(() => {}));
       act(() => reconnect.click());
-      expect(localStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
+      expect(sessionStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
       // startMcpSignIn loads the SDK's auth() on demand, so the call lands a tick later.
       await waitFor(() =>
         expect(mockAuth).toHaveBeenLastCalledWith(expect.anything(), { serverUrl: 'https://mcp.example.com/mcp' }),

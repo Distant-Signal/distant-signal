@@ -292,9 +292,9 @@ export default function PrivacyPage() {
 
       <LegalSection title="The AI chat">
         <Text>
-          The chat is optional. If you use it, you give it your own Claude API key, which is stored only in your browser
-          and never sent to us. Your messages, and any Distant Signal data the chat looks up to answer them, go directly
-          from your browser to Anthropic under your own Anthropic account and{' '}
+          The chat is optional. If you use it, you give it your own Claude API key, which is kept only in your browser
+          tab and never sent to us. Your messages, and any Distant Signal data the chat looks up to answer them, go
+          directly from your browser to Anthropic under your own Anthropic account and{' '}
           <TextLink href="https://www.anthropic.com/legal" external underline="always" inline tone="inherit">
             Anthropic&apos;s terms
           </TextLink>

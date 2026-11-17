@@ -90,7 +90,7 @@ describe('draft legal pages', () => {
     vi.mocked(legal.legalPagesMode).mockReturnValue('published');
     renderWithMantine(CookiesPage());
     expect(screen.getByText('ds-anthropic-api-key')).toBeInTheDocument();
-    expect(screen.getByText(/stored in your browser at your choice and never sent to us/)).toBeInTheDocument();
+    expect(screen.getByText(/kept in your browser tab at your choice and never sent to us/)).toBeInTheDocument();
     expect(screen.getByText('distant_signal_session')).toBeInTheDocument();
   });
 

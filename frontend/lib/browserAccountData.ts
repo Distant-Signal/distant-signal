@@ -1,5 +1,6 @@
 import { ANTHROPIC_API_KEY_STORAGE_KEY } from './anthropicKey';
-import { MCP_OAUTH_STORAGE_KEYS, MCP_OAUTH_STORAGE_PREFIX } from './mcpOAuthProvider';
+import { MCP_OAUTH_STORAGE_KEYS } from './mcpOAuthProvider';
+import { clearSecretStorage } from './secretStorage';
 
 /** Browser-only data this app keeps for a signed-in visitor: the chat's
  * MCP OAuth client and tokens (`lib/mcpOAuthProvider.ts`, keys prefixed
@@ -14,25 +15,14 @@ import { MCP_OAUTH_STORAGE_KEYS, MCP_OAUTH_STORAGE_PREFIX } from './mcpOAuthProv
  * user's Anthropic key. */
 export const BROWSER_ACCOUNT_KEYS: readonly string[] = [...MCP_OAUTH_STORAGE_KEYS, ANTHROPIC_API_KEY_STORAGE_KEY];
 
-/** Removes every {@link BROWSER_ACCOUNT_KEYS} entry, plus any other
+/** Removes every secret this app holds for the visitor, from
+ * `sessionStorage` and (for anything an earlier version left there)
+ * `localStorage`: every {@link BROWSER_ACCOUNT_KEYS} entry plus any other
  * `ds-mcp-oauth:*` key a newer provider version may have written. Never
  * throws: storage may be blocked (private mode, disabled site data), in
  * which case nothing was stored. */
 export function clearBrowserAccountData(): void {
-  try {
-    const keys = new Set(BROWSER_ACCOUNT_KEYS);
-    if (typeof localStorage.length === 'number' && typeof localStorage.key === 'function') {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith(MCP_OAUTH_STORAGE_PREFIX)) keys.add(key);
-      }
-    }
-    for (const key of keys) {
-      localStorage.removeItem(key);
-    }
-  } catch {
-    // Storage blocked: nothing stored.
-  }
+  clearSecretStorage();
 }
 
 /** How long logging out waits for the server to forget this device. */

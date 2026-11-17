@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { AppNavBar } from '@/components/AppNavBar';
 import { AutoRefresh } from '@/components/AutoRefresh';
 import { ColorSchemeMeta } from '@/components/ColorSchemeMeta';
+import { BrowserSecretsGuard } from '@/components/BrowserSecretsGuard';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { UsageTracker } from '@/components/UsageTracker';
 import { OpenDataAttribution } from '@/components/OpenDataAttribution';
@@ -144,6 +145,7 @@ async function NavBarWithSession({ freshness }: { freshness: DataFreshness }) {
     <>
       <AppNavBar session={session} freshness={freshness} transitOn={transitNetworks.length > 0} />
       <UsageTracker signedIn={session.authenticated} accountOptIn={session.analyticsOptIn} />
+      <BrowserSecretsGuard signedIn={session.authenticated} />
     </>
   );
 }
