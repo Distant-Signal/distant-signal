@@ -111,7 +111,9 @@ interface Failure {
  * text, or a typed JSON refusal's `message`) is one written for people and
  * the status is one a person can act on, else `describeFailure`. The two
  * 409 refusals above are told apart by the body's `error` code when it is
- * there, else by their message (an older api sends no code). */
+ * there, else by their message: the api answers a cookie session with the
+ * plain-text sentence (the `{error, message}` JSON is for delegated
+ * callers), so for these two the message is what the web app has. */
 async function failureOf([verb, noun]: readonly [string, string], response: Response): Promise<Failure> {
   const error = await readApiError(response);
   const sentence = apiErrorSentence(error);

@@ -1,12 +1,14 @@
 /**
  * The api's typed refusals. A route that refuses for a reason a client acts
  * on answers JSON of the shape `{"error": "<snake_case code>", "message":
- * "<sentence>", ...scalar extras}` (`owner_must_delete` with `memberCount`,
- * `miss_window_closed`, `leg_travelled`, `recent_login_required`...); every
- * other error is a plain-text sentence or a framework body. The `/api` proxy
- * hands the upstream status and body through as they came, so a component
- * matches on `code` first and falls back to the message text when an older
- * api sends the refusal as plain text.
+ * "<sentence>", ...scalar extras}` to a cookie session for `owner_must_delete`
+ * and `group_changed` (with `memberCount`), `recent_login_required` and
+ * `suggestion_stale`; the journey routes' `miss_window_closed`,
+ * `leg_travelled` and `plan_changed` are the plain-text sentence to a cookie
+ * session (ds-api's `RouteError::render` keeps the JSON for delegated
+ * callers). The `/api` proxy hands the upstream status and body through as
+ * they came, so a component matches on `code` first and falls back to the
+ * message text.
  */
 
 export type ApiErrorExtra = string | number | boolean | null;
