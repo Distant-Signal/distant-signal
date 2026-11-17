@@ -98,4 +98,34 @@ describe('DeleteAccountButton', () => {
     expect(await screen.findByText(/session has expired/)).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
   });
+
+  it('shows a "Confirm it\'s you" step on recent_login_required, linking to a forced re-login that returns here', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ error: 'recent_login_required', message: 'x' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    renderWithMantine(<DeleteAccountButton />);
+    await openAndType(DELETE_ACCOUNT_CONFIRMATION);
+    fireEvent.click(confirmButton());
+
+    const link = await screen.findByRole('link', { name: "Confirm it's you" });
+    expect(link).toHaveAttribute('href', '/api/auth/login?reauth=1&return_to=%2Faccount');
+    expect(screen.getByRole('alert')).toHaveTextContent(/log in again before deleting your account/);
+    expect(screen.queryByText(/Couldn't delete/)).not.toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('treats any other 403 as an ordinary failure', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response('cross-site request rejected', { status: 403 }));
+
+    renderWithMantine(<DeleteAccountButton />);
+    await openAndType(DELETE_ACCOUNT_CONFIRMATION);
+    fireEvent.click(confirmButton());
+
+    expect(await screen.findByText(/cross-site request rejected/i)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: "Confirm it's you" })).not.toBeInTheDocument();
+  });
 });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { List, Text, TextInput } from '@mantine/core';
 import { ConfirmActionButton } from './ConfirmActionButton';
 import { clearBrowserAccountData } from '@/lib/browserAccountData';
@@ -21,6 +22,11 @@ export const DELETE_ACCOUNT_CONFIRMATION = 'delete my account';
 export function DeleteAccountButton() {
   const [typed, setTyped] = useState('');
   const confirmed = typed.trim().toLowerCase() === DELETE_ACCOUNT_CONFIRMATION;
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const returnTo = search ? `${pathname}?${search}` : pathname;
+  // The api wants a recent login for this; `reauth=1` makes the login ask again.
+  const reauthHref = `/api/auth/login?reauth=1&return_to=${encodeURIComponent(returnTo)}`;
 
   return (
     <ConfirmActionButton
@@ -37,6 +43,12 @@ export function DeleteAccountButton() {
       }
       failure={['delete', 'your account']}
       unauthorizedMessage="Your session has expired. Log in again, then delete your account."
+      reauth={{
+        href: reauthHref,
+        message:
+          "For your security, we need you to log in again before deleting your account. You'll come back to this page, and nothing has been deleted yet.",
+        actionLabel: "Confirm it's you",
+      }}
       networkFailureNote="Nothing was deleted."
       confirmDisabled={!confirmed}
       onCancel={() => setTyped('')}

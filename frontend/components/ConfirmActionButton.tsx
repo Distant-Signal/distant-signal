@@ -44,6 +44,11 @@ export interface ConfirmActionButtonProps {
   /** Shown instead of a login link on a 401, for a page where logging in
    * again can't help the dialog finish (`DeleteAccountButton`). */
   unauthorizedMessage?: string | undefined;
+  /** For an action the api refuses with `403 recent_login_required` until the
+   * visitor has logged in recently: the "Confirm it's you" step shown in the
+   * dialog instead of an error. `href` is the login route with forced
+   * re-authentication and a `return_to` back to this page. */
+  reauth?: { href: string; message: string; actionLabel: string } | undefined;
   /** Appended to the network-failure sentence ("Nothing was deleted."). */
   networkFailureNote?: string | undefined;
   /** Runs after a 2xx. Defaults to `router.refresh()`. */
@@ -72,6 +77,18 @@ export interface ConfirmActionButtonProps {
     | undefined;
 }
 
+/** Whether a 403 body is the api's `recent_login_required` error. */
+function isRecentLoginRequired(body: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    return (
+      typeof parsed === 'object' && parsed !== null && (parsed as { error?: unknown }).error === 'recent_login_required'
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** The app's one "are you sure?" control: a trigger button that opens a
  * confirmation modal, which sends one request and then refreshes (or does
  * whatever `onSuccess` says).
@@ -94,6 +111,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
       failure,
       loginPrompt,
       unauthorizedMessage,
+      reauth,
       networkFailureNote,
       onSuccess,
       confirmDisabled = false,
@@ -107,6 +125,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
     const [opened, { open, close }] = useDisclosure(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [needsReauth, setNeedsReauth] = useState(false);
     const needsLoginState = useNeedsLogin();
     const [verb, noun] = failure;
 
@@ -115,6 +134,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
     function handleClose() {
       if (busy) return;
       setError(null);
+      setNeedsReauth(false);
       needsLoginState.reset();
       onCancel?.();
       close();
@@ -141,6 +161,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
       }
       setBusy(true);
       setError(null);
+      setNeedsReauth(false);
       needsLoginState.reset();
       try {
         const response = await request();
@@ -149,6 +170,14 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
             setError(unauthorizedMessage);
           } else if (response.status === 401) {
             needsLoginState.markNeedsLogin();
+          } else if (reauth && response.status === 403) {
+            // Read once, then hand the same body on if it is another refusal.
+            const text = await response.text();
+            if (isRecentLoginRequired(text)) {
+              setNeedsReauth(true);
+            } else {
+              setError(await failureFromResponse(verb, noun, new Response(text, { status: 403 })));
+            }
           } else {
             setError(await failureFromResponse(verb, noun, response));
           }
@@ -197,6 +226,15 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
               <Text c="var(--ds-color-error-text)" role="alert">
                 {error}
               </Text>
+            )}
+            {reauth && needsReauth && (
+              <Stack gap="xs" role="alert">
+                <Text fw={600}>Confirm it&apos;s you</Text>
+                <Text size="sm">{reauth.message}</Text>
+                <Button component="a" href={reauth.href} variant="default">
+                  {reauth.actionLabel}
+                </Button>
+              </Stack>
             )}
             {needsLoginState.needsLogin && loginPrompt && <LoginControl underline="always">{loginPrompt}</LoginControl>}
             <Group justify="end" mt="xs">
