@@ -28,6 +28,7 @@ function journey(id: number, trainSubscriptionId: number | null = null): Journey
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
+    publicId: `j_${id}`,
     customName: null,
     createdAt: '2026-09-21T12:00:00Z',
     legId: id * 10,

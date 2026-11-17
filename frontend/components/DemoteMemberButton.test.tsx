@@ -24,7 +24,7 @@ describe('DemoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ userId: 'user-2', role: 'member' }), { status: 200 }));
 
-    renderWithMantine(<DemoteMemberButton groupId="grp-1" userId="user-2" name="Adam" />);
+    renderWithMantine(<DemoteMemberButton groupId="grp-1" memberId="member-2" name="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
 
     await waitFor(() => screen.getByRole('button', { name: 'Confirm demote member' }));
@@ -35,13 +35,13 @@ describe('DemoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ userId: 'user-2', role: 'member' }), { status: 200 }));
 
-    renderWithMantine(<DemoteMemberButton groupId="grp-1" userId="user-2" name="Adam" />);
+    renderWithMantine(<DemoteMemberButton groupId="grp-1" memberId="member-2" name="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm demote member' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm demote member' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/user-2/demote', { method: 'POST' });
+      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/member-2/demote', { method: 'POST' });
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
   });
@@ -49,7 +49,7 @@ describe('DemoteMemberButton', () => {
   it('cancelling closes the modal without demoting anyone', async () => {
     const fetchMock = vi.mocked(fetch);
 
-    renderWithMantine(<DemoteMemberButton groupId="grp-1" userId="user-2" name="Adam" />);
+    renderWithMantine(<DemoteMemberButton groupId="grp-1" memberId="member-2" name="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
     await waitFor(() => screen.getByRole('button', { name: 'Cancel' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -65,7 +65,7 @@ describe('DemoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response("the group owner can't be demoted", { status: 403 }));
 
-    renderWithMantine(<DemoteMemberButton groupId="grp-1" userId="user-2" name="Adam" />);
+    renderWithMantine(<DemoteMemberButton groupId="grp-1" memberId="member-2" name="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm demote member' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm demote member' }));
@@ -80,7 +80,7 @@ describe('DemoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response("that member isn't an admin", { status: 409 }));
 
-    renderWithMantine(<DemoteMemberButton groupId="grp-1" userId="user-2" name="Adam" />);
+    renderWithMantine(<DemoteMemberButton groupId="grp-1" memberId="member-2" name="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm demote member' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm demote member' }));
@@ -94,7 +94,7 @@ describe('DemoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('unauthorized', { status: 401 }));
 
-    renderWithMantine(<DemoteMemberButton groupId="grp-1" userId="user-2" name="Adam" />);
+    renderWithMantine(<DemoteMemberButton groupId="grp-1" memberId="member-2" name="Adam" />);
     fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm demote member' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm demote member' }));

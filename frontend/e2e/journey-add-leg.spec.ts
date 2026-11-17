@@ -134,6 +134,7 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
     if (path === '/api/Journeys' && request.method() === 'POST') {
       return json(route, {
         journeyId: JOURNEY_ID,
+        journeyPublicId: `j_${JOURNEY_ID}`,
         legId: 1,
         trackingId: 42,
         resolutionStatus: 'pending',
@@ -142,6 +143,7 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
     if (path === `/api/Journeys/${JOURNEY_ID}` && request.method() === 'GET') {
       return json(route, {
         id: JOURNEY_ID,
+        publicId: `j_${JOURNEY_ID}`,
         customName: null,
         createdAt: '2026-09-22T00:00:00Z',
         isOwner: true,

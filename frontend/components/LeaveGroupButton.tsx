@@ -3,7 +3,7 @@
 import { ConfirmActionButton } from './ConfirmActionButton';
 
 /** Self-removal, always allowed for any member (spec §3) -- unlike
- * `RemoveMemberButton`, this targets the CURRENT user's own id, so it
+ * `RemoveMemberButton`, this targets the CURRENT user's own member id, so it
  * needs no `admin`/`owner` gating at the call site: the page renders this
  * for every member's own row unconditionally. On success, navigates back
  * to `/groups` (there's no reason to stay on a group's own detail page
@@ -31,12 +31,12 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * non-owner caller and the sole-owner-deletes-the-group case above. */
 export function LeaveGroupButton({
   groupId,
-  currentUserId,
+  memberId,
   willDeleteGroup = false,
   nextOwnerLabel = null,
 }: {
   groupId: string;
-  currentUserId: string;
+  memberId: string;
   willDeleteGroup?: boolean;
   nextOwnerLabel?: string | null;
 }) {
@@ -46,7 +46,7 @@ export function LeaveGroupButton({
       confirmLabel="Leave"
       actionName="leave group"
       title="Leave this group?"
-      request={() => fetch(`/api/groups/${groupId}/members/${currentUserId}`, { method: 'DELETE' })}
+      request={() => fetch(`/api/groups/${groupId}/members/${memberId}`, { method: 'DELETE' })}
       failure={['leave', 'this group']}
       loginPrompt="Log in to leave this group"
       onSuccess={(router) => router.push('/groups')}

@@ -136,6 +136,7 @@ describe('journey names', () => {
     const row = journeyListItemNameInput({
       ...JOURNEY_LIST_ITEM_DEFAULTS,
       id: 1,
+      publicId: 'j_1',
       customName: null,
       createdAt: '2026-09-16T00:00:00Z',
       legId: 1,

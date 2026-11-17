@@ -163,6 +163,7 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
       if (body.leg.mode === 'untracked') legs.push(untrackedLegFrom(body.leg, 1));
       return json(route, {
         journeyId: JOURNEY_ID,
+        journeyPublicId: `j_${JOURNEY_ID}`,
         legId: 1,
         trackingId: null,
         resolutionStatus: null,
@@ -171,6 +172,7 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
     if (path === `/api/Journeys/${JOURNEY_ID}` && request.method() === 'GET') {
       return json(route, {
         id: JOURNEY_ID,
+        publicId: `j_${JOURNEY_ID}`,
         customName: null,
         createdAt: '2026-10-20T00:00:00Z',
         isOwner: true,

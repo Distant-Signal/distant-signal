@@ -160,7 +160,7 @@ export type BreakOpenedVia = "push" | "in_app";
 /**
  * A break with its suggestions, as the break routes answer.
  */
-export type BreakResponse = { id: number, journeyId: number, cause: BreakCause, fault: BreakFault, severity: number, status: BreakStatus, triggerLegId: number | null, detectedAt: string, openedVia: BreakOpenedVia | null, 
+export type BreakResponse = { id: number, journeyId: number, journeyPublicId: string, cause: BreakCause, fault: BreakFault, severity: number, status: BreakStatus, triggerLegId: number | null, detectedAt: string, openedVia: BreakOpenedVia | null, 
 /**
  * Why the fault is what it is, when the data overrode the traveller
  * (§14 Q5): "Your earlier train was late, so this counts as a missed
@@ -392,7 +392,7 @@ platform?: string | null, plannedPlatform?: string | null, } | { "mode": "knownT
 
 export type CreateJourneyRequest = { customName?: string | null, leg: CreateJourneyLegRequest, };
 
-export type CreateJourneyResponse = { journeyId: number, legId: number, 
+export type CreateJourneyResponse = { journeyId: number, journeyPublicId: string, legId: number, 
 /**
  * `None` only for a `window`-mode leg -- no train is bound yet.
  */
@@ -412,7 +412,7 @@ resolutionStatus: ResolutionStatus | null, };
  * serde attributes exactly (same `rename_all_fields` requirement, same
  * reasoning).
  */
-export type CreateJourneyTemplateRequest = { "mode": "manual", customName?: string | null, legs: Array<TemplateLegRequest>, } | { "mode": "fromJourney", customName?: string | null, journeyId: number, } | { "mode": "plan", customName?: string | null, originCrs: string, destinationCrs: string, target: TemplateTarget, planOptions?: PlanOptions | null, usualItinerary: UsualItinerary, 
+export type CreateJourneyTemplateRequest = { "mode": "manual", customName?: string | null, legs: Array<TemplateLegRequest>, } | { "mode": "fromJourney", customName?: string | null, journeyId: number | string, } | { "mode": "plan", customName?: string | null, originCrs: string, destinationCrs: string, target: TemplateTarget, planOptions?: PlanOptions | null, usualItinerary: UsualItinerary, 
 /**
  * The days it recurs on; absent or `null` for none, a saved
  * route that only runs when the owner adds a date.
@@ -855,7 +855,22 @@ export type FullCoverageAvailability = { "state": "not-enabled" } | { "state": "
  * parallel status-rendering path into the groups module that would then
  * have to be kept in sync with the first.
  */
-export type GroupCustomLine = { lineId: string, lineName: string, grantedBy: string, grantedByName: string | null, 
+export type GroupCustomLine = { lineId: string, lineName: string, 
+/**
+ * Deprecated (DS-534 L12): the account id of the member who shared it, present
+ * ONLY when that member is the caller and `null` for everybody else.
+ * Use `grantedByMemberId` and `grantedByIsMe`. Removed in a later release.
+ */
+grantedBy: string | null, 
+/**
+ * The opaque, per-group id of the member who shared it
+ * (`group_members.public_id`); `null` when they have since left.
+ */
+grantedByMemberId: string | null, 
+/**
+ * Whether the member who shared it is the caller.
+ */
+grantedByIsMe: boolean, grantedByName: string | null, 
 /**
  * Same contract, same derivation, as `GroupTrain.added_by_tag`: set
  * only when there is no showable name, so a group whose `IdP` can name
@@ -863,7 +878,23 @@ export type GroupCustomLine = { lineId: string, lineName: string, grantedBy: str
  */
 grantedByTag: string | null, };
 
-export type GroupDetailResponse = { id: string, name: string, ownerId: string, ownerName: string | null, 
+export type GroupDetailResponse = { id: string, name: string, 
+/**
+ * Deprecated (DS-534 L12): the owner's account id, present ONLY when
+ * the caller is the owner and `null` otherwise. Use `ownerMemberId`.
+ * Removed in a later release.
+ */
+ownerId: string | null, 
+/**
+ * The owner's opaque id in this group; compare it with the member
+ * list's `memberId`.
+ */
+ownerMemberId: string, 
+/**
+ * The caller's own opaque id in this group (the member list's row with
+ * `isMe`).
+ */
+memberId: string, ownerName: string | null, 
 /**
  * Present only when `owner_name` is absent -- the distinguishing
  * suffix for the generic placeholder; see
@@ -887,7 +918,7 @@ export type GroupIdentityResponse = { id: string, name: string, };
  * row must never widen past what `group_trains` already decided was safe
  * to show a fellow member for the underlying tracked-train resource.
  */
-export type GroupJourney = { journeyId: number, customName: string | null, legCount: number, pinOriginCrs: string | null, pinDestinationCrs: string | null, pinOriginName: string | null, pinDestinationName: string | null, pinScheduledDeparture: string | null, 
+export type GroupJourney = { journeyId: number, journeyPublicId: string, customName: string | null, legCount: number, pinOriginCrs: string | null, pinDestinationCrs: string | null, pinOriginName: string | null, pinDestinationName: string | null, pinScheduledDeparture: string | null, 
 /**
  * The journey's own ends, for naming it: the first leg's planned
  * origin and the LAST leg's planned destination (`journey_legs`, not
@@ -908,7 +939,22 @@ delayBasis: DelayBasis | null,
 /**
  * See `TrackedTrainState::delay_provisional`.
  */
-delayProvisional: boolean, addedBy: string, addedByName: string | null, 
+delayProvisional: boolean, 
+/**
+ * Deprecated (DS-534 L12): the account id of the member who added it, present
+ * ONLY when that member is the caller and `null` for everybody else.
+ * Use `addedByMemberId` and `addedByIsMe`. Removed in a later release.
+ */
+addedBy: string | null, 
+/**
+ * The opaque, per-group id of the member who added it
+ * (`group_members.public_id`); `null` when they have since left.
+ */
+addedByMemberId: string | null, 
+/**
+ * Whether the member who added it is the caller.
+ */
+addedByIsMe: boolean, addedByName: string | null, 
 /**
  * Same contract as `GroupTrain.added_by_tag`.
  */
@@ -967,7 +1013,23 @@ irishTrain: IrishTrain | null, serviceMode?: ServiceMode, liveTracking?: boolean
  * Same rule, same helper (`users::MemberDisplay`), as
  * `GroupTrain.added_by_name` one struct away.
  */
-export type GroupMember = { userId: string, displayName: string | null, 
+export type GroupMember = { 
+/**
+ * Deprecated (DS-534 L12): the account id, present ONLY on the
+ * caller's own row and `null` on everybody else's. Use `memberId` and
+ * `isMe`. Removed in a later release.
+ */
+userId: string | null, 
+/**
+ * The member's opaque id within this group (`group_members.public_id`):
+ * stable for the membership, different in every group, and not an
+ * account id. The `{member}` of the member routes.
+ */
+memberId: string, 
+/**
+ * Whether this is the caller's own membership.
+ */
+isMe: boolean, displayName: string | null, 
 /**
  * Set when -- and only when -- `display_name` is `None`: six hex
  * characters the frontend appends to its own placeholder, so a group
@@ -1016,7 +1078,22 @@ delayBasis: DelayBasis | null,
 /**
  * See `TrackedTrainState::delay_provisional`.
  */
-delayProvisional: boolean, customName: string | null, addedBy: string, addedByName: string | null, 
+delayProvisional: boolean, customName: string | null, 
+/**
+ * Deprecated (DS-534 L12): the account id of the member who added it, present
+ * ONLY when that member is the caller and `null` for everybody else.
+ * Use `addedByMemberId` and `addedByIsMe`. Removed in a later release.
+ */
+addedBy: string | null, 
+/**
+ * The opaque, per-group id of the member who added it
+ * (`group_members.public_id`); `null` when they have since left.
+ */
+addedByMemberId: string | null, 
+/**
+ * Whether the member who added it is the caller.
+ */
+addedByIsMe: boolean, addedByName: string | null, 
 /**
  * Set only when `added_by_name` is `None`, and appended by the
  * frontend to its "a member" placeholder so two sharers whose `IdP`
@@ -1336,13 +1413,13 @@ operatorFilter?: OperatorFilterRequest | null, };
  * `onCreated` handler takes either: `legId` is the first leg's,
  * `trackingId` the first TRAIN leg's (an itinerary always has one).
  */
-export type ItineraryResponse = { journeyId: number, legId: number, trackingId: number, resolutionStatus: ResolutionStatus | null, legs: Array<ItineraryLegResponse>, createdVia: string, };
+export type ItineraryResponse = { journeyId: number, journeyPublicId: string, legId: number, trackingId: number, resolutionStatus: ResolutionStatus | null, legs: Array<ItineraryLegResponse>, createdVia: string, };
 
 export type JoinPreview = { groupId: string, groupName: string, memberCount: number, };
 
 export type JoinResponse = { groupId: string, };
 
-export type JourneyDetailResponse = { id: number, customName: string | null, createdAt: string, legs: Array<JourneyLegDetailResponse>, 
+export type JourneyDetailResponse = { id: number, publicId: string, customName: string | null, createdAt: string, legs: Array<JourneyLegDetailResponse>, 
 /**
  * `'web'`, or the delegated client that saved it (spec 2026-10-14
  * §5.8). Only for the journey's owner: absent from the public
@@ -1549,7 +1626,7 @@ export type JourneyLegKind = "train" | "untracked";
  * multi-leg rollup (design doc §3's "worst status across legs" idiom) is a
  * later phase's job.
  */
-export type JourneyListItem = { id: number, customName: string | null, createdAt: string, 
+export type JourneyListItem = { id: number, publicId: string, customName: string | null, createdAt: string, 
 /**
  * `'web'`, or the delegated client that saved the journey (spec
  * 2026-10-14 §5.8). A delegated client may delete only its own
@@ -2758,7 +2835,7 @@ export type MaterializeTemplateRequest = {
  */
 serviceDate: string, };
 
-export type MaterializeTemplateResponse = { journeyId: number, legIds: Array<number>, };
+export type MaterializeTemplateResponse = { journeyId: number, journeyPublicId: string, legIds: Array<number>, };
 
 /**
  * `POST /Journeys/{id}/move`'s body.
@@ -3701,7 +3778,7 @@ export type RegularPlanStatus = "pending" | "suggested" | "committed" | "no_serv
 /**
  * One finished journey's Delay Repay estimate.
  */
-export type ReliabilityJourney = { journeyId: number, customName: string | null, 
+export type ReliabilityJourney = { journeyId: number, journeyPublicId: string, customName: string | null, 
 /**
  * The last train leg's date.
  */
@@ -3798,7 +3875,7 @@ journeys: Array<ReliabilityJourney>, };
  * One train the caller took, or was booked on until the railway let
  * them down.
  */
-export type ReliabilityTrain = { journeyId: number, 
+export type ReliabilityTrain = { journeyId: number, journeyPublicId: string, 
 /**
  * The current plan's leg; `null` for a replaced booked train.
  */
@@ -3844,7 +3921,7 @@ export type ReplaceRequest = { cause: AlternativesCause, legs: Array<ItineraryLe
  * What a replacement answers (`POST .../replan/accept`, `.../replace`,
  * `.../revert`), and what an `Idempotency-Key` replays.
  */
-export type ReplaceResponse = { journeyId: number, 
+export type ReplaceResponse = { journeyId: number, journeyPublicId: string, 
 /**
  * The revision now current (1 when revision 1 was refreshed).
  */
@@ -3928,7 +4005,7 @@ export type RestoreDeletedJourneyResponse = {
 /**
  * The new journey.
  */
-journeyId: number, legs: Array<RestoredLeg>, };
+journeyId: number, journeyPublicId: string, legs: Array<RestoredLeg>, };
 
 /**
  * One leg in `POST .../restore`'s body.
@@ -4023,7 +4100,16 @@ export type RevisionsResponse = { revisions: Array<RevisionResponse>, };
  * responses were byte-identical in shape, so a second copy would only be
  * a thing to keep in sync.
  */
-export type RoleChangeResponse = { userId: string, role: GroupRole, };
+export type RoleChangeResponse = { 
+/**
+ * Deprecated (DS-534 L12): always `null` (the target of a role change
+ * is never the caller). Use `memberId`. Removed in a later release.
+ */
+userId: string | null, 
+/**
+ * The opaque id of the member whose role changed.
+ */
+memberId: string, role: GroupRole, };
 
 /**
  * Why `sampleStats` is (or isn't) there: `common::SampleAvailability`
@@ -4176,7 +4262,22 @@ token: string | null, expiresAt: string | null, };
  * from several groups land in one list (`group_id`/`group_name`, the
  * "from <group>" tag the home page renders).
  */
-export type SharedCustomLine = { groupId: string, groupName: string, lineId: string, lineName: string, grantedBy: string, grantedByName: string | null, 
+export type SharedCustomLine = { groupId: string, groupName: string, lineId: string, lineName: string, 
+/**
+ * Deprecated (DS-534 L12): the account id of the member who shared it, present
+ * ONLY when that member is the caller and `null` for everybody else.
+ * Use `grantedByMemberId` and `grantedByIsMe`. Removed in a later release.
+ */
+grantedBy: string | null, 
+/**
+ * The opaque, per-group id of the member who shared it
+ * (`group_members.public_id`); `null` when they have since left.
+ */
+grantedByMemberId: string | null, 
+/**
+ * Whether the member who shared it is the caller.
+ */
+grantedByIsMe: boolean, grantedByName: string | null, 
 /**
  * Same contract as `GroupCustomLine.granted_by_tag`.
  */
@@ -4190,7 +4291,7 @@ grantedByTag: string | null, };
  * feature's plan, Judgment Call 4 -- but built now for parity with
  * `group_trains`'s own route/function set, per spec §6.
  */
-export type SharedJourney = { groupId: string, groupName: string, journeyId: number, customName: string | null, legCount: number, pinOriginCrs: string | null, pinDestinationCrs: string | null, pinOriginName: string | null, pinDestinationName: string | null, pinScheduledDeparture: string | null, 
+export type SharedJourney = { groupId: string, groupName: string, journeyId: number, journeyPublicId: string, customName: string | null, legCount: number, pinOriginCrs: string | null, pinDestinationCrs: string | null, pinOriginName: string | null, pinDestinationName: string | null, pinScheduledDeparture: string | null, 
 /**
  * The journey's own ends, for naming it: the first leg's planned
  * origin and the LAST leg's planned destination (`journey_legs`, not
@@ -4211,7 +4312,22 @@ delayBasis: DelayBasis | null,
 /**
  * See `TrackedTrainState::delay_provisional`.
  */
-delayProvisional: boolean, addedBy: string, addedByName: string | null, addedByTag: string | null, 
+delayProvisional: boolean, 
+/**
+ * Deprecated (DS-534 L12): the account id of the member who added it, present
+ * ONLY when that member is the caller and `null` for everybody else.
+ * Use `addedByMemberId` and `addedByIsMe`. Removed in a later release.
+ */
+addedBy: string | null, 
+/**
+ * The opaque, per-group id of the member who added it
+ * (`group_members.public_id`); `null` when they have since left.
+ */
+addedByMemberId: string | null, 
+/**
+ * Whether the member who added it is the caller.
+ */
+addedByIsMe: boolean, addedByName: string | null, addedByTag: string | null, 
 /**
  * The summarised leg's `trackingPhase` (see
  * `TrackedTrainState::tracking_phase`); `None` for an open or
@@ -4281,7 +4397,22 @@ delayBasis: DelayBasis | null,
 /**
  * See `TrackedTrainState::delay_provisional`.
  */
-delayProvisional: boolean, customName: string | null, addedBy: string, addedByName: string | null, 
+delayProvisional: boolean, customName: string | null, 
+/**
+ * Deprecated (DS-534 L12): the account id of the member who added it, present
+ * ONLY when that member is the caller and `null` for everybody else.
+ * Use `addedByMemberId` and `addedByIsMe`. Removed in a later release.
+ */
+addedBy: string | null, 
+/**
+ * The opaque, per-group id of the member who added it
+ * (`group_members.public_id`); `null` when they have since left.
+ */
+addedByMemberId: string | null, 
+/**
+ * Whether the member who added it is the caller.
+ */
+addedByIsMe: boolean, addedByName: string | null, 
 /**
  * Same contract as `GroupTrain.added_by_tag`.
  */
@@ -4887,7 +5018,7 @@ fromStation?: string, };
  * `POST /Journeys/irish-train`'s response: the one-leg journey and the
  * tracked train (`GET /Train/{trackingId}`).
  */
-export type TrackIrishTrainResponse = { journeyId: number, trackingId: number, };
+export type TrackIrishTrainResponse = { journeyId: number, journeyPublicId: string, trackingId: number, };
 
 /**
  * Pin-creation payload for `POST /Train/track` (`crates/api/src/routes/train.rs`).
@@ -4939,7 +5070,7 @@ export type TrackPinResponse = { trackingId: number, resolutionStatus: Resolutio
  * The one-leg journey the pin now belongs to (DS-124). Additive
  * (2026-10-22).
  */
-journeyId: number, };
+journeyId: number, journeyPublicId: string, };
 
 /**
  * A user's own tracked-train list, lighter than `TrackedTrainState`
@@ -5016,7 +5147,7 @@ firstReportExpectedAt: string | null,
  * folds these rows into their journey instead of listing them as
  * standalone tracked trains. Additive (2026-10-20).
  */
-journeyIds: Array<number>, 
+journeyIds: Array<number>, journeyPublicIds: Array<string>, 
 /**
  * Of `journey_ids`, the train's own journeys: the caller's one-leg
  * journeys whose leg is bound to this subscription itself. "Stop
@@ -5024,7 +5155,7 @@ journeyIds: Array<number>,
  * any other of `journey_ids` stays tracked there (DS-124). Additive
  * (2026-10-22).
  */
-singleLegJourneyIds: Array<number>, 
+singleLegJourneyIds: Array<number>, singleLegJourneyPublicIds: Array<string>, 
 /**
  * Whether the train is over, by the rule that splits this list's
  * travel order (`travel_order`): `completed`, or it has actually
@@ -5171,11 +5302,11 @@ sharedGroupCount: number,
  * the owner's other journeys; absent from the JSON otherwise.
  * Additive (2026-10-22).
  */
-journeyIds?: Array<number>, 
+journeyIds?: Array<number>, journeyPublicIds?: Array<string>, 
 /**
  * See `journey_ids`.
  */
-singleLegJourneyIds?: Array<number>, 
+singleLegJourneyIds?: Array<number>, singleLegJourneyPublicIds?: Array<string>, 
 /**
  * Whether this subscription's delay, cancellation and skipped-stop
  * pushes are on (`train_subscriptions.notifications_enabled`, set by

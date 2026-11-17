@@ -29,6 +29,7 @@ function journey(id: number, createdAt: string, overrides: Partial<JourneyListIt
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
+    publicId: `j_${id}`,
     legId: id,
     originCrs: 'WOK',
     destinationCrs: 'WAT',

@@ -9,13 +9,13 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * this button does, but the caller (Task 12's page) additionally never
  * RENDERS this button for the owner's own row at all -- defense in depth,
  * not reliance on the backend alone. */
-export function RemoveMemberButton({ groupId, userId, name }: { groupId: string; userId: string; name: string }) {
+export function RemoveMemberButton({ groupId, memberId, name }: { groupId: string; memberId: string; name: string }) {
   return (
     <ConfirmActionButton
       label="Remove"
       actionName="remove member"
       title={`Remove ${name} from this group?`}
-      request={() => fetch(`/api/groups/${groupId}/members/${userId}`, { method: 'DELETE' })}
+      request={() => fetch(`/api/groups/${groupId}/members/${memberId}`, { method: 'DELETE' })}
       failure={['remove', 'this member']}
       loginPrompt="Log in to remove this member"
     />

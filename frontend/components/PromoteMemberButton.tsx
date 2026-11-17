@@ -8,7 +8,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * member-removal powers with no notice to anyone. Promotion is reversible
  * (demote puts them back), so the confirm is `tone="neutral"`, not red.
  * The page refreshes on success, and the row swaps to "Demote to member". */
-export function PromoteMemberButton({ groupId, userId, name }: { groupId: string; userId: string; name: string }) {
+export function PromoteMemberButton({ groupId, memberId, name }: { groupId: string; memberId: string; name: string }) {
   return (
     <ConfirmActionButton
       label="Promote to admin"
@@ -16,7 +16,7 @@ export function PromoteMemberButton({ groupId, userId, name }: { groupId: string
       actionName="promote member"
       title={`Promote ${name} to admin?`}
       tone="neutral"
-      request={() => fetch(`/api/groups/${groupId}/members/${userId}/promote`, { method: 'POST' })}
+      request={() => fetch(`/api/groups/${groupId}/members/${memberId}/promote`, { method: 'POST' })}
       failure={['change', "this member's role"]}
       loginPrompt="Log in to promote this member"
     >

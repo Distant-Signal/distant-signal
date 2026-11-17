@@ -13,7 +13,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * misclick lands on the wrong person. The member keeps their membership and
  * everything they've shared into the group, and the confirm copy says so,
  * so this doesn't read as a removal. */
-export function DemoteMemberButton({ groupId, userId, name }: { groupId: string; userId: string; name: string }) {
+export function DemoteMemberButton({ groupId, memberId, name }: { groupId: string; memberId: string; name: string }) {
   return (
     <ConfirmActionButton
       label="Demote to member"
@@ -21,7 +21,7 @@ export function DemoteMemberButton({ groupId, userId, name }: { groupId: string;
       actionName="demote member"
       title={`Demote ${name} to member?`}
       tone="neutral"
-      request={() => fetch(`/api/groups/${groupId}/members/${userId}/demote`, { method: 'POST' })}
+      request={() => fetch(`/api/groups/${groupId}/members/${memberId}/demote`, { method: 'POST' })}
       failure={['change', "this member's role"]}
       loginPrompt="Log in to demote this member"
     >

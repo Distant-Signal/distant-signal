@@ -24,13 +24,13 @@ describe('RemoveMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithMantine(<RemoveMemberButton groupId="grp-1" userId="user-2" name="Alex" />);
+    renderWithMantine(<RemoveMemberButton groupId="grp-1" memberId="member-2" name="Alex" />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove member' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove member' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/user-2', { method: 'DELETE' });
+      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/member-2', { method: 'DELETE' });
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
   });
@@ -39,7 +39,7 @@ describe('RemoveMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response("the group owner can't be removed", { status: 403 }));
 
-    renderWithMantine(<RemoveMemberButton groupId="grp-1" userId="user-2" name="Alex" />);
+    renderWithMantine(<RemoveMemberButton groupId="grp-1" memberId="member-2" name="Alex" />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove member' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove member' }));

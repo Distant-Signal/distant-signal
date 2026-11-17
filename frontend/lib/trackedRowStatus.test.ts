@@ -33,6 +33,7 @@ function journey(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
   const row: JourneyListItem = {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: 1,
+    publicId: 'j_1',
     customName: null,
     createdAt: '2026-10-01T09:00:00Z',
     legId: 10,
@@ -181,6 +182,7 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
     return {
       ...GROUP_JOURNEY_DEFAULTS,
       journeyId: 1,
+      journeyPublicId: 'j_1',
       customName: null,
       legCount: 2,
       pinOriginCrs: 'KGX',
@@ -193,7 +195,9 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
       trainUid: 'C1',
       status: 'en_route',
       delayMinutes: 6,
-      addedBy: 'user-2',
+      addedBy: null,
+      addedByMemberId: 'member-2',
+      addedByIsMe: false,
       addedByName: null,
       addedByTag: null,
       ...overrides,
@@ -201,7 +205,7 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
   }
 
   it('a running train reads like a lone train', () => {
-    expect(groupJourneyRowStatus(shared(), TODAY, 'user-2')).toEqual(
+    expect(groupJourneyRowStatus(shared(), TODAY)).toEqual(
       trackedTrainRowStatus(train({ status: 'en_route', delayMinutes: 6, trackingPhase: null }), TODAY),
     );
   });
@@ -209,24 +213,23 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
   // DS-199's rule, as on the Journeys and home lists.
   it('a leg with no train picked asks only the owner or a follower for one', () => {
     const open = { resolutionStatus: null, status: null };
-    expect(groupJourneyRowStatus(shared(open), TODAY, 'user-2')).toMatchObject({ kind: 'unmatched' });
-    expect(groupJourneyRowStatus(shared({ ...open, following: true }), TODAY, 'user-3')).toMatchObject({
+    expect(groupJourneyRowStatus(shared({ ...open, addedByIsMe: true }), TODAY)).toMatchObject({ kind: 'unmatched' });
+    expect(groupJourneyRowStatus(shared({ ...open, following: true }), TODAY)).toMatchObject({
       kind: 'unmatched',
     });
-    expect(groupJourneyRowStatus(shared(open), TODAY, 'user-3')).toMatchObject({
+    expect(groupJourneyRowStatus(shared(open), TODAY)).toMatchObject({
       kind: 'noTrainPickedYet',
       finished: false,
     });
-    expect(groupJourneyRowStatus(shared({ ...open, following: false }), TODAY, null).kind).toBe('noTrainPickedYet');
+    expect(groupJourneyRowStatus(shared({ ...open, following: false }), TODAY).kind).toBe('noTrainPickedYet');
     // Past, it says what anyone would: none was picked.
-    expect(groupJourneyRowStatus(shared({ ...open, serviceDate: PAST }), TODAY, 'user-3').kind).toBe('noTrainPicked');
+    expect(groupJourneyRowStatus(shared({ ...open, serviceDate: PAST }), TODAY).kind).toBe('noTrainPicked');
   });
 
   it('viewerCanPickGroupJourneyTrain: the sharer or a follower', () => {
-    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: false }, 'user-2')).toBe(true);
-    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: true }, 'user-3')).toBe(true);
-    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: false }, 'user-3')).toBe(false);
-    expect(viewerCanPickGroupJourneyTrain({ addedBy: 'user-2', following: false }, null)).toBe(false);
+    expect(viewerCanPickGroupJourneyTrain({ addedByIsMe: true, following: false })).toBe(true);
+    expect(viewerCanPickGroupJourneyTrain({ addedByIsMe: false, following: true })).toBe(true);
+    expect(viewerCanPickGroupJourneyTrain({ addedByIsMe: false, following: false })).toBe(false);
   });
 
   it('an untracked-only journey shows its clock state, and completed once done', () => {
@@ -234,15 +237,10 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
       groupJourneyRowStatus(
         shared({ kind: 'untracked', untrackedStatus: 'inProgress', resolutionStatus: null }),
         TODAY,
-        'user-3',
       ),
     ).toMatchObject({ kind: 'untrackedInProgress', finished: false });
     expect(
-      groupJourneyRowStatus(
-        shared({ kind: 'untracked', untrackedStatus: 'done', resolutionStatus: null }),
-        TODAY,
-        'user-3',
-      ),
+      groupJourneyRowStatus(shared({ kind: 'untracked', untrackedStatus: 'done', resolutionStatus: null }), TODAY),
     ).toMatchObject({ kind: 'completed', finished: true });
   });
 });

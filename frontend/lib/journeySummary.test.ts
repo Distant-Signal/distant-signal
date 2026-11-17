@@ -322,6 +322,7 @@ function row(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: 1,
+    publicId: 'j_1',
     customName: null,
     createdAt: '2026-10-01T09:00:00Z',
     legId: 10,

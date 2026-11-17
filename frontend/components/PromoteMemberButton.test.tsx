@@ -22,7 +22,7 @@ describe('PromoteMemberButton', () => {
 
   it('confirms first, like DemoteMemberButton: no request until the dialog is confirmed', async () => {
     const fetchMock = vi.mocked(fetch);
-    renderWithMantine(<PromoteMemberButton groupId="grp-1" userId="user-2" name="Alex" />);
+    renderWithMantine(<PromoteMemberButton groupId="grp-1" memberId="member-2" name="Alex" />);
     fireEvent.click(screen.getByRole('button', { name: 'Promote to admin' }));
     expect(await screen.findByText('Promote Alex to admin?')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -32,12 +32,12 @@ describe('PromoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ userId: 'user-2', role: 'admin' }), { status: 200 }));
 
-    renderWithMantine(<PromoteMemberButton groupId="grp-1" userId="user-2" name="Alex" />);
+    renderWithMantine(<PromoteMemberButton groupId="grp-1" memberId="member-2" name="Alex" />);
     fireEvent.click(screen.getByRole('button', { name: 'Promote to admin' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm promote member' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/user-2/promote', { method: 'POST' });
+      expect(fetchMock).toHaveBeenCalledWith('/api/groups/grp-1/members/member-2/promote', { method: 'POST' });
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
   });
@@ -46,7 +46,7 @@ describe('PromoteMemberButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('that member is already an admin or the owner', { status: 409 }));
 
-    renderWithMantine(<PromoteMemberButton groupId="grp-1" userId="user-2" name="Alex" />);
+    renderWithMantine(<PromoteMemberButton groupId="grp-1" memberId="member-2" name="Alex" />);
     fireEvent.click(screen.getByRole('button', { name: 'Promote to admin' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm promote member' }));
 

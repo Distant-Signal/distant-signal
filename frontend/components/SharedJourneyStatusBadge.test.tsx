@@ -9,6 +9,7 @@ function journey(overrides: Partial<GroupJourney> = {}): GroupJourney {
   return {
     ...GROUP_JOURNEY_DEFAULTS,
     journeyId: 1,
+    journeyPublicId: 'j_1',
     customName: null,
     legCount: 2,
     pinOriginCrs: null,
@@ -21,7 +22,9 @@ function journey(overrides: Partial<GroupJourney> = {}): GroupJourney {
     trainUid: 'P00001',
     status: null,
     delayMinutes: null,
-    addedBy: 'user-1',
+    addedBy: null,
+    addedByMemberId: 'member-1',
+    addedByIsMe: false,
     addedByName: 'Sam',
     addedByTag: null,
     kind: 'train',

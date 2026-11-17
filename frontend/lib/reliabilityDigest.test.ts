@@ -18,6 +18,7 @@ function train(overrides: Partial<ReliabilityTrain> = {}): ReliabilityTrain {
   return {
     ...RELIABILITY_TRAIN_DEFAULTS,
     journeyId: 1,
+    journeyPublicId: 'j_1',
     legId: 10,
     serviceDate: '2026-09-10',
     delayMinutes: 3,
@@ -29,6 +30,7 @@ function journey(overrides: Partial<ReliabilityJourney> = {}): ReliabilityJourne
   return {
     ...RELIABILITY_JOURNEY_DEFAULTS,
     journeyId: 1,
+    journeyPublicId: 'j_1',
     serviceDate: '2026-09-10',
     delayMinutes: 5,
     ...overrides,

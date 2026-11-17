@@ -82,7 +82,9 @@ function sharedTrain(overrides: Partial<SharedGroupTrain> = {}): SharedGroupTrai
     status: 'en_route',
     delayMinutes: null,
     customName: null,
-    addedBy: 'user-2',
+    addedBy: null,
+    addedByMemberId: 'member-2',
+    addedByIsMe: false,
     addedByName: 'Sam',
     addedByTag: null,
     ...overrides,
@@ -290,7 +292,16 @@ describe('JourneysPage', () => {
   it('renders the digest from the reliability route for a caller with only finished journeys', async () => {
     vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
     vi.mocked(api.getMyReliability).mockResolvedValue({
-      trains: [{ ...RELIABILITY_TRAIN_DEFAULTS, journeyId: 3, legId: 4, serviceDate: '2026-08-30', delayMinutes: 0 }],
+      trains: [
+        {
+          ...RELIABILITY_TRAIN_DEFAULTS,
+          journeyId: 3,
+          journeyPublicId: 'j_3',
+          legId: 4,
+          serviceDate: '2026-08-30',
+          delayMinutes: 0,
+        },
+      ],
       journeys: [],
     });
     renderWithMantine(await JourneysPage());
@@ -701,16 +712,16 @@ describe('JourneysPage', () => {
       expectNoUnguardedNowrapBadges(container);
     });
 
-    it('a sharer with no name or username is credited as "a member", never a raw user id', async () => {
+    it('a sharer with no name or username is credited as "a member", never a raw member id', async () => {
       vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
       vi.mocked(api.getSharedGroupTrains).mockResolvedValue([
-        sharedTrain({ addedBy: 'sso-subject-1234', addedByName: null }),
+        sharedTrain({ addedBy: null, addedByMemberId: 'opaque-member-1234', addedByName: null }),
       ]);
 
       renderWithMantine(await JourneysPage());
 
       expect(screen.getByText('Shared by a member')).toBeInTheDocument();
-      expect(screen.queryByText(/sso-subject-1234/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/opaque-member-1234/)).not.toBeInTheDocument();
     });
 
     /** A BLANK name, not a null one -- what an identity provider with no
@@ -721,7 +732,7 @@ describe('JourneysPage', () => {
     it('a sharer whose name is blank rather than null is still credited as "a member"', async () => {
       vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
       vi.mocked(api.getSharedGroupTrains).mockResolvedValue([
-        sharedTrain({ addedBy: 'sso-subject-1234', addedByName: '   ' }),
+        sharedTrain({ addedBy: null, addedByMemberId: 'opaque-member-1234', addedByName: '   ' }),
       ]);
 
       renderWithMantine(await JourneysPage());
@@ -741,7 +752,8 @@ describe('JourneysPage', () => {
       vi.mocked(api.getSharedGroupTrains).mockResolvedValue([
         sharedTrain({
           trainSubscriptionId: 50,
-          addedBy: 'sso-subject-1234',
+          addedBy: null,
+          addedByMemberId: 'opaque-member-1234',
           addedByName: null,
           addedByTag: 'a1b2c3',
         }),
@@ -749,7 +761,8 @@ describe('JourneysPage', () => {
           trainSubscriptionId: 51,
           pinOriginCrs: 'WOK',
           pinDestinationCrs: 'WAT',
-          addedBy: 'sso-subject-5678',
+          addedBy: null,
+          addedByMemberId: 'opaque-member-5678',
           addedByName: null,
           addedByTag: 'd4e5f6',
         }),
@@ -759,7 +772,7 @@ describe('JourneysPage', () => {
 
       expect(screen.getByText('Shared by a member (#a1b2c3)')).toBeInTheDocument();
       expect(screen.getByText('Shared by a member (#d4e5f6)')).toBeInTheDocument();
-      expect(screen.queryByText(/sso-subject-/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/opaque-member-/)).not.toBeInTheDocument();
       expect(screen.queryByText(/@/)).not.toBeInTheDocument();
     });
 
@@ -868,6 +881,7 @@ describe('JourneysPage', () => {
       const row: JourneyListItem = {
         ...(JOURNEY_ROW as typeof JOURNEY_LIST_ITEM_DEFAULTS),
         id: 169,
+        publicId: 'j_169',
         customName: null,
         createdAt: '2026-09-22T18:13:54Z',
         legId: 194,
@@ -1116,6 +1130,7 @@ describe('JourneysPage', () => {
         ): ReliabilityJourney => ({
           ...RELIABILITY_JOURNEY_DEFAULTS,
           journeyId,
+          journeyPublicId: `j_${journeyId}`,
           serviceDate,
           delayMinutes: 35,
           estimate: {
