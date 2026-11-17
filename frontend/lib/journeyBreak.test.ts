@@ -4,7 +4,13 @@ import {
   breakTitle,
   changesLabel,
   fateBadge,
+  MISSED_UNDO_CAP_MS,
+  UNDO_WINDOW_MS,
+  legMissWindowOpen,
   missableLegId,
+  missedOffer,
+  missWindowClosesMs,
+  undoWindowMs,
   openBreakTitleFacts,
   revisionLegLine,
   revisionTitle,
@@ -362,10 +368,98 @@ describe('missableLegId', () => {
     expect(missableLegId([first, walk, second], now)).toBe(3);
   });
 
-  it('is null when every train leg is over', () => {
+  it('is null when every train leg is over: those offer the small button instead', () => {
     const done = trainLeg(1, ['KGX', 'Kings Cross'], ['YRK', 'York'], '2026-09-17T07:00:00Z', '2026-09-17T09:00:00Z', {
       status: 'completed',
     });
     expect(missableLegId([done], now)).toBeNull();
+    expect(missedOffer([done], done, now)).toBe('small');
+  });
+});
+
+/* The miss window mirrors the api's `journey_breaks::miss_window_open`: open
+ * until 04:00 London the morning after the leg's service date. */
+describe('missWindowClosesMs', () => {
+  it('is 04:00 London the next morning: 03:00Z in summer time', () => {
+    expect(new Date(missWindowClosesMs('2026-09-17')).toISOString()).toBe('2026-09-18T03:00:00.000Z');
+  });
+
+  it('is 04:00Z in winter', () => {
+    expect(new Date(missWindowClosesMs('2026-12-17')).toISOString()).toBe('2026-12-18T04:00:00.000Z');
+  });
+
+  it('follows the clocks on a change day', () => {
+    // The clocks go forward at 01:00 on 29 Mar 2026 and back on 25 Oct 2026.
+    expect(new Date(missWindowClosesMs('2026-03-28')).toISOString()).toBe('2026-03-29T03:00:00.000Z');
+    expect(new Date(missWindowClosesMs('2026-10-24')).toISOString()).toBe('2026-10-25T04:00:00.000Z');
+  });
+});
+
+describe('legMissWindowOpen', () => {
+  const arrived = trainLeg(1, ['KGX', 'Kings Cross'], ['YRK', 'York'], '2026-09-17T07:00:00Z', '2026-09-17T09:00:00Z', {
+    status: 'completed',
+  });
+
+  it('is open after the train has departed and after it has reached its destination', () => {
+    expect(legMissWindowOpen(arrived, new Date('2026-09-17T07:30:00Z'))).toBe(true);
+    expect(legMissWindowOpen(arrived, new Date('2026-09-17T09:30:00Z'))).toBe(true);
+    expect(legMissWindowOpen(arrived, new Date('2026-09-17T23:30:00Z'))).toBe(true);
+  });
+
+  it('closes at 04:00 London the next morning, not before', () => {
+    expect(legMissWindowOpen(arrived, new Date('2026-09-18T02:59:59Z'))).toBe(true);
+    expect(legMissWindowOpen(arrived, new Date('2026-09-18T03:00:00Z'))).toBe(false);
+  });
+
+  it('is closed for an untracked leg and a leg with no train picked', () => {
+    const walk = untrackedLeg(2, 'York', 'York', '2026-09-17T09:05:00Z', '2026-09-17T09:10:00Z');
+    expect(legMissWindowOpen(walk, new Date('2026-09-17T09:30:00Z'))).toBe(false);
+    expect(legMissWindowOpen({ ...arrived, trackedTrainState: null }, new Date('2026-09-17T09:30:00Z'))).toBe(false);
+  });
+
+  it('stays open for a cancelled train, which is never over for this', () => {
+    const cancelled = { ...arrived, trackedTrainState: { ...arrived.trackedTrainState!, status: 'cancelled' } };
+    expect(legMissWindowOpen(cancelled as typeof arrived, new Date('2026-09-17T12:00:00Z'))).toBe(true);
+  });
+});
+
+describe('missedOffer', () => {
+  const now = new Date('2026-09-17T09:30:00Z');
+  const first = trainLeg(1, ['KGX', 'Kings Cross'], ['YRK', 'York'], '2026-09-17T07:00:00Z', '2026-09-17T09:00:00Z', {
+    status: 'completed',
+  });
+  const second = trainLeg(3, ['YRK', 'York'], ['EDB', 'Edinburgh'], '2026-09-17T10:00:00Z', '2026-09-17T12:00:00Z');
+
+  it('is the main offer on the first train not yet over and small on a finished one', () => {
+    expect(missedOffer([first, second], second, now)).toBe('main');
+    expect(missedOffer([first, second], first, now)).toBe('small');
+  });
+
+  it('is none once the window has closed', () => {
+    expect(missedOffer([first, second], first, new Date('2026-09-18T03:30:00Z'))).toBeNull();
+  });
+});
+
+describe('undoWindowMs', () => {
+  const now = new Date('2026-09-17T09:00:00Z');
+
+  it('is 2 minutes for any change but a miss', () => {
+    expect(undoWindowMs(false, '2026-09-17T09:30:00Z', now)).toBe(UNDO_WINDOW_MS);
+    expect(UNDO_WINDOW_MS).toBe(120_000);
+  });
+
+  it('runs to the new train leaving after a miss', () => {
+    expect(undoWindowMs(true, '2026-09-17T09:20:00Z', now)).toBe(20 * 60_000);
+  });
+
+  it('is capped at an hour', () => {
+    expect(undoWindowMs(true, '2026-09-17T15:00:00Z', now)).toBe(MISSED_UNDO_CAP_MS);
+    expect(MISSED_UNDO_CAP_MS).toBe(3_600_000);
+  });
+
+  it('is never less than the usual 2 minutes, and an hour when the departure is unknown', () => {
+    expect(undoWindowMs(true, '2026-09-17T09:00:30Z', now)).toBe(UNDO_WINDOW_MS);
+    expect(undoWindowMs(true, '2026-09-17T08:00:00Z', now)).toBe(UNDO_WINDOW_MS);
+    expect(undoWindowMs(true, null, now)).toBe(MISSED_UNDO_CAP_MS);
   });
 });

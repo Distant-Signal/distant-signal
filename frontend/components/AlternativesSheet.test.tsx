@@ -176,7 +176,7 @@ describe('AlternativesSheet', () => {
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
   });
 
-  it('takes a suggestion, offers Undo for 30 seconds, then refreshes', async () => {
+  it('takes a suggestion, offers Undo for 2 minutes, then refreshes', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const fetchMock = mockFetch({
       [BREAK_URL]: () => json(breakResponse()),
@@ -191,10 +191,15 @@ describe('AlternativesSheet', () => {
     const headers = call?.[1]?.headers as Record<string, string>;
     expect(headers['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(screen.getByText('You can undo this for 2 minutes.')).toBeInTheDocument();
     expect(refreshMock).not.toHaveBeenCalled();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(119_000);
+    });
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
     });
     expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
     expect(refreshMock).toHaveBeenCalledTimes(1);
@@ -347,6 +352,7 @@ describe('AlternativesSheet', () => {
         }),
       hint: 'Ask station staff. Your ticket should be accepted on the next suitable train because your journey was disrupted. Check before you board.',
       faultNote: 'Your earlier train was late, so this counts as a missed connection.',
+      plan: 'Your booked plan stays saved for Delay Repay.',
     },
     {
       variant: 'user-caused',
@@ -355,6 +361,7 @@ describe('AlternativesSheet', () => {
       body: (hint: string) => suggestionSet({ hint }),
       hint: "Ask station staff if there are any. Your Advance ticket is only valid on the train you missed, so you'll likely need a new one.",
       faultNote: null,
+      plan: 'Your booked plan stays saved under Earlier plans. Because you missed this train, Delay Repay now compares your delay with the new plan, not the one you booked.',
     },
     {
       variant: 'unknown ticket',
@@ -363,6 +370,7 @@ describe('AlternativesSheet', () => {
       body: (hint: string) => suggestionSet({ hint }),
       hint: "Ask station staff if there are any. If you have an Advance ticket, you'll likely need a new one. Check before you board.",
       faultNote: null,
+      plan: 'Your booked plan stays saved under Earlier plans. Because you missed this train, Delay Repay now compares your delay with the new plan, not the one you booked.',
     },
     {
       variant: 'flexible ticket',
@@ -371,13 +379,14 @@ describe('AlternativesSheet', () => {
       body: (hint: string) => suggestionSet({ hint }),
       hint: 'Your ticket is usually valid on other trains on the same route.',
       faultNote: null,
+      plan: 'Your booked plan stays saved for Delay Repay.',
     },
-  ])('ticket advice, $variant', ({ mode, route, body, hint, faultNote }) => {
+  ])('ticket advice, $variant', ({ mode, route, body, hint, faultNote, plan }) => {
     it('shows the advice once, in order, and keeps the Delay Repay note', async () => {
       mockFetch({ [route]: () => json(body(hint)) });
       renderSheet(mode);
       const advice = await screen.findByText(hint);
-      const booked = screen.getByText('Your booked plan stays saved for Delay Repay.');
+      const booked = screen.getByText(plan);
       expect(advice.compareDocumentPosition(booked) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       if (faultNote !== null) {
         const note = screen.getByText(faultNote);
@@ -408,6 +417,270 @@ describe('AlternativesSheet', () => {
       cause: 'choice',
       legs: [{ trainUid: 'L12345', serviceDate: '2026-09-17', originCrs: 'YRK', destinationCrs: 'EDB' }],
       throughLegId: testLegId(7),
+    });
+  });
+
+  describe('"I missed this train" after the train has gone', () => {
+    const MISSED_URL = `GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`;
+    const REPLACE_URL = `POST /api/Journeys/42/legs/${testLegId(7)}/replace`;
+    const MISSED: AlternativesMode = { kind: 'missed', legId: testLegId(7) };
+    const arrivedSet = suggestionSet({ leg: { departed: true, arrived: true } });
+    const accepted = { journeyId: 42, revisionNo: 2, newLegIds: [12], undoRevisionNo: 1 };
+
+    it('asks once, softly, when the api says the train reached its destination, and cancels cleanly', async () => {
+      const fetchMock = mockFetch({ [MISSED_URL]: () => json(arrivedSet) });
+      const onClose = renderSheet(MISSED);
+      expect(await screen.findByText('This train has already reached Edinburgh.')).toBeInTheDocument();
+      expect(screen.getByText("Only use this if you didn't get on it.")).toBeInTheDocument();
+      // Nothing to take until the traveller says so.
+      expect(screen.queryByRole('button', { name: /^Take this one/ })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onClose).toHaveBeenCalled();
+      // Looking wrote nothing.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(refreshMock).not.toHaveBeenCalled();
+    });
+
+    it('shows the other trains once the traveller says they did not get on it', async () => {
+      mockFetch({ [MISSED_URL]: () => json(arrivedSet) });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: "I didn't get on it" }));
+      expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
+      expect(screen.queryByText('This train has already reached Edinburgh.')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['a train that departed but has not arrived', { departed: true, arrived: false }],
+      ['a train still to leave', { departed: false, arrived: false }],
+      ["a set with no facts (a break's stored one)", null],
+    ])('does not ask for %s', async (_name, leg) => {
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet({ leg })) });
+      renderSheet(MISSED);
+      expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
+      expect(screen.queryByText(/has already reached/)).not.toBeInTheDocument();
+    });
+
+    it('does not ask for a free choice or a cancelled train', async () => {
+      mockFetch({
+        [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=cancelled`]: () => json(arrivedSet),
+      });
+      renderSheet({ kind: 'alternatives', legId: testLegId(7), cause: 'cancelled' });
+      expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
+    });
+
+    it("says where it is searching from, and starts at the leg's boarding station", async () => {
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()) });
+      renderSheet(MISSED);
+      expect(await screen.findByText('Searching from York')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: "I'm somewhere else" })).toBeInTheDocument();
+    });
+
+    it('searches from another station when the traveller picks one, sending only its code', async () => {
+      const elsewhere = suggestionSet({ originCrs: 'WOK', originName: 'Woking' });
+      const fetchMock = mockFetch({
+        [MISSED_URL]: () => json(suggestionSet()),
+        [`${MISSED_URL}&from=WOK`]: () => json(elsewhere),
+        'GET /api/stations?q=WOK': () => json([]),
+      });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: "I'm somewhere else" }));
+      const field = screen.getByRole('combobox', { name: "Station you're at" });
+      expect(screen.getByRole('button', { name: 'Search from here' })).toBeDisabled();
+      fireEvent.change(field, { target: { value: 'wok' } });
+      fireEvent.blur(field);
+      fireEvent.click(await screen.findByRole('button', { name: 'Search from here' }));
+      expect(await screen.findByText('Searching from Woking')).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledWith(
+        `/api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed&from=WOK`,
+        {
+          method: 'GET',
+        },
+      );
+      // Taking one still replaces the leg that was missed.
+      expect(screen.getByRole('button', { name: 'Search from the station you were due at' })).toBeInTheDocument();
+    });
+
+    it('goes back to the boarding station', async () => {
+      const fetchMock = mockFetch({
+        [MISSED_URL]: () => json(suggestionSet()),
+        [`${MISSED_URL}&from=WOK`]: () => json(suggestionSet({ originCrs: 'WOK', originName: 'Woking' })),
+        'GET /api/stations?q=WOK': () => json([]),
+      });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: "I'm somewhere else" }));
+      const field = screen.getByRole('combobox', { name: "Station you're at" });
+      fireEvent.change(field, { target: { value: 'WOK' } });
+      fireEvent.blur(field);
+      fireEvent.click(await screen.findByRole('button', { name: 'Search from here' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Search from the station you were due at' }));
+      expect(await screen.findByText('Searching from York')).toBeInTheDocument();
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('alternatives'))).toHaveLength(3);
+    });
+
+    it('says an unknown station beside the field and keeps the list, as a refusal and not a failure', async () => {
+      mockFetch({
+        [MISSED_URL]: () => json(suggestionSet()),
+        [`${MISSED_URL}&from=ZZZ`]: () =>
+          json({ error: 'invalid_station', message: "We don't recognise that station." }, 400),
+        'GET /api/stations?q=ZZZ': () => json([]),
+      });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: "I'm somewhere else" }));
+      const field = screen.getByRole('combobox', { name: "Station you're at" });
+      fireEvent.change(field, { target: { value: 'ZZZ' } });
+      fireEvent.blur(field);
+      fireEvent.click(await screen.findByRole('button', { name: 'Search from here' }));
+      expect(await screen.findByText("We don't recognise that station.")).toBeInTheDocument();
+      expect(screen.getByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
+      expect(screen.queryByText("Couldn't load other trains")).not.toBeInTheDocument();
+    });
+
+    it('offers no search origin for a break', async () => {
+      mockFetch({ [BREAK_URL]: () => json(breakResponse()) });
+      renderSheet();
+      expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: "I'm somewhere else" })).not.toBeInTheDocument();
+    });
+
+    it('answers a closed window with what happened and what to do next, not "Couldn\'t load"', async () => {
+      mockFetch({
+        [MISSED_URL]: () =>
+          json({ error: 'miss_window_closed', message: "It's too late to change this journey." }, 409),
+      });
+      renderSheet(MISSED);
+      expect(await screen.findByText("It's too late to change this journey.")).toBeInTheDocument();
+      expect(screen.getByText(/To get there from here, plan a new journey/)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Plan a journey' })).toHaveAttribute('href', '/plan');
+      expect(screen.queryByText(/Couldn't load/)).not.toBeInTheDocument();
+    });
+
+    it('recognises the closed window by its message alone, as the browser proxy shows it', async () => {
+      mockFetch({ [MISSED_URL]: () => new Response("It's too late to change this journey.", { status: 409 }) });
+      renderSheet(MISSED);
+      expect(await screen.findByRole('link', { name: 'Plan a journey' })).toBeInTheDocument();
+      expect(screen.queryByText(/Couldn't load/)).not.toBeInTheDocument();
+    });
+
+    it('says a choice on an arrived train is not possible, and points at "I missed this one"', async () => {
+      mockFetch({
+        [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=choice`]: () =>
+          json({ error: 'leg_travelled', message: 'This leg is already travelled.' }, 409),
+      });
+      renderSheet({ kind: 'alternatives', legId: testLegId(7), cause: 'choice' });
+      expect(await screen.findByText('This train has already arrived')).toBeInTheDocument();
+      expect(screen.getByText(/use "I missed this one" instead/)).toBeInTheDocument();
+      expect(screen.queryByText(/Couldn't load/)).not.toBeInTheDocument();
+    });
+
+    it('keeps "Couldn\'t load other trains" for a real failure', async () => {
+      mockFetch({ [MISSED_URL]: () => new Response('boom', { status: 500 }) });
+      renderSheet(MISSED);
+      expect(await screen.findByText("Couldn't load other trains")).toBeInTheDocument();
+      expect(screen.getByText(/Try again/)).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Plan a journey' })).not.toBeInTheDocument();
+    });
+
+    it('says so, with a next step, when taking a train meets a closed window', async () => {
+      mockFetch({
+        [MISSED_URL]: () => json(suggestionSet()),
+        [REPLACE_URL]: () =>
+          json({ error: 'miss_window_closed', message: "It's too late to change this journey." }, 409),
+      });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+      expect(await screen.findByText("It's too late to change this journey.")).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Plan a journey' })).toBeInTheDocument();
+      expect(screen.queryByText(/Couldn't update/)).not.toBeInTheDocument();
+    });
+
+    it("rewords the Delay Repay note for a miss that is the traveller's own", async () => {
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()) });
+      renderSheet(MISSED);
+      expect(await screen.findByText(/Because you missed this train, Delay Repay now compares/)).toBeInTheDocument();
+      expect(screen.queryByText('Your booked plan stays saved for Delay Repay.')).not.toBeInTheDocument();
+    });
+
+    it("keeps the old note for the railway's miss", async () => {
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()) });
+      renderSheet({ ...MISSED, inboundLate: true });
+      expect(await screen.findByText('Your booked plan stays saved for Delay Repay.')).toBeInTheDocument();
+    });
+
+    it('keeps Undo until the new train leaves after a miss (at most an hour), and says so', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-09-17T08:55:00Z'));
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()), [REPLACE_URL]: () => json(accepted) });
+      renderSheet(MISSED);
+      // The first suggestion leaves at 09:04Z, nine minutes on.
+      fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+      expect(await screen.findByText('You can undo this until your new train leaves.')).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8 * 60_000);
+      });
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+      expect(refreshMock).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+      expect(refreshMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('caps Undo at an hour when the new train is further off', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-09-17T05:00:00Z'));
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()), [REPLACE_URL]: () => json(accepted) });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+      await screen.findByText('You can undo this until your new train leaves.');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(59 * 60_000);
+      });
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+    });
+
+    it('never offers less than the usual 2 minutes, even for a train about to leave', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-09-17T09:03:30Z'));
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()), [REPLACE_URL]: () => json(accepted) });
+      renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+      await screen.findByText('You can undo this until your new train leaves.');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(119_000);
+      });
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    });
+
+    it('says the journey is back under Upcoming when it had gone to Past', async () => {
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()), [REPLACE_URL]: () => json(accepted) });
+      renderWithMantine(
+        <AlternativesSheet
+          journeyId="42"
+          mode={MISSED}
+          opened
+          onClose={vi.fn()}
+          fallbackTitle="Other ways to Edinburgh"
+          journeyPast
+        />,
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+      expect(await screen.findByText('Your journey is back under Upcoming.')).toBeInTheDocument();
+    });
+
+    it('does not say so for a journey still upcoming, and refreshes the page when it closes', async () => {
+      mockFetch({ [MISSED_URL]: () => json(suggestionSet()), [REPLACE_URL]: () => json(accepted) });
+      const onClose = renderSheet(MISSED);
+      fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+      await screen.findByText('Journey updated. Booked plan saved.');
+      expect(screen.queryByText('Your journey is back under Upcoming.')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      expect(onClose).toHaveBeenCalled();
+      expect(refreshMock).toHaveBeenCalledTimes(1);
     });
   });
 

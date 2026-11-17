@@ -3,6 +3,27 @@
 Status: design, awaiting sign-off on §14 before implementation. Work log
 DS-128.
 
+**Amended 2026-11-17 (DS-534, the missed-train redesign).** §11 "Travelled
+legs" below no longer freezes every leg. The arrival freeze now applies to
+`choice` ("Choose another train"), revert, repeat and a regular journey's
+plan only. "I missed this train", a cancelled train and a missed connection
+(`missed`, `cancelled`, `connection`) are judged by a *miss window*: open
+until 04:00 London the morning after the leg's service date (the rule that
+expires breaks, §11 "Overnight"), whatever the train did, because a missed
+train usually runs on without the traveller and DS has no evidence of
+whether they boarded. A closed window is `409 miss_window_closed`. §1.2
+stands: there is still no leg-level missed state, and the miss lives only as
+a revision (reason `replace`, cause `user_missed`). Also changed: §8.2's
+button is the main one on the first train not yet over and a small "I missed
+this one" on any train whose window is open; Undo after a miss lasts until
+the replacement's first train leaves (at most an hour); alternatives can
+start from another station (`from`); and the set says whether the train
+departed and arrived (`leg`), for a one-line check before an arrived train
+is marked missed. A Past journey whose last leg is replaced by a train still
+to come is Upcoming again. See ds-api's `docs/journey-breaks.md` ("I missed
+this train"), its `docs/api-changelog.md` (2026-11-17) and the app's
+`frontend/lib/journeyBreak.ts`. The original text is left as it was.
+
 The request, from the user, in short:
 
 - Choosing an alternative for a missed leg must be easy. The leg may be
