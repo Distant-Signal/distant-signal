@@ -1,4 +1,4 @@
-import { Box, Group, Stack, Text, Title } from '@mantine/core';
+import { Alert, Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
 import { DownloadCalendarButton } from './DownloadCalendarButton';
 import { RegularJourneyLine } from './RegularJourneyLine';
@@ -336,6 +336,13 @@ export function JourneyDetailView({
       {journey.isOwner && journey.suggestionsMuted === true && <JourneySuggestionsUnmute journeyId={journey.id} />}
       {journey.isOwner && journey.operatorFilter && (
         <JourneyOperatorFilter journeyId={journey.id} filter={journey.operatorFilter} />
+      )}
+      {/* A share-link visitor gets no break (its cause and the owner's
+          alternatives are the owner's), only that the journey has one. */}
+      {!openBreak && journey.disrupted && (
+        <Alert color="grape" variant="light" role="region" aria-label="Journey disrupted" data-journey-break>
+          This journey has been disrupted.
+        </Alert>
       )}
       {openBreak && (
         <JourneyBreakBanner

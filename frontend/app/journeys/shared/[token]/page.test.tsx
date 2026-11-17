@@ -171,6 +171,36 @@ describe('SharedJourneyPage', () => {
     expect(screen.queryByRole('button', { name: 'Follow this journey' })).not.toBeInTheDocument();
   });
 
+  // DS-534: the share view carries no train label, saved search or break
+  // detail (`null` and a bare `disrupted`); it renders without them.
+  it('renders a link view with no custom train name, search filters or break, and says only that it is disrupted', async () => {
+    vi.mocked(getJourneyByShareToken).mockResolvedValue(
+      sharedJourney({
+        legs: [matchedLeg({ searchFilters: null, trackedTrainState: baseTrackedTrainState({ customName: null }) })],
+        openBreak: null,
+        disrupted: true,
+      }),
+    );
+    vi.mocked(getJourney).mockRejectedValue(new ApiUnauthorizedError('401'));
+
+    await renderPage();
+
+    expect(screen.getByRole('region', { name: 'Journey disrupted' })).toHaveTextContent(
+      'This journey has been disrupted.',
+    );
+    expect(screen.queryByRole('button', { name: 'See options' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+  });
+
+  it('shows no disruption notice for an undisrupted link view', async () => {
+    vi.mocked(getJourneyByShareToken).mockResolvedValue(sharedJourney());
+    vi.mocked(getJourney).mockRejectedValue(new ApiUnauthorizedError('401'));
+
+    await renderPage();
+
+    expect(screen.queryByRole('region', { name: 'Journey disrupted' })).not.toBeInTheDocument();
+  });
+
   it('renders the token-scoped view when the viewer is logged in but not authorized (ApiNotFoundError)', async () => {
     vi.mocked(getJourneyByShareToken).mockResolvedValue(sharedJourney());
     vi.mocked(getJourney).mockRejectedValue(new ApiNotFoundError('404'));
