@@ -43,24 +43,27 @@ test.describe('mid-journey changes', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { journeyId } = (await created.json()) as { journeyId: number };
+    const { journeyId, journeyPublicId } = (await created.json()) as { journeyId: number; journeyPublicId: string };
 
-    await page.goto(`/journeys/${journeyId}`);
+    await page.goto(`/journeys/${journeyPublicId}`);
     const main = page.locator('#main-content');
     await main.getByRole('button', { name: 'I missed this train' }).click();
 
     const sheet = page.getByRole('dialog');
     const take = sheet.getByRole('button', { name: 'Take this one' }).first();
     await expect(take).toBeVisible();
-    await expect(sheet.getByText('Your booked plan stays saved for Delay Repay.')).toBeVisible();
+    // A miss that is the traveller's own moves the Delay Repay baseline.
+    await expect(sheet.getByText(/Your booked plan stays saved under Earlier plans\./)).toBeVisible();
+    await expect(sheet.getByText('Searching from', { exact: false })).toBeVisible();
     await take.click();
 
     await expect(page.getByText('Journey updated. Booked plan saved.')).toBeVisible();
+    await expect(page.getByText('You can undo this until your new train leaves.')).toBeVisible();
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByText('Journey updated. Booked plan saved.')).toBeHidden();
 
     // The plans so far: booked, the change, and the Undo back to it.
-    await page.goto(`/journeys/${journeyId}`);
+    await page.goto(`/journeys/${journeyPublicId}`);
     await expect(main.getByText(/Earlier plans/)).toBeVisible();
 
     await request.delete(`/api/Journeys/${journeyId}`, {

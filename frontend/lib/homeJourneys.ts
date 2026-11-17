@@ -308,7 +308,7 @@ export function journeyPhase(detail: JourneyDetail, now: Date): JourneyPhase {
   return legsPhase(detail.legs, now);
 }
 
-function legsPhase(legs: readonly JourneyLegDetail[], now: Date): JourneyPhase {
+export function legsPhase(legs: readonly JourneyLegDetail[], now: Date): JourneyPhase {
   const last = legs.at(-1);
   if (last === undefined || legIsOver(last, now, true)) return 'past';
   // Any leg, not only the first: a later leg reported moving means the

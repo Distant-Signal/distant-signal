@@ -14,7 +14,7 @@ import { JourneyBreakBanner } from './JourneyBreakBanner';
 import { JourneySuggestionsUnmute } from './JourneySuggestionsUnmute';
 import { JourneyOperatorFilter } from './JourneyOperatorFilter';
 import { EarlierPlans } from './EarlierPlans';
-import { missableLegId } from '@/lib/journeyBreak';
+import { MissedOfferProvider } from './MissedOfferContext';
 import { JourneyStatusBadge } from './JourneyStatusBadge';
 import { LastUpdated } from './LastUpdated';
 import { SaveAsTemplateButton } from './SaveAsTemplateButton';
@@ -210,10 +210,9 @@ export function JourneyDetailView({
   // Mid-journey changes (spec 2026-10-22 §8.2): which leg can be missed,
   // and the open break, for the owner's leg actions.
   const openBreak = journey.openBreak ?? null;
-  const missable = journey.isOwner ? missableLegId(journey.legs, new Date(fetchedAt)) : null;
 
   return (
-    <>
+    <MissedOfferProvider legs={journey.legs} initialNow={fetchedAt}>
       <Group justify="space-between" align="baseline">
         <Title order={1}>{journeyDisplayName(name)}</Title>
         <Group gap="xs">
@@ -382,7 +381,6 @@ export function JourneyDetailView({
             isOnlyLeg={journey.legs.length === 1}
             neighbours={{ previous: journey.legs[index - 1], next: journey.legs[index + 1] }}
             replan={{
-              missable: leg.id === missable,
               openBreakId: openBreak?.id ?? null,
               isBreakTrigger: openBreak !== null && isTriggerLeg(leg, openBreak),
               suggestionsMuted: journey.suggestionsMuted ?? false,
@@ -392,6 +390,6 @@ export function JourneyDetailView({
         </Stack>
       ))}
       {journey.isOwner && <EarlierPlans journeyId={journey.publicId} revisionCount={journey.revisionCount} />}
-    </>
+    </MissedOfferProvider>
   );
 }

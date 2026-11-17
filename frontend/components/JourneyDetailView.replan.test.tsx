@@ -55,6 +55,8 @@ describe('JourneyDetailView mid-journey changes', () => {
     expect(screen.getAllByRole('button', { name: 'I missed this train' })).toHaveLength(1);
     expect(within(legCard(2)).getByRole('button', { name: 'I missed this train' })).toBeInTheDocument();
     expect(within(legCard(1)).queryByRole('button', { name: 'I missed this train' })).not.toBeInTheDocument();
+    // A finished train can still be missed (the traveller got there too late): a small button.
+    expect(within(legCard(1)).getByRole('button', { name: 'I missed this one' })).toBeInTheDocument();
     expect(within(legCard(3)).getByRole('button', { name: 'Find another way' })).toBeInTheDocument();
     // Phase 0's "Change train" stays on every train leg.
     expect(screen.getAllByRole('button', { name: 'Change train' })).toHaveLength(3);

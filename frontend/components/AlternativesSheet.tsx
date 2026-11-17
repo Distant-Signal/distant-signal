@@ -26,16 +26,22 @@ import {
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { ButtonSpinner, LoadingText } from './LoadingText';
+import { StationField } from './StationField';
+import { TextLink } from './TextLink';
 import { CARD_PRIMARY, ClickableCard, StaticCard } from './ClickableCard';
 import { StateBadge } from './StateBadge';
 import { instantLateDepartureTimes, LateDepartureNote, trainToSubject } from './LateDepartureNote';
 import { asSentence, describeFailure, isUserFacingApiMessage } from '@/lib/failure';
+import { typedStationCode } from '@/lib/codeLabels';
 import { formatTime } from '@/lib/dateFormat';
 import {
   BOOKED_PLAN_SAVED_NOTE,
   LATE_INBOUND_NOTE,
+  LEG_TRAVELLED_MESSAGE,
+  MISS_WINDOW_CLOSED_MESSAGE,
   STALE_SUGGESTION_MESSAGE,
-  UNDO_WINDOW_MS,
+  USER_MISS_PLAN_NOTE,
+  undoWindowMs,
   breakTitle,
   suggestionBadges,
   suggestionDelay,
@@ -90,36 +96,89 @@ const DISCLOSURE_STYLES = {
 const LOAD_FAILURE = ['load', 'other trains'] as const;
 const UPDATE_FAILURE = ['update', 'the journey'] as const;
 
-/** A refusal's message: the API's own sentence when its body (plain text,
- * or JSON with a `message`) is one written for people and the status is
- * one a person can act on, else `describeFailure`. */
-async function failureMessage([verb, noun]: readonly [string, string], response: Response): Promise<string> {
+/** A refusal the person can act on, not a failure: the window to change
+ * the leg has closed (`409 miss_window_closed`), or "Choose another train"
+ * on a train that has arrived (`409 leg_travelled`). */
+type Refusal = 'windowClosed' | 'travelled';
+
+interface Failure {
+  message: string;
+  refusal: Refusal | null;
+}
+
+/** What a refusal's body says: the API's own sentence when its body (plain
+ * text, or JSON with a `message`) is one written for people and the status
+ * is one a person can act on, else `describeFailure`. The two 409 refusals
+ * above are told apart by the body's `error` code when it is there, else by
+ * their message. */
+async function failureOf([verb, noun]: readonly [string, string], response: Response): Promise<Failure> {
   const body = await response.text().catch(() => '');
   if ([400, 403, 409, 422].includes(response.status)) {
     let message = body;
+    let code: string | null = null;
     try {
       const parsed: unknown = JSON.parse(body);
-      if (parsed && typeof parsed === 'object' && 'message' in parsed && typeof parsed.message === 'string') {
-        message = parsed.message;
+      if (parsed && typeof parsed === 'object') {
+        if ('message' in parsed && typeof parsed.message === 'string') message = parsed.message;
+        if ('error' in parsed && typeof parsed.error === 'string') code = parsed.error;
       }
     } catch {
       // Plain text: the body is the message.
     }
-    if (isUserFacingApiMessage(message)) return asSentence(message);
+    if (isUserFacingApiMessage(message)) {
+      const sentence = asSentence(message);
+      let refusal: Refusal | null = null;
+      if (response.status === 409) {
+        if (code === 'miss_window_closed' || sentence === MISS_WINDOW_CLOSED_MESSAGE) refusal = 'windowClosed';
+        else if (code === 'leg_travelled' || sentence === LEG_TRAVELLED_MESSAGE) refusal = 'travelled';
+      }
+      return { message: sentence, refusal };
+    }
   }
-  return describeFailure(verb, noun, response.status);
+  return { message: describeFailure(verb, noun, response.status), refusal: null };
 }
 
-type Fetched<T> = { ok: true; value: T } | { ok: false; message: string };
+async function failureMessage(failure: readonly [string, string], response: Response): Promise<string> {
+  return (await failureOf(failure, response)).message;
+}
+
+type Fetched<T> = { ok: true; value: T } | ({ ok: false } & Failure);
 
 async function fetchJson<T>(url: string, init: RequestInit, failure: readonly [string, string]): Promise<Fetched<T>> {
   try {
     const response = await fetch(url, init);
-    if (!response.ok) return { ok: false, message: await failureMessage(failure, response) };
+    if (!response.ok) return { ok: false, ...(await failureOf(failure, response)) };
     return { ok: true, value: (await response.json()) as T };
   } catch {
-    return { ok: false, message: describeFailure(...failure) };
+    return { ok: false, message: describeFailure(...failure), refusal: null };
   }
+}
+
+/** A refusal, said as what happened and what to do next. */
+function RefusalNotice({ refusal }: { refusal: Refusal }) {
+  if (refusal === 'windowClosed') {
+    return (
+      <Alert color="yellow" variant="light" role="status" title={MISS_WINDOW_CLOSED_MESSAGE}>
+        <Stack gap="xs">
+          <Text size="sm">
+            A train can be changed until 4am the next morning. To get there from here, plan a new journey.
+          </Text>
+          <Group>
+            <TextLink href="/plan" size="sm">
+              Plan a journey
+            </TextLink>
+          </Group>
+        </Stack>
+      </Alert>
+    );
+  }
+  return (
+    <Alert color="yellow" variant="light" role="status" title="This train has already arrived">
+      <Text size="sm">
+        You can&apos;t choose another train for it. If you missed it, use &quot;I missed this one&quot; instead.
+      </Text>
+    </Alert>
+  );
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -134,15 +193,22 @@ function previewBreak(journeyId: string, breakId: number): Promise<Fetched<Break
 }
 
 /** The request that loads the sheet, by mode. */
-function loadRequest(journeyId: string, mode: AlternativesMode): { url: string; method: 'GET' | 'POST' } {
+function loadRequest(
+  journeyId: string,
+  mode: AlternativesMode,
+  from: string | null = null,
+): { url: string; method: 'GET' | 'POST' } {
   const base = `/api/Journeys/${journeyId}`;
+  // Where the search starts, when it is not the leg's boarding station
+  // (`alternatives?from=CRS`); only the alternatives routes take it.
+  const fromQuery = from === null ? '' : `&from=${encodeURIComponent(from)}`;
   switch (mode.kind) {
     case 'break':
       return { url: `${base}/breaks/current${mode.fromPush ? '?src=push' : ''}`, method: 'GET' };
     case 'missed':
-      return { url: `${base}/legs/${mode.legId}/alternatives?cause=missed`, method: 'GET' };
+      return { url: `${base}/legs/${mode.legId}/alternatives?cause=missed${fromQuery}`, method: 'GET' };
     case 'alternatives':
-      return { url: `${base}/legs/${mode.legId}/alternatives?cause=${mode.cause}`, method: 'GET' };
+      return { url: `${base}/legs/${mode.legId}/alternatives?cause=${mode.cause}${fromQuery}`, method: 'GET' };
   }
 }
 
@@ -160,8 +226,9 @@ function modeCause(mode: AlternativesMode): BreakCause | null {
 /** The suggestions sheet (spec §8.3, §17.6): a bottom `Drawer` below `sm`
  * and a `Modal` above. Up to three cards (Recommended, then the other
  * picks), "More options" for the rest, and "Take this one" on each, which
- * is the whole accept: no confirm, because Undo follows for 30 seconds.
- * The page refreshes once Undo is gone or the sheet is closed. Only ever
+ * is the whole accept: no confirm, because Undo follows (2 minutes, or after
+ * "I missed this train" until the new train leaves, at most an hour). The
+ * page refreshes once Undo is gone or the sheet is closed. Only ever
  * opened for the journey's owner. */
 export function AlternativesSheet({
   journeyId,
@@ -171,6 +238,7 @@ export function AlternativesSheet({
   fallbackTitle,
   stationName = null,
   canMute = false,
+  journeyPast = false,
 }: {
   journeyId: string;
   mode: AlternativesMode;
@@ -182,6 +250,9 @@ export function AlternativesSheet({
   stationName?: string | null;
   /** Offer "Stop suggestions for this journey". */
   canMute?: boolean;
+  /** The journey is Past now, so an accepted replacement moves it back to
+   * Upcoming, which the sheet says. */
+  journeyPast?: boolean;
 }) {
   const router = useRouter();
   const theme = useMantineTheme();
@@ -208,6 +279,7 @@ export function AlternativesSheet({
       mode={mode}
       stationName={stationName}
       canMute={canMute}
+      journeyPast={journeyPast}
       fallbackTitle={fallbackTitle}
       onTitle={setTitle}
       onChanged={markChanged}
@@ -239,6 +311,7 @@ function AlternativesSheetBody({
   mode,
   stationName,
   canMute,
+  journeyPast,
   fallbackTitle,
   onTitle,
   onChanged,
@@ -248,6 +321,7 @@ function AlternativesSheetBody({
   mode: AlternativesMode;
   stationName: string | null;
   canMute: boolean;
+  journeyPast: boolean;
   fallbackTitle: string;
   onTitle: (title: string) => void;
   onChanged: (changed: boolean) => void;
@@ -255,7 +329,7 @@ function AlternativesSheetBody({
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadFailure, setLoadFailure] = useState<Failure | null>(null);
   const [breakInfo, setBreakInfo] = useState<BreakResponse | null>(null);
   const [set, setSet] = useState<SuggestionSet | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -270,6 +344,19 @@ function AlternativesSheetBody({
   const [muting, setMuting] = useState(false);
   const [muted, setMuted] = useState(false);
   const [muteError, setMuteError] = useState<string | null>(null);
+  const [actionRefusal, setActionRefusal] = useState<Refusal | null>(null);
+  // "I missed this train" on a train the api's facts say reached its
+  // destination asks once whether the traveller really missed it.
+  const [confirmedArrived, setConfirmedArrived] = useState(false);
+  // Where the search starts: the leg's boarding station until the traveller
+  // says they are elsewhere. Their position stays in the browser: only the
+  // station they pick is sent (`alternatives?from=CRS`).
+  const [fromCrs, setFromCrs] = useState<string | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [fromDraft, setFromDraft] = useState('');
+  const [fromError, setFromError] = useState<string | null>(null);
+  const [searchingFrom, setSearchingFrom] = useState(false);
+  const [undoMs, setUndoMs] = useState(0);
 
   const { url, method } = loadRequest(journeyId, mode);
   // Neither "I missed this train" nor other ways from a leg has a break:
@@ -287,7 +374,7 @@ function AlternativesSheetBody({
         const result = await fetchJson<SuggestionSet>(url, { method }, LOAD_FAILURE);
         if (isCancelled()) return;
         if (!result.ok) {
-          setLoadError(result.message);
+          setLoadFailure(result);
           setStatus('error');
           return;
         }
@@ -298,7 +385,7 @@ function AlternativesSheetBody({
       const result = await fetchJson<BreakResponse>(url, { method }, LOAD_FAILURE);
       if (isCancelled()) return;
       if (!result.ok) {
-        setLoadError(result.message);
+        setLoadFailure(result);
         setStatus('error');
         return;
       }
@@ -331,21 +418,25 @@ function AlternativesSheetBody({
     onTitle(title);
   }, [onTitle, title]);
 
-  // Undo is offered for 30 seconds; then the page shows the new plan.
+  // Undo is offered for as long as the api allows it (`undoWindowMs`: 2
+  // minutes, or after a miss until the new train leaves, at most an hour);
+  // then the page shows the new plan. Earlier plans offers "Go back to this
+  // plan" for as long as the api says `canRevert`.
   useEffect(() => {
     if (!undoOpen) return;
     const timer = setTimeout(() => {
       setUndoOpen(false);
       onChanged(false);
       router.refresh();
-    }, UNDO_WINDOW_MS);
+    }, undoMs);
     return () => clearTimeout(timer);
-  }, [undoOpen, onChanged, router]);
+  }, [undoOpen, undoMs, onChanged, router]);
 
   async function take(suggestion: ReplanSuggestion) {
     if (set === null) return;
     setTakingId(suggestion.id);
     setActionError(null);
+    setActionRefusal(null);
     setNotice(null);
     const headers = { ...JSON_HEADERS, 'Idempotency-Key': crypto.randomUUID() };
     const request =
@@ -380,11 +471,14 @@ function AlternativesSheetBody({
         }
       }
       if (!response.ok) {
-        setActionError(await failureMessage(UPDATE_FAILURE, response));
+        const failure = await failureOf(UPDATE_FAILURE, response);
+        if (failure.refusal !== null) setActionRefusal(failure.refusal);
+        else setActionError(failure.message);
         return;
       }
       const result = (await response.json()) as ReplanResult;
       setAccepted(result);
+      setUndoMs(undoWindowMs(mode.kind === 'missed', suggestion.departure, new Date()));
       setUndoOpen(result.undoRevisionNo !== null);
       onChanged(true);
     } catch {
@@ -414,6 +508,42 @@ function AlternativesSheetBody({
     } finally {
       setUndoing(false);
     }
+  }
+
+  async function searchFrom() {
+    const crs = typedStationCode(fromDraft);
+    if (crs === null || mode.kind === 'break') return;
+    setSearchingFrom(true);
+    setFromError(null);
+    const result = await fetchJson<SuggestionSet>(
+      loadRequest(journeyId, mode, crs).url,
+      { method: 'GET' },
+      LOAD_FAILURE,
+    );
+    setSearchingFrom(false);
+    if (!result.ok) {
+      // Said beside the field, and the list from before stays.
+      setFromError(result.message);
+      return;
+    }
+    setSet(result.value);
+    setFromCrs(crs);
+    setChooserOpen(false);
+  }
+
+  async function searchFromBoarding() {
+    if (mode.kind === 'break') return;
+    setSearchingFrom(true);
+    setFromError(null);
+    const result = await fetchJson<SuggestionSet>(loadRequest(journeyId, mode).url, { method: 'GET' }, LOAD_FAILURE);
+    setSearchingFrom(false);
+    if (!result.ok) {
+      setFromError(result.message);
+      return;
+    }
+    setSet(result.value);
+    setFromCrs(null);
+    setFromDraft('');
   }
 
   async function mute() {
@@ -446,9 +576,11 @@ function AlternativesSheetBody({
   }
 
   if (status === 'error') {
+    // A refusal says what to do next; only a real failure is "Couldn't load".
+    if (loadFailure?.refusal) return <RefusalNotice refusal={loadFailure.refusal} />;
     return (
       <Alert color="red" variant="light" role="alert" title="Couldn't load other trains">
-        {loadError}
+        {loadFailure?.message}
       </Alert>
     );
   }
@@ -460,6 +592,14 @@ function AlternativesSheetBody({
           <Alert color="green" variant="light" role="status" title="Your earlier plan is back." />
         ) : (
           <Alert color="green" variant="light" role="status" title="Journey updated. Booked plan saved.">
+            {journeyPast && mode.kind === 'missed' && <Text size="sm">Your journey is back under Upcoming.</Text>}
+            {undoOpen && (
+              <Text size="sm" data-undo-note>
+                {mode.kind === 'missed'
+                  ? 'You can undo this until your new train leaves.'
+                  : 'You can undo this for 2 minutes.'}
+              </Text>
+            )}
             {undoOpen && (
               <Button
                 size="sm"
@@ -495,6 +635,39 @@ function AlternativesSheetBody({
   // recorded yet) the leg's connection state, as the api decides it (§4.2).
   const inboundLate = mode.kind === 'missed' && mode.inboundLate === true;
   const faultNote = breakInfo !== null ? breakInfo.faultNote : inboundLate ? LATE_INBOUND_NOTE : null;
+  // The note under the list: a miss that is the traveller's own moves the
+  // Delay Repay baseline to the new plan, so it does not promise the old one.
+  const userFault = breakInfo !== null ? breakInfo.fault === 'user' : mode.kind === 'missed' && !inboundLate;
+  const planNote = userFault ? USER_MISS_PLAN_NOTE : BOOKED_PLAN_SAVED_NOTE;
+
+  // The api's facts say the train ran on to its destination: ask once
+  // whether the traveller really missed it, before showing what to take.
+  // Facts for a question, never a refusal.
+  if (mode.kind === 'missed' && set?.leg?.arrived === true && !confirmedArrived) {
+    const reached = set.trigger?.destinationName ?? null;
+    return (
+      <Stack gap="sm">
+        <Alert
+          color="yellow"
+          variant="light"
+          role="group"
+          title={
+            reached ? `This train has already reached ${reached}.` : 'This train has already reached its destination.'
+          }
+        >
+          <Text size="sm">Only use this if you didn&apos;t get on it.</Text>
+        </Alert>
+        <Group justify="flex-end">
+          <Button size="sm" variant="default" onClick={onDone}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={() => setConfirmedArrived(true)}>
+            I didn&apos;t get on it
+          </Button>
+        </Group>
+      </Stack>
+    );
+  }
 
   const card = (suggestion: ReplanSuggestion) => (
     <SuggestionCard
@@ -510,6 +683,66 @@ function AlternativesSheetBody({
   return (
     <Stack gap="sm">
       {set && <Text size="sm">{suggestionSetBody(set)}</Text>}
+      {set && mode.kind !== 'break' && (
+        <Stack gap="xs" data-search-origin>
+          <Group gap="xs" align="center" wrap="wrap">
+            <Text size="sm">Searching from {set.originName ?? set.originCrs}</Text>
+            {!chooserOpen && (
+              <Button
+                size="compact-sm"
+                variant="subtle"
+                onClick={() => {
+                  setChooserOpen(true);
+                  setFromError(null);
+                }}
+              >
+                I&apos;m somewhere else
+              </Button>
+            )}
+            {fromCrs !== null && !chooserOpen && (
+              <Button
+                size="compact-sm"
+                variant="subtle"
+                onClick={() => void searchFromBoarding()}
+                disabled={searchingFrom}
+              >
+                Search from the station you were due at
+              </Button>
+            )}
+          </Group>
+          {chooserOpen && (
+            <Stack gap="xs">
+              <StationField label="Station you're at" value={fromDraft} onChange={setFromDraft} />
+              {fromError && (
+                <Text size="sm" c="var(--ds-color-error-text)" role="alert">
+                  {fromError}
+                </Text>
+              )}
+              <Group gap="xs">
+                <Button
+                  size="sm"
+                  onClick={() => void searchFrom()}
+                  disabled={typedStationCode(fromDraft) === null || searchingFrom}
+                  {...(searchingFrom && { leftSection: <ButtonSpinner /> })}
+                >
+                  {searchingFrom ? 'Searching' : 'Search from here'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => {
+                    setChooserOpen(false);
+                    setFromError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Group>
+            </Stack>
+          )}
+        </Stack>
+      )}
+      {actionRefusal !== null && <RefusalNotice refusal={actionRefusal} />}
       {notice && (
         <Alert color="yellow" variant="light" role="status">
           {notice}
@@ -563,7 +796,7 @@ function AlternativesSheetBody({
         </Text>
       )}
       <Text size="sm" c="dimmed">
-        {BOOKED_PLAN_SAVED_NOTE}
+        {planNote}
       </Text>
       {canMute &&
         (muted ? (

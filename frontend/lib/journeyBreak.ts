@@ -1,5 +1,6 @@
 import { isTriggerLeg } from './publicId';
 import { formatTime } from './dateFormat';
+import { addCalendarDays, londonWallClockToUtc } from './londonWallClock';
 import { legIsOver } from './homeJourneys';
 import { operatorNameAndCode } from './displayLabels';
 import { legDepartureInstant } from './journeyLegChaining';
@@ -363,18 +364,71 @@ export function revisionLegLine(leg: RevisionLeg, operatorNames: Readonly<Record
  * before anything is recorded. */
 export const LATE_INBOUND_NOTE = 'Your earlier train was late, so this counts as a missed connection.';
 
-/** Said under every list: the booked plan stays the Delay Repay baseline. */
+/** Said under every list: the booked plan stays saved, and with it the
+ * Delay Repay baseline (the railway's fault, or a free choice of train). */
 export const BOOKED_PLAN_SAVED_NOTE = 'Your booked plan stays saved for Delay Repay.';
+
+/** Said instead when the traveller missed the train themselves: the booked
+ * plan is still saved (under Earlier plans), but the api moves the Delay
+ * Repay baseline to the new plan for a passenger-fault change. */
+export const USER_MISS_PLAN_NOTE =
+  'Your booked plan stays saved under Earlier plans. Because you missed this train, Delay Repay now compares your delay with the new plan, not the one you booked.';
 
 /** Shown after a 409 `suggestion_stale` swaps in the latest options. */
 export const STALE_SUGGESTION_MESSAGE = 'That train no longer works. Here are the latest options.';
 
-/** How long Undo stays offered after an accept. */
-export const UNDO_WINDOW_MS = 30_000;
+/** How long Undo lasts after an accept of any cause but a miss: the api's
+ * `UNDO_WINDOW` (2 minutes). */
+export const UNDO_WINDOW_MS = 120_000;
 
-/** The leg "I missed this train" goes on: the first train leg with a
- * train that is not yet over (`legIsOver`), `null` with none. Never a
- * travelled leg. */
+/** The longest Undo lasts after "I missed this train": the api's
+ * `MISSED_UNDO_CAP` (1 hour). */
+export const MISSED_UNDO_CAP_MS = 3_600_000;
+
+/** How long to offer Undo for after an accept, in ms. After "I missed this
+ * train" the api keeps it until the replacement's first new train leaves,
+ * at most `MISSED_UNDO_CAP_MS` after the change, and never less than the
+ * usual 2 minutes (`revert_allowed`); any other change keeps the 2
+ * minutes. `canRevert` (Earlier plans) is the truth: this only says when
+ * the sheet stops showing its own button. */
+export function undoWindowMs(missed: boolean, firstNewDeparture: string | null, now: Date): number {
+  if (!missed) return UNDO_WINDOW_MS;
+  const departs = firstNewDeparture === null ? Number.NaN : Date.parse(firstNewDeparture);
+  const untilDeparture = Number.isNaN(departs) ? MISSED_UNDO_CAP_MS : departs - now.getTime();
+  return Math.max(UNDO_WINDOW_MS, Math.min(MISSED_UNDO_CAP_MS, untilDeparture));
+}
+
+/** The api's refusal when the window to change a leg has closed
+ * (`409 miss_window_closed`). The browser sees the message, delegated
+ * clients the code too. */
+export const MISS_WINDOW_CLOSED_MESSAGE = "It's too late to change this journey.";
+
+/** The api's refusal of "Choose another train" once the train has arrived
+ * (`409 leg_travelled`). */
+export const LEG_TRAVELLED_MESSAGE = 'This leg is already travelled.';
+
+/** When the window to say a leg went wrong (missed, cancelled, a
+ * connection missed) closes: 04:00 London the morning after the leg's
+ * service date, in ms. The client copy of the api's
+ * `journey_breaks::miss_window_closes_at`, the rule that expires breaks.
+ * Change both together. */
+export function missWindowClosesMs(serviceDate: string): number {
+  return londonWallClockToUtc(`${addCalendarDays(serviceDate, 1)} 04:00:00`).getTime();
+}
+
+/** Whether the traveller may still say this train leg went wrong: its
+ * window is open (`missWindowClosesMs`), whatever the train did. A train
+ * that ran on without them is the usual case, so its arrival does not
+ * matter; `legIsOver` is for ordering and "past", not for this. An
+ * untracked leg, or one with no train picked, has nothing to miss. */
+export function legMissWindowOpen(leg: JourneyLegDetail, now: Date): boolean {
+  if (isUntrackedLeg(leg) || leg.trackedTrainState === null) return false;
+  return now.getTime() < missWindowClosesMs(leg.serviceDate);
+}
+
+/** The leg "I missed this train" is the main button on: the first train
+ * leg with a train that is not yet over (`legIsOver`), if its window is
+ * open; `null` with none. */
 export function missableLegId(legs: readonly JourneyLegDetail[], now: Date): number | null {
   const leg = legs.find(
     (candidate, index) =>
@@ -382,5 +436,16 @@ export function missableLegId(legs: readonly JourneyLegDetail[], now: Date): num
       candidate.trackedTrainState !== null &&
       !legIsOver(candidate, now, index === legs.length - 1),
   );
-  return leg?.id ?? null;
+  return leg !== undefined && legMissWindowOpen(leg, now) ? leg.id : null;
+}
+
+/** How a leg offers "I missed this train": `main` on the first train not
+ * yet over, `small` ("I missed this one") on any other train leg whose
+ * window is open, as the traveller, not DS, knows which train they missed;
+ * `null` when it can't be (an untracked leg, a closed window). */
+export type MissedOffer = 'main' | 'small' | null;
+
+export function missedOffer(legs: readonly JourneyLegDetail[], leg: JourneyLegDetail, now: Date): MissedOffer {
+  if (!legMissWindowOpen(leg, now)) return null;
+  return missableLegId(legs, now) === leg.id ? 'main' : 'small';
 }
