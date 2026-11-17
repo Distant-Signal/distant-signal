@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { JourneyStatusBadge } from './JourneyStatusBadge';
 import type { JourneyLegDetail, TrackedTrainState } from '@/lib/types';
-import { JOURNEY_LEG_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
+import { JOURNEY_LEG_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS, testLegId } from '@/test/apiDefaults';
 
 // Same fixture shape as `lib/journeyStatus.test.ts` -- kept in sync
 // deliberately so both test files agree on what a "real" leg/tracked-train
@@ -43,6 +43,7 @@ function baseLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
     kind: 'train',
     ...JOURNEY_LEG_DEFAULTS,
     id: 1,
+    publicId: testLegId(overrides.id ?? 1),
     originCrs: 'WAT',
     originName: null,
     destinationCrs: 'WOK',
@@ -79,7 +80,7 @@ describe('JourneyStatusBadge', () => {
     );
     const badge = screen.getByText('1 leg needs a train');
     expect(badge).toBeInTheDocument();
-    expect(badge.closest('a')).toHaveAttribute('href', '#leg-2');
+    expect(badge.closest('a')).toHaveAttribute('href', `#leg-${testLegId(2)}`);
     // Grape (the action colour), not blue -- blue means a planned or
     // changed arrangement (docs/style-guide.md "Semantic roles").
     expect(badge.closest('.mantine-Badge-root')).toHaveStyle({ '--badge-bg': 'var(--mantine-color-grape-light)' });
@@ -95,7 +96,7 @@ describe('JourneyStatusBadge', () => {
       />,
     );
     const badge = screen.getByText('2 legs need a train');
-    expect(badge.closest('a')).toHaveAttribute('href', '#leg-1');
+    expect(badge.closest('a')).toHaveAttribute('href', `#leg-${testLegId(1)}`);
   });
 
   it('shows "Part cancelled" when one leg is cancelled even if another is merely unmatched', () => {

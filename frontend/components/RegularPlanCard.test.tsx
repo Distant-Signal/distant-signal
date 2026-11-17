@@ -67,7 +67,7 @@ describe('RegularPlanCard', () => {
 
   it('offers the usual train first, then the others', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
-    renderWithMantine(<RegularPlanCard journeyId={9} serviceDate="2026-11-10" plan={plan()} />);
+    renderWithMantine(<RegularPlanCard journeyId="9" serviceDate="2026-11-10" plan={plan()} />);
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'Your usual train: 08:12 Woking to London Waterloo' }),
@@ -90,7 +90,7 @@ describe('RegularPlanCard', () => {
 
   it('tracks another train by its place in the list', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
-    renderWithMantine(<RegularPlanCard journeyId={9} serviceDate="2026-11-10" plan={plan()} />);
+    renderWithMantine(<RegularPlanCard journeyId="9" serviceDate="2026-11-10" plan={plan()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Track this train, the 08:40 Woking to London Waterloo' }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     expect(fetch).toHaveBeenCalledWith(
@@ -102,7 +102,7 @@ describe('RegularPlanCard', () => {
   it("says when the usual train doesn't run and offers the closest", () => {
     renderWithMantine(
       <RegularPlanCard
-        journeyId={9}
+        journeyId="9"
         serviceDate="2026-11-10"
         plan={plan({ reason: 'best', choice: option('W00003', '08:10', '08:40'), alternatives: [] })}
       />,
@@ -118,7 +118,7 @@ describe('RegularPlanCard', () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response("This journey's plan changed; reload the journey.", { status: 409 }),
     );
-    renderWithMantine(<RegularPlanCard journeyId={9} serviceDate="2026-11-10" plan={plan()} />);
+    renderWithMantine(<RegularPlanCard journeyId="9" serviceDate="2026-11-10" plan={plan()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
     expect(await screen.findByText("This journey's plan changed; reload the journey.")).toBeInTheDocument();
     expect(refreshMock).not.toHaveBeenCalled();
@@ -126,7 +126,7 @@ describe('RegularPlanCard', () => {
 
   it('describes a network failure', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('offline'));
-    renderWithMantine(<RegularPlanCard journeyId={9} serviceDate="2026-11-10" plan={plan()} />);
+    renderWithMantine(<RegularPlanCard journeyId="9" serviceDate="2026-11-10" plan={plan()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
     expect(await screen.findByText(/^Couldn't track this train\./)).toBeInTheDocument();
   });

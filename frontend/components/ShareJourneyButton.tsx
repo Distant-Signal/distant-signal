@@ -26,7 +26,7 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
  * sharing IS the entire point of this click, so a failure must be shown,
  * matching `AddToGroupButton.tsx`'s own not-best-effort posture for its
  * own (also after-the-fact) share action. */
-export function ShareJourneyButton({ journeyId }: { journeyId: number }) {
+export function ShareJourneyButton({ journeyId }: { journeyId: string }) {
   const { groups } = useGroupSummaries();
   const [opened, { open, close }] = useDisclosure(false);
   const [selected, setSelected] = useState<string | null>(null);

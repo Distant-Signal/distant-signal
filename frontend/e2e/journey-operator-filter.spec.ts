@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // A saved journey's operator filter (operator filtering spec 2026-10-31
 // §6.9) on its page, against the seeded backend: the page is

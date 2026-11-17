@@ -16,7 +16,7 @@ const fetchMock = vi.fn();
 function journey(id: number, extra: Partial<ScheduleDeleteInput> = {}): ScheduleDeleteInput {
   return {
     kind: 'journey',
-    id,
+    id: String(id),
     message: 'Journey deleted',
     url: `/api/Journeys/${String(id)}`,
     failure: ['delete', 'the journey'],

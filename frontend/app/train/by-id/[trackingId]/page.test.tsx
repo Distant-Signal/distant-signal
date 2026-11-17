@@ -5,7 +5,7 @@ import TrackedTrainByIdPage from './page';
 import * as api from '@/lib/api';
 import { ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import type { TrackedTrainState } from '@/lib/types';
-import { TRACKED_TRAIN_STATE_DEFAULTS, testPublicId } from '@/test/apiDefaults';
+import { TRACKED_TRAIN_STATE_DEFAULTS, testPublicId, testTrackingId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -43,6 +43,7 @@ function trackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedT
   return {
     ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 42,
+    publicId: testTrackingId(42),
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',
     pinDestinationCrs: 'WOK',
@@ -69,7 +70,7 @@ function trackedTrainState(overrides: Partial<TrackedTrainState> = {}): TrackedT
   };
 }
 
-async function renderPage(trackingId = '42') {
+async function renderPage(trackingId = testTrackingId(42)) {
   const element = await TrackedTrainByIdPage({ params: Promise.resolve({ trackingId }) });
   return renderWithMantine(element);
 }
@@ -78,11 +79,12 @@ describe('TrackedTrainByIdPage error handling', () => {
   beforeEach(() => {
     notFoundMock.mockClear();
     redirectMock.mockClear();
+    vi.mocked(api.getTrackedTrainById).mockClear();
   });
 
   it('shows a login prompt linking to /api/auth/login on ApiUnauthorizedError', async () => {
     vi.mocked(api.getTrackedTrainById).mockRejectedValue(new ApiUnauthorizedError('unauthorized'));
-    await renderPage('42');
+    await renderPage();
     const link = screen.getByRole('link', { name: 'Log in to view this tracked train' });
     expect(link).toHaveAttribute('href', '/api/auth/login?return_to=%2Ftrain%2Fby-id%2F42');
     expect(notFoundMock).not.toHaveBeenCalled();
@@ -98,15 +100,42 @@ describe('TrackedTrainByIdPage error handling', () => {
 
   it('still calls notFound() on ApiNotFoundError, unswallowed by the new branch', async () => {
     vi.mocked(api.getTrackedTrainById).mockRejectedValue(new ApiNotFoundError('not found'));
-    await expect(renderPage('42')).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(renderPage()).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFoundMock).toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
   it('still propagates a bare Error uncaught', async () => {
     vi.mocked(api.getTrackedTrainById).mockRejectedValue(new Error('boom'));
-    await expect(renderPage('42')).rejects.toThrow('boom');
+    await expect(renderPage()).rejects.toThrow('boom');
     expect(notFoundMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['abc', 't_42', 't_0000000000000000000000000000002A', 'j_0000000000000000000000000000002a', '4x2', ''])(
+    'is a 404 for the wrong shape %j, without calling the api',
+    async (trackingId) => {
+      await expect(renderPage(trackingId)).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(api.getTrackedTrainById).not.toHaveBeenCalled();
+    },
+  );
+
+  it('reads by the opaque id as given', async () => {
+    vi.mocked(api.getTrackedTrainById).mockResolvedValue(trackedTrainState());
+    await renderPage(testTrackingId(42));
+    expect(api.getTrackedTrainById).toHaveBeenCalledWith(testTrackingId(42));
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it('moves a numeric id to the opaque URL, after a successful read', async () => {
+    vi.mocked(api.getTrackedTrainById).mockResolvedValue(trackedTrainState());
+    await expect(renderPage('42')).rejects.toThrow(`NEXT_REDIRECT:/train/by-id/${testTrackingId(42)}`);
+    expect(api.getTrackedTrainById).toHaveBeenCalledWith('42');
+  });
+
+  it('does not redirect a numeric id the api would not read (the same 404 as an unknown one)', async () => {
+    vi.mocked(api.getTrackedTrainById).mockRejectedValue(new ApiNotFoundError('not found'));
+    await expect(renderPage('42')).rejects.toThrow('NEXT_NOT_FOUND');
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });
@@ -118,7 +147,7 @@ describe('TrackedTrainByIdPage success path', () => {
 
   it('renders a Delete button once the tracked train state loads', async () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(trackedTrainState());
-    await renderPage('42');
+    await renderPage();
     expect(screen.getByRole('button', { name: 'Stop tracking' })).toBeInTheDocument();
   });
 
@@ -134,7 +163,7 @@ describe('TrackedTrainByIdPage success path', () => {
         singleLegJourneyPublicIds: [testPublicId(7)],
       }),
     );
-    await renderPage('42');
+    await renderPage();
     expect(screen.getByRole('link', { name: 'Open journey' })).toHaveAttribute('href', `/journeys/${testPublicId(7)}`);
   });
 
@@ -144,7 +173,7 @@ describe('TrackedTrainByIdPage success path', () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
       trackedTrainState({ resolutionStatus: 'pending', trainUid: null }),
     );
-    await renderPage('42');
+    await renderPage();
     expect(screen.getByRole('button', { name: 'Stop tracking' })).toBeInTheDocument();
     expect(redirectMock).not.toHaveBeenCalled();
   });
@@ -162,7 +191,7 @@ describe('TrackedTrainByIdPage success path', () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
       trackedTrainState({ resolutionStatus: 'schedule_matched', trainUid: 'W12345', serviceDate: '2026-08-31' }),
     );
-    await renderPage('42');
+    await renderPage();
     const link = screen.getByRole('link', { name: /View on Real Time Trains/ });
     expect(link).toHaveAttribute('href', 'https://www.realtimetrains.co.uk/service/gb-nr:W12345/2026-08-31/detailed');
   });
@@ -173,7 +202,7 @@ describe('TrackedTrainByIdPage success path', () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
       trackedTrainState({ resolutionStatus: 'pending', trainUid: null }),
     );
-    await renderPage('42');
+    await renderPage();
     expect(screen.queryByRole('link', { name: /Real Time Trains/ })).not.toBeInTheDocument();
   });
 
@@ -182,7 +211,7 @@ describe('TrackedTrainByIdPage success path', () => {
   // this page still owns for an unresolved train.
   it('shows a LastUpdated caption with the real auto-refresh cadence and UK-time note', async () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(trackedTrainState());
-    await renderPage('42');
+    await renderPage();
     expect(screen.getByText(/Updated/)).toBeInTheDocument();
     expect(screen.getByText(/refreshes every 30s/)).toBeInTheDocument();
     expect(screen.getByText(/Times in UK local time/)).toBeInTheDocument();
@@ -195,7 +224,7 @@ describe('TrackedTrainByIdPage success path', () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
       trackedTrainState({ resolutionStatus: 'resolved', trainUid: 'W12345', serviceDate: '2026-09-08' }),
     );
-    await expect(renderPage('42')).rejects.toThrow('NEXT_REDIRECT:/train/W12345/2026-09-08');
+    await expect(renderPage()).rejects.toThrow('NEXT_REDIRECT:/train/W12345/2026-09-08');
     expect(redirectMock).toHaveBeenCalledWith('/train/W12345/2026-09-08');
   });
 
@@ -207,7 +236,7 @@ describe('TrackedTrainByIdPage success path', () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
       trackedTrainState({ resolutionStatus: 'resolved', trainUid: 'W12 45', serviceDate: '2026-09-08' }),
     );
-    await expect(renderPage('42')).rejects.toThrow('NEXT_REDIRECT:/train/W12%2045/2026-09-08');
+    await expect(renderPage()).rejects.toThrow('NEXT_REDIRECT:/train/W12%2045/2026-09-08');
     expect(redirectMock).toHaveBeenCalledWith('/train/W12%2045/2026-09-08');
   });
 
@@ -222,7 +251,7 @@ describe('TrackedTrainByIdPage success path', () => {
         irishTrain: { trainCode: 'A120', serviceDate: '2026-11-05' },
       }),
     );
-    await expect(renderPage('42')).rejects.toThrow(
+    await expect(renderPage()).rejects.toThrow(
       'NEXT_REDIRECT:/island-of-ireland/iarnrod-eireann/trains/A120/2026-11-05',
     );
   });

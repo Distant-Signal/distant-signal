@@ -16,7 +16,7 @@ import { describeFailure } from '@/lib/failure';
 /** How long the saved file's blob URL outlives the click. */
 export const REVOKE_DELAY_MS = 1000;
 
-export function DownloadCalendarButton({ journeyId }: { journeyId: number }) {
+export function DownloadCalendarButton({ journeyId }: { journeyId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

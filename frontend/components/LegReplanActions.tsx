@@ -1,5 +1,6 @@
 'use client';
 
+import { legRef } from '@/lib/publicId';
 import { useState } from 'react';
 import { Button } from '@mantine/core';
 import { AlternativesSheet, type AlternativesMode } from './AlternativesSheet';
@@ -36,7 +37,7 @@ export function LegReplanActions({
   leg,
   context,
 }: {
-  journeyId: number;
+  journeyId: string;
   leg: JourneyLegDetail;
   context: LegReplanContext;
 }) {
@@ -55,7 +56,7 @@ export function LegReplanActions({
   const findAnother: AlternativesMode =
     context.openBreakId !== null
       ? { kind: 'break', breakId: context.openBreakId }
-      : { kind: 'alternatives', legId: leg.id, cause: 'cancelled' };
+      : { kind: 'alternatives', legId: legRef(leg), cause: 'cancelled' };
   // "I missed this train" only looks: "Other ways to ...", never "You
   // missed the ...".
   const fallbackTitle = breakTitle({ ...facts, cause: cancelled ? 'cancelled' : null });
@@ -66,7 +67,9 @@ export function LegReplanActions({
         <Button
           size="xs"
           variant="default"
-          onClick={() => setMode({ kind: 'missed', legId: leg.id, inboundLate: leg.connection?.state === 'missed' })}
+          onClick={() =>
+            setMode({ kind: 'missed', legId: legRef(leg), inboundLate: leg.connection?.state === 'missed' })
+          }
         >
           I missed this train
         </Button>

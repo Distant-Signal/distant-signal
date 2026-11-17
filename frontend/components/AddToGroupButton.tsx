@@ -58,7 +58,7 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
  * comment gives for its "Add one of my trains" / "Add to group" pair: both
  * are simultaneously in the DOM once the modal is open, and screen readers
  * (and tests) need a distinct accessible name for each. */
-export function AddToGroupButton({ trainSubscriptionId }: { trainSubscriptionId: number }) {
+export function AddToGroupButton({ trainSubscriptionId }: { trainSubscriptionId: string }) {
   const { groups } = useGroupSummaries();
   const [opened, { open, close }] = useDisclosure(false);
   const [selected, setSelected] = useState<string | null>(null);

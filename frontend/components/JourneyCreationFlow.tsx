@@ -1,5 +1,6 @@
 'use client';
 
+import { legRef } from '@/lib/publicId';
 import type { RouteShortcuts } from '@/lib/routeShortcuts';
 import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
@@ -110,8 +111,7 @@ export function JourneyCreationFlow({
    * server: they fill the first form's stations. */
   routeShortcuts?: RouteShortcuts | undefined;
 } = {}) {
-  const [journeyId, setJourneyId] = useState<number | null>(null);
-  const [journeyPublicId, setJourneyPublicId] = useState<string | null>(null);
+  const [journeyId, setJourneyId] = useState<string | null>(null);
   const [journey, setJourney] = useState<JourneyDetail | null>(null);
   const [loadingJourney, setLoadingJourney] = useState(false);
   const [journeyLoadError, setJourneyLoadError] = useState(false);
@@ -124,7 +124,7 @@ export function JourneyCreationFlow({
     if (journeyId === null) trackFeature('journey_start', entryMode);
   }, [entryMode, journeyId]);
 
-  async function refreshJourney(id: number) {
+  async function refreshJourney(id: string) {
     setLoadingJourney(true);
     setJourneyLoadError(false);
     try {
@@ -143,9 +143,8 @@ export function JourneyCreationFlow({
   }
 
   function handleLegOneCreated(result: CreateJourneyResponse) {
-    setJourneyId(result.journeyId);
-    setJourneyPublicId(result.journeyPublicId);
-    void refreshJourney(result.journeyId);
+    setJourneyId(result.journeyPublicId);
+    void refreshJourney(result.journeyPublicId);
   }
 
   function handleLegAdded() {
@@ -266,7 +265,7 @@ export function JourneyCreationFlow({
       {journey && (
         <Stack gap="xs">
           {journey.legs.map((leg, index) => (
-            <Card withBorder key={leg.id}>
+            <Card withBorder key={legRef(leg)}>
               <Group justify="space-between" wrap="wrap">
                 <Text size="sm">
                   Leg {index + 1}:{' '}
@@ -302,7 +301,7 @@ export function JourneyCreationFlow({
             onAdded={handleLegAdded}
           />
         )}
-        <Button component={Link} href={`/journeys/${journeyPublicId ?? journeyId}`}>
+        <Button component={Link} href={`/journeys/${journeyId}`}>
           View journey
         </Button>
       </Group>

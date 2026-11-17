@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ReactElement } from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testTrackingId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { GroupSummariesProvider } from '@/lib/useGroupSummaries';
 import { AddToGroupButton } from './AddToGroupButton';
@@ -36,7 +37,7 @@ describe('AddToGroupButton', () => {
   });
 
   it('renders nothing when the viewer is in zero groups', () => {
-    renderWithGroups(<AddToGroupButton trainSubscriptionId={7} />, []);
+    renderWithGroups(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />, []);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -45,7 +46,7 @@ describe('AddToGroupButton', () => {
   // both reach this component as `null`, collapsed to "nothing to offer" --
   // same as the zero-groups case above.
   it('renders nothing for an anonymous visitor (null groups)', () => {
-    renderWithGroups(<AddToGroupButton trainSubscriptionId={7} />, null);
+    renderWithGroups(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />, null);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -53,12 +54,12 @@ describe('AddToGroupButton', () => {
   // non-throwing default must still resolve to "nothing to offer" rather
   // than crashing this component's unconditional `groups.length` check.
   it('renders nothing with no GroupSummariesProvider in the tree at all', () => {
-    renderWithMantine(<AddToGroupButton trainSubscriptionId={7} />);
+    renderWithMantine(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('shows the button and a group picker once the viewer has at least one group', async () => {
-    renderWithGroups(<AddToGroupButton trainSubscriptionId={7} />, GROUPS_FIXTURE);
+    renderWithGroups(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />, GROUPS_FIXTURE);
 
     const button = await screen.findByRole('button', { name: 'Add to group' });
     fireEvent.click(button);
@@ -73,7 +74,7 @@ describe('AddToGroupButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithGroups(<AddToGroupButton trainSubscriptionId={7} />, GROUPS_FIXTURE);
+    renderWithGroups(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />, GROUPS_FIXTURE);
     fireEvent.click(await screen.findByRole('button', { name: 'Add to group' }));
     const [select] = await screen.findAllByLabelText('Group');
     fireEvent.click(select!);
@@ -83,7 +84,7 @@ describe('AddToGroupButton', () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/groups/grp-1/trains',
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ trainSubscriptionId: 7 }) }),
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ trainSubscriptionId: testTrackingId(7) }) }),
       );
     });
     expect(await screen.findByText('Added to Commuters.')).toBeInTheDocument();
@@ -96,7 +97,7 @@ describe('AddToGroupButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('Something went wrong', { status: 500 }));
 
-    renderWithGroups(<AddToGroupButton trainSubscriptionId={7} />, GROUPS_FIXTURE);
+    renderWithGroups(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />, GROUPS_FIXTURE);
     fireEvent.click(await screen.findByRole('button', { name: 'Add to group' }));
     const [select] = await screen.findAllByLabelText('Group');
     fireEvent.click(select!);
@@ -111,7 +112,7 @@ describe('AddToGroupButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('unauthorized', { status: 401 }));
 
-    renderWithGroups(<AddToGroupButton trainSubscriptionId={7} />, GROUPS_FIXTURE);
+    renderWithGroups(<AddToGroupButton trainSubscriptionId={testTrackingId(7)} />, GROUPS_FIXTURE);
     fireEvent.click(await screen.findByRole('button', { name: 'Add to group' }));
     const [select] = await screen.findAllByLabelText('Group');
     fireEvent.click(select!);

@@ -1,5 +1,8 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { scanPageBothSchemes } from './a11y-helpers';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // The journey template editor (components/EditJourneyTemplateForm.tsx):
 // each leg's From and To fields are the site's standard station search, so

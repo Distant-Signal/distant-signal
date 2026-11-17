@@ -28,13 +28,13 @@ describe('DeleteJourneyButton', () => {
 
   it('does not call DELETE until the confirmation modal is confirmed', () => {
     const fetchMock = vi.mocked(fetch);
-    renderWithMantine(<DeleteJourneyButton journeyId={167} />);
+    renderWithMantine(<DeleteJourneyButton journeyId="167" />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('warns that every leg is removed and that undo only lasts a few seconds', async () => {
-    renderWithMantine(<DeleteJourneyButton journeyId={167} />);
+    renderWithMantine(<DeleteJourneyButton journeyId="167" />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
     await waitFor(() => expect(screen.getByText(/removes every leg on this journey/)).toBeInTheDocument());
     expect(screen.getByText(/undo for a few seconds, then it cannot be undone/)).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('DeleteJourneyButton', () => {
   async function confirmWithFakeTimers() {
     renderWithMantine(
       <>
-        <DeleteJourneyButton journeyId={167} />
+        <DeleteJourneyButton journeyId="167" />
         <PendingDeleteToasts />
       </>,
     );
@@ -94,7 +94,7 @@ describe('DeleteJourneyButton', () => {
 
   it('cancelling the modal does not call DELETE', async () => {
     const fetchMock = vi.mocked(fetch);
-    renderWithMantine(<DeleteJourneyButton journeyId={167} />);
+    renderWithMantine(<DeleteJourneyButton journeyId="167" />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete journey' }));
     await waitFor(() => screen.getByRole('button', { name: 'Cancel' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));

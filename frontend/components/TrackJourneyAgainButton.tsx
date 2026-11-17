@@ -44,7 +44,7 @@ export function TrackJourneyAgainButton({
         Track this journey again
       </Button>
       <RepeatJourneyDialog
-        journeyId={journey.id}
+        journeyId={journey.publicId}
         mode="repeat"
         customName={journey.customName}
         trackHref={href}

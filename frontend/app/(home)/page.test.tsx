@@ -24,7 +24,7 @@ import {
   trainState,
   untrackedLeg,
 } from '@/test/journeyFixtures';
-import { OPERATOR_SUMMARY_DEFAULTS, testPublicId } from '@/test/apiDefaults';
+import { OPERATOR_SUMMARY_DEFAULTS, testPublicId, testTrackingId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 // `withStaleFallback` (lib/liveDataCache.ts) reads the session cookie via
@@ -1729,7 +1729,7 @@ describe('DashboardPage -- journey sections', () => {
       ...unreadItems,
     ]);
     vi.mocked(api.getJourney).mockImplementation(async (id) => {
-      const detail = details.find((candidate) => candidate.id === id);
+      const detail = details.find((candidate) => candidate.publicId === id);
       if (!detail) throw new Error(`no journey ${id}`);
       return detail;
     });
@@ -1819,7 +1819,7 @@ describe('DashboardPage -- journey sections', () => {
         .mocked(api.getJourney)
         .mock.calls.map(([id]) => id)
         .sort(),
-    ).toEqual([10, 11, 13]);
+    ).toEqual([testPublicId(10), testPublicId(11), testPublicId(13)]);
   });
 
   it('lists followed journeys with their own: current and upcoming, saying whose they are', async () => {
@@ -1844,7 +1844,7 @@ describe('DashboardPage -- journey sections', () => {
       },
     ]);
     vi.mocked(api.getJourney).mockImplementation(async (id) => {
-      const detail = [followedUnderWay, laterToday].find((candidate) => candidate.id === id);
+      const detail = [followedUnderWay, laterToday].find((candidate) => candidate.publicId === id);
       if (!detail) throw new Error(`no journey ${id}`);
       return detail;
     });
@@ -1900,7 +1900,7 @@ describe('DashboardPage -- journey sections', () => {
       },
     ]);
     vi.mocked(api.getJourney).mockImplementation(async (id) => {
-      const detail = [olivesNow, laterToday].find((candidate) => candidate.id === id);
+      const detail = [olivesNow, laterToday].find((candidate) => candidate.publicId === id);
       if (!detail) throw new Error(`no journey ${id}`);
       return detail;
     });
@@ -1932,7 +1932,7 @@ describe('DashboardPage -- journey sections', () => {
         .mocked(api.getJourney)
         .mock.calls.map(([id]) => id)
         .sort(),
-    ).toEqual([11, 20]);
+    ).toEqual([testPublicId(11), testPublicId(20)]);
   });
 
   it('logged in with upcoming journeys only: no current section', async () => {
@@ -2001,7 +2001,7 @@ describe('DashboardPage -- journey sections', () => {
       loneTrain(5, { status: 'en_route', delayMinutes: 12, delayProvisional: true }),
     ]);
     renderWithMantine(await resolveAsync(await DashboardPage()));
-    expect(api.getTrackedTrainById).toHaveBeenCalledWith(5);
+    expect(api.getTrackedTrainById).toHaveBeenCalledWith(testTrackingId(5));
     const current = screen.getByRole('region', { name: 'Current journey' });
     const card = within(current).getByRole('link', {
       name: /^London Kings Cross \(KGX\) to York \(YRK\), 17 Sep 2026 · 10:00/,

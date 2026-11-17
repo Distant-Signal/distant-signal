@@ -1,3 +1,4 @@
+import { testPublicId, testTrackingId } from '@/test/apiDefaults';
 import { describe, it, expect } from 'vitest';
 import {
   currentLeg,
@@ -214,8 +215,11 @@ describe('homeDetailReads', () => {
       serviceDate: '2026-09-10',
     });
     expect(homeDetailReads([lastWeek, tomorrow, overnight, today], [], '2026-09-17')).toEqual({
-      journeyIds: [3, 1],
-      trainIds: [],
+      journeys: [
+        { id: 3, ref: testPublicId(3) },
+        { id: 1, ref: testPublicId(1) },
+      ],
+      trains: [],
     });
   });
 
@@ -227,7 +231,13 @@ describe('homeDetailReads', () => {
       loneTrain(8, { travelled: true }),
       loneTrain(9, { serviceDate: '2026-09-10', pinScheduledDeparture: '2026-09-10T09:00:00Z' }),
     ];
-    expect(homeDetailReads([], trains, '2026-09-17')).toEqual({ journeyIds: [], trainIds: [5, 6] });
+    expect(homeDetailReads([], trains, '2026-09-17')).toEqual({
+      journeys: [],
+      trains: [
+        { id: 5, ref: testTrackingId(5) },
+        { id: 6, ref: testTrackingId(6) },
+      ],
+    });
   });
 
   it('shares one cap between journeys and trains, keeping the soonest: today first, then by departure', () => {
@@ -241,15 +251,16 @@ describe('homeDetailReads', () => {
       loneTrain(53, { serviceDate: '2026-09-16', pinScheduledDeparture: '2026-09-16T23:00:00Z' }),
     ];
     const reads = homeDetailReads(journeys, trains, '2026-09-17');
-    expect(reads.journeyIds).toHaveLength(MAX_HOME_JOURNEY_DETAILS - 2);
-    expect(reads.trainIds).toEqual([51, 52]);
+    expect(reads.journeys).toHaveLength(MAX_HOME_JOURNEY_DETAILS - 2);
+    expect(reads.trains.map((read) => read.id)).toEqual([51, 52]);
+    expect(reads.trains.map((read) => read.ref)).toEqual([testTrackingId(51), testTrackingId(52)]);
   });
 
   it('caps the reads', () => {
     const many = Array.from({ length: MAX_HOME_JOURNEY_DETAILS + 3 }, (_, index) =>
       journeyListItem(twoLegs(index + 1)),
     );
-    expect(homeDetailReads(many, [loneTrain(50)], '2026-09-17').journeyIds).toHaveLength(MAX_HOME_JOURNEY_DETAILS);
+    expect(homeDetailReads(many, [loneTrain(50)], '2026-09-17').journeys).toHaveLength(MAX_HOME_JOURNEY_DETAILS);
   });
 });
 

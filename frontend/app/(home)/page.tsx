@@ -383,16 +383,16 @@ async function SessionHome() {
   const sharedItems = (myJourneys ?? []).filter(isSharedNotFollowed);
   const { standalone: standaloneTrains } = splitJourneyTrains(myTrackedTrains ?? [], myJourneys);
   const reads = homeDetailReads(journeyItems, standaloneTrains, today);
-  const sharedReads = homeDetailReads(sharedItems, [], today).journeyIds.slice(0, MAX_SHARED_JOURNEYS);
+  const sharedReads = homeDetailReads(sharedItems, [], today).journeys.slice(0, MAX_SHARED_JOURNEYS);
   const journeyDetailsPromise = Promise.all(
-    [...reads.journeyIds, ...sharedReads].map(async (id) => {
-      const detail = await getJourney(id).catch(() => null);
+    [...reads.journeys, ...sharedReads].map(async ({ id, ref }) => {
+      const detail = await getJourney(ref).catch(() => null);
       return detail === null ? null : ([id, detail] as const);
     }),
   );
   const trainStatesPromise = Promise.all(
-    reads.trainIds.map(async (id) => {
-      const state = await getTrackedTrainById(id).catch(() => null);
+    reads.trains.map(async ({ id, ref }) => {
+      const state = await getTrackedTrainById(ref).catch(() => null);
       return state === null ? null : ([id, state] as const);
     }),
   );

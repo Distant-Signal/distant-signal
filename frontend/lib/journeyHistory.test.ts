@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { journeyDepartsAt, journeysPageSections, mergeTravelOrdered, trainDepartsAt } from './journeyHistory';
 import type { MergedSharedTrain } from './sharedTrains';
 import type { JourneyListItem, SharedGroupTrain, TrackedTrainListItem } from './types';
-import { GROUP_TRAIN_DEFAULTS, JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import {
+  GROUP_TRAIN_DEFAULTS,
+  JOURNEY_LIST_ITEM_DEFAULTS,
+  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+  testPublicId,
+  testTrackingId,
+} from '@/test/apiDefaults';
 
 const TODAY = '2026-08-31';
 
@@ -10,7 +16,7 @@ function journey(id: number, departsAt: string, travelled: boolean, extra: Parti
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
-    publicId: `j_${id}`,
+    publicId: testPublicId(id),
     customName: null,
     createdAt: '2026-08-01T00:00:00Z',
     legId: id,
@@ -35,6 +41,7 @@ function train(id: number, departsAt: string, travelled: boolean): TrackedTrainL
   return {
     ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id,
+    publicId: testTrackingId(id),
     serviceDate: departsAt.slice(0, 10),
     pinOriginCrs: 'GLD',
     pinDestinationCrs: 'WOK',
@@ -59,6 +66,7 @@ function sharedTrain(id: number, pinScheduledDeparture: string, serviceDate: str
     groupId: 'g',
     groupName: 'Family',
     trainSubscriptionId: id,
+    trainSubscriptionPublicId: testTrackingId(id),
     pinOriginCrs: 'PAD',
     pinDestinationCrs: 'RDG',
     pinOriginName: null,
@@ -164,14 +172,18 @@ describe('journeysPageSections', () => {
 
     const sections = journeysPageSections({ journeys, trains, sharedTrains: shared }, TODAY);
 
-    expect(sections.upcoming.map((entry) => entry.key)).toEqual(['journey-10', 'train-20', 'journey-11']);
+    expect(sections.upcoming.map((entry) => entry.key)).toEqual([
+      `journey-${testPublicId(10)}`,
+      `train-${testTrackingId(20)}`,
+      `journey-${testPublicId(11)}`,
+    ]);
     expect(sections.past.map((entry) => entry.key)).toEqual([
-      'journey-12',
-      'shared-train-30',
-      'train-21',
-      'journey-13',
-      'journey-14',
-      'shared-train-31',
+      `journey-${testPublicId(12)}`,
+      `shared-train-${testTrackingId(30)}`,
+      `train-${testTrackingId(21)}`,
+      `journey-${testPublicId(13)}`,
+      `journey-${testPublicId(14)}`,
+      `shared-train-${testTrackingId(31)}`,
     ]);
   });
 
@@ -188,10 +200,10 @@ describe('journeysPageSections', () => {
       TODAY,
     );
     expect(sections.past.map((entry) => entry.key)).toEqual([
-      'journey-1',
-      'train-2',
-      'shared-train-41',
-      'shared-train-40',
+      `journey-${testPublicId(1)}`,
+      `train-${testTrackingId(2)}`,
+      `shared-train-${testTrackingId(41)}`,
+      `shared-train-${testTrackingId(40)}`,
     ]);
   });
 });

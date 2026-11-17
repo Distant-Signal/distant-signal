@@ -6,7 +6,7 @@ import { createContext, useContext, type ReactNode } from 'react';
  * opened from the pick reminder (`?pick=usual`, regular journeys design
  * §4.4): `JourneyLegCandidates` lists that train first, as "Your usual
  * train". Empty everywhere else. */
-const UsualTrainContext = createContext<Readonly<Record<number, string>>>({});
+const UsualTrainContext = createContext<Readonly<Record<string, string>>>({});
 
 /** Whether this is a Remind-me regular journey's day (a manual
  * template's journey, DS-398): its legs' picks look from half an hour
@@ -18,7 +18,7 @@ export function UsualTrainProvider({
   remindPick = false,
   children,
 }: {
-  usual: Record<number, string>;
+  usual: Record<string, string>;
   remindPick?: boolean;
   children: ReactNode;
 }) {
@@ -30,7 +30,7 @@ export function UsualTrainProvider({
 }
 
 /** The usual train's UID for leg `legId`, or `null`. */
-export function useUsualTrainFor(legId: number): string | null {
+export function useUsualTrainFor(legId: string): string | null {
   return useContext(UsualTrainContext)[legId] ?? null;
 }
 

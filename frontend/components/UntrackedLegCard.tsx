@@ -17,6 +17,7 @@ import {
   type UntrackedLegNeighbours,
 } from '@/lib/untrackedLeg';
 import { stopPageHref } from '@/lib/transitStops';
+import { legRef } from '@/lib/publicId';
 import type { JourneyLegDetail } from '@/lib/types';
 
 /** One untracked leg's card on a journey page: a Tube ride, a bus, a walk,
@@ -36,7 +37,7 @@ export function UntrackedLegCard({
   isOnlyLeg,
   neighbours,
 }: {
-  journeyId: number;
+  journeyId: string;
   leg: JourneyLegDetail;
   isOwner: boolean;
   isOnlyLeg: boolean;
@@ -62,7 +63,7 @@ export function UntrackedLegCard({
             {leg.timetable && <StateBadge tone="neutral">Scheduled</StateBadge>}
             <StateBadge tone="neutral">{UNTRACKED_STATUS_LABEL[status]}</StateBadge>
             {isOwner && <EditUntrackedLegButton journeyId={journeyId} leg={leg} />}
-            {isOwner && <RemoveJourneyLegButton journeyId={journeyId} legId={leg.id} isOnlyLeg={isOnlyLeg} />}
+            {isOwner && <RemoveJourneyLegButton journeyId={journeyId} legId={legRef(leg)} isOnlyLeg={isOnlyLeg} />}
           </Group>
         </Group>
         <Text size="sm">

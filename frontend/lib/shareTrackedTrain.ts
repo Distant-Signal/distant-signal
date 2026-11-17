@@ -20,7 +20,7 @@
  * every failure mode here -- a network blip, a 403/404/500 -- is swallowed
  * rather than surfaced, and must never block navigation or read as the
  * track itself having failed. */
-export async function shareTrackedTrainToGroup(groupId: string, journeyId: number): Promise<void> {
+export async function shareTrackedTrainToGroup(groupId: string, journeyId: string): Promise<void> {
   try {
     // `encodeURIComponent`, for the same reason every path segment in
     // `lib/api.ts` has it (see that file's "Path-segment encoding invariant"

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SHARED_JOURNEY_TOKEN } from './a11yRoutes';
+import { testTrackingId } from '../test/apiDefaults';
 
 // SEO phase 1 against the real app: the sitemap, a station page's canonical
 // URL and structured data, the case redirect for station codes, and the
@@ -83,7 +84,7 @@ for (const [path, missing, description] of LIVE_PREVIEWS) {
 
 test('a tracked train, readable only with its owner session, keeps the site-wide preview image', async ({ page }) => {
   // Anonymous, as a chat app unfurls it: the login prompt, never a card.
-  await page.goto(`/train/by-id/${process.env.E2E_TRACKING_ID ?? '1'}`);
+  await page.goto(`/train/by-id/${testTrackingId(Number(process.env.E2E_TRACKING_ID ?? '1'))}`);
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/opengraph-image\.png$/);
 });
 

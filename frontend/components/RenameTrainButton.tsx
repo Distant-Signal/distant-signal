@@ -55,7 +55,7 @@ export interface RenameTrainButtonHandle {
 export const RenameTrainButton = forwardRef<
   RenameTrainButtonHandle,
   {
-    trackingId: number;
+    trackingId: string;
     customName: string | null;
     defaultName: string;
     trigger?: (onClick: () => void) => ReactNode;

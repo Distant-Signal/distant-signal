@@ -22,7 +22,7 @@ export function canPlanAgain(journey: Pick<JourneyDetail, 'legs'>): boolean {
 /** The repeat route's path for `mode`, with the date and time asked for
  * (the api's defaults when absent). */
 export function repeatPath(
-  journeyId: number,
+  journeyId: string,
   mode: RepeatMode,
   date: string | null = null,
   time: string | null = null,

@@ -22,7 +22,7 @@ export function RegularPlanCard({
   serviceDate,
   plan,
 }: {
-  journeyId: number;
+  journeyId: string;
   /** The journey's date (`YYYY-MM-DD`). */
   serviceDate: string;
   plan: RegularPlan & { choice: RegularPlanOption };

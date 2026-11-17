@@ -47,13 +47,13 @@ describe('UntrackedLegCard', () => {
     ['done', 'Done'],
   ] as const)('shows the %s state as "%s"', (untrackedStatus, label) => {
     renderWithMantine(
-      <UntrackedLegCard journeyId={1} leg={leg({ untrackedStatus })} isOwner={false} isOnlyLeg={false} />,
+      <UntrackedLegCard journeyId="1" leg={leg({ untrackedStatus })} isOwner={false} isOnlyLeg={false} />,
     );
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
   it('names the mode, line, places and planned times, and says it is not live', () => {
-    renderWithMantine(<UntrackedLegCard journeyId={1} leg={leg()} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<UntrackedLegCard journeyId="1" leg={leg()} isOwner={false} isOnlyLeg={false} />);
     expect(screen.getByText('Tube: Victoria line')).toBeInTheDocument();
     expect(screen.getByText("King's Cross St Pancras to Victoria")).toBeInTheDocument();
     expect(screen.getByText('21 Oct 2026, 08:05 to 08:20')).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('UntrackedLegCard', () => {
   it('falls back to the mode alone, and one place, when that is all there is', () => {
     renderWithMantine(
       <UntrackedLegCard
-        journeyId={1}
+        journeyId="1"
         leg={leg({ transitMode: 'walk', lineName: null, originName: null })}
         isOwner={false}
         isOnlyLeg={false}
@@ -74,10 +74,10 @@ describe('UntrackedLegCard', () => {
   });
 
   it('offers the owner, and only the owner, a way to remove it', () => {
-    const { unmount } = renderWithMantine(<UntrackedLegCard journeyId={1} leg={leg()} isOwner isOnlyLeg={false} />);
+    const { unmount } = renderWithMantine(<UntrackedLegCard journeyId="1" leg={leg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument();
     unmount();
-    renderWithMantine(<UntrackedLegCard journeyId={1} leg={leg()} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<UntrackedLegCard journeyId="1" leg={leg()} isOwner={false} isOnlyLeg={false} />);
     expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
   });
 });
@@ -86,7 +86,7 @@ describe('UntrackedLegCard stop links', () => {
   it("links a saved tram ride's Metrolink stations to their stop pages", () => {
     renderWithMantine(
       <UntrackedLegCard
-        journeyId={1}
+        journeyId="1"
         leg={leg({
           transitMode: 'tram',
           lineName: 'Blue Line',
@@ -112,7 +112,7 @@ describe('UntrackedLegCard stop links', () => {
   it('links a London tram stop to its TfL stop page, and leaves a free-text place as text', () => {
     renderWithMantine(
       <UntrackedLegCard
-        journeyId={1}
+        journeyId="1"
         leg={leg({
           transitMode: 'tram',
           lineName: null,
@@ -135,7 +135,7 @@ describe('UntrackedLegCard stop links', () => {
     const walk = leg({ transitMode: 'walk', lineName: null, originName: 'Vauxhall', destinationName: 'Vauxhall' });
     renderWithMantine(
       <UntrackedLegCard
-        journeyId={1}
+        journeyId="1"
         leg={walk}
         isOwner={false}
         isOnlyLeg={false}
@@ -151,7 +151,7 @@ describe('UntrackedLegCard stop links', () => {
   it('keeps the stop links when it tags alike names from their stop ids', () => {
     renderWithMantine(
       <UntrackedLegCard
-        journeyId={1}
+        journeyId="1"
         leg={leg({
           transitMode: 'metro',
           lineName: null,
@@ -171,7 +171,7 @@ describe('UntrackedLegCard stop links', () => {
   it('shows a timetabled leg as scheduled, with its line, stops and any change, never as live', () => {
     renderWithMantine(
       <UntrackedLegCard
-        journeyId={1}
+        journeyId="1"
         leg={leg({
           transitNetwork: 'tfl',
           transitLineId: 'victoria',
@@ -263,7 +263,7 @@ describe('UntrackedLegCard operator', () => {
   it('names the operator from the reference list, with its code', () => {
     renderWithMantine(
       <OperatorNamesProvider names={{ LT: 'London Underground Ltd' }}>
-        <UntrackedLegCard journeyId={1} leg={timetabled('LT')} isOwner={false} isOnlyLeg={false} />
+        <UntrackedLegCard journeyId="1" leg={timetabled('LT')} isOwner={false} isOnlyLeg={false} />
       </OperatorNamesProvider>,
     );
     expect(screen.getByText('Operated by London Underground Ltd (LT)')).toBeInTheDocument();
@@ -275,22 +275,22 @@ describe('UntrackedLegCard operator', () => {
     ['ds:LONDON_TRAMS', 'Operated by London Trams (ds:LONDON_TRAMS)'],
     ['ds:METROLINK', 'Operated by Metrolink (ds:METROLINK)'],
   ])('falls back to a fixed name for %s when the list has none', (code, text) => {
-    renderWithMantine(<UntrackedLegCard journeyId={1} leg={timetabled(code)} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<UntrackedLegCard journeyId="1" leg={timetabled(code)} isOwner={false} isOnlyLeg={false} />);
     expect(screen.getByText(text)).toBeInTheDocument();
   });
 
   it('shows the code alone for an operator it has no name for', () => {
-    renderWithMantine(<UntrackedLegCard journeyId={1} leg={timetabled('ds:NET')} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<UntrackedLegCard journeyId="1" leg={timetabled('ds:NET')} isOwner={false} isOnlyLeg={false} />);
     expect(screen.getByText('Operated by ds:NET')).toBeInTheDocument();
   });
 
   it('shows no operator line without one, or on a leg with no timetable', () => {
     const { unmount } = renderWithMantine(
-      <UntrackedLegCard journeyId={1} leg={timetabled()} isOwner={false} isOnlyLeg={false} />,
+      <UntrackedLegCard journeyId="1" leg={timetabled()} isOwner={false} isOnlyLeg={false} />,
     );
     expect(screen.queryByTestId('train-operator')).toBeNull();
     unmount();
-    renderWithMantine(<UntrackedLegCard journeyId={1} leg={leg()} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<UntrackedLegCard journeyId="1" leg={leg()} isOwner={false} isOnlyLeg={false} />);
     expect(screen.queryByTestId('train-operator')).toBeNull();
   });
 });

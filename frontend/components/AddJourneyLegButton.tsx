@@ -113,7 +113,7 @@ export function AddJourneyLegButton({
   label = 'Add a leg',
   onAdded,
 }: {
-  journeyId: number;
+  journeyId: string;
   /** Insert the new leg in front of this leg (`POST .../legs?before=`)
    * instead of after the last one (spec 2026-10-20 §2.3): for a Tube or
    * walk start added to a journey that already has its trains. The dialog

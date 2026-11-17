@@ -29,7 +29,7 @@ import {
   UpcomingJourneysTeaser,
 } from './HomeJourneys';
 import { openBreakSummary } from '@/test/replanFixtures';
-import { testPublicId } from '@/test/apiDefaults';
+import { testPublicId, testTrackingId } from '@/test/apiDefaults';
 
 // The open-break banner's "See options" sheet is a client component.
 vi.mock('next/navigation', () => ({
@@ -396,7 +396,7 @@ describe('CurrentJourneySection', () => {
     const section = screen.getByRole('region', { name: 'Current journey' });
     expect(
       within(section).getByRole('link', { name: /^London Kings Cross \(KGX\) to York \(YRK\), 17 Sep/ }),
-    ).toHaveAttribute('href', '/train/by-id/5');
+    ).toHaveAttribute('href', `/train/by-id/${testTrackingId(5)}`);
   });
 });
 

@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { AXE_TAGS } from './a11y-helpers';
 import { openNavDrawer } from './navDrawer';
 import { LEGAL_ROUTES, LOGGED_IN_ROUTES, PUBLIC_ROUTES, REAL_LINE_ID, REAL_STATION_CRS } from './a11yRoutes';
-import { testPublicId } from '../test/apiDefaults';
+import { testPublicId, testTrackingId } from '../test/apiDefaults';
 
 // A repeatable axe-core sweep over EVERY route in `app/`, in both colour
 // schemes, logged out and logged in, and across the interactive sub-states
@@ -370,11 +370,11 @@ test.describe('accessibility: logged in', () => {
 
   test('/train/by-id/[trackingId]', async ({ page }) => {
     test.skip(!TRACKING_ID, 'set E2E_TRACKING_ID to an UNRESOLVED tracked-train subscription id');
-    await page.goto(`/train/by-id/${TRACKING_ID}`);
+    await page.goto(`/train/by-id/${testTrackingId(Number(TRACKING_ID))}`);
     // A resolved subscription redirects to /train/[uid]/[date]; asserting
     // we are still here is what stops this silently auditing that page
     // instead and reporting a pass for a route it never visited.
-    expect(page.url()).toContain(`/train/by-id/${TRACKING_ID}`);
+    expect(page.url()).toContain(`/train/by-id/${testTrackingId(Number(TRACKING_ID))}`);
     await expectNoViolations(page);
   });
 });

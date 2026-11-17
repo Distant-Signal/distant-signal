@@ -1,3 +1,4 @@
+import { isTriggerLeg, legRef } from '@/lib/publicId';
 import { Alert, Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
 import { DownloadCalendarButton } from './DownloadCalendarButton';
@@ -227,7 +228,7 @@ export function JourneyDetailView({
               produce a dead end. Also gated on `canAddLeg` (M16, above). */}
           {journey.isOwner && canAddLeg && (
             <AddJourneyLegButton
-              journeyId={journey.id}
+              journeyId={journey.publicId}
               priorDestinationCrs={priorDestinationCrs}
               priorStopId={priorStopId}
               priorArrival={priorArrival}
@@ -238,19 +239,19 @@ export function JourneyDetailView({
               ride or walk to the station, added after the trains. */}
           {journey.isOwner && firstLegStart && (
             <AddJourneyLegButton
-              journeyId={journey.id}
+              journeyId={journey.publicId}
               priorDestinationCrs={null}
               beforeLegId={firstLegStart.legId}
               nextLegStart={firstLegStart}
               label="Add a leg at the start"
             />
           )}
-          {journey.isOwner && <ShareJourneyButton journeyId={journey.id} />}
+          {journey.isOwner && <ShareJourneyButton journeyId={journey.publicId} />}
           {journey.isOwner && (
-            <ShareJourneyLinkButton journeyId={journey.id} shareLink={journey.shareLink} origin={origin} />
+            <ShareJourneyLinkButton journeyId={journey.publicId} shareLink={journey.shareLink} origin={origin} />
           )}
-          {journey.isOwner && calendarDownload && <DownloadCalendarButton journeyId={journey.id} />}
-          {journey.isOwner && <SaveAsTemplateButton journeyId={journey.id} />}
+          {journey.isOwner && calendarDownload && <DownloadCalendarButton journeyId={journey.publicId} />}
+          {journey.isOwner && <SaveAsTemplateButton journeyId={journey.publicId} />}
           {/* Feature request: "journeys should be mutable ... you should
               be able to ... delete parts or even the whole journey."
               Owner-only, same reasoning as every other action above --
@@ -266,9 +267,9 @@ export function JourneyDetailView({
           {/* Move: the owner's, until the journey starts, for a journey
               whose route can be planned again. */}
           {journey.isOwner && canPlanAgain(journey) && !regularOccurrenceStarted(journey.legs, new Date(fetchedAt)) && (
-            <MoveJourneyButton journeyId={journey.id} serviceDate={journey.legs[0]?.serviceDate ?? null} />
+            <MoveJourneyButton journeyId={journey.publicId} serviceDate={journey.legs[0]?.serviceDate ?? null} />
           )}
-          {journey.isOwner && <DeleteJourneyButton journeyId={journey.id} />}
+          {journey.isOwner && <DeleteJourneyButton journeyId={journey.publicId} />}
           {/* Deliberately NOT gated on journey.isOwner -- see
               docs/superpowers/plans/2026-09-22-reusable-journeys-phaseA-track-again-plan.md's
               Judgment Call 7. Placed last so the owner-only controls
@@ -290,7 +291,7 @@ export function JourneyDetailView({
           gone once the train it is for has left. "Change" on the day. */}
       {journey.isOwner && journey.leaveBy && (
         <JourneyLeaveBy
-          journeyId={journey.id}
+          journeyId={journey.publicId}
           leaveBy={journey.leaveBy}
           stationBufferMinutes={journey.stationBufferMinutes}
           delayMinutes={journey.legs.find((leg) => !isUntrackedLeg(leg))?.trackedTrainState?.delayMinutes ?? null}
@@ -306,7 +307,7 @@ export function JourneyDetailView({
         journey.legs[0] &&
         !regularOccurrenceStarted(journey.legs, new Date(fetchedAt)) && (
           <RegularPlanCard
-            journeyId={journey.id}
+            journeyId={journey.publicId}
             serviceDate={journey.legs[0].serviceDate}
             plan={journey.regularPlan}
           />
@@ -333,9 +334,11 @@ export function JourneyDetailView({
         </Text>
       )}
       <LastUpdated timestamp={fetchedAt} label="Data as of" />
-      {journey.isOwner && journey.suggestionsMuted === true && <JourneySuggestionsUnmute journeyId={journey.id} />}
+      {journey.isOwner && journey.suggestionsMuted === true && (
+        <JourneySuggestionsUnmute journeyId={journey.publicId} />
+      )}
       {journey.isOwner && journey.operatorFilter && (
-        <JourneyOperatorFilter journeyId={journey.id} filter={journey.operatorFilter} />
+        <JourneyOperatorFilter journeyId={journey.publicId} filter={journey.operatorFilter} />
       )}
       {/* A share-link visitor gets no break (its cause and the owner's
           alternatives are the owner's), only that the journey has one. */}
@@ -346,7 +349,7 @@ export function JourneyDetailView({
       )}
       {openBreak && (
         <JourneyBreakBanner
-          journeyId={journey.id}
+          journeyId={journey.publicId}
           openBreak={openBreak}
           legs={journey.legs}
           isOwner={journey.isOwner}
@@ -366,14 +369,14 @@ export function JourneyDetailView({
         // scroll target `JourneyStatusBadge`'s own anchor points at when
         // the worst status is `unmatched` -- see that component's doc
         // comment.
-        <Stack key={leg.id} id={`leg-${leg.id}`} gap={4}>
+        <Stack key={legRef(leg)} id={`leg-${legRef(leg)}`} gap={4}>
           {multiLeg && (
             <Text size="xs" fw={700} c="dimmed" tt="uppercase">
               Leg {index + 1} of {journey.legs.length}
             </Text>
           )}
           <JourneyLegCard
-            journeyId={journey.id}
+            journeyId={journey.publicId}
             leg={leg}
             isOwner={journey.isOwner}
             isOnlyLeg={journey.legs.length === 1}
@@ -381,14 +384,14 @@ export function JourneyDetailView({
             replan={{
               missable: leg.id === missable,
               openBreakId: openBreak?.id ?? null,
-              isBreakTrigger: openBreak?.triggerLegId === leg.id,
+              isBreakTrigger: openBreak !== null && isTriggerLeg(leg, openBreak),
               suggestionsMuted: journey.suggestionsMuted ?? false,
             }}
           />
           {index < journey.legs.length - 1 && <LegConnector leg={leg} next={journey.legs[index + 1] ?? null} />}
         </Stack>
       ))}
-      {journey.isOwner && <EarlierPlans journeyId={journey.id} revisionCount={journey.revisionCount} />}
+      {journey.isOwner && <EarlierPlans journeyId={journey.publicId} revisionCount={journey.revisionCount} />}
     </>
   );
 }

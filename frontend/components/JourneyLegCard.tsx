@@ -20,6 +20,7 @@ import { legRouteAndTime } from '@/lib/journeyLegLabel';
 import { formatDate } from '@/lib/dateFormat';
 import { routeLabel, stationLabel } from '@/lib/stationLabel';
 import { legSearchPrefill, remindPickSearch, type LegSearch } from '@/lib/legSearch';
+import { legRef, trackingRef } from '@/lib/publicId';
 import type { JourneyLegDetail } from '@/lib/types';
 import { irishTrainHref } from '@/lib/ireland';
 
@@ -162,7 +163,7 @@ export function JourneyLegCard({
   replan,
   neighbours,
 }: {
-  journeyId: number;
+  journeyId: string;
   leg: JourneyLegDetail;
   isOwner: boolean;
   /** Whether this is the journey's only remaining leg -- threaded from
@@ -260,7 +261,7 @@ export function JourneyLegCard({
                 previously offered only on the matched branch, leaving an
                 open (never-yet-matched) leg with no delete affordance at
                 all. */}
-            {isOwner && <RemoveJourneyLegButton journeyId={journeyId} legId={leg.id} isOnlyLeg={isOnlyLeg} />}
+            {isOwner && <RemoveJourneyLegButton journeyId={journeyId} legId={legRef(leg)} isOnlyLeg={isOnlyLeg} />}
           </Group>
           {isOwner ? (
             // "Edit search" re-searches THIS leg in place (`LegTrainPicker`).
@@ -369,7 +370,7 @@ export function JourneyLegCard({
               <Button size="xs" variant="default" onClick={() => setChangingTrain((c) => !c)}>
                 {changingTrain ? 'Cancel' : 'Change train'}
               </Button>
-              <RemoveJourneyLegButton journeyId={journeyId} legId={leg.id} isOnlyLeg={isOnlyLeg} />
+              <RemoveJourneyLegButton journeyId={journeyId} legId={legRef(leg)} isOnlyLeg={isOnlyLeg} />
             </Group>
           )}
         </Group>
@@ -381,7 +382,7 @@ export function JourneyLegCard({
           suppressTrainUidHeading
         />
         {isOwner && state.notificationsEnabled !== undefined && (
-          <TrainNotificationsSwitch trackingId={state.id} initiallyEnabled={state.notificationsEnabled} />
+          <TrainNotificationsSwitch trackingId={trackingRef(state)} initiallyEnabled={state.notificationsEnabled} />
         )}
         {/* The owner's Delay Repay estimate (no ticket needed) and ticket
             details (2026-11-06). Delay Repay is a GB scheme: an Irish
@@ -390,7 +391,7 @@ export function JourneyLegCard({
         {isOwner && !state.irishTrain && (
           <LegTicketDetails
             journeyId={journeyId}
-            legId={leg.id}
+            legId={legRef(leg)}
             ticket={leg.ticket}
             operatorName={state.operatorName}
           />
@@ -429,7 +430,7 @@ function LegTrainPicker({
   initialSearch = null,
   onPicked,
 }: {
-  journeyId: number;
+  journeyId: string;
   leg: JourneyLegDetail;
   criteria: string | null;
   /** A search to start from instead of the leg's stored one: "Change
@@ -483,7 +484,7 @@ function LegTrainPicker({
       </Group>
       <JourneyLegCandidates
         journeyId={journeyId}
-        legId={leg.id}
+        legId={legRef(leg)}
         serviceDate={leg.serviceDate}
         search={search}
         storedFilters={leg.searchFilters ?? null}

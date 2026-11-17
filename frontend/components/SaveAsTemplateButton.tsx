@@ -23,7 +23,7 @@ import { regularJourneyHref } from '@/lib/regularJourneys';
  * the natural next stop, matching `AddJourneyLegButton`'s
  * `router.refresh()`-on-success posture but going further since a whole
  * new resource, not just an update to the current page, was created. */
-export function SaveAsTemplateButton({ journeyId }: { journeyId: number }) {
+export function SaveAsTemplateButton({ journeyId }: { journeyId: string }) {
   const router = useRouter();
   const [opened, { open, close }] = useDisclosure(false);
   const [customName, setCustomName] = useState('');

@@ -13,6 +13,7 @@ import type { Metadata } from 'next';
 import { trainIdentifiers, trainName } from '@/lib/trainName';
 import { irishTrainHref } from '@/lib/ireland';
 import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
+import { isLegacyId, isPublicTrackingId, trackingRef } from '@/lib/publicId';
 
 export const metadata: Metadata = { title: 'Tracked train', robots: { index: false } };
 
@@ -22,14 +23,16 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
   // Validated before the fetch fires, per
   // docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md's
   // Error handling section -- a malformed segment 404s directly rather
-  // than reaching the backend and relying on its error shape.
-  if (!/^\d+$/.test(trackingId)) {
+  // than reaching the backend and relying on its error shape. The segment
+  // is the opaque `t_` id, or a numeric one (an old push or bookmark,
+  // DS-534).
+  if (!isLegacyId(trackingId) && !isPublicTrackingId(trackingId)) {
     notFound();
   }
 
   let state;
   try {
-    state = await getTrackedTrainById(Number(trackingId));
+    state = await getTrackedTrainById(trackingId);
   } catch (err) {
     if (err instanceof ApiNotFoundError) {
       notFound();
@@ -79,6 +82,13 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
     redirect(`/train/${encodeURIComponent(state.trainUid)}/${encodeURIComponent(state.serviceDate)}`);
   }
 
+  // A numeric URL moves to the opaque one. After the read above, so only
+  // the owner is redirected: anyone else got the same 404 they get for a
+  // train that does not exist.
+  if (isLegacyId(trackingId) && state.publicId) {
+    redirect(`/train/by-id/${state.publicId}`);
+  }
+
   // `getTrackedTrainById` is `cache: 'no-store'` (`lib/api.ts`) and this
   // page re-renders from scratch on every `AutoRefresh` cycle (`router.
   // refresh()`, `components/AutoRefresh.tsx`), so "now, at render time" IS
@@ -116,7 +126,7 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
         </Group>
       </Group>
       {state.notificationsEnabled !== undefined && (
-        <TrainNotificationsSwitch trackingId={state.id} initiallyEnabled={state.notificationsEnabled} />
+        <TrainNotificationsSwitch trackingId={trackingRef(state)} initiallyEnabled={state.notificationsEnabled} />
       )}
       <TrainJourneyPanel state={state} />
       <Group gap={4}>

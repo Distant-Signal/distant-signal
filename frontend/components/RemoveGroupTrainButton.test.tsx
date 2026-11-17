@@ -24,7 +24,7 @@ describe('RemoveGroupTrainButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithMantine(<RemoveGroupTrainButton groupId="grp-1" trainSubscriptionId={42} />);
+    renderWithMantine(<RemoveGroupTrainButton groupId="grp-1" trainSubscriptionId="42" />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove from group' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove train from group' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove train from group' }));

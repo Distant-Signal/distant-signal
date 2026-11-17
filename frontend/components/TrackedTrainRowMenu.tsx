@@ -45,7 +45,7 @@ export function TrackedTrainRowMenu({
   sharedGroupCount,
 }: {
   displayName: string;
-  trackingId: number;
+  trackingId: string;
   customName: string | null;
   defaultName: string;
   sharedGroupCount: number;

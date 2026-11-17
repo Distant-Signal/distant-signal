@@ -12,7 +12,7 @@ const LEAVE_BY: LeaveBy = { at: '2099-11-09T08:20:00Z', departure: '2099-11-09T0
 function render(canChange: boolean) {
   renderWithMantine(
     <JourneyLeaveBy
-      journeyId={7}
+      journeyId="7"
       leaveBy={LEAVE_BY}
       stationBufferMinutes={22}
       delayMinutes={null}

@@ -27,7 +27,7 @@ export function FollowJourneyButton({
   afterUnfollowHref,
   size = 'xs',
 }: {
-  journeyId: number;
+  journeyId: string;
   following: boolean;
   groupId?: string;
   shareToken?: string;

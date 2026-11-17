@@ -1,5 +1,6 @@
 'use client';
 
+import { publicRef } from '@/lib/publicId';
 import { TrainOperator } from './TrainOperator';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -72,8 +73,8 @@ import type {
  *   .../legs/{id}/replace`. */
 export type AlternativesMode =
   | { kind: 'break'; breakId: number; fromPush?: boolean }
-  | { kind: 'missed'; legId: number; inboundLate?: boolean }
-  | { kind: 'alternatives'; legId: number; cause: AlternativesCause };
+  | { kind: 'missed'; legId: string; inboundLate?: boolean }
+  | { kind: 'alternatives'; legId: string; cause: AlternativesCause };
 
 /** The same disclosure as `WorkingTimetable`'s: a flush `Accordion`. */
 const DISCLOSURE_STYLES = {
@@ -124,7 +125,7 @@ async function fetchJson<T>(url: string, init: RequestInit, failure: readonly [s
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 /** Fresh suggestions for a break (`POST .../replan/preview`). */
-function previewBreak(journeyId: number, breakId: number): Promise<Fetched<BreakResponse>> {
+function previewBreak(journeyId: string, breakId: number): Promise<Fetched<BreakResponse>> {
   return fetchJson<BreakResponse>(
     `/api/Journeys/${journeyId}/replan/preview`,
     { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ breakId }) },
@@ -133,7 +134,7 @@ function previewBreak(journeyId: number, breakId: number): Promise<Fetched<Break
 }
 
 /** The request that loads the sheet, by mode. */
-function loadRequest(journeyId: number, mode: AlternativesMode): { url: string; method: 'GET' | 'POST' } {
+function loadRequest(journeyId: string, mode: AlternativesMode): { url: string; method: 'GET' | 'POST' } {
   const base = `/api/Journeys/${journeyId}`;
   switch (mode.kind) {
     case 'break':
@@ -171,7 +172,7 @@ export function AlternativesSheet({
   stationName = null,
   canMute = false,
 }: {
-  journeyId: number;
+  journeyId: string;
   mode: AlternativesMode;
   opened: boolean;
   onClose: () => void;
@@ -243,7 +244,7 @@ function AlternativesSheetBody({
   onChanged,
   onDone,
 }: {
-  journeyId: number;
+  journeyId: string;
   mode: AlternativesMode;
   stationName: string | null;
   canMute: boolean;
@@ -358,13 +359,13 @@ function AlternativesSheetBody({
               fingerprint: set.fingerprint,
             } satisfies AcceptSuggestionRequest),
           })
-        : fetch(`/api/Journeys/${journeyId}/legs/${set.fromLegId}/replace`, {
+        : fetch(`/api/Journeys/${journeyId}/legs/${publicRef(set.fromLegPublicId, set.fromLegId)}/replace`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
               cause: mode.kind === 'alternatives' ? mode.cause : 'missed',
               legs: suggestion.legs.map(suggestionLegBody),
-              throughLegId: suggestion.throughLegId,
+              throughLegId: publicRef(suggestion.throughLegPublicId, suggestion.throughLegId),
             } satisfies ReplaceRequest),
           });
     try {

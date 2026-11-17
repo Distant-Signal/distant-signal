@@ -1,3 +1,4 @@
+import { isTriggerLeg } from './publicId';
 import { formatTime } from './dateFormat';
 import { legIsOver } from './homeJourneys';
 import { operatorNameAndCode } from './displayLabels';
@@ -85,7 +86,7 @@ export function breakTitle(facts: BreakTitleFacts): string {
 /** The title facts of an open break on a journey page, read from the
  * break and its trigger leg. */
 export function openBreakTitleFacts(openBreak: OpenBreakSummary, legs: readonly JourneyLegDetail[]): BreakTitleFacts {
-  const leg = legs.find((candidate) => candidate.id === openBreak.triggerLegId) ?? null;
+  const leg = legs.find((candidate) => isTriggerLeg(candidate, openBreak)) ?? null;
   return {
     cause: openBreak.cause,
     departure: leg ? legDepartureInstant(leg) : null,

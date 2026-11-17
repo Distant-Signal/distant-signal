@@ -1,4 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // The transit pages against the live api and the seed's metrolink and tfl
 // networks (frontend/e2e/fixtures/seed.sql; API_TRANSIT_NETWORKS in the

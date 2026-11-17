@@ -1,3 +1,4 @@
+import { trackingRef } from './publicId';
 import { londonDayStartIso } from './londonWallClock';
 import type { MergedSharedTrain } from './sharedTrains';
 import { trackedTrainRowStatus } from './trackedRowStatus';
@@ -135,20 +136,20 @@ export function journeysPageSections(
     const lists: JourneysPageEntry[][] = [
       journeyItems[half].map(({ journey, status }) => ({
         kind: 'journey' as const,
-        key: `journey-${String(journey.id)}`,
+        key: `journey-${journey.publicId}`,
         journey,
         status,
       })),
       trainItems[half].map(({ train, status }) => ({
         kind: 'train' as const,
-        key: `train-${String(train.id)}`,
+        key: `train-${trackingRef(train)}`,
         train,
         status,
       })),
       sortSharedTrains(
         sharedItems[half].map(({ row, status }) => ({
           kind: 'sharedTrain' as const,
-          key: `shared-train-${String(row.train.trainSubscriptionId)}`,
+          key: `shared-train-${row.train.trainSubscriptionPublicId}`,
           row,
           status,
         })),

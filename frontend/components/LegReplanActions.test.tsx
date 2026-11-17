@@ -3,6 +3,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { LegReplanActions, type LegReplanContext } from './LegReplanActions';
 import { trainLeg } from '@/test/journeyFixtures';
+import { testLegId } from '@/test/apiDefaults';
 import { breakResponse, suggestionSet } from '@/test/replanFixtures';
 
 vi.mock('next/navigation', () => ({
@@ -37,19 +38,21 @@ afterEach(() => {
 
 describe('LegReplanActions', () => {
   it('renders nothing for an ordinary leg', () => {
-    renderWithMantine(<LegReplanActions journeyId={42} leg={leg()} context={context} />);
+    renderWithMantine(<LegReplanActions journeyId="42" leg={leg()} context={context} />);
     expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 
   it('offers "I missed this train" on the missable leg, and only looks for other trains', async () => {
     const fetchMock = stubFetch(suggestionSet());
-    renderWithMantine(<LegReplanActions journeyId={42} leg={leg()} context={{ ...context, missable: true }} />);
+    renderWithMantine(<LegReplanActions journeyId="42" leg={leg()} context={{ ...context, missable: true }} />);
     expect(screen.queryByRole('button', { name: 'Find another way' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'I missed this train' }));
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
     // Never the old `POST .../missed`, which opened a break just by looking.
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/42/legs/7/alternatives?cause=missed', { method: 'GET' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`, {
+      method: 'GET',
+    });
   });
 
   it('titles the sheet "Other ways to ..." while it loads, never "You missed the ..."', () => {
@@ -57,7 +60,7 @@ describe('LegReplanActions', () => {
       'fetch',
       vi.fn(() => new Promise<Response>(() => {})),
     );
-    renderWithMantine(<LegReplanActions journeyId={42} leg={leg()} context={{ ...context, missable: true }} />);
+    renderWithMantine(<LegReplanActions journeyId="42" leg={leg()} context={{ ...context, missable: true }} />);
     fireEvent.click(screen.getByRole('button', { name: 'I missed this train' }));
     expect(screen.getByRole('heading', { name: 'Other ways to Edinburgh' })).toBeInTheDocument();
     expect(screen.queryByText(/You missed/)).not.toBeInTheDocument();
@@ -65,7 +68,7 @@ describe('LegReplanActions', () => {
 
   it('never offers "I missed this train" on a cancelled train', () => {
     renderWithMantine(
-      <LegReplanActions journeyId={42} leg={leg({ status: 'cancelled' })} context={{ ...context, missable: true }} />,
+      <LegReplanActions journeyId="42" leg={leg({ status: 'cancelled' })} context={{ ...context, missable: true }} />,
     );
     expect(screen.queryByRole('button', { name: 'I missed this train' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Find another way' })).toBeInTheDocument();
@@ -73,16 +76,18 @@ describe('LegReplanActions', () => {
 
   it('finds other trains for a cancelled leg with no break open', async () => {
     const fetchMock = stubFetch(suggestionSet());
-    renderWithMantine(<LegReplanActions journeyId={42} leg={leg({ status: 'cancelled' })} context={context} />);
+    renderWithMantine(<LegReplanActions journeyId="42" leg={leg({ status: 'cancelled' })} context={context} />);
     fireEvent.click(screen.getByRole('button', { name: 'Find another way' }));
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/42/legs/7/alternatives?cause=cancelled', { method: 'GET' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=cancelled`, {
+      method: 'GET',
+    });
   });
 
   it("opens the open break's suggestions on its trigger leg", async () => {
     const fetchMock = stubFetch(breakResponse());
     renderWithMantine(
-      <LegReplanActions journeyId={42} leg={leg()} context={{ ...context, openBreakId: 5, isBreakTrigger: true }} />,
+      <LegReplanActions journeyId="42" leg={leg()} context={{ ...context, openBreakId: 5, isBreakTrigger: true }} />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Find another way' }));
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();

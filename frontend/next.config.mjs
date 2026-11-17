@@ -202,7 +202,7 @@ const nextConfig = {
       // Train pushes linked to `/track/{id}`, a page that never existed,
       // until 22 Oct 2026; this keeps the links already sent working.
       {
-        source: '/track/:trackingId(\\d+)',
+        source: '/track/:trackingId(\\d+|t_[0-9a-f]+)',
         destination: '/train/by-id/:trackingId',
         permanent: true,
       },

@@ -88,14 +88,14 @@ afterEach(() => {
 
 describe('EarlierPlans', () => {
   it('renders nothing with only the booked plan', () => {
-    renderWithMantine(<EarlierPlans journeyId={42} revisionCount={1} />);
+    renderWithMantine(<EarlierPlans journeyId="42" revisionCount={1} />);
     expect(screen.queryByText(/Earlier plans/)).not.toBeInTheDocument();
   });
 
   it('loads the earlier plans only when opened, with their fates', async () => {
     renderWithMantine(
       <OperatorNamesProvider names={{ GR: 'London North Eastern Railway' }}>
-        <EarlierPlans journeyId={42} revisionCount={3} />
+        <EarlierPlans journeyId="42" revisionCount={3} />
       </OperatorNamesProvider>,
     );
     const toggle = screen.getByRole('button', { name: 'Earlier plans (2)' });
@@ -119,7 +119,7 @@ describe('EarlierPlans', () => {
   });
 
   it('goes back to an earlier plan', async () => {
-    renderWithMantine(<EarlierPlans journeyId={42} revisionCount={3} />);
+    renderWithMantine(<EarlierPlans journeyId="42" revisionCount={3} />);
     fireEvent.click(screen.getByRole('button', { name: 'Earlier plans (2)' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Go back to this plan' }));
     await vi.waitFor(() => expect(refreshMock).toHaveBeenCalled());
@@ -131,7 +131,7 @@ describe('EarlierPlans', () => {
       if (String(input).endsWith('/revisions')) return new Response(JSON.stringify({ revisions }), { status: 200 });
       return new Response('revision_gone', { status: 409 });
     });
-    renderWithMantine(<EarlierPlans journeyId={42} revisionCount={3} />);
+    renderWithMantine(<EarlierPlans journeyId="42" revisionCount={3} />);
     fireEvent.click(screen.getByRole('button', { name: 'Earlier plans (2)' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Go back to this plan' }));
     expect(
@@ -141,7 +141,7 @@ describe('EarlierPlans', () => {
 
   it('says when it could not load them', async () => {
     fetchMock.mockImplementation(async () => new Response('', { status: 500 }));
-    renderWithMantine(<EarlierPlans journeyId={42} revisionCount={2} />);
+    renderWithMantine(<EarlierPlans journeyId="42" revisionCount={2} />);
     fireEvent.click(screen.getByRole('button', { name: 'Earlier plans (1)' }));
     expect(await screen.findByText("Couldn't load earlier plans. Try again.")).toBeInTheDocument();
   });

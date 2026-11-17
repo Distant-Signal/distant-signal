@@ -1,4 +1,7 @@
 import { test, expect, type APIRequestContext, type BrowserContext } from '@playwright/test';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // Deleting a journey waits 10 seconds before the DELETE is sent, so it can
 // be undone (components/PendingDeleteToasts.tsx, lib/pendingDeletes.ts).

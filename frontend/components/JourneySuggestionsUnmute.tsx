@@ -11,7 +11,7 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
  * them back on (`PUT /Journeys/{id}/suggestions-muted` `{muted: false}`).
  * While muted, a broken journey's trains send their plain delay and
  * cancellation notifications instead. */
-export function JourneySuggestionsUnmute({ journeyId }: { journeyId: number }) {
+export function JourneySuggestionsUnmute({ journeyId }: { journeyId: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function JourneySuggestionsUnmute({ journeyId }: { journeyId: number }) {
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`/api/Journeys/${String(journeyId)}/suggestions-muted`, {
+      const response = await fetch(`/api/Journeys/${journeyId}/suggestions-muted`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ muted: false }),

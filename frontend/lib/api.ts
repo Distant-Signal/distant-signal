@@ -915,7 +915,7 @@ export async function getHistoryRetention(): Promise<HistoryRetention> {
   });
 }
 
-export async function getTrackedTrainById(id: number): Promise<TrackedTrainState> {
+export async function getTrackedTrainById(id: number | string): Promise<TrackedTrainState> {
   const url = `${baseUrl()}/Train/${id}`;
   const response = await apiFetch(url, {
     cache: 'no-store',

@@ -59,7 +59,7 @@ export function ShareJourneyLinkButton({
   shareLink,
   origin,
 }: {
-  journeyId: number;
+  journeyId: string;
   shareLink: JourneyShareLink | null;
   origin: string;
 }) {

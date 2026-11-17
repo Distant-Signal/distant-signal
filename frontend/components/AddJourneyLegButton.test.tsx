@@ -100,7 +100,7 @@ describe('AddJourneyLegButton', () => {
     // FE-4: 23:30 UTC on 15 July is 00:30 on 16 July in London (BST).
     vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-15T23:30:00Z'));
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
     expect(await screen.findByLabelText('Service date')).toHaveValue('16 Jul 2026');
   });
@@ -108,7 +108,7 @@ describe('AddJourneyLegButton', () => {
   it("pre-fills the service date and earliest departure from the previous leg's arrival", async () => {
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs="WAT"
         priorArrival={{ date: '2026-09-22', time: '10:07' }}
       />,
@@ -128,7 +128,7 @@ describe('AddJourneyLegButton', () => {
     vi.setSystemTime(new Date('2026-09-22T21:00:00Z'));
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs="WAT"
         priorArrival={{ date: '2026-09-23', time: '00:15' }}
       />,
@@ -142,7 +142,7 @@ describe('AddJourneyLegButton', () => {
   it('leaves the earliest departure empty when there is no previous leg', async () => {
     vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-09-22T09:00:00Z'));
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     expect(await screen.findByLabelText('Service date')).toHaveValue('22 Sep 2026');
@@ -153,7 +153,7 @@ describe('AddJourneyLegButton', () => {
   it("leaves the earliest departure empty when the previous leg's arrival isn't known", async () => {
     vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-09-22T09:00:00Z'));
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" priorArrival={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" priorArrival={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     expect(await screen.findByLabelText('Service date')).toHaveValue('22 Sep 2026');
@@ -164,7 +164,7 @@ describe('AddJourneyLegButton', () => {
   it("keeps the traveller's own date and time when the dialog re-renders", async () => {
     const view = renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs="WAT"
         priorArrival={{ date: '2026-09-22', time: '10:07' }}
       />,
@@ -180,7 +180,7 @@ describe('AddJourneyLegButton', () => {
     view.rerender(
       <MantineProvider theme={theme} env="test">
         <AddJourneyLegButton
-          journeyId={1}
+          journeyId="1"
           priorDestinationCrs="WAT"
           priorArrival={{ date: '2026-09-22', time: '10:20' }}
         />
@@ -200,7 +200,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('pre-fills the origin field from priorDestinationCrs on open', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const origin = await screen.findByRole('combobox', { name: 'From station' });
@@ -208,7 +208,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('re-seeds the origin field from priorDestinationCrs on every open, not just the first', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const origin = await screen.findByRole('combobox', { name: 'From station' });
@@ -226,7 +226,7 @@ describe('AddJourneyLegButton', () => {
   it("after a Tube leg, starts the next train leg at the Tube stop's station, and the time at its arrival", async () => {
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         priorStopId="940GZZLUEUS"
         priorPlaceName="Euston"
@@ -248,7 +248,7 @@ describe('AddJourneyLegButton', () => {
 
   it('after a walk to a station by name, starts the next train leg there', async () => {
     renderWithMantine(
-      <AddJourneyLegButton journeyId={1} priorDestinationCrs={null} priorPlaceName="Clapham Junction" />,
+      <AddJourneyLegButton journeyId="1" priorDestinationCrs={null} priorPlaceName="Clapham Junction" />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
     const origin = await screen.findByRole('combobox', { name: 'From station' });
@@ -258,7 +258,7 @@ describe('AddJourneyLegButton', () => {
   it('after a walk to a place that is no station, opens on "Tube, bus or walk" from that place', async () => {
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         priorPlaceName="Home"
         priorArrival={{ date: '2026-10-21', time: '10:07' }}
@@ -276,7 +276,7 @@ describe('AddJourneyLegButton', () => {
   it('after a leg that ends at a station, opens on the train search from it', async () => {
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         priorStopId="940GZZLUEUS"
         priorPlaceName="Euston"
@@ -301,7 +301,7 @@ describe('AddJourneyLegButton', () => {
     );
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         priorStopId="940GZZLUEUS"
         priorPlaceName="Euston"
@@ -320,7 +320,7 @@ describe('AddJourneyLegButton', () => {
   it('POSTs a window-mode request with the entered origin/destination/date/departWindow', async () => {
     const fetchMock = mockFetch(legResponse);
 
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -352,7 +352,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('disables submit in window mode until at least one time bound is set', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -371,7 +371,7 @@ describe('AddJourneyLegButton', () => {
   // Review §2.2/I17: states the rule up front rather than only via a
   // disabled button with no explanation.
   it('shows the at-least-one-of-four hint in window mode', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     expect(await screen.findByText('At least one of the four times below is required.')).toBeInTheDocument();
@@ -380,7 +380,7 @@ describe('AddJourneyLegButton', () => {
   // Review §2.2/M14: same "no visible earliest > latest check" gap
   // TrackTrainForm's own window fields had.
   it('disables submit when the latest departure is before the earliest departure', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -395,7 +395,7 @@ describe('AddJourneyLegButton', () => {
   it('POSTs a knownTrain-mode request when the direct-pick mode is selected', async () => {
     const fetchMock = mockFetch(legResponse);
 
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     fireEvent.click(await screen.findByText('I know the train'));
@@ -427,7 +427,7 @@ describe('AddJourneyLegButton', () => {
   it('with onAdded: calls it with the add-leg response instead of router.refresh()', async () => {
     const onAdded = vi.fn();
 
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" onAdded={onAdded} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" onAdded={onAdded} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -446,7 +446,7 @@ describe('AddJourneyLegButton', () => {
   it('surfaces the server error text on a non-OK response', async () => {
     mockFetch(() => new Response('no schedule matched that window', { status: 400 }));
 
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -466,7 +466,7 @@ describe('AddJourneyLegButton', () => {
     const sentence = "Train A12345 doesn't stop at Woking (WOK) on 22 Sep 2026.";
     mockFetch(() => new Response(sentence, { status: 422 }));
 
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
     fireEvent.click(await screen.findByText('I know the train'));
     fireEvent.change(await screen.findByLabelText('Train UID'), { target: { value: 'A12345' } });
@@ -488,7 +488,7 @@ describe('AddJourneyLegButton', () => {
   // existing `isValid` gate already blocks submission on any malformed
   // required field, this just adds the "why" underneath the field.
   it('shows an inline error for a malformed Origin CRS and keeps the button disabled', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const origin = await screen.findByRole('combobox', { name: 'From station' });
@@ -501,7 +501,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('shows no station error while a name is still being typed', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const origin = await screen.findByRole('combobox', { name: 'From station' });
@@ -514,7 +514,7 @@ describe('AddJourneyLegButton', () => {
   it('resolves a typed full station name to its code', async () => {
     const fetchMock = mockFetch(legResponse);
 
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -539,7 +539,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('fills in the code when a station is picked from the suggestions by name', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -551,7 +551,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('shows no CRS error while the Origin field is still empty', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs={null} />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     await screen.findByRole('combobox', { name: 'From station' });
@@ -564,7 +564,7 @@ describe('AddJourneyLegButton', () => {
   it('keeps the last good Service date when the typed text is not a date', async () => {
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs="WAT"
         priorArrival={{ date: '2026-09-22', time: '10:07' }}
       />,
@@ -585,7 +585,7 @@ describe('AddJourneyLegButton', () => {
   });
 
   it('accepts a well-formed CRS and date and allows submission', async () => {
-    renderWithMantine(<AddJourneyLegButton journeyId={1} priorDestinationCrs="WAT" />);
+    renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
 
     const destination = await screen.findByRole('combobox', { name: 'To station' });
@@ -606,7 +606,7 @@ describe('AddJourneyLegButton', () => {
     const fetchMock = mockFetch(legResponse);
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs="EUS"
         priorArrival={{ date: '2026-10-21', time: '10:07' }}
         priorPlaceName="London Euston"
@@ -650,7 +650,7 @@ describe('AddJourneyLegButton', () => {
     const fetchMock = mockFetch(legResponse);
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         priorArrival={{ date: '2026-10-21', time: '10:07' }}
         priorPlaceName={null}
@@ -698,7 +698,7 @@ describe('AddJourneyLegButton', () => {
     const fetchMock = mockFetch(legResponse);
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs="WAT"
         priorArrival={{ date: '2026-10-21', time: '10:07' }}
       />,
@@ -733,7 +733,7 @@ describe('AddJourneyLegButton', () => {
     const fetchMock = mockFetch(legResponse);
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         beforeLegId={7}
         nextLegStart={{ place: 'London Waterloo', crs: 'WAT', departure: { date: '2026-10-21', time: '09:30' } }}
@@ -776,7 +776,7 @@ describe('AddJourneyLegButton', () => {
   it("inserts before a Tube leg on the time-window search to its stop's station", async () => {
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         beforeLegId={7}
         nextLegStart={{
@@ -803,7 +803,7 @@ describe('AddJourneyLegButton', () => {
     const fetchMock = mockFetch(legResponse);
     renderWithMantine(
       <AddJourneyLegButton
-        journeyId={1}
+        journeyId="1"
         priorDestinationCrs={null}
         beforeLegId={7}
         nextLegStart={{ place: 'Home', crs: null, departure: { date: '2026-10-21', time: '09:30' } }}
@@ -847,7 +847,7 @@ describe('AddJourneyLegButton', () => {
     async function openAfterAWaterlooArrival() {
       renderWithMantine(
         <AddJourneyLegButton
-          journeyId={1}
+          journeyId="1"
           priorDestinationCrs="WAT"
           priorArrival={{ date: '2026-09-22', time: '10:07' }}
         />,
@@ -995,7 +995,7 @@ describe('AddJourneyLegButton', () => {
     it('keeps the "Add a leg at the start" pre-fills with an operator filter', async () => {
       renderWithMantine(
         <AddJourneyLegButton
-          journeyId={1}
+          journeyId="1"
           priorDestinationCrs={null}
           beforeLegId={7}
           nextLegStart={{ place: 'London Waterloo', crs: 'WAT', departure: { date: '2026-10-21', time: '09:30' } }}

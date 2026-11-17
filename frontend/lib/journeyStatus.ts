@@ -16,6 +16,7 @@ export const TRAIN_LEG_BLANKS = {
   destinationStopId: null,
   searchFilters: null,
   replacesLegIds: [],
+  replacesLegPublicIds: [],
   transitNetwork: null,
   transitLineId: null,
   headsign: null,
@@ -137,6 +138,7 @@ export function journeyListItemStatusGroup(item: JourneyListItem): LegStatusGrou
   return legStatusGroup({
     ...TRAIN_LEG_BLANKS,
     id: item.legId,
+    publicId: item.legPublicId,
     originCrs: item.originCrs,
     // `JourneyListItem` resolves the same two station names the detail
     // leg does, so the adapter passes them straight through rather than
@@ -193,6 +195,7 @@ export function trackedTrainListStatusGroup(
   return legStatusGroup({
     ...TRAIN_LEG_BLANKS,
     id: 0,
+    publicId: '',
     originCrs: null,
     originName: null,
     destinationCrs: null,

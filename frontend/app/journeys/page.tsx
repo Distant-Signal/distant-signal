@@ -1,3 +1,4 @@
+import { trackingRef } from '@/lib/publicId';
 import { Suspense } from 'react';
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
@@ -199,7 +200,7 @@ export default async function JourneysPage() {
     switch (entry.kind) {
       case 'journey':
         return (
-          <HideWhenDeleted key={entry.key} kind="journey" id={entry.journey.id}>
+          <HideWhenDeleted key={entry.key} kind="journey" id={entry.journey.publicId}>
             <JourneyListRow
               journey={entry.journey}
               status={entry.status}
@@ -209,7 +210,7 @@ export default async function JourneysPage() {
         );
       case 'train':
         return (
-          <HideWhenDeleted key={entry.key} kind="train" id={entry.train.id}>
+          <HideWhenDeleted key={entry.key} kind="train" id={trackingRef(entry.train)}>
             <TrackedTrainListRow train={entry.train} status={entry.status} />
           </HideWhenDeleted>
         );
@@ -360,7 +361,7 @@ function JourneyListRow({
                 Shared by {memberLabel(firstShare.addedByName, firstShare.addedByTag, MEMBER_PLACEHOLDER_INLINE)}
               </Text>
             </Group>
-            <FollowJourneyButton journeyId={journey.id} following={false} groupId={firstShare.groupId} />
+            <FollowJourneyButton journeyId={journey.publicId} following={false} groupId={firstShare.groupId} />
           </>
         )}
         {/* A journey the caller follows (DS-146): whose it is, and the way
@@ -370,7 +371,7 @@ function JourneyListRow({
             <Text size="sm" c="dimmed">
               {followedFromLabel(journey.followedFrom)}
             </Text>
-            <FollowJourneyButton journeyId={journey.id} following />
+            <FollowJourneyButton journeyId={journey.publicId} following />
           </Group>
         )}
       </Stack>
@@ -445,7 +446,7 @@ function TrackedTrainListRow({ train, status }: { train: TrackedTrainListItem; s
             // constructed client-side, not passed in from here.
             <TrackedTrainRowMenu
               displayName={displayName}
-              trackingId={train.id}
+              trackingId={trackingRef(train)}
               customName={train.customName}
               defaultName={defaultName}
               sharedGroupCount={train.sharedGroupCount}

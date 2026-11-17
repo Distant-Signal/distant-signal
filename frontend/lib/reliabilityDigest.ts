@@ -58,7 +58,7 @@ export function computePunctualitySummary(trains: ReliabilityTrain[]): Punctuali
     })
     .slice(0, 5)
     .map((t) => ({
-      key: `${t.journeyId}-${t.legId ?? 'booked'}-${t.trainUid ?? ''}`,
+      key: `${t.journeyPublicId}-${t.legPublicId ?? 'booked'}-${t.trainUid ?? ''}`,
       journeyPublicId: t.journeyPublicId,
       trainUid: t.trainUid,
       serviceDate: t.serviceDate,

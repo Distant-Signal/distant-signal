@@ -30,7 +30,7 @@ export function AddJourneyToGroupButton({
   excludeJourneyIds,
 }: {
   groupId: string;
-  excludeJourneyIds: number[];
+  excludeJourneyIds: string[];
 }) {
   const router = useRouter();
   const [opened, { open, close }] = useDisclosure(false);
@@ -54,7 +54,7 @@ export function AddJourneyToGroupButton({
         return;
       }
       const all = (await response.json()) as JourneyListItem[];
-      setJourneys(all.filter((j) => !excludeJourneyIds.includes(j.id)));
+      setJourneys(all.filter((j) => !excludeJourneyIds.includes(j.publicId)));
       setLoading(false);
     } catch {
       setError(describeFailure('load', 'your journeys'));
@@ -71,7 +71,7 @@ export function AddJourneyToGroupButton({
       const response = await fetch(`/api/groups/${groupId}/journeys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ journeyId: Number(selected) }),
+        body: JSON.stringify({ journeyId: selected }),
       });
       if (!response.ok) {
         if (response.status === 401) {
@@ -106,7 +106,7 @@ export function AddJourneyToGroupButton({
             label="Journey"
             placeholder="Pick one"
             data={journeys.map((j) => ({
-              value: String(j.id),
+              value: j.publicId,
               label:
                 j.customName ??
                 (j.originCrs && j.destinationCrs ? `${j.originCrs} to ${j.destinationCrs}` : 'Untitled journey'),

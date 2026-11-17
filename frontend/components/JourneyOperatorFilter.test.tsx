@@ -39,7 +39,7 @@ describe('JourneyOperatorFilter', () => {
   it('names the filter from the catalogue and removes it', async () => {
     const fetchMock = stubFetch();
     renderWithMantine(
-      <JourneyOperatorFilter journeyId={12} filter={{ mode: 'only', codes: ['VT'], entries: ['VT'] }} />,
+      <JourneyOperatorFilter journeyId="12" filter={{ mode: 'only', codes: ['VT'], entries: ['VT'] }} />,
     );
     expect(
       await screen.findByText('Planned using only Avanti West Coast. Suggestions after a disruption follow it.'),
@@ -56,7 +56,7 @@ describe('JourneyOperatorFilter', () => {
   it('changes the mode with the planner field and saves it', async () => {
     const fetchMock = stubFetch();
     renderWithMantine(
-      <JourneyOperatorFilter journeyId={12} filter={{ mode: 'only', codes: ['GR'], entries: ['GR'] }} />,
+      <JourneyOperatorFilter journeyId="12" filter={{ mode: 'only', codes: ['GR'], entries: ['GR'] }} />,
     );
     await screen.findByText(/Planned using only LNER/);
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
@@ -76,7 +76,7 @@ describe('JourneyOperatorFilter', () => {
       vi.fn(async () => new Response('', { status: 500 })),
     );
     renderWithMantine(
-      <JourneyOperatorFilter journeyId={12} filter={{ mode: 'avoid', codes: ['GR'], entries: ['GR'] }} />,
+      <JourneyOperatorFilter journeyId="12" filter={{ mode: 'avoid', codes: ['GR'], entries: ['GR'] }} />,
     );
     expect(screen.getByText(/Planned avoiding GR/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));

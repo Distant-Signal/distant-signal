@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testPublicId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { AddJourneyToGroupButton } from './AddJourneyToGroupButton';
 import { byVisibleText } from '@/test/routeText';
@@ -16,6 +17,7 @@ function mineResponse() {
     JSON.stringify([
       {
         id: 1,
+        publicId: testPublicId(1),
         customName: null,
         createdAt: '2026-09-10T00:00:00Z',
         legId: 10,
@@ -29,6 +31,7 @@ function mineResponse() {
       },
       {
         id: 2,
+        publicId: testPublicId(2),
         customName: null,
         createdAt: '2026-09-10T00:00:00Z',
         legId: 20,
@@ -59,7 +62,7 @@ describe('AddJourneyToGroupButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(mineResponse());
 
-    renderWithMantine(<AddJourneyToGroupButton groupId="grp-1" excludeJourneyIds={[2]} />);
+    renderWithMantine(<AddJourneyToGroupButton groupId="grp-1" excludeJourneyIds={[testPublicId(2)]} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add one of my journeys' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/mine'));
@@ -89,7 +92,7 @@ describe('AddJourneyToGroupButton', () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/groups/grp-1/journeys',
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ journeyId: 1 }) }),
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ journeyId: testPublicId(1) }) }),
       );
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());

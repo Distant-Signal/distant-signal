@@ -23,6 +23,7 @@ import {
   TEMPLATE_TARGET_DEFAULTS,
   TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
   testPublicId,
+  testTrackingId,
 } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
@@ -46,6 +47,7 @@ function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListI
   return {
     ...(TRAIN_ROW as typeof TRACKED_TRAIN_LIST_ITEM_DEFAULTS),
     id: 1,
+    publicId: testTrackingId(1),
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',
     pinDestinationCrs: 'WOK',
@@ -202,7 +204,10 @@ describe('JourneysPage', () => {
       train({ resolutionStatus: 'pending', trainUid: null, status: null, delayMinutes: null }),
     ]);
     renderWithMantine(await JourneysPage());
-    expect(screen.getByRole('link', { name: /WAT to WOK/ })).toHaveAttribute('href', '/train/by-id/1');
+    expect(screen.getByRole('link', { name: /WAT to WOK/ })).toHaveAttribute(
+      'href',
+      `/train/by-id/${testTrackingId(1)}`,
+    );
   });
 
   it('renders a delay badge for a resolved, delayed train', async () => {

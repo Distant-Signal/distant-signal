@@ -1,5 +1,6 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 
+import { testTrackingId } from '../test/apiDefaults';
 // Tracked trains with no timetable match, and timetabled trains whose first
 // Network Rail report isn't due yet (spec
 // docs/superpowers/specs/2026-10-20-untracked-legs-and-tracked-train-states-design.md
@@ -42,7 +43,7 @@ test.describe('tracked train states', () => {
 
   test('a train with no timetable match says it cannot be tracked', async ({ page }) => {
     test.skip(!TRACKING_ID, "set E2E_TRACKING_ID to the seed's unresolved pin");
-    await page.goto(`/train/by-id/${TRACKING_ID}`);
+    await page.goto(`/train/by-id/${testTrackingId(Number(TRACKING_ID))}`);
     const main = page.locator('#main-content');
     await expect(main.getByText('Not matched to a timetable').first()).toBeVisible();
     await expect(
@@ -58,12 +59,17 @@ test.describe('tracked train states', () => {
       headers: { cookie: `distant_signal_session=${SESSION_COOKIE}` },
     });
     expect(mine.ok()).toBe(true);
-    const trains = (await mine.json()) as { id: number; trainUid: string | null; trackingPhase?: string | null }[];
+    const trains = (await mine.json()) as {
+      id: number;
+      publicId: string;
+      trainUid: string | null;
+      trackingPhase?: string | null;
+    }[];
     const planned = trains.find((train) => train.trainUid === PLANNED_UID);
     expect(planned, `the seed tracks ${PLANNED_UID}`).toBeDefined();
     expect(planned?.trackingPhase).toBe('planned');
 
-    await page.goto(`/train/by-id/${planned?.id}`);
+    await page.goto(`/train/by-id/${planned?.publicId}`);
     const main = page.locator('#main-content');
     await expect(main.getByText('Planned', { exact: true }).first()).toBeVisible();
     // 45 minutes before the 07:10 departure (GMT in January).

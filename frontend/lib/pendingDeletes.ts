@@ -24,7 +24,7 @@ export type DeleteKind = 'journey' | 'train';
 export interface PendingDelete {
   key: string;
   kind: DeleteKind;
-  id: number;
+  id: string;
   /** "Journey deleted", "Stopped tracking this train". */
   message: string;
 }
@@ -53,7 +53,7 @@ interface Entry extends PendingDelete {
 
 export interface ScheduleDeleteInput {
   kind: DeleteKind;
-  id: number;
+  id: string;
   message: string;
   /** The same-origin `/api/...` URL to `DELETE`. */
   url: string;
@@ -65,7 +65,7 @@ export interface ScheduleDeleteInput {
   onRestored?: () => void;
 }
 
-export const deleteKey = (kind: DeleteKind, id: number): string => `${kind}:${String(id)}`;
+export const deleteKey = (kind: DeleteKind, id: string): string => `${kind}:${id}`;
 
 const entries = new Map<string, Entry>();
 const deleted = new Set<string>();

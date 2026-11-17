@@ -12,7 +12,7 @@ export function MoveJourneyButton({
   journeyId,
   serviceDate,
 }: {
-  journeyId: number;
+  journeyId: string;
   /** The journey's first day (`YYYY-MM-DD`): where the dialog starts. */
   serviceDate: string | null;
 }) {

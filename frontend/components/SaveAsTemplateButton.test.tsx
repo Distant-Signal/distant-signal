@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testPublicId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { SaveAsTemplateButton } from './SaveAsTemplateButton';
 
@@ -22,7 +23,7 @@ describe('SaveAsTemplateButton', () => {
   });
 
   it('opens the modal on click and closes it', async () => {
-    renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
+    renderWithMantine(<SaveAsTemplateButton journeyId={testPublicId(7)} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
     expect(await screen.findByRole('dialog', { name: 'Make this a regular journey' })).toBeInTheDocument();
@@ -38,7 +39,7 @@ describe('SaveAsTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateId: 99 }), { status: 200 }));
 
-    renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
+    renderWithMantine(<SaveAsTemplateButton journeyId={testPublicId(7)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
@@ -47,7 +48,7 @@ describe('SaveAsTemplateButton', () => {
         '/api/JourneyTemplates',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ mode: 'fromJourney', journeyId: 7 }),
+          body: JSON.stringify({ mode: 'fromJourney', journeyId: testPublicId(7) }),
         }),
       );
     });
@@ -57,7 +58,7 @@ describe('SaveAsTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateId: 99 }), { status: 200 }));
 
-    renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
+    renderWithMantine(<SaveAsTemplateButton journeyId={testPublicId(7)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
     fireEvent.change(await screen.findByLabelText('Name (optional)'), {
       target: { value: '  Weekday commute  ' },
@@ -69,7 +70,7 @@ describe('SaveAsTemplateButton', () => {
         '/api/JourneyTemplates',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ mode: 'fromJourney', journeyId: 7, customName: 'Weekday commute' }),
+          body: JSON.stringify({ mode: 'fromJourney', journeyId: testPublicId(7), customName: 'Weekday commute' }),
         }),
       );
     });
@@ -79,7 +80,7 @@ describe('SaveAsTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('unauthorized', { status: 401 }));
 
-    renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
+    renderWithMantine(<SaveAsTemplateButton journeyId={testPublicId(7)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
@@ -92,7 +93,7 @@ describe('SaveAsTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('Something went wrong', { status: 500 }));
 
-    renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
+    renderWithMantine(<SaveAsTemplateButton journeyId={testPublicId(7)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 
@@ -105,7 +106,7 @@ describe('SaveAsTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateId: 123 }), { status: 200 }));
 
-    renderWithMantine(<SaveAsTemplateButton journeyId={7} />);
+    renderWithMantine(<SaveAsTemplateButton journeyId={testPublicId(7)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Make this a regular journey' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save regular journey' }));
 

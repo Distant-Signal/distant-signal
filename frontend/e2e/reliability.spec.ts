@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+
+test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
 // Reliability and Delay Repay on journey legs (2026-11-06), against the
 // seeded backend: fixture-owner's two-revision journey 900301 (seed.sql),
@@ -87,8 +90,8 @@ test.describe('reliability from journey legs', () => {
   });
 });
 
-async function legId(page: import('@playwright/test').Page): Promise<number> {
+async function legId(page: import('@playwright/test').Page): Promise<string> {
   const response = await page.request.get(`/api/Journeys/${JOURNEY_ID}`);
-  const journey = (await response.json()) as { legs: { id: number }[] };
-  return journey.legs[0]!.id;
+  const journey = (await response.json()) as { legs: { publicId: string }[] };
+  return journey.legs[0]!.publicId;
 }

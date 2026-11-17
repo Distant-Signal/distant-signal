@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { testDeviceId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import type { NotificationPreferences, PushDevice } from '@/lib/types';
 import { NotificationSettings, untilSevenTomorrow } from './NotificationSettings';
@@ -30,6 +31,7 @@ const SETTINGS: NotificationPreferences = {
 const DEVICES: PushDevice[] = [
   {
     id: 4,
+    publicId: testDeviceId(4),
     label: 'Chrome on Android',
     createdAt: '2026-10-01T08:00:00Z',
     lastUsedAt: '2026-10-20T08:00:00Z',
@@ -37,6 +39,7 @@ const DEVICES: PushDevice[] = [
   },
   {
     id: 5,
+    publicId: testDeviceId(5),
     label: null,
     createdAt: '2026-09-01T08:00:00Z',
     lastUsedAt: '2026-09-02T08:00:00Z',
@@ -221,7 +224,7 @@ describe('NotificationSettings', () => {
     expect(devices.getByText('Unknown browser')).toBeInTheDocument();
     fireEvent.click(devices.getByRole('button', { name: 'Remove unknown browser' }));
     await waitFor(() => expect(devices.queryByText('Unknown browser')).not.toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith('/api/notifications/devices/5', { method: 'DELETE' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/notifications/devices/${testDeviceId(5)}`, { method: 'DELETE' });
     expect(devices.getByText('Chrome on Android')).toBeInTheDocument();
   });
 

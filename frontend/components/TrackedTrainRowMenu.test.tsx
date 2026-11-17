@@ -15,7 +15,7 @@ function renderMenu() {
   renderWithMantine(
     <TrackedTrainRowMenu
       displayName="10:02 to Brighton"
-      trackingId={42}
+      trackingId="42"
       customName={null}
       defaultName="10:02 to Brighton"
       sharedGroupCount={0}

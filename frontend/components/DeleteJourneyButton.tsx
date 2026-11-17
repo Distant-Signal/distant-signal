@@ -46,7 +46,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * refresh, so there is nothing to refresh back to. `/journeys` is the
  * same "back to my trains & journeys" destination this page's own
  * existing back-link already points to. */
-export function DeleteJourneyButton({ journeyId }: { journeyId: number }) {
+export function DeleteJourneyButton({ journeyId }: { journeyId: string }) {
   return (
     <ConfirmActionButton
       label="Delete journey"

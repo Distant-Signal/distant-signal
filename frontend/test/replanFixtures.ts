@@ -5,6 +5,7 @@ import type {
   ReplanSuggestionLeg,
   SuggestionSet,
 } from '@/lib/types';
+import { testLegId } from './apiDefaults';
 
 /* Mid-journey changes builders (`lib/journeyBreak`, `AlternativesSheet`,
  * `JourneyBreakBanner`). Defaults describe a journey to Edinburgh whose
@@ -42,7 +43,9 @@ export function replanSuggestion(overrides: Partial<ReplanSuggestion> = {}): Rep
     changeCount: 0,
     delayMinutes: 12,
     throughLegId: 7,
+    throughLegPublicId: testLegId(7),
     rejoinsLegId: null,
+    rejoinsLegPublicId: null,
     legs: [trainSuggestionLeg()],
     cost: 10,
     fit: 'covered',
@@ -60,6 +63,7 @@ export function suggestionSet(overrides: Partial<SuggestionSet> = {}): Suggestio
     generatedAt: '2026-09-17T08:55:00Z',
     fingerprint: 'fp-1',
     fromLegId: 7,
+    fromLegPublicId: testLegId(7),
     originCrs: 'YRK',
     originName: 'York',
     destinationCrs: 'EDB',
@@ -69,6 +73,7 @@ export function suggestionSet(overrides: Partial<SuggestionSet> = {}): Suggestio
     hint: null,
     trigger: {
       legId: 7,
+      legPublicId: testLegId(7),
       departure: '2026-09-17T08:52:00Z',
       originName: 'York',
       destinationName: 'Edinburgh',
@@ -105,6 +110,7 @@ export function suggestionSet(overrides: Partial<SuggestionSet> = {}): Suggestio
       }),
     ],
     stale: false,
+    leg: null,
     ...overrides,
   };
 }
@@ -119,6 +125,7 @@ export function breakResponse(overrides: Partial<BreakResponse> = {}): BreakResp
     severity: 3,
     status: 'open',
     triggerLegId: 7,
+    triggerLegPublicId: testLegId(7),
     detectedAt: '2026-09-17T08:50:00Z',
     openedVia: 'in_app',
     faultNote: null,
@@ -135,6 +142,7 @@ export function openBreakSummary(overrides: Partial<OpenBreakSummary> = {}): Ope
     fault: 'operator',
     severity: 3,
     triggerLegId: 7,
+    triggerLegPublicId: testLegId(7),
     detectedAt: '2026-09-17T08:50:00Z',
     suggestionsReady: true,
     stale: false,

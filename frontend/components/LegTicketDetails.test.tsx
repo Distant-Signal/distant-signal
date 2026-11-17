@@ -24,7 +24,7 @@ const SAVED: LegTicket = {
 };
 
 function render(ticket: LegTicket | null = null) {
-  renderWithMantine(<LegTicketDetails journeyId={5} legId={9} ticket={ticket} operatorName="LNER" />);
+  renderWithMantine(<LegTicketDetails journeyId="5" legId="9" ticket={ticket} operatorName="LNER" />);
 }
 
 describe('LegTicketDetails', () => {
@@ -82,7 +82,7 @@ describe('LegTicketDetails', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
     const { container } = renderWithMantine(
-      <LegTicketDetails journeyId={5} legId={9} ticket={null} operatorName={null} />,
+      <LegTicketDetails journeyId="5" legId="9" ticket={null} operatorName={null} />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add ticket details' }));
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -119,7 +119,7 @@ describe('LegTicketDetails', () => {
       vi.fn(async () => new Response('this file is a PDF, not a .pkpass', { status: 415 })),
     );
     const { container } = renderWithMantine(
-      <LegTicketDetails journeyId={5} legId={9} ticket={null} operatorName="LNER" />,
+      <LegTicketDetails journeyId="5" legId="9" ticket={null} operatorName="LNER" />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add ticket details' }));
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;

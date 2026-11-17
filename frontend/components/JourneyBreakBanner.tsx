@@ -22,7 +22,7 @@ export function JourneyBreakBanner({
   initialOpen = false,
   fromPush = false,
 }: {
-  journeyId: number;
+  journeyId: string;
   openBreak: OpenBreakSummary;
   legs: readonly JourneyLegDetail[];
   isOwner: boolean;
