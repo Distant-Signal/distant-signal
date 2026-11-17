@@ -225,8 +225,6 @@ async function readCappedBody(req: NextRequest): Promise<ArrayBuffer | 'too-larg
   return out.buffer;
 }
 
-/** Structural, not `instanceof Error`: the abort reason is a `DOMException`,
- * which isn't an `Error` subclass in every runtime. */
 /** A Referer cut to its origin, as a browser sends it under
  * `strict-origin` (`https://host/`), or null when absent or unparseable or
  * not an http(s) URL. See where `proxy` forwards it. */
@@ -240,6 +238,8 @@ export function originOfReferer(referer: string | null): string | null {
   }
 }
 
+/** Structural, not `instanceof Error`: the abort reason is a `DOMException`,
+ * which isn't an `Error` subclass in every runtime. */
 function isTimeout(err: unknown): boolean {
   const name = typeof err === 'object' && err !== null ? (err as { name?: unknown }).name : undefined;
   return name === 'TimeoutError' || name === 'AbortError';

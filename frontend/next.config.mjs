@@ -52,9 +52,6 @@ const OFFLINE_PAGE_CSP = [
   "style-src 'self' 'unsafe-inline'",
 ].join('; ');
 
-// `/api/*`: the backend proxy. It returns JSON and redirects, never a page,
-// so if a response were ever rendered as a document it should be able to do
-// nothing at all.
 // Referrer-Policy for every response, and the stricter one for the pages
 // whose path carries a share or invite token (see headers()).
 const REFERRER_POLICY = 'strict-origin-when-cross-origin';
@@ -81,6 +78,9 @@ const UNHASHED_ASSET_SOURCES = [
   '/manifest.webmanifest',
 ];
 
+// `/api/*`: the backend proxy. It returns JSON and redirects, never a page,
+// so if a response were ever rendered as a document it should be able to do
+// nothing at all.
 const API_CSP = ["default-src 'none'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'none'"].join('; ');
 
 // Cloudflare is in front of the (single-replica) origin

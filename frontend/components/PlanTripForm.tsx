@@ -70,13 +70,13 @@ function XIcon() {
   );
 }
 
-/** A typed station, `tiploc:` or `group:` code in "Call at"; From and To
- * also take a TfL stop's id. */
 /** How often the untouched "now" date and time defaults catch up with the
  * clock: well inside a minute, so the time shown is never a minute behind
  * for long. */
 const DEFAULT_TIME_REFRESH_MS = 15_000;
 
+/** A typed station, `tiploc:` or `group:` code in "Call at"; From and To
+ * also take a TfL stop's id. */
 const typedWaypointCode = (text: string) => typedPlannerCode(text, { tflStops: false });
 const typedEndCode = (text: string) => typedPlannerCode(text, { tflStops: true });
 
