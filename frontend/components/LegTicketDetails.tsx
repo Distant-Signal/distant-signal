@@ -59,7 +59,7 @@ export function LegTicketDetails({
   const [ticketType, setTicketType] = useState<LegTicketType>(ticket?.ticketType ?? 'unknown');
   const [operatorOnly, setOperatorOnly] = useState(ticket?.operatorOnly ?? false);
   const [name, setName] = useState(ticket?.name ?? '');
-  const [fromWallet, setFromWallet] = useState<{ departureDate: string | null } | null>(null);
+  const [fromWallet, setFromWallet] = useState<{ departureDate: string | null; prefillToken: string } | null>(null);
   const [walletNote, setWalletNote] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -93,7 +93,7 @@ export function LegTicketDetails({
       const prefill = (await response.json()) as LegTicketPrefill;
       setTicketType(prefill.ticketType);
       setOperatorOnly(prefill.operatorOnly);
-      setFromWallet({ departureDate: prefill.departureDate });
+      setFromWallet({ departureDate: prefill.departureDate, prefillToken: prefill.prefillToken });
       setWalletNote(
         prefill.departureDateMatchesLeg === false && prefill.departureDate
           ? `Filled in from your pass. It's for ${formatDate(prefill.departureDate)}, not this leg's date: check it's the right ticket.`
@@ -116,6 +116,10 @@ export function LegTicketDetails({
         name: name.trim() === '' ? null : name.trim(),
         source: fromWallet ? 'wallet' : (ticket?.source ?? 'manual'),
         departureDate: fromWallet ? fromWallet.departureDate : (ticket?.departureDate ?? null),
+        // The proof a pass was read for this leg; the api refuses a Wallet
+        // source without it (a ticket already saved from a pass, saved again
+        // unchanged, needs none).
+        ...(fromWallet ? { prefillToken: fromWallet.prefillToken } : {}),
       };
       const response = await fetch(base, {
         method: 'PUT',
