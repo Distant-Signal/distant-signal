@@ -64,7 +64,18 @@ export function TrackedTrainRowMenu({
 
   return (
     <>
-      <Menu position="bottom-end" withinPortal>
+      <Menu
+        position="bottom-end"
+        withinPortal
+        // Same pair as AccountMenu, for the same reason: Mantine's
+        // initial-focus placeholder is a `<div role="presentation">` inside
+        // the `role="menu"` dropdown, and axe's `aria-required-children`
+        // (serious) fires on it while the menu is open. The placeholder only
+        // exists to stop focus jumping past items that are all
+        // `tabindex="-1"`, so it can go once the items are in the tab order.
+        menuItemTabIndex={0}
+        withInitialFocusPlaceholder={false}
+      >
         <Menu.Target>
           <ActionIcon ref={kebabRef} variant="subtle" color="gray" aria-label={`More actions for ${displayName}`}>
             <KebabIcon />

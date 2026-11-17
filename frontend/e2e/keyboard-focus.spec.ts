@@ -97,11 +97,18 @@ async function expectDialogContract(page: Page, trigger: Locator, overlay: Locat
     }
   }
 
-  await page.keyboard.press('Escape');
   // A filter panel's first Escape only closes an open option list (ListFilterBar
-  // does that on purpose), so one more may be needed.
-  if (await overlay.isVisible()) await page.keyboard.press('Escape');
-  await expect(overlay).toBeHidden();
+  // does that on purpose), so one more may be needed. Decide that from whether
+  // the overlay closes, not from `isVisible()` straight after the press: a
+  // closing overlay is still visible while it fades out, and a second Escape
+  // fired into that transition raced the focus return checked below.
+  let escapes = 0;
+  await expect(async () => {
+    expect(escapes, 'the dialog to close within two Escapes').toBeLessThan(2);
+    escapes += 1;
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden({ timeout: 2000 });
+  }).toPass({ timeout: 10_000 });
   await expect(trigger, 'focus to return to the control that opened the dialog').toBeFocused();
 }
 
