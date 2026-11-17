@@ -319,7 +319,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <Divider />
           <Stack gap="sm">
             <SectionTitle>Danger zone</SectionTitle>
-            <DeleteGroupButton groupId={id} name={group.name} />
+            <DeleteGroupButton groupId={id} name={group.name} memberCount={group.memberCount} />
           </Stack>
         </>
       )}

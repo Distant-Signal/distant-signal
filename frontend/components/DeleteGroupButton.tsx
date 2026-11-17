@@ -1,6 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { ConfirmActionButton } from './ConfirmActionButton';
+import { deleteGroup } from '@/lib/groupDelete';
 
 /** `owner`-only "Delete group" control for `DELETE /groups/{id}` (spec §3:
  * "Delete the group entirely | `owner` only" -- the caller renders this
@@ -27,15 +29,30 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * outline treatment since it's the control most viewers actually want. The
  * confirm modal below is unchanged: this is a visual-precedence fix, not a
  * safety one, and the two-step confirm is still exactly as hard to
- * trigger by accident as it was before. */
-export function DeleteGroupButton({ groupId, name }: { groupId: string; name: string }) {
+ * trigger by accident as it was before.
+ *
+ * `memberCount` is the count the page showed (`GET /groups/{id}`). It is
+ * sent with the delete (`expectedMemberCount`): if someone joined or left
+ * since the page was opened, the api deletes nothing (`409 group_changed`),
+ * the page refreshes and the dialog asks the owner to look again
+ * (`lib/groupDelete.ts`). */
+export function DeleteGroupButton({
+  groupId,
+  name,
+  memberCount,
+}: {
+  groupId: string;
+  name: string;
+  memberCount: number;
+}) {
+  const router = useRouter();
   return (
     <ConfirmActionButton
       label="Delete group"
       confirmLabel="Delete"
       actionName="delete group"
       title={`Delete ${name}?`}
-      request={() => fetch(`/api/groups/${groupId}`, { method: 'DELETE' })}
+      request={() => deleteGroup(groupId, memberCount, () => router.refresh())}
       failure={['delete', 'this group']}
       loginPrompt="Log in to delete this group"
       onSuccess={(router) => router.push('/groups')}
