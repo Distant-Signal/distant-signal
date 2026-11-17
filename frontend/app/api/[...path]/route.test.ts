@@ -205,6 +205,28 @@ describe('/api/[...path] proxy', () => {
     expect((plain as { headers: Record<string, string> }).headers['Idempotency-Key']).toBeUndefined();
   });
 
+  it('drops an Idempotency-Key that is too long or not visible ASCII', async () => {
+    const path = ['Journeys', 'itinerary'];
+    const sent = async (key: string): Promise<string | undefined> => {
+      vi.mocked(fetch).mockClear();
+      await POST(
+        makeRequest('/api/Journeys/itinerary', {
+          method: 'POST',
+          headers: { origin: 'http://localhost:3000', 'idempotency-key': key },
+          body: '{}',
+        }),
+        { params: Promise.resolve({ path }) },
+      );
+      const [, init] = vi.mocked(fetch).mock.calls[0]!;
+      return (init as { headers: Record<string, string> }).headers['Idempotency-Key'];
+    };
+    expect(await sent('a'.repeat(128))).toBe('a'.repeat(128));
+    expect(await sent('a'.repeat(129))).toBeUndefined();
+    expect(await sent('has space')).toBeUndefined();
+    expect(await sent('caf\u00e9')).toBeUndefined();
+    expect(await sent('   ')).toBeUndefined();
+  });
+
   it('omits Origin/Referer from the outbound fetch when the browser sent neither', async () => {
     const req = makeRequest('/api/auth/logout', { method: 'POST' });
     await POST(req, { params: Promise.resolve({ path: ['auth', 'logout'] }) });
