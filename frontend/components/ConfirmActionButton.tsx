@@ -6,7 +6,8 @@ import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
-import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { readApiError } from '@/lib/apiError';
+import { describeApiError, describeFailure, failureFromResponse } from '@/lib/failure';
 import { scheduleDelete, type DeleteKind } from '@/lib/pendingDeletes';
 
 type AppRouter = ReturnType<typeof useRouter>;
@@ -75,18 +76,6 @@ export interface ConfirmActionButtonProps {
         afterSchedule?: ((router: AppRouter) => void) | undefined;
       }
     | undefined;
-}
-
-/** Whether a 403 body is the api's `recent_login_required` error. */
-function isRecentLoginRequired(body: string): boolean {
-  try {
-    const parsed: unknown = JSON.parse(body);
-    return (
-      typeof parsed === 'object' && parsed !== null && (parsed as { error?: unknown }).error === 'recent_login_required'
-    );
-  } catch {
-    return false;
-  }
 }
 
 /** The app's one "are you sure?" control: a trigger button that opens a
@@ -172,11 +161,11 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
             needsLoginState.markNeedsLogin();
           } else if (reauth && response.status === 403) {
             // Read once, then hand the same body on if it is another refusal.
-            const text = await response.text();
-            if (isRecentLoginRequired(text)) {
+            const refusal = await readApiError(response);
+            if (refusal.code === 'recent_login_required') {
               setNeedsReauth(true);
             } else {
-              setError(await failureFromResponse(verb, noun, new Response(text, { status: 403 })));
+              setError(describeApiError(verb, noun, refusal));
             }
           } else {
             setError(await failureFromResponse(verb, noun, response));

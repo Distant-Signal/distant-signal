@@ -3,23 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConfirmActionButton } from './ConfirmActionButton';
+import { readApiError } from '@/lib/apiError';
 import { deleteGroup } from '@/lib/groupDelete';
 
 /** The error line shown when the api refused a leave because the caller
  * turned out to be the only member after all. */
 const ONLY_MEMBER_NOTE = "You're the only member, so you can't leave without deleting this group.";
-
-/** Whether a 409 body is the api's `owner_must_delete` refusal. */
-function isOwnerMustDelete(body: string): boolean {
-  try {
-    const parsed: unknown = JSON.parse(body);
-    return (
-      typeof parsed === 'object' && parsed !== null && (parsed as { error?: unknown }).error === 'owner_must_delete'
-    );
-  } catch {
-    return false;
-  }
-}
 
 /** Self-removal, always allowed for any member (spec §3) -- unlike
  * `RemoveMemberButton`, this targets the CURRENT user's own member id, so it
@@ -94,7 +83,7 @@ export function LeaveGroupButton({
       title="Leave this group?"
       request={async () => {
         const response = await fetch(`/api/groups/${groupId}/members/${memberId}`, { method: 'DELETE' });
-        if (response.status === 409 && isOwnerMustDelete(await response.clone().text())) {
+        if (response.status === 409 && (await readApiError(response.clone())).code === 'owner_must_delete') {
           // The dialog turns into the deletion prompt; this is its error line.
           setRefused(true);
           return new Response(ONLY_MEMBER_NOTE, { status: 409 });

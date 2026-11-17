@@ -42,6 +42,30 @@ describe('asSentence', () => {
   });
 });
 
+describe('failureFromResponse with a typed refusal', () => {
+  it("shows the message of the api's JSON refusal", async () => {
+    const response = new Response(
+      JSON.stringify({ error: 'miss_window_closed', message: "It's too late to change this journey." }),
+      { status: 409, headers: { 'Content-Type': 'application/json' } },
+    );
+    expect(await failureFromResponse('update', 'these trains', response)).toBe("It's too late to change this journey.");
+  });
+
+  it('falls back when the JSON has no readable message', async () => {
+    const response = new Response('{"error":"leg_travelled"}', { status: 409 });
+    expect(await failureFromResponse('update', 'these trains', response)).toBe(
+      "Couldn't update these trains. It changed in the meantime. Reload and try again.",
+    );
+  });
+
+  it('never shows the message of a server error', async () => {
+    const response = new Response('{"error":"internal","message":"Something broke in the database."}', {
+      status: 500,
+    });
+    expect(await failureFromResponse('save', 'this line', response)).toBe("Couldn't save this line. Try again.");
+  });
+});
+
 describe('failureFromResponse', () => {
   it('shows the API sentence for a refusal the visitor can act on', async () => {
     const response = new Response('that member is already an admin or the owner', { status: 409 });
