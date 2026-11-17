@@ -302,6 +302,7 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
     const row = (overrides: Partial<JourneyListItem>): JourneyListItem => ({
       ...JOURNEY_LIST_ITEM_DEFAULTS,
       id: 1,
+      publicId: 'j_1',
       customName: null,
       createdAt: '2026-10-20T00:00:00Z',
       legId: 1,
@@ -340,6 +341,7 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
     const row: JourneyListItem = {
       ...JOURNEY_LIST_ITEM_DEFAULTS,
       id: 1,
+      publicId: 'j_1',
       customName: null,
       createdAt: '2026-10-20T00:00:00Z',
       legId: 1,

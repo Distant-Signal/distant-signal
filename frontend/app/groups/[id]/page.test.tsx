@@ -963,6 +963,7 @@ describe('GroupDetailPage', () => {
       return {
         ...GROUP_JOURNEY_DEFAULTS,
         journeyId: 501,
+        journeyPublicId: 'j_501',
         customName: null,
         legCount: 1,
         pinOriginCrs: 'WOK',

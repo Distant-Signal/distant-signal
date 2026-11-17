@@ -292,7 +292,16 @@ describe('JourneysPage', () => {
   it('renders the digest from the reliability route for a caller with only finished journeys', async () => {
     vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
     vi.mocked(api.getMyReliability).mockResolvedValue({
-      trains: [{ ...RELIABILITY_TRAIN_DEFAULTS, journeyId: 3, legId: 4, serviceDate: '2026-08-30', delayMinutes: 0 }],
+      trains: [
+        {
+          ...RELIABILITY_TRAIN_DEFAULTS,
+          journeyId: 3,
+          journeyPublicId: 'j_3',
+          legId: 4,
+          serviceDate: '2026-08-30',
+          delayMinutes: 0,
+        },
+      ],
       journeys: [],
     });
     renderWithMantine(await JourneysPage());
@@ -872,6 +881,7 @@ describe('JourneysPage', () => {
       const row: JourneyListItem = {
         ...(JOURNEY_ROW as typeof JOURNEY_LIST_ITEM_DEFAULTS),
         id: 169,
+        publicId: 'j_169',
         customName: null,
         createdAt: '2026-09-22T18:13:54Z',
         legId: 194,
@@ -1120,6 +1130,7 @@ describe('JourneysPage', () => {
         ): ReliabilityJourney => ({
           ...RELIABILITY_JOURNEY_DEFAULTS,
           journeyId,
+          journeyPublicId: `j_${journeyId}`,
           serviceDate,
           delayMinutes: 35,
           estimate: {

@@ -59,6 +59,7 @@ function journey(legs: JourneyLegDetail[]): JourneyDetail {
   return {
     ...JOURNEY_DETAIL_DEFAULTS,
     id: 1,
+    publicId: 'j_1',
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     legs,

@@ -149,7 +149,7 @@ export function untrackedLeg(
 }
 
 export function journeyDetail(id: number, legs: JourneyLegDetail[], customName: string | null = null): JourneyDetail {
-  return { ...JOURNEY_DETAIL_DEFAULTS, id, customName, legs };
+  return { ...JOURNEY_DETAIL_DEFAULTS, id, publicId: `j_test${id}`, customName, legs };
 }
 
 /** The `GET /Journeys/mine` row for a journey, its current leg being the
@@ -165,6 +165,7 @@ export function journeyListItem(
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: detail.id,
+    publicId: detail.publicId,
     customName: detail.customName,
     createdAt: detail.createdAt,
     legId: current?.id ?? 0,
@@ -214,6 +215,7 @@ export function loneTrain(id: number, overrides: Partial<TrackedTrainListItem> =
     customName: null,
     sharedGroupCount: 0,
     journeyIds: [],
+    journeyPublicIds: [],
     travelled: false,
     trackingPhase: 'planned',
     ...overrides,

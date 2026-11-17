@@ -9,6 +9,7 @@ function journey(overrides: Partial<GroupJourney> = {}): GroupJourney {
   return {
     ...GROUP_JOURNEY_DEFAULTS,
     journeyId: 1,
+    journeyPublicId: 'j_1',
     customName: null,
     legCount: 2,
     pinOriginCrs: null,

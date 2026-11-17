@@ -10,6 +10,7 @@ function journey(id: number, departsAt: string, travelled: boolean, extra: Parti
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
+    publicId: `j_${id}`,
     customName: null,
     createdAt: '2026-08-01T00:00:00Z',
     legId: id,

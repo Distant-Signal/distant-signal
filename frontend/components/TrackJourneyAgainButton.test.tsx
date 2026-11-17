@@ -39,6 +39,7 @@ function journey(legs: JourneyLegDetail[], isOwner = true): JourneyDetail {
   return {
     ...JOURNEY_DETAIL_DEFAULTS,
     id: 167,
+    publicId: 'j_167',
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     legs,

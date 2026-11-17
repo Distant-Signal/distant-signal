@@ -33,6 +33,7 @@ function journey(overrides: Partial<JourneyListItem> = {}): JourneyListItem {
   const row: JourneyListItem = {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id: 1,
+    publicId: 'j_1',
     customName: null,
     createdAt: '2026-10-01T09:00:00Z',
     legId: 10,
@@ -181,6 +182,7 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
     return {
       ...GROUP_JOURNEY_DEFAULTS,
       journeyId: 1,
+      journeyPublicId: 'j_1',
       customName: null,
       legCount: 2,
       pinOriginCrs: 'KGX',
