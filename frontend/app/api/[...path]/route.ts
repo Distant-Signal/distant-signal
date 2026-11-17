@@ -378,6 +378,15 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       headers[name] = value;
     }
   }
+  // The browser's `Idempotency-Key` (the itinerary save, a replan accept or
+  // a leg replace): the api answers a retry with the first response only if
+  // it sees the key. Only a sane one goes on (1 to 128 visible ASCII
+  // characters, as the api's own check but tighter); anything else is
+  // dropped, as the proxy forwards no other free-form header.
+  const idempotencyKey = req.headers.get('idempotency-key')?.trim();
+  if (idempotencyKey && /^[\x21-\x7e]{1,128}$/.test(idempotencyKey)) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
   // A conditional GET, so a feed reader (or the edge) revalidating an Atom
   // feed (`/api/feeds/...`, docs/feeds.md) gets the api's 304.
   const ifNoneMatch = req.headers.get('if-none-match');
