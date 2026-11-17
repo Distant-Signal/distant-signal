@@ -1,6 +1,7 @@
 import { clientIpFromHeaders } from './clientIp';
 import { createLogger } from './logger';
 import { NOINDEX_HEADER, PREVIEW_ERROR_CACHE_CONTROL, TOKEN_PREVIEW_CACHE_CONTROL } from './livePreview';
+import { redactTokens } from './redactUrl';
 import { PreviewRateLimiter, rateLimitKey } from './previewRateLimit';
 
 const log = createLogger('lib/previewRoute');
@@ -41,7 +42,7 @@ export function guardPreview<Ctx>(
     try {
       return await handler(request, ctx);
     } catch (err) {
-      log.warn('link-preview image unavailable', { error: String(err) });
+      log.warn('link-preview image unavailable', { error: redactTokens(String(err)) });
       return new Response('Preview unavailable', {
         status: 503,
         headers: { 'Cache-Control': cacheControl, 'Retry-After': '30', ...NOINDEX_HEADER },

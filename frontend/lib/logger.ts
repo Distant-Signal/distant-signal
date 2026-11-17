@@ -23,6 +23,8 @@
  * logged.
  */
 
+import { redactTokens } from './redactUrl';
+
 export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 export type LogFields = Record<string, unknown>;
 
@@ -57,7 +59,7 @@ export function errorText(err: unknown): string {
       break;
     }
   }
-  return parts.join(': ');
+  return redactTokens(parts.join(': '));
 }
 
 function safeString(value: unknown): string {

@@ -144,5 +144,8 @@ describe('helpers', () => {
   it('renders error text for odd values', () => {
     expect(errorText('plain')).toBe('plain');
     expect(errorText(new RangeError('bad'))).toBe('RangeError: bad');
+    expect(errorText(new Error('API request to http://api/Journeys/shared/s3cret failed: 500'))).toBe(
+      'API request to http://api/Journeys/shared/[REDACTED] failed: 500',
+    );
   });
 });
