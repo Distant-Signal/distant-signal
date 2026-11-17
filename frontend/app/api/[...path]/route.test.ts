@@ -405,6 +405,23 @@ describe('/api/[...path] proxy', () => {
       expect(res.headers.get('cache-control')).toBe('no-store');
     });
 
+    it('adds Cache-Control: private, no-store when the api sent none, and keeps one it did', async () => {
+      const bare = await GET(makeRequest('/api/preferences'), { params: Promise.resolve({ path: ['preferences'] }) });
+      expect(bare.headers.get('cache-control')).toBe('private, no-store');
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response('{}', { status: 200, headers: { 'Cache-Control': 'private, max-age=60' } }),
+      );
+      const kept = await GET(makeRequest('/api/preferences'), { params: Promise.resolve({ path: ['preferences'] }) });
+      expect(kept.headers.get('cache-control')).toBe('private, max-age=60');
+    });
+
+    it('leaves an upstream error without Cache-Control alone (no-store on one stalls unread-body pages)', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(new Response('nope', { status: 404 }));
+      const res = await GET(makeRequest('/api/preferences'), { params: Promise.resolve({ path: ['preferences'] }) });
+      expect(res.status).toBe(404);
+      expect(res.headers.get('cache-control')).toBeNull();
+    });
+
     it('passes X-Generated-At through (live departure board sample time)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce(
         new Response('[]', {

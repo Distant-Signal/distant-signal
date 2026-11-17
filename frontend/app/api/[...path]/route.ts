@@ -265,8 +265,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // or HEAD of an allowlisted path and the api itself answered `public`.
   const cachePolicyOn = publicCacheEnabled();
   const cacheCandidate = cachePolicyOn && isPublicCacheCandidate(req.method, path, req.headers);
+  // Every response the proxy generates itself is private, flag or no flag.
   const locked = (res: NextResponse): NextResponse => {
-    if (cachePolicyOn) lockDown(res.headers);
+    lockDown(res.headers);
     return res;
   };
 
@@ -515,6 +516,17 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       responseHeaders.set('Cache-Control', publicHeaders.cacheControl);
       if (publicHeaders.vary) responseHeaders.set('Vary', publicHeaders.vary);
     }
+  }
+  // Whatever the flag: personal JSON must never be stored by a shared cache
+  // or the browser's heuristics, so a response the api sent no
+  // `Cache-Control` with (and that is not public under the policy) is made
+  // private. An upstream value is kept as it came. Only for a success or
+  // 304: an error carries no personal data, and `no-store` on one whose body
+  // the page never reads (a 401 or 404 it only checks the status of) left
+  // Chromium holding the request open, so Playwright's `networkidle` never
+  // came (the regular journey pages' visual tests).
+  if (publicHeaders === null && response.status < 400 && !responseHeaders.has('Cache-Control')) {
+    lockDown(responseHeaders);
   }
   if (publicHeaders === null) {
     for (const setCookie of setCookies) {
