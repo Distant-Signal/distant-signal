@@ -27,4 +27,12 @@ describe('BrowserSecretsGuard', () => {
     expect(sessionStorage.getItem('ds-anthropic-api-key')).toBe('sk-ant-old');
     expect(localStorage.getItem('ds-anthropic-api-key')).toBeNull();
   });
+
+  it('leaves the secrets alone when the session check failed', () => {
+    sessionStorage.setItem('ds-anthropic-api-key', 'sk-ant-x');
+    sessionStorage.setItem('ds-mcp-oauth:tokens', '{}');
+    render(<BrowserSecretsGuard signedIn={null} />);
+    expect(sessionStorage.getItem('ds-anthropic-api-key')).toBe('sk-ant-x');
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBe('{}');
+  });
 });

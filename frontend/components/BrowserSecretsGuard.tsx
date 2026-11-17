@@ -14,10 +14,13 @@ import { migrateLegacySecrets } from '@/lib/secretStorage';
  * - Not logged in (the session expired, or the visitor logged out
  *   elsewhere): clears them. The grant is bound to the identity that
  *   approved it, so it must not carry over to the next person on a shared
- *   browser. A failed session check also reads as not logged in; the cost
- *   is entering the key again. */
-export function BrowserSecretsGuard({ signedIn }: { signedIn: boolean }) {
+ *   browser.
+ * - `null` (the session check itself failed, so the state is unknown):
+ *   leaves everything alone, so a transient api error does not wipe the
+ *   key and the chat connection. */
+export function BrowserSecretsGuard({ signedIn }: { signedIn: boolean | null }) {
   useEffect(() => {
+    if (signedIn === null) return;
     if (signedIn) migrateLegacySecrets();
     else clearBrowserAccountData();
   }, [signedIn]);
