@@ -151,19 +151,25 @@ function resolveTargetPath(path: string[]): string {
  * and doesn't match this app's real public origin (`getSiteOrigin()`, not
  * `req.nextUrl.origin`: this app runs under plain `next start` with no
  * host config, so `req.nextUrl.origin` is always the bare bound host, never
- * the public origin a browser's `Origin` header carries). An ABSENT Origin is let through rather than
- * rejected: some legitimate same-origin requests (and any non-browser API
- * client that exists) may not send one, and this app has no CSRF-token
- * convention to fall back on to tell those apart from a forged request --
- * same posture the consent bridge's `isSameOriginRequest` took, except
- * that route also fell back to Referer, which this shared proxy does not
- * (its ~50 call sites are same-origin `fetch()` calls that always send
- * Origin on a non-GET request in every browser this app supports, so a
- * Referer fallback would add complexity with no real call site to serve). */
+ * the public origin a browser's `Origin` header carries). An ABSENT Origin
+ * is let through unless `Sec-Fetch-Site` (sent by every current browser)
+ * says `cross-site` or `same-site`: a non-browser API client sends neither
+ * header and keeps working, and a same-origin browser request says
+ * `same-origin` or `none`. Referer is not consulted (the ~50 call sites are
+ * same-origin `fetch()` calls that always send Origin on a non-GET request,
+ * so a Referer fallback would add complexity with no real call site to serve). */
 async function hasAcceptableOriginForMutation(req: NextRequest): Promise<boolean> {
   if (req.method === 'GET' || req.method === 'HEAD') return true;
   const origin = req.headers.get('origin');
-  if (origin === null) return true;
+  if (origin === null) {
+    // No Origin: browsers that omit it still send `Sec-Fetch-Site`, which
+    // names where the request came from. A mutation from another site, or
+    // a sibling subdomain (`same-site`), is refused; `same-origin`, `none`
+    // and a client that sends no `Sec-Fetch-Site` at all (non-browser
+    // clients, older browsers) pass as before.
+    const site = req.headers.get('sec-fetch-site')?.trim().toLowerCase();
+    return site !== 'cross-site' && site !== 'same-site';
+  }
   const expectedOrigin = await getSiteOrigin();
   return origin === expectedOrigin;
 }

@@ -537,6 +537,40 @@ describe('/api/[...path] proxy', () => {
       expect(fetch).toHaveBeenCalled();
     });
 
+    describe('with no Origin header, by Sec-Fetch-Site', () => {
+      const post = (extra: Record<string, string>) =>
+        POST(
+          makeRequest('/api/preferences', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', ...extra },
+            body: '{}',
+          }),
+          { params: Promise.resolve({ path: ['preferences'] }) },
+        );
+
+      it.each(['cross-site', 'same-site'])('403s a POST from %s', async (site) => {
+        const res = await post({ 'sec-fetch-site': site });
+        expect(res.status).toBe(403);
+        expect(fetch).not.toHaveBeenCalled();
+      });
+
+      it.each(['same-origin', 'none'])('accepts a POST that is %s', async (site) => {
+        expect((await post({ 'sec-fetch-site': site })).status).toBe(200);
+      });
+
+      it('403s a foreign or null Origin whatever Sec-Fetch-Site says', async () => {
+        expect((await post({ origin: 'https://evil.example.com', 'sec-fetch-site': 'same-origin' })).status).toBe(403);
+        expect((await post({ origin: 'null' })).status).toBe(403);
+      });
+
+      it('never blocks a cross-site GET', async () => {
+        const res = await GET(makeRequest('/api/preferences', { headers: { 'sec-fetch-site': 'cross-site' } }), {
+          params: Promise.resolve({ path: ['preferences'] }),
+        });
+        expect(res.status).toBe(200);
+      });
+    });
+
     // A GET is never subject to this check at all, matching header,
     // mismatched header, or none.
     it('never blocks a GET, regardless of Origin', async () => {
