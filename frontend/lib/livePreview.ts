@@ -36,9 +36,12 @@ import type { SeverityGroup } from './severity';
 export const LIVE_PREVIEW_REVALIDATE_SECONDS = 60;
 
 /** A minute fresh, then served stale while one request fetches the new
- * state. A changed state also gets a new `?v=` on the page, so a link
- * shared after the change never waits for this. */
-export const LIVE_PREVIEW_CACHE_CONTROL = `public, max-age=${LIVE_PREVIEW_REVALIDATE_SECONDS}, s-maxage=${LIVE_PREVIEW_REVALIDATE_SECONDS}, stale-while-revalidate=300`;
+ * state, and for up to an hour while the origin answers with an error (the
+ * 503 `guardPreview` sends during an api outage), so the CDN keeps the
+ * last good card rather than the error. A changed state also gets a new
+ * `?v=` on the page, so a link shared after the change never waits for
+ * this. */
+export const LIVE_PREVIEW_CACHE_CONTROL = `public, max-age=${LIVE_PREVIEW_REVALIDATE_SECONDS}, s-maxage=${LIVE_PREVIEW_REVALIDATE_SECONDS}, stale-while-revalidate=300, stale-if-error=3600`;
 
 /** A capability-token card (`/journeys/shared/<token>/card.png`,
  * `/groups/join/<token>/card.png`), its 404 and its errors: stored by no
