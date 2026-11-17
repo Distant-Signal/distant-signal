@@ -15,7 +15,7 @@ function schedule(id: number) {
   act(() => {
     scheduleDelete({
       kind: 'journey',
-      id,
+      id: String(id),
       message: 'Journey deleted',
       url: `/api/Journeys/${String(id)}`,
       failure: ['delete', 'the journey'],

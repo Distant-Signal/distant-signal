@@ -44,8 +44,8 @@ export function RemoveJourneyLegButton({
   legId,
   isOnlyLeg,
 }: {
-  journeyId: number;
-  legId: number;
+  journeyId: string;
+  legId: string;
   isOnlyLeg: boolean;
 }) {
   return (

@@ -11,6 +11,7 @@ import {
   TRACKED_TRAIN_STATE_DEFAULTS,
   TRIP_PLAN_DEFAULTS,
   plannedTrainLeg,
+  testPublicId,
 } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
@@ -97,10 +98,10 @@ function mockFetchByUrl(
     if (url === '/api/Journeys/itinerary' && init?.method === 'POST' && options.itinerary) {
       return Promise.resolve(options.itinerary());
     }
-    if (url === '/api/Journeys/99' && (init?.method === undefined || init.method === 'GET')) {
+    if (url === `/api/Journeys/${testPublicId(99)}` && (init?.method === undefined || init.method === 'GET')) {
       return Promise.resolve((options.journeyDetail ?? (() => journeyDetailResponse([leg()])))());
     }
-    if (url === '/api/Journeys/99/legs' && init?.method === 'POST') {
+    if (url === `/api/Journeys/${testPublicId(99)}/legs` && init?.method === 'POST') {
       return Promise.resolve(
         (options.addLeg ?? (() => new Response(JSON.stringify({ legId: 2, trackingId: null }), { status: 200 })))(),
       );
@@ -116,7 +117,7 @@ async function createLegOne(fetchMock: ReturnType<typeof vi.fn>) {
   });
   fireEvent.click(screen.getByRole('button', { name: /Track this train/ }));
   await waitFor(() =>
-    expect(fetchMock.mock.calls.some((call: unknown[]) => call[0] === '/api/Journeys/99')).toBe(true),
+    expect(fetchMock.mock.calls.some((call: unknown[]) => call[0] === `/api/Journeys/${testPublicId(99)}`)).toBe(true),
   );
 }
 
@@ -276,7 +277,9 @@ describe('JourneyCreationFlow', () => {
     fireEvent.change(screen.getByLabelText('Earliest departure (optional)'), { target: { value: '09:00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add leg' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/99/legs', expect.anything()));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/${testPublicId(99)}/legs`, expect.anything()),
+    );
     await waitFor(() => expect(journeyFetchCount).toBe(2));
     // The re-fetched journey now has two legs -- both should be reflected.
     expect(await screen.findAllByText(/Leg \d/)).toHaveLength(2);

@@ -5,6 +5,7 @@ import JourneyDetailPage from './page';
 import * as api from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import {
+  testLegId,
   testPublicId,
   JOURNEY_DETAIL_DEFAULTS,
   JOURNEY_LEG_DEFAULTS,
@@ -535,7 +536,7 @@ describe('JourneyDetailPage "Download calendar file" button', () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValueOnce({ calendarFeedEnabled: true } as never);
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true }));
     await renderPage();
-    const id = baseJourney({ isOwner: true }).id;
+    const id = testPublicId(167);
     vi.mocked(fetch).mockResolvedValueOnce(new Response('no journey with that id', { status: 404 }));
     const createObjectURL = vi.fn(() => 'blob:x');
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
@@ -710,6 +711,7 @@ describe('JourneyDetailPage break deep link', () => {
     fault: 'operator' as const,
     severity: 3 as const,
     triggerLegId: 1,
+    triggerLegPublicId: testLegId(1),
     detectedAt: '2026-09-22T17:00:00Z',
     suggestionsReady: true,
     stale: false,
@@ -742,7 +744,9 @@ describe('JourneyDetailPage break deep link', () => {
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true, openBreak }));
     await renderWithQuery({ break: '5', src: 'push' });
     expect(screen.getByText('Loading trains')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/167/breaks/current?src=push', { method: 'GET' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/${testPublicId(167)}/breaks/current?src=push`, {
+      method: 'GET',
+    });
   });
 
   it('only shows the banner for another break id', async () => {

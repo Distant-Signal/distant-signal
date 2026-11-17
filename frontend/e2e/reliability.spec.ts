@@ -87,8 +87,8 @@ test.describe('reliability from journey legs', () => {
   });
 });
 
-async function legId(page: import('@playwright/test').Page): Promise<number> {
+async function legId(page: import('@playwright/test').Page): Promise<string> {
   const response = await page.request.get(`/api/Journeys/${JOURNEY_ID}`);
-  const journey = (await response.json()) as { legs: { id: number }[] };
-  return journey.legs[0]!.id;
+  const journey = (await response.json()) as { legs: { publicId: string }[] };
+  return journey.legs[0]!.publicId;
 }

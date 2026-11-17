@@ -234,7 +234,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
   let loggedIn = false;
   let readable = false;
   try {
-    await getJourney(journey.id);
+    await getJourney(journey.publicId);
     readable = true;
   } catch (err) {
     if (!(err instanceof ApiNotFoundError) && !(err instanceof ApiUnauthorizedError)) {
@@ -272,7 +272,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
       </Text>
       {loggedIn && (
         <FollowJourneyButton
-          journeyId={journey.id}
+          journeyId={journey.publicId}
           following={false}
           shareToken={token}
           afterFollowHref={`/journeys/${journey.publicId}`}

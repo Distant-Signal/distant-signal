@@ -19,7 +19,7 @@ import { trackFeature } from '@/lib/usageAnalytics';
  * using only Avanti West Coast", with Change (the planner's own operator
  * field) and Remove (`PUT /Journeys/{id}/operator-filter`). A change
  * re-plans nothing until the next replan. */
-export function JourneyOperatorFilter({ journeyId, filter }: { journeyId: number; filter: Filter }) {
+export function JourneyOperatorFilter({ journeyId, filter }: { journeyId: string; filter: Filter }) {
   const router = useRouter();
   const [catalogue, setCatalogue] = useState<PlannerOperatorCatalogue | null>(null);
   const [editing, setEditing] = useState(false);
@@ -49,7 +49,7 @@ export function JourneyOperatorFilter({ journeyId, filter }: { journeyId: number
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`/api/Journeys/${String(journeyId)}/operator-filter`, {
+      const response = await fetch(`/api/Journeys/${journeyId}/operator-filter`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ operatorFilter: next }),

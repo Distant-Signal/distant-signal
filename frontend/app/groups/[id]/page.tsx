@@ -236,13 +236,16 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       <Stack gap="sm">
         <Group justify="space-between" align="baseline">
           <SectionTitle>Shared trains</SectionTitle>
-          <AddTrainToGroupButton groupId={id} excludeTrainSubscriptionIds={trains.map((t) => t.trainSubscriptionId)} />
+          <AddTrainToGroupButton
+            groupId={id}
+            excludeTrainSubscriptionIds={trains.map((t) => t.trainSubscriptionPublicId)}
+          />
         </Group>
         {trains.length === 0 ? (
           <Text c="dimmed">No trains have been shared into this group yet.</Text>
         ) : (
           trains.map((train) => (
-            <SharedTrainRow key={train.trainSubscriptionId} groupId={id} train={train} canManage={canManage} />
+            <SharedTrainRow key={train.trainSubscriptionPublicId} groupId={id} train={train} canManage={canManage} />
           ))
         )}
       </Stack>
@@ -287,13 +290,13 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       <Stack gap="sm">
         <Group justify="space-between" align="baseline">
           <SectionTitle>Shared journeys</SectionTitle>
-          <AddJourneyToGroupButton groupId={id} excludeJourneyIds={journeys.map((j) => j.journeyId)} />
+          <AddJourneyToGroupButton groupId={id} excludeJourneyIds={journeys.map((j) => j.journeyPublicId)} />
         </Group>
         {journeys.length === 0 ? (
           <Text c="dimmed">No journeys have been shared into this group yet.</Text>
         ) : (
           journeys.map((journey) => (
-            <SharedJourneyRow key={journey.journeyId} groupId={id} journey={journey} canManage={canManage} />
+            <SharedJourneyRow key={journey.journeyPublicId} groupId={id} journey={journey} canManage={canManage} />
           ))
         )}
       </Stack>
@@ -445,7 +448,9 @@ function SharedTrainRow({ groupId, train, canManage }: { groupId: string; train:
             (DS-114), so a shared train and the owner's own row read the
             same. */}
         <TrackedRowStatusBadge status={trackedTrainRowStatus(train, londonDayKey(new Date()))} />
-        {canRemove && <RemoveGroupTrainButton groupId={groupId} trainSubscriptionId={train.trainSubscriptionId} />}
+        {canRemove && (
+          <RemoveGroupTrainButton groupId={groupId} trainSubscriptionId={train.trainSubscriptionPublicId} />
+        )}
       </Group>
     </>
   );
@@ -512,9 +517,9 @@ function SharedJourneyRow({
         <TrackedRowStatusBadge status={groupJourneyRowStatus(journey, londonDayKey(new Date()))} />
         <Group gap="xs" wrap="wrap">
           {canFollow && (
-            <FollowJourneyButton journeyId={journey.journeyId} following={journey.following} groupId={groupId} />
+            <FollowJourneyButton journeyId={journey.journeyPublicId} following={journey.following} groupId={groupId} />
           )}
-          {canRemove && <RemoveGroupJourneyButton groupId={groupId} journeyId={journey.journeyId} />}
+          {canRemove && <RemoveGroupJourneyButton groupId={groupId} journeyId={journey.journeyPublicId} />}
         </Group>
       </Group>
     </ClickableCard>

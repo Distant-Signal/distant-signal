@@ -1,3 +1,4 @@
+import { trackingRef } from '@/lib/publicId';
 import { RenameTrainButton } from './RenameTrainButton';
 import { DeleteTrainButton } from './DeleteTrainButton';
 import { AddToGroupButton } from './AddToGroupButton';
@@ -57,6 +58,7 @@ export function TrackedTrainOwnerControls({
 }: {
   train: {
     id: number;
+    publicId: string;
     customName: string | null;
     pinOriginCrs: string | null;
     pinOriginName: string | null;
@@ -85,13 +87,13 @@ export function TrackedTrainOwnerControls({
         </TextLink>
       )}
       <RenameTrainButton
-        trackingId={train.id}
+        trackingId={trackingRef(train)}
         customName={train.customName}
         defaultName={trackedTrainDisplayName(train)}
       />
-      <AddToGroupButton trainSubscriptionId={train.id} />
+      <AddToGroupButton trainSubscriptionId={trackingRef(train)} />
       <DeleteTrainButton
-        trackingId={train.id}
+        trackingId={trackingRef(train)}
         sharedGroupCount={train.sharedGroupCount}
         afterDelete={afterDelete}
         inJourney={keptBy.length > 0}

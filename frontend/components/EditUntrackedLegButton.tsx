@@ -13,13 +13,14 @@ import {
   type UntrackedLegDraft,
 } from './UntrackedLegFields';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { legRef } from '@/lib/publicId';
 import type { JourneyLegDetail } from '@/lib/types';
 
 /** "Edit leg" on an untracked leg's card (spec 2026-10-20 §2.4): the same
  * fields as adding one, seeded from the leg, saved in place with `PUT
  * /Journeys/{id}/legs/{legId}` so the leg keeps its place in the journey.
  * Owner only, like every other leg action. */
-export function EditUntrackedLegButton({ journeyId, leg }: { journeyId: number; leg: JourneyLegDetail }) {
+export function EditUntrackedLegButton({ journeyId, leg }: { journeyId: string; leg: JourneyLegDetail }) {
   const router = useRouter();
   const [opened, { open, close }] = useDisclosure(false);
   const [draft, setDraft] = useState<UntrackedLegDraft>(() => untrackedDraftFromLeg(leg));
@@ -43,7 +44,7 @@ export function EditUntrackedLegButton({ journeyId, leg }: { journeyId: number; 
     setError(null);
     needsLoginState.reset();
     try {
-      const response = await fetch(`/api/Journeys/${journeyId}/legs/${leg.id}`, {
+      const response = await fetch(`/api/Journeys/${journeyId}/legs/${legRef(leg)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

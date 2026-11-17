@@ -286,7 +286,7 @@ export type TimetableCertaintyFields = Loose<Pick<Api.PublicTrainResponse, 'prov
 // sends no pin departure).
 export type TrainJourneyState = Omit<
   Api.TrackedTrainState,
-  'id' | 'sharedGroupCount' | 'journeyIds' | 'singleLegJourneyIds' | 'notificationsEnabled'
+  'id' | 'publicId' | 'sharedGroupCount' | 'journeyIds' | 'singleLegJourneyIds' | 'notificationsEnabled'
 > & { pinScheduledDeparture?: string | null };
 
 export type LineStatusHistoryEntry = LineStatusReport;

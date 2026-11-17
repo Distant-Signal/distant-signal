@@ -120,7 +120,7 @@ export function TrackThisTrainButton({
         if (groupId !== null) {
           // Best-effort: tracking has already succeeded above. Shares the
           // train's new one-leg journey (DS-124).
-          await shareTrackedTrainToGroup(groupId, result.journeyId);
+          await shareTrackedTrainToGroup(groupId, result.journeyPublicId);
         }
         router.push(`/journeys/${result.journeyPublicId}`);
         return;

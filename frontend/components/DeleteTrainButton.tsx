@@ -81,7 +81,7 @@ export type DeleteTrainButtonHandle = ConfirmActionButtonHandle;
 export const DeleteTrainButton = forwardRef<
   DeleteTrainButtonHandle,
   {
-    trackingId: number;
+    trackingId: string;
     sharedGroupCount: number;
     afterDelete?: 'redirect' | 'refresh' | undefined;
     hideTrigger?: boolean | undefined;

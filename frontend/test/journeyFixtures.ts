@@ -13,7 +13,9 @@ import {
   JOURNEY_STOP_DEFAULTS,
   TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
   TRACKED_TRAIN_STATE_DEFAULTS,
+  testLegId,
   testPublicId,
+  testTrackingId,
 } from './apiDefaults';
 
 /* Journey builders for the home page's journey tests (`lib/homeJourneys`,
@@ -58,6 +60,7 @@ export function trainState(
   return {
     ...TRACKED_TRAIN_STATE_DEFAULTS,
     id: 1,
+    publicId: testTrackingId(1),
     serviceDate: departure.slice(0, 10),
     pinOriginCrs: origin,
     pinDestinationCrs: destination,
@@ -98,6 +101,7 @@ export function trainLeg(
   return {
     ...JOURNEY_LEG_DEFAULTS,
     id,
+    publicId: testLegId(id),
     originCrs: origin[0],
     originName: origin[1],
     destinationCrs: destination[0],
@@ -126,6 +130,7 @@ export function untrackedLeg(
   return {
     ...JOURNEY_LEG_DEFAULTS,
     id,
+    publicId: testLegId(id),
     originCrs: null,
     originName: from,
     destinationCrs: null,
@@ -170,6 +175,7 @@ export function journeyListItem(
     customName: detail.customName,
     createdAt: detail.createdAt,
     legId: current?.id ?? 0,
+    legPublicId: current?.publicId ?? testLegId(0),
     originCrs: current?.originCrs ?? null,
     destinationCrs: current?.destinationCrs ?? null,
     serviceDate: current?.serviceDate ?? '2026-09-17',
@@ -185,6 +191,7 @@ export function journeyListItem(
     unmatchedLegCount: detail.legs.filter((leg) => leg.kind === 'train' && leg.trackedTrainState === null).length,
     matchMode: current?.matchMode ?? 'manual',
     trainSubscriptionId: state === null ? null : state.id,
+    trainSubscriptionPublicId: state === null ? null : state.publicId,
     resolutionStatus: state?.resolutionStatus ?? null,
     status: state?.status ?? null,
     delayMinutes: state?.delayMinutes ?? null,
@@ -202,6 +209,7 @@ export function loneTrain(id: number, overrides: Partial<TrackedTrainListItem> =
   return {
     ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id,
+    publicId: testTrackingId(id),
     serviceDate: '2026-09-17',
     pinOriginCrs: 'KGX',
     pinDestinationCrs: 'YRK',

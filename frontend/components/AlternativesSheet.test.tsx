@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { AlternativesSheet, type AlternativesMode } from './AlternativesSheet';
+import { testLegId } from '@/test/apiDefaults';
 import { breakResponse, replanSuggestion, suggestionSet, trainSuggestionLeg } from '@/test/replanFixtures';
 
 const refreshMock = vi.fn();
@@ -33,7 +34,7 @@ function mockFetch(routes: Record<string, Handler>) {
 function renderSheet(mode: AlternativesMode = { kind: 'break', breakId: 5 }, onClose = vi.fn()) {
   renderWithMantine(
     <AlternativesSheet
-      journeyId={42}
+      journeyId="42"
       mode={mode}
       opened
       onClose={onClose}
@@ -261,9 +262,9 @@ describe('AlternativesSheet', () => {
   it('only looks when "I missed this train" opens: nothing recorded, nothing to refresh on close', async () => {
     const onClose = vi.fn();
     const fetchMock = mockFetch({
-      'GET /api/Journeys/42/legs/7/alternatives?cause=missed': () => json(suggestionSet()),
+      [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`]: () => json(suggestionSet()),
     });
-    renderSheet({ kind: 'missed', legId: 7 }, onClose);
+    renderSheet({ kind: 'missed', legId: testLegId(7) }, onClose);
     // Only looking: a neutral title, never "You missed the ...".
     expect(await screen.findByRole('heading', { name: 'Other ways to Edinburgh' })).toBeInTheDocument();
     expect(screen.queryByText(/You missed/)).not.toBeInTheDocument();
@@ -281,22 +282,39 @@ describe('AlternativesSheet', () => {
 
   it('records the miss only when another train is taken', async () => {
     const fetchMock = mockFetch({
-      'GET /api/Journeys/42/legs/7/alternatives?cause=missed': () => json(suggestionSet()),
-      'POST /api/Journeys/42/legs/7/replace': () =>
+      [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`]: () => json(suggestionSet()),
+      [`POST /api/Journeys/42/legs/${testLegId(7)}/replace`]: () =>
         json({ journeyId: 42, revisionNo: 2, newLegIds: [12], undoRevisionNo: 1 }),
     });
-    renderSheet({ kind: 'missed', legId: 7 });
+    renderSheet({ kind: 'missed', legId: testLegId(7) });
     fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
     expect(await screen.findByText('Journey updated. Booked plan saved.')).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/replace'));
-    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ cause: 'missed', throughLegId: 7 });
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ cause: 'missed', throughLegId: testLegId(7) });
+  });
+
+  it('falls back to the numeric leg ids where a set stored before the opaque ids has none', async () => {
+    const stored = suggestionSet({
+      fromLegPublicId: '',
+      suggestions: [replanSuggestion({ throughLegPublicId: '' })],
+    });
+    const fetchMock = mockFetch({
+      [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`]: () => json(stored),
+      'POST /api/Journeys/42/legs/7/replace': () =>
+        json({ journeyId: 42, revisionNo: 2, newLegIds: [12], undoRevisionNo: 1 }),
+    });
+    renderSheet({ kind: 'missed', legId: testLegId(7) });
+    fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
+    expect(await screen.findByText('Journey updated. Booked plan saved.')).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/replace'));
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ throughLegId: '7' });
   });
 
   it("says a miss after a late inbound train is the railway's", async () => {
     mockFetch({
-      'GET /api/Journeys/42/legs/7/alternatives?cause=missed': () => json(suggestionSet()),
+      [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`]: () => json(suggestionSet()),
     });
-    renderSheet({ kind: 'missed', legId: 7, inboundLate: true });
+    renderSheet({ kind: 'missed', legId: testLegId(7), inboundLate: true });
     expect(
       await screen.findByText('Your earlier train was late, so this counts as a missed connection.'),
     ).toBeInTheDocument();
@@ -332,24 +350,24 @@ describe('AlternativesSheet', () => {
     },
     {
       variant: 'user-caused',
-      mode: { kind: 'missed', legId: 7 } as AlternativesMode,
-      route: 'GET /api/Journeys/42/legs/7/alternatives?cause=missed',
+      mode: { kind: 'missed', legId: testLegId(7) } as AlternativesMode,
+      route: `GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`,
       body: (hint: string) => suggestionSet({ hint }),
       hint: "Ask station staff if there are any. Your Advance ticket is only valid on the train you missed, so you'll likely need a new one.",
       faultNote: null,
     },
     {
       variant: 'unknown ticket',
-      mode: { kind: 'missed', legId: 7 } as AlternativesMode,
-      route: 'GET /api/Journeys/42/legs/7/alternatives?cause=missed',
+      mode: { kind: 'missed', legId: testLegId(7) } as AlternativesMode,
+      route: `GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`,
       body: (hint: string) => suggestionSet({ hint }),
       hint: "Ask station staff if there are any. If you have an Advance ticket, you'll likely need a new one. Check before you board.",
       faultNote: null,
     },
     {
       variant: 'flexible ticket',
-      mode: { kind: 'alternatives', legId: 7, cause: 'cancelled' } as AlternativesMode,
-      route: 'GET /api/Journeys/42/legs/7/alternatives?cause=cancelled',
+      mode: { kind: 'alternatives', legId: testLegId(7), cause: 'cancelled' } as AlternativesMode,
+      route: `GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=cancelled`,
       body: (hint: string) => suggestionSet({ hint }),
       hint: 'Your ticket is usually valid on other trains on the same route.',
       faultNote: null,
@@ -375,11 +393,12 @@ describe('AlternativesSheet', () => {
 
   it('replaces the leg when taking a free choice', async () => {
     const fetchMock = mockFetch({
-      'GET /api/Journeys/42/legs/7/alternatives?cause=choice': () => json(suggestionSet({ hint: 'Add your ticket.' })),
-      'POST /api/Journeys/42/legs/7/replace': () =>
+      [`GET /api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=choice`]: () =>
+        json(suggestionSet({ hint: 'Add your ticket.' })),
+      [`POST /api/Journeys/42/legs/${testLegId(7)}/replace`]: () =>
         json({ journeyId: 42, revisionNo: 2, newLegIds: [12], undoRevisionNo: 1 }),
     });
-    renderSheet({ kind: 'alternatives', legId: 7, cause: 'choice' });
+    renderSheet({ kind: 'alternatives', legId: testLegId(7), cause: 'choice' });
     expect(await screen.findByRole('heading', { name: 'Other ways to Edinburgh' })).toBeInTheDocument();
     expect(screen.getByText('Add your ticket.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
@@ -388,7 +407,7 @@ describe('AlternativesSheet', () => {
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({
       cause: 'choice',
       legs: [{ trainUid: 'L12345', serviceDate: '2026-09-17', originCrs: 'YRK', destinationCrs: 'EDB' }],
-      throughLegId: 7,
+      throughLegId: testLegId(7),
     });
   });
 

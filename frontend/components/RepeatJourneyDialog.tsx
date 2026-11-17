@@ -54,7 +54,7 @@ export function RepeatJourneyDialog({
   opened,
   onClose,
 }: {
-  journeyId: number;
+  journeyId: string;
   mode: RepeatMode;
   /** The journey's own name, kept on the new journey. */
   customName: string | null;

@@ -1465,3 +1465,11 @@ ON CONFLICT (revision_id, position) DO NOTHING;
 -- testPublicId(id) (test/apiDefaults.ts: 'j_' and the id as 32 hex digits),
 -- so give every journey seeded above that id.
 UPDATE journeys SET public_id = 'j_' || lpad(to_hex(id), 32, '0');
+
+-- Opaque leg, tracking and device ids (DS-534): a migration fills these with
+-- random ids too. The specs name seeded legs, tracked trains and devices by
+-- testLegId, testTrackingId and testDeviceId (test/apiDefaults.ts: the prefix
+-- and the numeric id as 32 hex digits), so give every row seeded above that id.
+UPDATE journey_legs SET public_id = 'l_' || lpad(to_hex(id), 32, '0');
+UPDATE train_subscriptions SET public_id = 't_' || lpad(to_hex(id), 32, '0');
+UPDATE push_subscriptions SET public_id = 'd_' || lpad(to_hex(id), 32, '0');

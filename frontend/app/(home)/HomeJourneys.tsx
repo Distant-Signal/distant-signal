@@ -416,7 +416,7 @@ export function CurrentJourneySection({
           one link, so the alert's "See options" can't sit inside it. */}
       {!isLoneTrain(current) && current.detail.openBreak && (
         <JourneyBreakBanner
-          journeyId={current.detail.id}
+          journeyId={current.detail.publicId}
           openBreak={current.detail.openBreak}
           legs={current.detail.legs}
           isOwner={current.detail.isOwner}

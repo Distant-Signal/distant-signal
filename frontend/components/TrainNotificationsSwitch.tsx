@@ -15,7 +15,7 @@ export function TrainNotificationsSwitch({
   trackingId,
   initiallyEnabled,
 }: {
-  trackingId: number;
+  trackingId: string;
   initiallyEnabled: boolean;
 }) {
   const [enabled, setEnabled] = useState(initiallyEnabled);
@@ -27,7 +27,7 @@ export function TrainNotificationsSwitch({
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`/api/Train/${String(trackingId)}`, {
+      const response = await fetch(`/api/Train/${trackingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationsEnabled: next }),

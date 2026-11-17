@@ -24,7 +24,7 @@ describe('RemoveJourneyLegButton', () => {
 
   it('does not call DELETE until the confirmation modal is confirmed', () => {
     const fetchMock = vi.mocked(fetch);
-    renderWithMantine(<RemoveJourneyLegButton journeyId={167} legId={1} isOnlyLeg={false} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="167" legId="1" isOnlyLeg={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -33,7 +33,7 @@ describe('RemoveJourneyLegButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithMantine(<RemoveJourneyLegButton journeyId={167} legId={1} isOnlyLeg={false} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="167" legId="1" isOnlyLeg={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
@@ -49,7 +49,7 @@ describe('RemoveJourneyLegButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithMantine(<RemoveJourneyLegButton journeyId={168} legId={2} isOnlyLeg={true} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="168" legId="2" isOnlyLeg={true} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
@@ -65,7 +65,7 @@ describe('RemoveJourneyLegButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('no journey leg with that id', { status: 404 }));
 
-    renderWithMantine(<RemoveJourneyLegButton journeyId={167} legId={1} isOnlyLeg={false} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="167" legId="1" isOnlyLeg={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
@@ -81,7 +81,7 @@ describe('RemoveJourneyLegButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
 
-    renderWithMantine(<RemoveJourneyLegButton journeyId={167} legId={1} isOnlyLeg={false} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="167" legId="1" isOnlyLeg={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
@@ -93,13 +93,13 @@ describe('RemoveJourneyLegButton', () => {
   });
 
   it('warns that the whole journey goes too when this is the only leg', async () => {
-    renderWithMantine(<RemoveJourneyLegButton journeyId={168} legId={2} isOnlyLeg={true} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="168" legId="2" isOnlyLeg={true} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => expect(screen.getByText(/removing it deletes the whole journey/)).toBeInTheDocument());
   });
 
   it('does not warn about the whole journey when a sibling leg remains', async () => {
-    renderWithMantine(<RemoveJourneyLegButton journeyId={167} legId={1} isOnlyLeg={false} />);
+    renderWithMantine(<RemoveJourneyLegButton journeyId="167" legId="1" isOnlyLeg={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     expect(screen.queryByText(/deletes the whole journey/)).not.toBeInTheDocument();

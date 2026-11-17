@@ -1,7 +1,7 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import { scanPageBothSchemes } from './a11y-helpers';
 import type * as Api from '../lib/api-types';
-import { testPublicId } from '../test/apiDefaults';
+import { testLegId, testPublicId, testTrackingId } from '../test/apiDefaults';
 
 // "Tube, bus or walk" legs (spec
 // docs/superpowers/specs/2026-10-20-untracked-legs-and-tracked-train-states-design.md
@@ -27,6 +27,7 @@ const JOURNEY_ID = 77;
 /** Leg 1: Milton Keynes to Euston, timetabled to arrive at 09:52 BST. */
 const TRAIN_LEG = {
   id: 1,
+  publicId: testLegId(1),
   kind: 'train',
   originCrs: 'MKC',
   originName: 'Milton Keynes Central',
@@ -47,6 +48,7 @@ const TRAIN_LEG = {
   untrackedStatus: null,
   trackedTrainState: {
     id: 1,
+    publicId: testTrackingId(1),
     serviceDate: '2026-10-21',
     pinOriginCrs: 'MKC',
     pinDestinationCrs: 'EUS',
@@ -105,6 +107,7 @@ function stop(crs: string, name: string, kind: string, arrival: string | null, d
 function untrackedLegFrom(body: Record<string, unknown>, id: number) {
   return {
     id,
+    publicId: testLegId(id),
     kind: 'untracked',
     originCrs: null,
     originName: body.originName ?? null,
@@ -166,14 +169,16 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
         journeyId: JOURNEY_ID,
         journeyPublicId: testPublicId(JOURNEY_ID),
         legId: 1,
+        legPublicId: testLegId(1),
         trackingId: null,
+        trackingPublicId: null,
         resolutionStatus: null,
       } satisfies Api.CreateJourneyResponse);
     }
-    if (path === `/api/Journeys/${JOURNEY_ID}` && request.method() === 'GET') {
+    if (path === `/api/Journeys/${testPublicId(JOURNEY_ID)}` && request.method() === 'GET') {
       return json(route, {
         id: JOURNEY_ID,
-        publicId: `j_${JOURNEY_ID}`,
+        publicId: testPublicId(JOURNEY_ID),
         customName: null,
         createdAt: '2026-10-20T00:00:00Z',
         isOwner: true,
@@ -181,11 +186,16 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
         legs,
       });
     }
-    if (path === `/api/Journeys/${JOURNEY_ID}/legs` && request.method() === 'POST') {
+    if (path === `/api/Journeys/${testPublicId(JOURNEY_ID)}/legs` && request.method() === 'POST') {
       const body = request.postDataJSON() as Record<string, unknown>;
       bodies.push(body);
       legs.push(untrackedLegFrom(body, legs.length + 1));
-      return json(route, { legId: legs.length, trackingId: null } satisfies Api.AddJourneyLegResponse);
+      return json(route, {
+        legId: legs.length,
+        legPublicId: testLegId(legs.length),
+        trackingId: null,
+        trackingPublicId: null,
+      } satisfies Api.AddJourneyLegResponse);
     }
     return route.fulfill({ status: 404, body: '' });
   });

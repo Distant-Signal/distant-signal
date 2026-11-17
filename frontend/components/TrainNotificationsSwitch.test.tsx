@@ -12,14 +12,14 @@ afterEach(() => {
 
 describe('TrainNotificationsSwitch', () => {
   it('shows the saved state', () => {
-    renderWithMantine(<TrainNotificationsSwitch trackingId={7} initiallyEnabled={false} />);
+    renderWithMantine(<TrainNotificationsSwitch trackingId="7" initiallyEnabled={false} />);
     expect(screen.getByRole('switch', { name: LABEL })).not.toBeChecked();
   });
 
   it('turns the train off with a PATCH', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ notificationsEnabled: false }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<TrainNotificationsSwitch trackingId={7} initiallyEnabled />);
+    renderWithMantine(<TrainNotificationsSwitch trackingId="7" initiallyEnabled />);
     const toggle = screen.getByRole('switch', { name: LABEL });
     fireEvent.click(toggle);
     await waitFor(() => expect(toggle).toBeEnabled());
@@ -37,7 +37,7 @@ describe('TrainNotificationsSwitch', () => {
       'fetch',
       vi.fn(async () => new Response('', { status: 500 })),
     );
-    renderWithMantine(<TrainNotificationsSwitch trackingId={7} initiallyEnabled />);
+    renderWithMantine(<TrainNotificationsSwitch trackingId="7" initiallyEnabled />);
     const toggle = screen.getByRole('switch', { name: LABEL });
     fireEvent.click(toggle);
     expect(await screen.findByText("Couldn't save this setting. Try again.")).toBeInTheDocument();

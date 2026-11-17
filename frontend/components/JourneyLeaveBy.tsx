@@ -21,7 +21,7 @@ export function JourneyLeaveBy({
   canChange,
   initialNow,
 }: {
-  journeyId: number;
+  journeyId: string;
   leaveBy: LeaveBy;
   stationBufferMinutes: number | null;
   delayMinutes: number | null;

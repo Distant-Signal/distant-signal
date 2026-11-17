@@ -35,11 +35,11 @@ describe('canPlanAgain', () => {
 
 describe('repeatPath', () => {
   it('asks for the booked plan, or the current one to move, with a date and a valid time', () => {
-    expect(repeatPath(7, 'repeat')).toBe('/api/Journeys/7/repeat');
-    expect(repeatPath(7, 'move', '2026-11-08', '08:20')).toBe(
-      '/api/Journeys/7/repeat?basis=current&date=2026-11-08&time=08%3A20',
+    expect(repeatPath('j_7', 'repeat')).toBe('/api/Journeys/j_7/repeat');
+    expect(repeatPath('j_7', 'move', '2026-11-08', '08:20')).toBe(
+      '/api/Journeys/j_7/repeat?basis=current&date=2026-11-08&time=08%3A20',
     );
-    expect(repeatPath(7, 'repeat', null, '8:2')).toBe('/api/Journeys/7/repeat');
+    expect(repeatPath('j_7', 'repeat', null, '8:2')).toBe('/api/Journeys/j_7/repeat');
   });
 });
 

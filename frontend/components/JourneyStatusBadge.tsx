@@ -1,3 +1,4 @@
+import { legRef } from '@/lib/publicId';
 import { StateBadge } from './StateBadge';
 import { TrackedRowStatusBadge } from './TrackedRowStatusBadge';
 import { journeyDetailRowStatus } from '@/lib/trackedRowStatus';
@@ -32,7 +33,7 @@ export function JourneyStatusBadge({ legs }: { legs: JourneyLegDetail[] }) {
   if (status.kind === 'unmatched') {
     // An untracked leg (Tube, bus, walk) never has a train to pick.
     const unmatchedLegs = legs.filter(isOpenTrainLeg);
-    const firstUnmatchedLegId = unmatchedLegs[0]?.id;
+    const firstUnmatchedLegId = unmatchedLegs[0] === undefined ? undefined : legRef(unmatchedLegs[0]);
     const label = unmatchedLegs.length === 1 ? '1 leg needs a train' : `${unmatchedLegs.length} legs need a train`;
     if (firstUnmatchedLegId === undefined) {
       return <StateBadge tone="action">{label}</StateBadge>;

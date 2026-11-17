@@ -158,6 +158,8 @@ describe('SharedJourneyPage', () => {
     await expect(renderPage()).rejects.toThrow(`NEXT_REDIRECT:/journeys/${testPublicId(167)}`);
 
     expect(redirectMock).toHaveBeenCalledWith(`/journeys/${testPublicId(167)}`);
+    // The membership probe names the journey by its opaque id, not the counter.
+    expect(getJourney).toHaveBeenCalledWith(testPublicId(167));
     // The token-scoped view must never have rendered any leg content on the
     // way to the redirect -- this is a redirect, not a second, degraded
     // rendering of the same data.

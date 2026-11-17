@@ -1,7 +1,13 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { scanPageBothSchemes } from './a11y-helpers';
 import type { JourneyTemplateListItem, TripPlanResponse } from '../lib/types';
-import { ITINERARY_DEFAULTS, SEGMENT_DEFAULTS, TRIP_PLAN_DEFAULTS, plannedTrainLeg } from '../test/apiDefaults';
+import {
+  ITINERARY_DEFAULTS,
+  testPublicId,
+  SEGMENT_DEFAULTS,
+  TRIP_PLAN_DEFAULTS,
+  plannedTrainLeg,
+} from '../test/apiDefaults';
 
 // Regular journeys (docs/superpowers/specs/2026-11-06-regular-journeys-design.md
 // §4.4): the old /journeys/templates pages redirect, a regular journey is
@@ -554,7 +560,7 @@ test.describe('regular journeys', () => {
     // Answered here, so the seed's journey keeps its suggestion for the
     // visual spec (the accept replaces its legs for real).
     let accepted: unknown = null;
-    await page.route('**/api/Journeys/900203/regular-plan/accept', async (route) => {
+    await page.route(`**/api/Journeys/${testPublicId(900203)}/regular-plan/accept`, async (route) => {
       accepted = route.request().postDataJSON();
       await route.fulfill({
         json: { journeyId: 900203, revisionNo: 1, newLegIds: [1], undoRevisionNo: null },

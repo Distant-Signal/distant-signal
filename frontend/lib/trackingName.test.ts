@@ -1,3 +1,4 @@
+import { testTrackingId } from '@/test/apiDefaults';
 import { describe, it, expect } from 'vitest';
 import {
   publicTrainHref,
@@ -103,6 +104,7 @@ describe('train links', () => {
     expect(
       trackedTrainHref({
         id: 7,
+        publicId: testTrackingId(7),
         resolutionStatus: 'resolved',
         trainUid: 'ie:A120',
         serviceDate: '2026-11-05',
@@ -114,11 +116,23 @@ describe('train links', () => {
 
   it('links a GB train as before', () => {
     expect(
-      trackedTrainHref({ id: 7, resolutionStatus: 'resolved', trainUid: 'C11052', serviceDate: '2026-09-07' }),
+      trackedTrainHref({
+        id: 7,
+        publicId: testTrackingId(7),
+        resolutionStatus: 'resolved',
+        trainUid: 'C11052',
+        serviceDate: '2026-09-07',
+      }),
     ).toBe('/train/C11052/2026-09-07');
-    expect(trackedTrainHref({ id: 7, resolutionStatus: 'pending', trainUid: null, serviceDate: '2026-09-07' })).toBe(
-      '/train/by-id/7',
-    );
+    expect(
+      trackedTrainHref({
+        id: 7,
+        publicId: testTrackingId(7),
+        resolutionStatus: 'pending',
+        trainUid: null,
+        serviceDate: '2026-09-07',
+      }),
+    ).toBe(`/train/by-id/${testTrackingId(7)}`);
     expect(publicTrainHref({ trainUid: 'C11052', serviceDate: '2026-09-07', irishTrain: null })).toBe(
       '/train/C11052/2026-09-07',
     );

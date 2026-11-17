@@ -7,7 +7,12 @@ import * as api from '@/lib/api';
 import { ApiNotFoundError } from '@/lib/api';
 import type { PublicTrainState, TrackedTrainListItem } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
-import { JOURNEY_STOP_DEFAULTS, PUBLIC_TRAIN_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
+import {
+  JOURNEY_STOP_DEFAULTS,
+  PUBLIC_TRAIN_DEFAULTS,
+  TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+  testTrackingId,
+} from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -100,6 +105,7 @@ function trackedTrainListItem(overrides: Partial<TrackedTrainListItem> = {}): Tr
   return {
     ...TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
     id: 7,
+    publicId: testTrackingId(7),
     serviceDate: '2026-08-31',
     pinOriginCrs: 'WAT',
     pinDestinationCrs: 'WOK',
@@ -498,7 +504,7 @@ describe('TrackedTrainByUidPage tracking overlay', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     flushPendingDeletes();
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/Train/7', { method: 'DELETE', keepalive: true });
+      expect(fetchMock).toHaveBeenCalledWith(`/api/Train/${testTrackingId(7)}`, { method: 'DELETE', keepalive: true });
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     expect(pushMock).not.toHaveBeenCalled();

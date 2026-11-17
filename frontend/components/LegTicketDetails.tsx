@@ -48,8 +48,8 @@ export function LegTicketDetails({
   ticket,
   operatorName,
 }: {
-  journeyId: number;
-  legId: number;
+  journeyId: string;
+  legId: string;
   ticket: LegTicket | null;
   /** The train's company, to name in the one-company option. */
   operatorName: string | null;
@@ -64,7 +64,7 @@ export function LegTicketDetails({
   const [reading, setReading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const base = `/api/Journeys/${String(journeyId)}/legs/${String(legId)}/ticket`;
+  const base = `/api/Journeys/${journeyId}/legs/${legId}/ticket`;
 
   function open() {
     setTicketType(ticket?.ticketType ?? 'unknown');

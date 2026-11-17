@@ -9,7 +9,7 @@ const EMPTY = getPendingDeletes();
  * window, or once it is deleted, so a row disappears the moment the delete
  * is confirmed and comes back on Undo or if the delete fails. The page
  * itself is a Server Component and still lists the row until it refreshes. */
-export function HideWhenDeleted({ kind, id, children }: { kind: DeleteKind; id: number; children: ReactNode }) {
+export function HideWhenDeleted({ kind, id, children }: { kind: DeleteKind; id: string; children: ReactNode }) {
   const { hidden } = useSyncExternalStore(subscribePendingDeletes, getPendingDeletes, () => EMPTY);
   return hidden.has(deleteKey(kind, id)) ? null : children;
 }

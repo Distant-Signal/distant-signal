@@ -1,6 +1,7 @@
 import { formatDate, formatTime } from './dateFormat';
 import { routeLabel, stationLabel } from './stationLabel';
 import { irishTrainHref } from './ireland';
+import { trackingRef } from './publicId';
 
 /** The route fields a tracked train's label reads. `trainUid` is optional
  * so a caller with only a pin shape can still pass it. */
@@ -86,6 +87,7 @@ export function trackedTrainDisplayName(
  * backend's resolution invariant means it shouldn't happen. */
 export function trackedTrainHref(train: {
   id: number;
+  publicId: string;
   resolutionStatus: string;
   trainUid: string | null;
   serviceDate: string;
@@ -94,7 +96,7 @@ export function trackedTrainHref(train: {
   if (train.irishTrain) return irishTrainHref(train.irishTrain);
   return train.resolutionStatus === 'resolved' && train.trainUid
     ? `/train/${train.trainUid}/${train.serviceDate}`
-    : `/train/by-id/${train.id}`;
+    : `/train/by-id/${trackingRef(train)}`;
 }
 
 /** A train's public page when there is one: an Iarnród Éireann train's

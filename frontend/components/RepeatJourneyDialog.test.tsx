@@ -83,7 +83,7 @@ function open(
   const onClose = vi.fn();
   renderWithMantine(
     <RepeatJourneyDialog
-      journeyId={9}
+      journeyId="9"
       mode={mode}
       customName={mode === 'repeat' ? 'Commute' : null}
       trackHref={trackHref}

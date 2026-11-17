@@ -17,7 +17,7 @@ describe('JourneySuggestionsUnmute', () => {
   it('turns the journey suggestions back on and reloads the page', async () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<JourneySuggestionsUnmute journeyId={12} />);
+    renderWithMantine(<JourneySuggestionsUnmute journeyId="12" />);
     expect(screen.getByText('Suggestion notifications are off for this journey.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Turn suggestions back on' }));
     await waitFor(() => expect(refresh).toHaveBeenCalled());
@@ -33,7 +33,7 @@ describe('JourneySuggestionsUnmute', () => {
       'fetch',
       vi.fn(async () => new Response('', { status: 500 })),
     );
-    renderWithMantine(<JourneySuggestionsUnmute journeyId={12} />);
+    renderWithMantine(<JourneySuggestionsUnmute journeyId="12" />);
     fireEvent.click(screen.getByRole('button', { name: 'Turn suggestions back on' }));
     expect(await screen.findByText("Couldn't turn on suggestions. Try again.")).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();

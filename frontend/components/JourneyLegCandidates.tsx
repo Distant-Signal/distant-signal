@@ -97,8 +97,8 @@ export function JourneyLegCandidates({
   onEditSearch,
   onPicked,
 }: {
-  journeyId: number;
-  legId: number;
+  journeyId: string;
+  legId: string;
   serviceDate: string;
   search?: LegSearch | null;
   /** The leg's saved Between stations filters (`searchFilters`, DS-215),

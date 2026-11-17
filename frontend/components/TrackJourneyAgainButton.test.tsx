@@ -3,7 +3,7 @@ import { screen, fireEvent } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { TrackJourneyAgainButton } from './TrackJourneyAgainButton';
 import type { JourneyDetail, JourneyLegDetail } from '@/lib/types';
-import { JOURNEY_DETAIL_DEFAULTS, JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
+import { JOURNEY_DETAIL_DEFAULTS, JOURNEY_LEG_DEFAULTS, testPublicId } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 const TRAIN = { trainUid: 'W12345' } as JourneyLegDetail['trackedTrainState'];
@@ -39,7 +39,7 @@ function journey(legs: JourneyLegDetail[], isOwner = true): JourneyDetail {
   return {
     ...JOURNEY_DETAIL_DEFAULTS,
     id: 167,
-    publicId: 'j_167',
+    publicId: testPublicId(167),
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     legs,
@@ -62,7 +62,7 @@ describe('TrackJourneyAgainButton', () => {
     renderWithMantine(<TrackJourneyAgainButton journey={journey([leg({ trackedTrainState: TRAIN })])} />);
     fireEvent.click(screen.getByRole('button', { name: 'Track this journey again' }));
     expect(await screen.findByRole('dialog', { name: 'Track this journey again' })).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith('/api/Journeys/167/repeat');
+    expect(fetch).toHaveBeenCalledWith(`/api/Journeys/${testPublicId(167)}/repeat`);
     expect(pushMock).not.toHaveBeenCalled();
   });
 

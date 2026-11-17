@@ -9,6 +9,7 @@ import {
 import { viewerCanPickTrain, type TrackedRowStatus } from './trackedRowStatus';
 import { splitTrainRows } from './upcomingPast';
 import { isUntrackedLeg } from './untrackedLeg';
+import { trackingRef } from './publicId';
 import type {
   JourneyDetail,
   JourneyLegDetail,
@@ -109,14 +110,22 @@ function firstServiceDate(item: JourneyListItem): string {
 /** What the home page reads in full: journeys (`GET /Journeys/{id}`) and
  * lone trains (`GET /Train/{id}`, what the train's own by-id page reads). */
 export interface HomeDetailReads {
-  journeyIds: number[];
-  trainIds: number[];
+  journeys: DetailRead[];
+  trains: DetailRead[];
+}
+
+/** A row to read in full: its numeric `id` (the join key and the tie-break
+ * order) and the `ref` the api is asked for (its opaque id). */
+export interface DetailRead {
+  id: number;
+  ref: string;
 }
 
 /** One row `homeDetailReads` might read; `departure` in ms. */
 interface Candidate {
   kind: 'journey' | 'train';
   id: number;
+  ref: string;
   day: string;
   departure: number;
 }
@@ -147,13 +156,20 @@ export function homeDetailReads(
       const first = firstServiceDate(item);
       return first <= today && first >= yesterday && item.serviceDate >= yesterday;
     })
-    .map((item) => ({ kind: 'journey', id: item.id, day: item.serviceDate, departure: Number.NEGATIVE_INFINITY }));
+    .map((item) => ({
+      kind: 'journey',
+      id: item.id,
+      ref: item.publicId,
+      day: item.serviceDate,
+      departure: Number.NEGATIVE_INFINITY,
+    }));
   const lone: Candidate[] = splitTrainRows(trains, today)
     .upcoming.map(({ train }) => train)
     .filter((train) => train.serviceDate <= today && train.serviceDate >= yesterday)
     .map((train) => ({
       kind: 'train',
       id: train.id,
+      ref: trackingRef(train),
       day: train.serviceDate,
       departure: train.pinScheduledDeparture ? Date.parse(train.pinScheduledDeparture) : Number.POSITIVE_INFINITY,
     }));
@@ -167,8 +183,8 @@ export function homeDetailReads(
     )
     .slice(0, MAX_HOME_JOURNEY_DETAILS);
   return {
-    journeyIds: kept.filter((read) => read.kind === 'journey').map((read) => read.id),
-    trainIds: kept.filter((read) => read.kind === 'train').map((read) => read.id),
+    journeys: kept.filter((read) => read.kind === 'journey').map(({ id, ref }) => ({ id, ref })),
+    trains: kept.filter((read) => read.kind === 'train').map(({ id, ref }) => ({ id, ref })),
   };
 }
 
@@ -179,6 +195,8 @@ export function homeDetailReads(
 export function loneTrainLeg(train: TrackedTrainListItem, state: TrackedTrainState): JourneyLegDetail {
   return {
     id: train.id,
+    // Not a leg: the train's own id stands in, for a key and nothing sent.
+    publicId: train.publicId,
     kind: 'train',
     originCrs: train.pinOriginCrs ?? state.pinOriginCrs,
     originName: train.pinOriginName ?? state.pinOriginName,

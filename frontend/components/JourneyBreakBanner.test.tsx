@@ -23,7 +23,7 @@ afterEach(() => {
 
 describe('JourneyBreakBanner', () => {
   it('says what broke and how many other ways there are', () => {
-    renderWithMantine(<JourneyBreakBanner journeyId={42} openBreak={openBreakSummary()} legs={legs} isOwner />);
+    renderWithMantine(<JourneyBreakBanner journeyId="42" openBreak={openBreakSummary()} legs={legs} isOwner />);
     const banner = screen.getByRole('region', { name: 'Connection at York missed' });
     expect(banner).toHaveTextContent('3 other ways to Edinburgh. First arrives 11:12.');
     expect(screen.getByRole('button', { name: 'See options' })).toBeInTheDocument();
@@ -32,7 +32,7 @@ describe('JourneyBreakBanner', () => {
   it('words a cancelled train from its trigger leg', () => {
     renderWithMantine(
       <JourneyBreakBanner
-        journeyId={42}
+        journeyId="42"
         openBreak={openBreakSummary({ cause: 'cancelled', suggestionCount: 0, firstArrival: null })}
         legs={legs}
         isOwner
@@ -45,7 +45,7 @@ describe('JourneyBreakBanner', () => {
   it('says it is still looking while suggestions are not ready', () => {
     renderWithMantine(
       <JourneyBreakBanner
-        journeyId={42}
+        journeyId="42"
         openBreak={openBreakSummary({ suggestionsReady: false })}
         legs={legs}
         isOwner
@@ -56,7 +56,7 @@ describe('JourneyBreakBanner', () => {
 
   it('is only text for someone who is not the owner', () => {
     renderWithMantine(
-      <JourneyBreakBanner journeyId={42} openBreak={openBreakSummary()} legs={legs} isOwner={false} initialOpen />,
+      <JourneyBreakBanner journeyId="42" openBreak={openBreakSummary()} legs={legs} isOwner={false} initialOpen />,
     );
     expect(screen.getByText('Connection at York missed')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'See options' })).not.toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('JourneyBreakBanner', () => {
   it('opens the suggestions on "See options"', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(breakResponse()), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<JourneyBreakBanner journeyId={42} openBreak={openBreakSummary()} legs={legs} isOwner />);
+    renderWithMantine(<JourneyBreakBanner journeyId="42" openBreak={openBreakSummary()} legs={legs} isOwner />);
     fireEvent.click(screen.getByRole('button', { name: 'See options' }));
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/42/breaks/current', { method: 'GET' });

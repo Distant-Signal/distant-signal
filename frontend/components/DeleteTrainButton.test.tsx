@@ -28,7 +28,7 @@ describe('DeleteTrainButton', () => {
 
   it('does not call DELETE until the confirmation modal is confirmed', () => {
     const fetchMock = vi.mocked(fetch);
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} />);
+    renderWithMantine(<DeleteTrainButton trackingId="42" sharedGroupCount={0} />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -36,7 +36,7 @@ describe('DeleteTrainButton', () => {
   async function confirmWithFakeTimers(props: Partial<React.ComponentProps<typeof DeleteTrainButton>> = {}) {
     renderWithMantine(
       <>
-        <DeleteTrainButton trackingId={42} sharedGroupCount={0} {...props} />
+        <DeleteTrainButton trackingId="42" sharedGroupCount={0} {...props} />
         <PendingDeleteToasts />
       </>,
     );
@@ -104,7 +104,7 @@ describe('DeleteTrainButton', () => {
 
   // sharedGroupCount === 0: today's exact modal copy, no extra warning line.
   it('shows no group-sharing warning when the train is not shared into any group', async () => {
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={0} />);
+    renderWithMantine(<DeleteTrainButton trackingId="42" sharedGroupCount={0} />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(screen.getByText('You can undo for a few seconds, then it cannot be undone.')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('DeleteTrainButton', () => {
 
   // sharedGroupCount === 1: singular wording.
   it('warns about a single shared group, singular', async () => {
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={1} />);
+    renderWithMantine(<DeleteTrainButton trackingId="42" sharedGroupCount={1} />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(
@@ -123,7 +123,7 @@ describe('DeleteTrainButton', () => {
 
   // sharedGroupCount > 1: plural wording.
   it('warns about multiple shared groups, plural', async () => {
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={3} />);
+    renderWithMantine(<DeleteTrainButton trackingId="42" sharedGroupCount={3} />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(
@@ -133,7 +133,7 @@ describe('DeleteTrainButton', () => {
 
   // DS-93: a train a journey leg uses stays tracked there.
   it('says a journey keeps the train instead of warning it cannot be undone', async () => {
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={2} inJourney />);
+    renderWithMantine(<DeleteTrainButton trackingId="42" sharedGroupCount={2} inJourney />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(screen.getByText(/part of a journey, so it stays tracked there/)).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe('DeleteTrainButton', () => {
 
   // DS-124: stopping tracking deletes the train's own one-leg journey.
   it("says the train's own journey goes too", async () => {
-    renderWithMantine(<DeleteTrainButton trackingId={42} sharedGroupCount={1} deletesJourney />);
+    renderWithMantine(<DeleteTrainButton trackingId="42" sharedGroupCount={1} deletesJourney />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop tracking' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm stop tracking' }));
     expect(screen.getByText('Its journey is deleted too.')).toBeInTheDocument();

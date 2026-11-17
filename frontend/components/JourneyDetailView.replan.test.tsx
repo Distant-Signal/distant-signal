@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { JourneyDetailView } from './JourneyDetailView';
 import { journeyDetail, trainLeg } from '@/test/journeyFixtures';
+import { testLegId, testPublicId } from '@/test/apiDefaults';
 import { openBreakSummary, suggestionSet } from '@/test/replanFixtures';
 import type { JourneyDetail } from '@/lib/types';
 
@@ -43,7 +44,7 @@ function renderView(detail: JourneyDetail) {
 }
 
 function legCard(id: number): HTMLElement {
-  const card = document.getElementById(`leg-${id}`);
+  const card = document.getElementById(`leg-${testLegId(id)}`);
   if (card === null) throw new Error(`no leg ${id}`);
   return card;
 }
@@ -67,7 +68,7 @@ describe('JourneyDetailView mid-journey changes', () => {
   });
 
   it('shows the open break above the legs and "Find another way" on its trigger', () => {
-    renderView(journey({ openBreak: openBreakSummary({ triggerLegId: 2 }) }));
+    renderView(journey({ openBreak: openBreakSummary({ triggerLegId: 2, triggerLegPublicId: testLegId(2) }) }));
     const banner = screen.getByRole('region', { name: 'Connection at York missed' });
     expect(banner.compareDocumentPosition(legCard(1)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(legCard(2)).getByRole('button', { name: 'Find another way' })).toBeInTheDocument();
@@ -126,13 +127,22 @@ describe('JourneyDetailView missed notices', () => {
     expect(document.querySelector('[data-journey-break]')).toBeNull();
     expect(refreshMock).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/42/legs/1/alternatives?cause=missed', { method: 'GET' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/Journeys/${testPublicId(42)}/legs/${testLegId(1)}/alternatives?cause=missed`,
+      { method: 'GET' },
+    );
   });
 
   it('says "You missed" once the traveller has marked the first leg missed', () => {
     renderView(
       underway({
-        openBreak: openBreakSummary({ cause: 'user_missed', fault: 'user', triggerLegId: 1, stationName: null }),
+        openBreak: openBreakSummary({
+          cause: 'user_missed',
+          fault: 'user',
+          triggerLegId: 1,
+          triggerLegPublicId: testLegId(1),
+          stationName: null,
+        }),
       }),
     );
     expect(screen.getByRole('region', { name: /^You missed the \d\d:\d\d to York$/ })).toBeInTheDocument();

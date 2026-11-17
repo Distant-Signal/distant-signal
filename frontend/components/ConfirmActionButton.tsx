@@ -68,7 +68,7 @@ export interface ConfirmActionButtonProps {
   deferred?:
     | {
         kind: DeleteKind;
-        id: number;
+        id: string;
         /** The toast text: "Journey deleted". */
         message: string;
         url: string;

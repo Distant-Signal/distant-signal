@@ -42,6 +42,7 @@ const JOURNEY_ID = process.env.E2E_JOURNEY_ID ?? '1';
 // (the same as test/apiDefaults.ts's testPublicId, which the visual container
 // does not mount).
 const testPublicId = (id: number) => `j_${id.toString(16).padStart(32, '0')}`;
+const testTrackingId = (id: number) => `t_${id.toString(16).padStart(32, '0')}`;
 // The seed's group, with trains and journeys shared into it by both users.
 const GROUP_ID = process.env.E2E_GROUP_ID ?? 'fixture-group-1';
 
@@ -86,8 +87,8 @@ const PAGES: [name: string, path: string][] = [
   // Tracked-train states and an untracked leg (spec
   // 2026-10-20-untracked-legs-and-tracked-train-states-design.md): a train
   // not in the timetable, a planned train, and a journey with a walk.
-  ['train-no-timetable', `/train/by-id/${TRACKING_ID}`],
-  ['train-planned', `/train/by-id/${PLANNED_TRACKING_ID}`],
+  ['train-no-timetable', `/train/by-id/${testTrackingId(Number(TRACKING_ID))}`],
+  ['train-planned', `/train/by-id/${testTrackingId(Number(PLANNED_TRACKING_ID))}`],
   ['journey', `/journeys/${testPublicId(Number(JOURNEY_ID))}`],
   // Open to everyone: logged out it is the appearance settings and one log
   // in prompt, logged in the account sections too.

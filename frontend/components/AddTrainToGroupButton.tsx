@@ -1,5 +1,6 @@
 'use client';
 
+import { trackingRef } from '@/lib/publicId';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Modal, Select, Text } from '@mantine/core';
@@ -24,7 +25,7 @@ export function AddTrainToGroupButton({
   excludeTrainSubscriptionIds,
 }: {
   groupId: string;
-  excludeTrainSubscriptionIds: number[];
+  excludeTrainSubscriptionIds: string[];
 }) {
   const router = useRouter();
   const [opened, { open, close }] = useDisclosure(false);
@@ -48,7 +49,7 @@ export function AddTrainToGroupButton({
         return;
       }
       const all = (await response.json()) as TrackedTrainListItem[];
-      setTrains(all.filter((t) => !excludeTrainSubscriptionIds.includes(t.id)));
+      setTrains(all.filter((t) => !excludeTrainSubscriptionIds.includes(trackingRef(t))));
       setLoading(false);
     } catch {
       setError(describeFailure('load', 'your tracked trains'));
@@ -65,7 +66,7 @@ export function AddTrainToGroupButton({
       const response = await fetch(`/api/groups/${groupId}/trains`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trainSubscriptionId: Number(selected) }),
+        body: JSON.stringify({ trainSubscriptionId: selected }),
       });
       if (!response.ok) {
         if (response.status === 401) {
@@ -99,7 +100,7 @@ export function AddTrainToGroupButton({
           <Select
             label="Tracked train"
             placeholder="Pick one"
-            data={trains.map((t) => ({ value: String(t.id), label: trackedTrainDisplayName(t) }))}
+            data={trains.map((t) => ({ value: trackingRef(t), label: trackedTrainDisplayName(t) }))}
             value={selected}
             onChange={setSelected}
           />

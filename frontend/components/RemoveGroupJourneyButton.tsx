@@ -7,7 +7,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * `groups::remove_journey_from_group`'s sharer-or-manager check). Mirrors
  * `RemoveGroupTrainButton.tsx` verbatim -- see that component's own doc
  * comment for the full reasoning, which applies here unchanged. */
-export function RemoveGroupJourneyButton({ groupId, journeyId }: { groupId: string; journeyId: number }) {
+export function RemoveGroupJourneyButton({ groupId, journeyId }: { groupId: string; journeyId: string }) {
   return (
     <ConfirmActionButton
       label="Remove from group"

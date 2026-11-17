@@ -1,5 +1,6 @@
 'use client';
 
+import { publicRef } from '@/lib/publicId';
 import { useCallback, useEffect, useState } from 'react';
 import { Badge, Button, Group, Select, Stack, Switch, Text } from '@mantine/core';
 import { TimeInput } from '@mantine/dates';
@@ -540,7 +541,7 @@ function DevicesSection({ version }: { version: number }) {
   const [devices, setDevices] = useState<PushDevice[] | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<number | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -562,16 +563,16 @@ function DevicesSection({ version }: { version: number }) {
     void load();
   }, [load, version]);
 
-  async function remove(id: number) {
+  async function remove(id: string) {
     setRemoving(id);
     setError(null);
     try {
-      const response = await fetch(`/api/notifications/devices/${String(id)}`, { method: 'DELETE' });
+      const response = await fetch(`/api/notifications/devices/${id}`, { method: 'DELETE' });
       if (!response.ok && response.status !== 404) {
         setError(await failureFromResponse('remove', 'this device', response));
         return;
       }
-      setDevices((list) => list?.filter((device) => device.id !== id) ?? null);
+      setDevices((list) => list?.filter((device) => publicRef(device.publicId, device.id) !== id) ?? null);
     } catch {
       setError(describeFailure('remove', 'this device'));
     } finally {
@@ -592,7 +593,13 @@ function DevicesSection({ version }: { version: number }) {
           {devices.map((device) => {
             const isThis = current !== null && device.endpointSha256 === current;
             return (
-              <Group key={device.id} role="listitem" justify="space-between" wrap="wrap" gap="xs">
+              <Group
+                key={publicRef(device.publicId, device.id)}
+                role="listitem"
+                justify="space-between"
+                wrap="wrap"
+                gap="xs"
+              >
                 <Stack gap={0}>
                   <Group gap="xs">
                     <Text fw={600}>{device.label ?? 'Unknown browser'}</Text>
@@ -614,8 +621,8 @@ function DevicesSection({ version }: { version: number }) {
                   <Button
                     size="xs"
                     variant="default"
-                    onClick={() => void remove(device.id)}
-                    disabled={removing === device.id}
+                    onClick={() => void remove(publicRef(device.publicId, device.id))}
+                    disabled={removing === publicRef(device.publicId, device.id)}
                     aria-label={`Remove ${device.label ?? 'unknown browser'}`}
                   >
                     Remove

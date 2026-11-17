@@ -16,7 +16,7 @@ export function RemoveGroupTrainButton({
   trainSubscriptionId,
 }: {
   groupId: string;
-  trainSubscriptionId: number;
+  trainSubscriptionId: string;
 }) {
   return (
     <ConfirmActionButton

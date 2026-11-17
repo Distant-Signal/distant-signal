@@ -10,6 +10,7 @@ import {
   JOURNEY_STOP_DEFAULTS,
   LEG_DELAY_REPAY_DEFAULTS,
   TRACKED_TRAIN_STATE_DEFAULTS,
+  testLegId,
 } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
@@ -119,6 +120,7 @@ function baseLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
     kind: 'train',
     ...JOURNEY_LEG_DEFAULTS,
     id: 1,
+    publicId: testLegId(overrides.id ?? 1),
     originCrs: 'KGX',
     originName: null,
     destinationCrs: 'YRK',
@@ -163,14 +165,14 @@ describe('JourneyLegCard', () => {
   // 2026-09-22 UX review finding I16/2.7: the leg's own route+time, not
   // the train's headcode, is the card's title.
   it('titles a matched leg by its own route and departure time, not the train headcode', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByText(byVisibleText('London Kings Cross (KGX) to York (YRK) · 17:00'))).toBeInTheDocument();
   });
 
   it("names the leg's operator with its code", () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({
           trackedTrainState: trackedState({ operatorName: 'West Midlands Railway', operatorCode: 'WM' }),
         })}
@@ -182,12 +184,12 @@ describe('JourneyLegCard', () => {
   });
 
   it('shows no operator line when the leg has none', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.queryByText(/Operated by/)).not.toBeInTheDocument();
   });
 
   it('still shows the headcode, as secondary information', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByText('Train P9E010')).toBeInTheDocument();
   });
 
@@ -198,7 +200,7 @@ describe('JourneyLegCard', () => {
   // reads off this card (`serviceDate={leg.serviceDate}`), not the matched
   // train's own `state.serviceDate`.
   it("links the headcode through to that train's own tracking page", () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByRole('link', { name: 'Train P9E010' })).toHaveAttribute('href', '/train/P9E010/2026-09-22');
   });
 
@@ -210,7 +212,7 @@ describe('JourneyLegCard', () => {
   it('renders no train link (or headcode) for a matched-but-unresolved leg', () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({ trackedTrainState: trackedState({ resolutionStatus: 'pending', trainUid: null }) })}
         isOwner
         isOnlyLeg={false}
@@ -228,7 +230,7 @@ describe('JourneyLegCard', () => {
   it('shows both "Change train" AND "Remove leg" for a matched, windowed, owner-viewed leg', () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({ departAfter: '18:00:00', windowSearched: true })}
         isOwner
         isOnlyLeg={false}
@@ -249,7 +251,7 @@ describe('JourneyLegCard', () => {
   // carries that distinction independently of the bounds themselves.
   it('shows "Change train" for a matched leg with an intentionally fully-open window (no bounds, windowSearched true)', () => {
     renderWithMantine(
-      <JourneyLegCard journeyId={167} leg={baseLeg({ windowSearched: true })} isOwner isOnlyLeg={false} />,
+      <JourneyLegCard journeyId="167" leg={baseLeg({ windowSearched: true })} isOwner isOnlyLeg={false} />,
     );
     expect(screen.getByRole('button', { name: 'Change train' })).toBeInTheDocument();
   });
@@ -258,7 +260,7 @@ describe('JourneyLegCard', () => {
   // planner-saved leg) gets "Change train" too, searching from what the
   // leg knows (see the Edit search tests below).
   it('shows both "Change train" and "Remove leg" for a matched, no-window, owner-viewed leg', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByRole('button', { name: 'Remove leg' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Change train' })).toBeInTheDocument();
   });
@@ -270,20 +272,20 @@ describe('JourneyLegCard', () => {
       claimUrl: 'https://delayrepay.lner.co.uk/delayrepayV2/',
       disclaimer: 'A rough estimate.',
     };
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg({ delayRepay })} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg({ delayRepay })} isOwner isOnlyLeg={false} />);
     expect(screen.getByText('Delay Repay')).toBeInTheDocument();
     expect(screen.getByText('6 minutes late')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add ticket details' })).toBeInTheDocument();
   });
 
   it('shows neither to a non-owner', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner={false} isOnlyLeg={false} />);
     expect(screen.queryByText('Delay Repay')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ticket details/ })).not.toBeInTheDocument();
   });
 
   it('offers neither action to a non-owner (shared-group viewer)', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner={false} isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner={false} isOnlyLeg={false} />);
     expect(screen.queryByRole('button', { name: 'Remove leg' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Change train' })).not.toBeInTheDocument();
   });
@@ -291,20 +293,22 @@ describe('JourneyLegCard', () => {
   it('removing the leg calls DELETE and refreshes when a sibling leg remains', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg({ id: 5 })} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg({ id: 5 })} isOwner isOnlyLeg={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/167/legs/5', { method: 'DELETE' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/167/legs/${testLegId(5)}`, { method: 'DELETE' }),
+    );
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
   });
 
   it('clicking "Change train" toggles the candidate picker open', () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({ departAfter: '18:00:00', windowSearched: true })}
         isOwner
         isOnlyLeg={false}
@@ -317,14 +321,14 @@ describe('JourneyLegCard', () => {
   // The traveller's own alighting station, distinct from the underlying
   // train's terminus.
   it('marks the leg destination row "You get off here" in the timeline', () => {
-    renderWithMantine(<JourneyLegCard journeyId={167} leg={baseLeg()} isOwner isOnlyLeg={false} />);
+    renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByText('You get off here')).toBeInTheDocument();
   });
 
   it('titles an open leg by its own route, in the same date format the matched card uses', () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({ trackedTrainState: null, originCrs: 'YRK', destinationCrs: 'NCL' })}
         isOwner
         isOnlyLeg={false}
@@ -350,7 +354,7 @@ describe('JourneyLegCard', () => {
   it("shows the leg's own search window on an open leg", () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({
           trackedTrainState: null,
           originCrs: 'YRK',
@@ -416,7 +420,7 @@ describe('JourneyLegCard', () => {
   ])('shows the search window for $name', ({ overrides, expected }) => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({
           trackedTrainState: null,
           originCrs: 'YRK',
@@ -437,7 +441,7 @@ describe('JourneyLegCard', () => {
   it('shows nothing extra for an open leg with no window at all', () => {
     renderWithMantine(
       <JourneyLegCard
-        journeyId={167}
+        journeyId="167"
         leg={baseLeg({ trackedTrainState: null, originCrs: 'YRK', destinationCrs: 'NCL' })}
         isOwner
         isOnlyLeg={false}
@@ -478,7 +482,7 @@ describe('JourneyLegCard (open leg)', () => {
     );
     renderWithMantine(
       <JourneyLegCard
-        journeyId={1}
+        journeyId="1"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({ originName: 'London Kings Cross', destinationName: 'Edinburgh' })}
@@ -497,7 +501,7 @@ describe('JourneyLegCard (open leg)', () => {
       'fetch',
       vi.fn(async () => new Response('{"results":[],"nextCursor":null}', { status: 200 })),
     );
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg()} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
     expect(screen.getByText(byVisibleText('KGX to EDB, 22 Sep 2026'))).toBeInTheDocument();
@@ -510,7 +514,7 @@ describe('JourneyLegCard (open leg)', () => {
     );
     renderWithMantine(
       <JourneyLegCard
-        journeyId={1}
+        journeyId="1"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({ departAfter: '08:00:00', arriveBefore: '12:30:00' })}
@@ -529,7 +533,7 @@ describe('JourneyLegCard (open leg)', () => {
     // A non-owner never renders `JourneyLegCandidates` at all (the API
     // would 404 a pick attempt anyway) -- no fetch to await here.
     renderWithMantine(
-      <JourneyLegCard journeyId={1} isOwner={false} isOnlyLeg={false} leg={openLeg({ departAfter: '08:00:00' })} />,
+      <JourneyLegCard journeyId="1" isOwner={false} isOnlyLeg={false} leg={openLeg({ departAfter: '08:00:00' })} />,
     );
 
     expect(screen.queryByRole('link', { name: 'Edit search' })).not.toBeInTheDocument();
@@ -543,7 +547,7 @@ describe('JourneyLegCard (open leg)', () => {
       'fetch',
       vi.fn(async () => new Response('{"results":[],"nextCursor":null}', { status: 200 })),
     );
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg()} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
     expect(screen.queryByText(/Departing at or|Arriving at or/)).not.toBeInTheDocument();
@@ -554,7 +558,7 @@ describe('JourneyLegCard (open leg)', () => {
       'fetch',
       vi.fn(async () => new Response('{"results":[],"nextCursor":null}', { status: 200 })),
     );
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg()} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
     expect(screen.queryByText('Searching for a train to track — pick one below.')).not.toBeInTheDocument();
@@ -570,7 +574,7 @@ describe('JourneyLegCard (open leg)', () => {
       'fetch',
       vi.fn(async () => new Response('{"results":[],"nextCursor":null}', { status: 200 })),
     );
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg()} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
     expect(screen.queryByRole('link', { name: /^Train / })).not.toBeInTheDocument();
@@ -586,14 +590,14 @@ describe('JourneyLegCard (open leg)', () => {
       'fetch',
       vi.fn(async () => new Response('{"results":[],"nextCursor":null}', { status: 200 })),
     );
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg()} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
     expect(screen.getByRole('button', { name: 'Remove leg' })).toBeInTheDocument();
   });
 
   it('does not offer "Remove leg" to a non-owning group member on an open leg', () => {
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner={false} isOnlyLeg={false} leg={openLeg()} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner={false} isOnlyLeg={false} leg={openLeg()} />);
 
     expect(screen.queryByRole('button', { name: 'Remove leg' })).not.toBeInTheDocument();
   });
@@ -604,14 +608,16 @@ describe('JourneyLegCard (open leg)', () => {
       .mockResolvedValueOnce(new Response('{"results":[],"nextCursor":null}', { status: 200 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg({ id: 9 })} />);
+    renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg({ id: 9 })} />);
     await settleCandidates();
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/1/legs/9', { method: 'DELETE' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/1/legs/${testLegId(9)}`, { method: 'DELETE' }),
+    );
   });
 
   // Review §2.3/I15: the open-leg card is the one that needs the user to
@@ -624,7 +630,7 @@ describe('JourneyLegCard (open leg)', () => {
       'fetch',
       vi.fn(async () => new Response('{"results":[],"nextCursor":null}', { status: 200 })),
     );
-    const { container } = renderWithMantine(<JourneyLegCard journeyId={1} isOwner isOnlyLeg={false} leg={openLeg()} />);
+    const { container } = renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
     const card = container.querySelector('.mantine-Card-root');
@@ -633,7 +639,7 @@ describe('JourneyLegCard (open leg)', () => {
 
   it('accents the non-owner "waiting for the owner" card the same way', () => {
     const { container } = renderWithMantine(
-      <JourneyLegCard journeyId={1} isOwner={false} isOnlyLeg={false} leg={openLeg()} />,
+      <JourneyLegCard journeyId="1" isOwner={false} isOnlyLeg={false} leg={openLeg()} />,
     );
 
     const card = container.querySelector('.mantine-Card-root');
@@ -700,11 +706,12 @@ describe('JourneyLegCard: Edit search', () => {
     mockApi();
     renderWithMantine(
       <JourneyLegCard
-        journeyId={7}
+        journeyId="7"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({
           id: 3,
+          publicId: testLegId(3),
           serviceDate: '2026-10-23',
           departAfter: '08:00:00',
           departBefore: '09:30:00',
@@ -730,11 +737,12 @@ describe('JourneyLegCard: Edit search', () => {
     const fetchMock = mockApi();
     renderWithMantine(
       <JourneyLegCard
-        journeyId={7}
+        journeyId="7"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({
           id: 3,
+          publicId: testLegId(3),
           departAfter: '08:00:00',
           windowSearched: true,
           searchFilters: { operator: 'GR', callsAt: 'YRK' },
@@ -744,7 +752,7 @@ describe('JourneyLegCard: Edit search', () => {
     // The api applies the saved filters itself: the plain list sends none.
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/3/candidates',
+        `/api/Journeys/7/legs/${testLegId(3)}/candidates`,
       ),
     );
     expect(await screen.findByText(/^Search filters: Operator GR · Call at /)).toBeInTheDocument();
@@ -758,7 +766,7 @@ describe('JourneyLegCard: Edit search', () => {
 
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/3/candidates?origin=KGX&destination=EDB&serviceDate=2026-09-22&departAfter=08%3A00&operator=GR&callsAt=YRK',
+        `/api/Journeys/7/legs/${testLegId(3)}/candidates?origin=KGX&destination=EDB&serviceDate=2026-09-22&departAfter=08%3A00&operator=GR&callsAt=YRK`,
       ),
     );
     fireEvent.click(await screen.findByRole('button', { name: /^Track this train: 10:32/ }));
@@ -772,7 +780,7 @@ describe('JourneyLegCard: Edit search', () => {
     const fetchMock = mockApi();
     renderWithMantine(
       <JourneyLegCard
-        journeyId={7}
+        journeyId="7"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({ id: 3, departAfter: '08:00:00', windowSearched: true })}
@@ -786,7 +794,7 @@ describe('JourneyLegCard: Edit search', () => {
     // The edited search is listed for THIS leg, and shown as not yet saved.
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/3/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&departAfter=08%3A00&departBefore=10%3A45',
+        `/api/Journeys/7/legs/${testLegId(3)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&departAfter=08%3A00&departBefore=10%3A45`,
       ),
     );
     expect(screen.getByText(byVisibleText('New search: KGX to YRK, 22 Sep 2026'))).toBeInTheDocument();
@@ -796,7 +804,7 @@ describe('JourneyLegCard: Edit search', () => {
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     const picks = calls(fetchMock, '/train');
     expect(picks).toHaveLength(1);
-    expect(picks[0]?.[0]).toBe('/api/Journeys/7/legs/3/train');
+    expect(picks[0]?.[0]).toBe(`/api/Journeys/7/legs/${testLegId(3)}/train`);
     expect(JSON.parse(String(picks[0]?.[1]?.body))).toEqual({
       trainUid: 'C11052',
       serviceDate: '2026-09-22',
@@ -819,7 +827,7 @@ describe('JourneyLegCard: Edit search', () => {
     const fetchMock = mockApi();
     renderWithMantine(
       <JourneyLegCard
-        journeyId={7}
+        journeyId="7"
         isOwner
         isOnlyLeg={false}
         leg={baseLeg({ id: 4, departAfter: '15:00:00', windowSearched: true })}
@@ -842,7 +850,7 @@ describe('JourneyLegCard: Edit search', () => {
 
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/4/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&arriveBefore=18%3A00',
+        `/api/Journeys/7/legs/${testLegId(4)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&arriveBefore=18%3A00`,
       ),
     );
     expect(screen.getByText('Arriving at or before 18:00')).toBeInTheDocument();
@@ -850,7 +858,7 @@ describe('JourneyLegCard: Edit search', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Track this train: 10:32/ }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     const pick = calls(fetchMock, '/train')[0];
-    expect(pick?.[0]).toBe('/api/Journeys/7/legs/4/train');
+    expect(pick?.[0]).toBe(`/api/Journeys/7/legs/${testLegId(4)}/train`);
     expect((JSON.parse(String(pick?.[1]?.body)) as { search: unknown }).search).toEqual({
       originCrs: 'KGX',
       destinationCrs: 'YRK',
@@ -862,13 +870,13 @@ describe('JourneyLegCard: Edit search', () => {
 
   it('changes the train on a leg never window-searched, from its stations, date and departure', async () => {
     const fetchMock = mockApi();
-    renderWithMantine(<JourneyLegCard journeyId={7} isOwner isOnlyLeg={false} leg={baseLeg({ id: 5 })} />);
+    renderWithMantine(<JourneyLegCard journeyId="7" isOwner isOnlyLeg={false} leg={baseLeg({ id: 5 })} />);
     fireEvent.click(screen.getByRole('button', { name: 'Change train' }));
 
     // 16:00Z is 17:00 in London: trains from the booked one on.
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/5/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&departAfter=17%3A00',
+        `/api/Journeys/7/legs/${testLegId(5)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&departAfter=17%3A00`,
       ),
     );
     expect(screen.getByText(/^Other trains:/)).toBeInTheDocument();
@@ -890,7 +898,7 @@ describe('JourneyLegCard: Edit search', () => {
     const fetchMock = mockApi();
     renderWithMantine(
       <JourneyLegCard
-        journeyId={7}
+        journeyId="7"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({ id: 3, departAfter: '08:00:00', windowSearched: true })}
@@ -916,6 +924,7 @@ describe('JourneyLegCard: Edit search', () => {
     const fetchMock = mockApi();
     const leg = openLeg({
       id: 3,
+      publicId: testLegId(3),
       serviceDate: '2026-09-22',
       departAfter: '08:07:00',
       departBefore: '08:17:00',
@@ -923,12 +932,12 @@ describe('JourneyLegCard: Edit search', () => {
     });
     renderWithMantine(
       <UsualTrainProvider usual={{}} remindPick>
-        <JourneyLegCard journeyId={7} isOwner isOnlyLeg={false} leg={leg} />
+        <JourneyLegCard journeyId="7" isOwner isOnlyLeg={false} leg={leg} />
       </UsualTrainProvider>,
     );
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/3/candidates?origin=KGX&destination=EDB&serviceDate=2026-09-22&departAfter=07%3A42&departBefore=09%3A12',
+        `/api/Journeys/7/legs/${testLegId(3)}/candidates?origin=KGX&destination=EDB&serviceDate=2026-09-22&departAfter=07%3A42&departBefore=09%3A12`,
       ),
     );
     expect(screen.getByText('Departing between 07:42 and 09:12')).toBeInTheDocument();
@@ -942,7 +951,7 @@ describe('JourneyLegCard: Edit search', () => {
     const fetchMock = mockApi();
     renderWithMantine(
       <JourneyLegCard
-        journeyId={7}
+        journeyId="7"
         isOwner
         isOnlyLeg={false}
         leg={openLeg({ id: 3, departAfter: '08:07:00', departBefore: '08:17:00', windowSearched: true })}
@@ -950,7 +959,7 @@ describe('JourneyLegCard: Edit search', () => {
     );
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        '/api/Journeys/7/legs/3/candidates',
+        `/api/Journeys/7/legs/${testLegId(3)}/candidates`,
       ),
     );
   });

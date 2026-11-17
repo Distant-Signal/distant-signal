@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testTrackingId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { AddTrainToGroupButton } from './AddTrainToGroupButton';
 
@@ -15,6 +16,7 @@ function mineResponse() {
     JSON.stringify([
       {
         id: 1,
+        publicId: testTrackingId(1),
         serviceDate: '2026-09-11',
         pinOriginCrs: 'WOK',
         pinDestinationCrs: 'WAT',
@@ -30,6 +32,7 @@ function mineResponse() {
       },
       {
         id: 2,
+        publicId: testTrackingId(2),
         serviceDate: '2026-09-11',
         pinOriginCrs: 'CLJ',
         pinDestinationCrs: 'VIC',
@@ -62,7 +65,7 @@ describe('AddTrainToGroupButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(mineResponse());
 
-    renderWithMantine(<AddTrainToGroupButton groupId="grp-1" excludeTrainSubscriptionIds={[2]} />);
+    renderWithMantine(<AddTrainToGroupButton groupId="grp-1" excludeTrainSubscriptionIds={[testTrackingId(2)]} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add one of my trains' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/Train/mine'));
@@ -95,7 +98,7 @@ describe('AddTrainToGroupButton', () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/groups/grp-1/trains',
-        expect.objectContaining({ method: 'POST', body: JSON.stringify({ trainSubscriptionId: 1 }) }),
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ trainSubscriptionId: testTrackingId(1) }) }),
       );
     });
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());

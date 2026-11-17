@@ -29,7 +29,7 @@ describe('FollowJourneyButton', () => {
 
   it('follows through the given group and refreshes', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
-    renderWithMantine(<FollowJourneyButton journeyId={7} following={false} groupId="grp-1" />);
+    renderWithMantine(<FollowJourneyButton journeyId="7" following={false} groupId="grp-1" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow this journey' }));
 
@@ -43,7 +43,7 @@ describe('FollowJourneyButton', () => {
   it('follows with a share token in the body, never the URL, then opens the journey', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
     renderWithMantine(
-      <FollowJourneyButton journeyId={7} following={false} shareToken="tok_123" afterFollowHref="/journeys/7" />,
+      <FollowJourneyButton journeyId="7" following={false} shareToken="tok_123" afterFollowHref="/journeys/7" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow this journey' }));
@@ -57,7 +57,7 @@ describe('FollowJourneyButton', () => {
 
   it('sends no body when no share is named', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
-    renderWithMantine(<FollowJourneyButton journeyId={7} following={false} />);
+    renderWithMantine(<FollowJourneyButton journeyId="7" following={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow this journey' }));
 
@@ -67,7 +67,7 @@ describe('FollowJourneyButton', () => {
 
   it('unfollows with a DELETE, and leaves the page when told to', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 204 }));
-    renderWithMantine(<FollowJourneyButton journeyId={7} following groupId="grp-1" afterUnfollowHref="/journeys" />);
+    renderWithMantine(<FollowJourneyButton journeyId="7" following groupId="grp-1" afterUnfollowHref="/journeys" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Unfollow' }));
 
@@ -80,7 +80,7 @@ describe('FollowJourneyButton', () => {
 
   it('asks a logged-out visitor to log in', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 401 }));
-    renderWithMantine(<FollowJourneyButton journeyId={7} following={false} />);
+    renderWithMantine(<FollowJourneyButton journeyId="7" following={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow this journey' }));
 
@@ -90,7 +90,7 @@ describe('FollowJourneyButton', () => {
 
   it("shows the api's own refusal, such as for the caller's own journey", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('this is your own journey', { status: 409 }));
-    renderWithMantine(<FollowJourneyButton journeyId={7} following={false} />);
+    renderWithMantine(<FollowJourneyButton journeyId="7" following={false} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Follow this journey' }));
 

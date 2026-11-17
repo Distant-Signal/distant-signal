@@ -3,7 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { EditUntrackedLegButton } from './EditUntrackedLegButton';
 import type { JourneyLegDetail } from '@/lib/types';
-import { JOURNEY_LEG_DEFAULTS } from '@/test/apiDefaults';
+import { JOURNEY_LEG_DEFAULTS, testLegId } from '@/test/apiDefaults';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 const leg: JourneyLegDetail = {
   ...JOURNEY_LEG_DEFAULTS,
   id: 12,
+  publicId: testLegId(12),
   kind: 'untracked',
   originCrs: null,
   originName: 'Brixton',
@@ -52,7 +53,7 @@ describe('EditUntrackedLegButton', () => {
   it('opens with every field the leg was made with, and an untouched save keeps them all, stop ids too', async () => {
     renderWithMantine(
       <EditUntrackedLegButton
-        journeyId={3}
+        journeyId="3"
         leg={{ ...leg, originStopId: '940GZZLUBXN', destinationStopId: '940GZZLUEUS' }}
       />,
     );
@@ -69,7 +70,7 @@ describe('EditUntrackedLegButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save leg' }));
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/Journeys/3/legs/12',
+        `/api/Journeys/3/legs/${testLegId(12)}`,
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify({
@@ -88,7 +89,7 @@ describe('EditUntrackedLegButton', () => {
   });
 
   it('opens seeded from the leg and PUTs the edited fields', async () => {
-    renderWithMantine(<EditUntrackedLegButton journeyId={3} leg={leg} />);
+    renderWithMantine(<EditUntrackedLegButton journeyId="3" leg={leg} />);
     fireEvent.click(screen.getByRole('button', { name: 'Edit leg' }));
     expect(await screen.findByLabelText('Line (optional)')).toHaveValue('Victoria line');
     expect(screen.getByRole('combobox', { name: 'From (optional)' })).toHaveValue('Brixton');
@@ -102,7 +103,7 @@ describe('EditUntrackedLegButton', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/Journeys/3/legs/12',
+        `/api/Journeys/3/legs/${testLegId(12)}`,
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify({

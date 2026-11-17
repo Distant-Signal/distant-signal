@@ -2406,7 +2406,7 @@ describe('TrackTrainForm', () => {
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith(
           '/api/groups/grp-1/journeys',
-          expect.objectContaining({ method: 'POST', body: JSON.stringify({ journeyId: 99 }) }),
+          expect.objectContaining({ method: 'POST', body: JSON.stringify({ journeyId: testPublicId(99) }) }),
         );
       });
       await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(99)}`));

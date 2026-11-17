@@ -11,6 +11,7 @@ import {
 import { OperatorNamesProvider } from '@/components/OperatorNamesContext';
 import { UsualTrainProvider } from '@/components/UsualTrainContext';
 import { usualTrainLegs } from '@/lib/regularJourneys';
+import { legRef } from '@/lib/publicId';
 import type { JourneyDetail, JourneyTemplateDetail } from '@/lib/types';
 import { JourneyDetailView } from '@/components/JourneyDetailView';
 import { LoginControl } from '@/components/LoginControl';
@@ -150,13 +151,13 @@ export default async function JourneyDetailPage({
             {followedFromLabel(journey.followedFrom)}
           </Text>
           <FollowJourneyButton
-            journeyId={journey.id}
+            journeyId={journey.publicId}
             following
             afterUnfollowHref={journey.followedFrom.via === 'link' ? '/journeys' : undefined}
           />
         </Group>
       ) : (
-        journey.canFollow && <FollowJourneyButton journeyId={journey.id} following={false} />
+        journey.canFollow && <FollowJourneyButton journeyId={journey.publicId} following={false} />
       )}
       <OperatorNamesProvider names={operatorNames}>
         <UsualTrainProvider usual={usual} remindPick={remindPick}>
@@ -184,14 +185,14 @@ export default async function JourneyDetailPage({
  * legs. Empty for someone else's journey, one not made from a regular
  * journey, or one whose regular journey has no usual train or can't be
  * read. */
-function usualTrainsByLeg(journey: JourneyDetail, template: JourneyTemplateDetail | null): Record<number, string> {
+function usualTrainsByLeg(journey: JourneyDetail, template: JourneyTemplateDetail | null): Record<string, string> {
   if (!template) return {};
   const trains = usualTrainLegs(template.usualItinerary);
   const legs = journey.legs.filter((leg) => leg.kind === 'train');
-  const usual: Record<number, string> = {};
+  const usual: Record<string, string> = {};
   legs.forEach((leg, index) => {
     const uid = trains[index]?.trainUid;
-    if (uid) usual[leg.id] = uid;
+    if (uid) usual[legRef(leg)] = uid;
   });
   return usual;
 }

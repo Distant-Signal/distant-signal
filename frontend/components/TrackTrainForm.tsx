@@ -422,7 +422,7 @@ export function TrackTrainForm({
         const result = (await response.json()) as CreateJourneyResponse;
         if (groupId !== null) {
           // Shares the train's new one-leg journey (DS-124).
-          await shareTrackedTrainToGroup(groupId, result.journeyId);
+          await shareTrackedTrainToGroup(groupId, result.journeyPublicId);
         }
         if (onCreated) {
           onCreated(result);

@@ -13,6 +13,22 @@ export function testPublicId(n: number): string {
   return `j_${n.toString(16).padStart(32, '0')}`;
 }
 
+/** A journey leg's `publicId` for a fixture: `l_` and 32 hex digits, the
+ * number in the last digits. */
+export function testLegId(n: number): string {
+  return `l_${n.toString(16).padStart(32, '0')}`;
+}
+
+/** A tracked train's `publicId` for a fixture: `t_` and 32 hex digits. */
+export function testTrackingId(n: number): string {
+  return `t_${n.toString(16).padStart(32, '0')}`;
+}
+
+/** A push device's `publicId` for a fixture: `d_` and 32 hex digits. */
+export function testDeviceId(n: number): string {
+  return `d_${n.toString(16).padStart(32, '0')}`;
+}
+
 /** A `JourneyStop`, less what places it: `crs`, `name`, `kind` and times. */
 export const JOURNEY_STOP_DEFAULTS = {
   locationType: null,
@@ -87,6 +103,7 @@ const TRAIN_LIVE_DEFAULTS = {
 /** A `TrackedTrainState`, less its id, date and pin. */
 export const TRACKED_TRAIN_STATE_DEFAULTS = {
   ...TRAIN_LIVE_DEFAULTS,
+  publicId: testTrackingId(0),
   pinOriginName: null,
   pinDestinationName: null,
   trainUid: null,
@@ -115,6 +132,7 @@ export const PUBLIC_TRAIN_DEFAULTS = {
 
 /** A `TrackedTrainListItem` (`GET /Train/mine`), less its id, date and pin. */
 export const TRACKED_TRAIN_LIST_ITEM_DEFAULTS = {
+  publicId: testTrackingId(0),
   pinOriginName: null,
   pinDestinationName: null,
   pinScheduledDeparture: null,
@@ -142,6 +160,7 @@ export const TRACKED_TRAIN_LIST_ITEM_DEFAULTS = {
 
 /** A `JourneyLegDetailResponse`, less its id, ends, date and kind. */
 export const JOURNEY_LEG_DEFAULTS = {
+  publicId: testLegId(0),
   departAfter: null,
   departBefore: null,
   arriveAfter: null,
@@ -159,6 +178,7 @@ export const JOURNEY_LEG_DEFAULTS = {
   destinationStopId: null,
   searchFilters: null,
   replacesLegIds: [],
+  replacesLegPublicIds: [],
   transitNetwork: null,
   transitLineId: null,
   headsign: null,
@@ -197,6 +217,8 @@ export const JOURNEY_LIST_ITEM_DEFAULTS = {
   legCount: 1,
   matchMode: 'manual',
   trainSubscriptionId: null,
+  trainSubscriptionPublicId: null,
+  legPublicId: testLegId(0),
   resolutionStatus: null,
   status: null,
   delayMinutes: null,
@@ -375,6 +397,7 @@ export const RELIABILITY_JOURNEY_DEFAULTS = {
 
 /** A `ReliabilityTrain`, less its journey, leg, date and delay. */
 export const RELIABILITY_TRAIN_DEFAULTS = {
+  legPublicId: null,
   journeyPublicId: testPublicId(0),
   trainUid: 'W12345',
   originCrs: 'KGX',
@@ -387,6 +410,7 @@ export const RELIABILITY_TRAIN_DEFAULTS = {
 
 /** The live fields a `GroupTrain` (and `SharedTrain`) adds to its pin. */
 export const GROUP_TRAIN_DEFAULTS = {
+  trainSubscriptionPublicId: testTrackingId(0),
   delayBasis: null,
   delayProvisional: false,
   serviceMode: 'train',
@@ -419,6 +443,7 @@ export const GROUP_JOURNEY_DEFAULTS = {
 
 /** An earlier plan's leg's untracked stops and network ride. */
 export const REVISION_LEG_DEFAULTS = {
+  sourceLegPublicId: null,
   originStopId: null,
   destinationStopId: null,
   transitNetwork: null,

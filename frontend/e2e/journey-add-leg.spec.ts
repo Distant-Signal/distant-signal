@@ -1,7 +1,7 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import { scanPageBothSchemes } from './a11y-helpers';
 import type * as Api from '../lib/api-types';
-import { testPublicId } from '../test/apiDefaults';
+import { testLegId, testPublicId, testTrackingId } from '../test/apiDefaults';
 
 // "Add a leg" on /plan (components/AddJourneyLegButton.tsx): its
 // From and To fields are the site's standard station search, so a station
@@ -26,6 +26,7 @@ const JOURNEY_ID = 99;
  * destination (EUS) as the next leg's origin. */
 const MATCHED_LEG = {
   id: 1,
+  publicId: testLegId(1),
   originCrs: 'MKC',
   originName: 'Milton Keynes Central',
   destinationCrs: 'EUS',
@@ -40,6 +41,7 @@ const MATCHED_LEG = {
   legSkip: null,
   trackedTrainState: {
     id: 1,
+    publicId: testTrackingId(1),
     serviceDate: '2026-09-22',
     pinOriginCrs: 'MKC',
     pinDestinationCrs: 'EUS',
@@ -137,23 +139,30 @@ async function mockApi(page: Page, firstLeg: object = MATCHED_LEG): Promise<unkn
         journeyId: JOURNEY_ID,
         journeyPublicId: testPublicId(JOURNEY_ID),
         legId: 1,
+        legPublicId: testLegId(1),
         trackingId: 42,
+        trackingPublicId: testTrackingId(42),
         resolutionStatus: 'pending',
       } satisfies Api.CreateJourneyResponse);
     }
-    if (path === `/api/Journeys/${JOURNEY_ID}` && request.method() === 'GET') {
+    if (path === `/api/Journeys/${testPublicId(JOURNEY_ID)}` && request.method() === 'GET') {
       return json(route, {
         id: JOURNEY_ID,
-        publicId: `j_${JOURNEY_ID}`,
+        publicId: testPublicId(JOURNEY_ID),
         customName: null,
         createdAt: '2026-09-22T00:00:00Z',
         isOwner: true,
         legs: [firstLeg],
       });
     }
-    if (path === `/api/Journeys/${JOURNEY_ID}/legs` && request.method() === 'POST') {
+    if (path === `/api/Journeys/${testPublicId(JOURNEY_ID)}/legs` && request.method() === 'POST') {
       legBodies.push(request.postDataJSON());
-      return json(route, { legId: 2, trackingId: null } satisfies Api.AddJourneyLegResponse);
+      return json(route, {
+        legId: 2,
+        legPublicId: testLegId(2),
+        trackingId: null,
+        trackingPublicId: null,
+      } satisfies Api.AddJourneyLegResponse);
     }
     return route.fulfill({ status: 404, body: '' });
   });

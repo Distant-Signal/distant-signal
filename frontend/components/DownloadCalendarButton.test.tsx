@@ -25,7 +25,7 @@ describe('DownloadCalendarButton', () => {
       });
     });
 
-    renderWithMantine(<DownloadCalendarButton journeyId={7} />);
+    renderWithMantine(<DownloadCalendarButton journeyId="7" />);
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
 
     await waitFor(() => expect(click).toHaveBeenCalled());
@@ -40,7 +40,7 @@ describe('DownloadCalendarButton', () => {
       vi.fn(() => Promise.resolve(new Response('no', { status: 404 }))),
     );
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    renderWithMantine(<DownloadCalendarButton journeyId={7} />);
+    renderWithMantine(<DownloadCalendarButton journeyId="7" />);
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
     expect(await screen.findByText(/Couldn't download the calendar file/)).toBeInTheDocument();
     expect(click).not.toHaveBeenCalled();
