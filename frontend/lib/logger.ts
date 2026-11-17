@@ -121,7 +121,8 @@ export function formatLogLine(
     }
     if (value instanceof Error || key === 'error') {
       entry.error = errorText(value);
-      if (value instanceof Error && value.stack) entry.stack = value.stack;
+      // The stack opens with the message, which may embed a tokenised URL.
+      if (value instanceof Error && value.stack) entry.stack = redactTokens(value.stack);
       const digest = value instanceof Error ? (value as { digest?: unknown }).digest : undefined;
       if (typeof digest === 'string') entry.digest = digest;
       continue;
