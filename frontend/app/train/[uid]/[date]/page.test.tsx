@@ -75,6 +75,18 @@ function publicTrainState(overrides: Partial<PublicTrainState> = {}): PublicTrai
   };
 }
 
+/** One timetabled stop, for a train that has its stops. */
+const ORIGIN_STOP = {
+  ...JOURNEY_STOP_DEFAULTS,
+  crs: 'WAT',
+  name: 'London Waterloo',
+  kind: 'Origin' as const,
+  scheduledArrival: null,
+  scheduledDeparture: '2026-08-31T18:32:00Z',
+  plannedPlatform: null,
+  platformChanged: false,
+};
+
 async function renderPage(uid = 'W12345', date = '2026-08-31') {
   const element = await TrackedTrainByUidPage({ params: Promise.resolve({ uid, date }) });
   return renderWithMantine(element);
@@ -177,6 +189,57 @@ describe('TrackedTrainByUidPage success path', () => {
     );
     await renderPage();
     expect(screen.queryByText('Timetable may change')).not.toBeInTheDocument();
+  });
+
+  // A train added at short notice: live running, but no timetable, so no
+  // route, stops or departure time (U06535 on 16 Nov 2026).
+  it('says why a live train with no stops has none', async () => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+      publicTrainState({
+        trainUid: 'U06535',
+        serviceDate: '2026-11-16',
+        headcode: '1Z72',
+        originCrs: null,
+        destinationCrs: null,
+        scheduledDeparture: null,
+        nextCallingPoint: null,
+        lastReportedLocation: 'HAT',
+        delayMinutes: 60,
+        trackingPhase: 'live',
+        journeyStops: null,
+      }),
+    );
+    await renderPage('U06535', '2026-11-16');
+    const note = screen.getByRole('note', { name: 'Timetable not available yet' });
+    expect(note).toHaveTextContent("This train was added at short notice, so we don't have its stops yet.");
+    expect(screen.getByText(/Last reported: HAT/)).toBeInTheDocument();
+  });
+
+  it("doesn't explain missing stops when the train has its stops", async () => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+      publicTrainState({ trackingPhase: 'live', journeyStops: [ORIGIN_STOP] }),
+    );
+    await renderPage();
+    expect(screen.queryByText('Timetable not available yet')).not.toBeInTheDocument();
+    expect(screen.getAllByText('London Waterloo').length).toBeGreaterThan(0);
+  });
+
+  it("doesn't explain missing stops before the train is running", async () => {
+    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+      publicTrainState({
+        trainId: null,
+        originCrs: null,
+        destinationCrs: null,
+        status: null,
+        lastReportedLocation: null,
+        nextCallingPoint: null,
+        trackingPhase: 'noTimetable',
+        journeyStops: null,
+      }),
+    );
+    await renderPage();
+    expect(screen.queryByText('Timetable not available yet')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-timetable-stops-note]')).toBeNull();
   });
 
   // The footer carries no credits: the train's sources are credited on the
@@ -596,7 +659,7 @@ describe('generateMetadata', () => {
   // delay or a location that has moved on.
   it("describes the page, not the train's live state", async () => {
     vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
-      publicTrainState({ lastReportedLocation: 'Woking', delayMinutes: 5 }),
+      publicTrainState({ lastReportedLocation: 'Woking', delayMinutes: 5, journeyStops: [ORIGIN_STOP] }),
     );
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
     expect(metadata.description).toBe('19:32 WAT to WOK, Mon 31 Aug: calling points, platforms and live running.');
@@ -634,7 +697,13 @@ describe('generateMetadata', () => {
 
   it('names an untitled train by its UID', async () => {
     vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
-      publicTrainState({ originCrs: null, originName: null, destinationCrs: null, destinationName: null }),
+      publicTrainState({
+        originCrs: null,
+        originName: null,
+        destinationCrs: null,
+        destinationName: null,
+        journeyStops: [ORIGIN_STOP],
+      }),
     );
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
     expect(metadata.description).toBe('Train W12345, Mon 31 Aug: calling points, platforms and live running.');
@@ -659,22 +728,57 @@ describe('generateMetadata', () => {
 });
 
 describe('trainPageDescription', () => {
+  const running: Parameters<typeof trainPageDescription>[1] = {
+    serviceDate: '2026-11-01',
+    serviceMode: 'train',
+    liveTracking: true,
+    status: 'en_route',
+    trackingPhase: 'live',
+    journeyStops: [ORIGIN_STOP],
+  };
+
   it('says what the page has, with the date', () => {
+    expect(trainPageDescription('13:42 Woking to London Waterloo', running)).toBe(
+      '13:42 Woking to London Waterloo, Sun 1 Nov: calling points, platforms and live running.',
+    );
+  });
+
+  it('a train not yet running still promises its calling points', () => {
     expect(
       trainPageDescription('13:42 Woking to London Waterloo', {
-        serviceDate: '2026-11-01',
-        serviceMode: 'train',
-        liveTracking: true,
+        ...running,
+        status: 'awaiting_activation',
+        trackingPhase: 'awaitingReport',
+        journeyStops: null,
       }),
     ).toBe('13:42 Woking to London Waterloo, Sun 1 Nov: calling points, platforms and live running.');
+  });
+
+  it.each([null, []])('a live train with no stops (%j) promises no calling points', (journeyStops) => {
+    expect(trainPageDescription('Train U06535', { ...running, serviceDate: '2026-11-16', journeyStops })).toBe(
+      'Train U06535, Mon 16 Nov: live running.',
+    );
+  });
+
+  it('a cancelled train with no stops keeps the usual description', () => {
+    expect(
+      trainPageDescription('Train U06535', {
+        ...running,
+        serviceDate: '2026-11-16',
+        status: 'cancelled',
+        journeyStops: null,
+      }),
+    ).toBe('Train U06535, Mon 16 Nov: calling points, platforms and live running.');
   });
 
   it('a service never tracked live has its timetable only', () => {
     expect(
       trainPageDescription('13:42 Woking to Guildford', {
-        serviceDate: '2026-11-01',
+        ...running,
         serviceMode: 'replacementBus',
         liveTracking: false,
+        status: null,
+        trackingPhase: 'timetableOnly',
       }),
     ).toBe('13:42 Woking to Guildford, Sun 1 Nov: calling points and timetabled times.');
   });

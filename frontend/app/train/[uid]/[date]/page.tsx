@@ -14,6 +14,11 @@ import { TIMES_IN_UK_LOCAL_TIME } from '@/lib/dateFormat';
 import { isTimetableOnly, serviceModeLabel } from '@/lib/serviceMode';
 import { ServiceModeIcon } from '@/components/ServiceModeIcon';
 import { ProvisionalTimetableNote } from '@/components/ProvisionalTimetableNote';
+import {
+  TimetableStopsNote,
+  timetableStopsNoteKind,
+  type TimetableStopsNoteFields,
+} from '@/components/TimetableStopsNote';
 import type { PublicTrainState, TrainJourneyState, TrackedTrainListItem } from '@/lib/types';
 import { pageMetadata, previewImageAlt } from '@/lib/pageMetadata';
 import { serviceDateLabel, trainPreviewCard, trainPreviewImage } from '@/lib/trainPreview';
@@ -130,14 +135,17 @@ function trackNoun(train: Pick<PublicTrainState, 'serviceMode'>): 'train' | 'bus
  * "last reported" location here would go stale while the card's band moves
  * on. Says what the page has: "13:42 Woking to London Waterloo, Sat 1 Nov:
  * calling points, platforms and live running." A bus or ferry, never
- * tracked live, has its timetable only. */
+ * tracked live, has its timetable only; a live train with no stops yet
+ * (`TimetableStopsNote`) has its live running only. */
 export function trainPageDescription(
   title: string,
-  train: Pick<PublicTrainState, 'serviceDate' | 'serviceMode' | 'liveTracking'>,
+  train: Pick<PublicTrainState, 'serviceDate'> & TimetableStopsNoteFields,
 ): string {
   const what = isTimetableOnly(train)
     ? 'calling points and timetabled times'
-    : 'calling points, platforms and live running';
+    : timetableStopsNoteKind(train) === 'noStops'
+      ? 'live running'
+      : 'calling points, platforms and live running';
   return `${title}, ${serviceDateLabel(train.serviceDate)}: ${what}.`;
 }
 
@@ -363,6 +371,9 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
       {/* Far-ahead service dates only (`provisional`, see
           `ProvisionalTimetableNote`): late timetable changes may still land. */}
       <ProvisionalTimetableNote provisional={train.provisional} />
+      {/* A live train with no stops (added at short notice): says why only
+          its position and delay show. */}
+      <TimetableStopsNote train={train} />
       <TrainJourneyPanel state={journeyState} suppressTrainUidHeading />
       <Group gap={4}>
         <LastUpdated timestamp={renderedAt} />
