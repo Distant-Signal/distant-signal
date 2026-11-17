@@ -1,3 +1,5 @@
+import { numericExtra, parseApiError } from './apiError';
+
 /** `DELETE /api/groups/{id}` with the member count the visitor was shown
  * (`expectedMemberCount`, DS-534). The api refuses a delete whose count is
  * stale with `409` `group_changed` (someone joined or left since the page
@@ -22,15 +24,10 @@ export async function deleteGroup(
 
 /** The parsed `group_changed` body, or null when `body` is anything else. */
 function parseGroupChanged(body: string): { memberCount: number | null } | null {
-  try {
-    const parsed: unknown = JSON.parse(body);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const { error, memberCount } = parsed as { error?: unknown; memberCount?: unknown };
-    if (error !== 'group_changed') return null;
-    return { memberCount: typeof memberCount === 'number' && Number.isInteger(memberCount) ? memberCount : null };
-  } catch {
-    return null;
-  }
+  const error = parseApiError(409, body);
+  if (error.code !== 'group_changed') return null;
+  const count = numericExtra(error, 'memberCount');
+  return { memberCount: count !== null && Number.isInteger(count) ? count : null };
 }
 
 /** What the dialog says after a `group_changed` refusal. */

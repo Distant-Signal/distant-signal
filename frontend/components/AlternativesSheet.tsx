@@ -31,7 +31,8 @@ import { TextLink } from './TextLink';
 import { CARD_PRIMARY, ClickableCard, StaticCard } from './ClickableCard';
 import { StateBadge } from './StateBadge';
 import { instantLateDepartureTimes, LateDepartureNote, trainToSubject } from './LateDepartureNote';
-import { asSentence, describeFailure, isUserFacingApiMessage } from '@/lib/failure';
+import { readApiError } from '@/lib/apiError';
+import { apiErrorSentence, describeFailure } from '@/lib/failure';
 import { typedStationCode } from '@/lib/codeLabels';
 import { formatTime } from '@/lib/dateFormat';
 import {
@@ -107,35 +108,22 @@ interface Failure {
 }
 
 /** What a refusal's body says: the API's own sentence when its body (plain
- * text, or JSON with a `message`) is one written for people and the status
- * is one a person can act on, else `describeFailure`. The two 409 refusals
- * above are told apart by the body's `error` code when it is there, else by
- * their message. */
+ * text, or a typed JSON refusal's `message`) is one written for people and
+ * the status is one a person can act on, else `describeFailure`. The two
+ * 409 refusals above are told apart by the body's `error` code when it is
+ * there, else by their message: the api answers a cookie session with the
+ * plain-text sentence (the `{error, message}` JSON is for delegated
+ * callers), so for these two the message is what the web app has. */
 async function failureOf([verb, noun]: readonly [string, string], response: Response): Promise<Failure> {
-  const body = await response.text().catch(() => '');
-  if ([400, 403, 409, 422].includes(response.status)) {
-    let message = body;
-    let code: string | null = null;
-    try {
-      const parsed: unknown = JSON.parse(body);
-      if (parsed && typeof parsed === 'object') {
-        if ('message' in parsed && typeof parsed.message === 'string') message = parsed.message;
-        if ('error' in parsed && typeof parsed.error === 'string') code = parsed.error;
-      }
-    } catch {
-      // Plain text: the body is the message.
-    }
-    if (isUserFacingApiMessage(message)) {
-      const sentence = asSentence(message);
-      let refusal: Refusal | null = null;
-      if (response.status === 409) {
-        if (code === 'miss_window_closed' || sentence === MISS_WINDOW_CLOSED_MESSAGE) refusal = 'windowClosed';
-        else if (code === 'leg_travelled' || sentence === LEG_TRAVELLED_MESSAGE) refusal = 'travelled';
-      }
-      return { message: sentence, refusal };
-    }
+  const error = await readApiError(response);
+  const sentence = apiErrorSentence(error);
+  if (sentence === null) return { message: describeFailure(verb, noun, response.status), refusal: null };
+  let refusal: Refusal | null = null;
+  if (response.status === 409) {
+    if (error.code === 'miss_window_closed' || sentence === MISS_WINDOW_CLOSED_MESSAGE) refusal = 'windowClosed';
+    else if (error.code === 'leg_travelled' || sentence === LEG_TRAVELLED_MESSAGE) refusal = 'travelled';
   }
-  return { message: describeFailure(verb, noun, response.status), refusal: null };
+  return { message: sentence, refusal };
 }
 
 async function failureMessage(failure: readonly [string, string], response: Response): Promise<string> {

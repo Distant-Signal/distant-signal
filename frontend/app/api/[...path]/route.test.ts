@@ -561,6 +561,23 @@ describe('/api/[...path] proxy', () => {
       expect(await res.text()).toBe(body);
     });
 
+    it("passes a typed refusal's status, code, message and extras through, so the page can match on the code", async () => {
+      const body = '{"error":"owner_must_delete","message":"Delete the group instead.","memberCount":1}';
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response(body, { status: 409, headers: { 'Content-Type': 'application/json' } }),
+      );
+      const res = await DELETE(
+        makeRequest('/api/groups/g_abc/members/m_def', {
+          method: 'DELETE',
+          headers: { origin: 'http://localhost:3000' },
+        }),
+        { params: Promise.resolve({ path: ['groups', 'g_abc', 'members', 'm_def'] }) },
+      );
+      expect(res.status).toBe(409);
+      expect(res.headers.get('content-type')).toBe('application/json');
+      expect(await res.text()).toBe(body);
+    });
+
     it('403s a DELETE whose Origin does not match', async () => {
       const req = makeRequest('/api/Train/1', {
         method: 'DELETE',

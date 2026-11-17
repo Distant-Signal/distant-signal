@@ -1,3 +1,5 @@
+import { readApiError, type ApiError } from './apiError';
+
 /**
  * The one way the app words a failed action (docs/style-guide.md,
  * "Writing"): "Couldn't <verb> <noun>." plus what to do next, never a raw
@@ -56,18 +58,29 @@ export function asSentence(text: string): string {
 /** Statuses whose body can be the API telling the visitor what to change. */
 const CLIENT_ERROR_STATUSES = new Set([400, 403, 409, 422]);
 
-/** The API's own sentence for a refusal the visitor can act on (a 400,
- * 403, 409 or 422 with a readable body), or null. Reads the body, so call
- * it at most once per response. */
+/** The API's own sentence for a refusal the visitor can act on (a 400, 403,
+ * 409 or 422 whose plain-text body, or typed JSON refusal's `message`, is
+ * readable), or null. */
+export function apiErrorSentence(error: ApiError): string | null {
+  if (!CLIENT_ERROR_STATUSES.has(error.status)) return null;
+  return isUserFacingApiMessage(error.message) ? asSentence(error.message) : null;
+}
+
+/** The message for a failed request that was read as an `ApiError`: the
+ * API's own sentence when it wrote one, otherwise `describeFailure`. */
+export function describeApiError(verb: string, noun: string, error: ApiError): string {
+  return apiErrorSentence(error) ?? describeFailure(verb, noun, error.status);
+}
+
+/** The API's own sentence for a refusal the visitor can act on, or null.
+ * Reads the body, so call it at most once per response. */
 export async function apiRefusalMessage(response: Response): Promise<string | null> {
-  if (!CLIENT_ERROR_STATUSES.has(response.status)) return null;
-  const body = await response.text().catch(() => '');
-  return isUserFacingApiMessage(body) ? asSentence(body) : null;
+  return apiErrorSentence(await readApiError(response));
 }
 
 /** The message for a failed `response`: the API's own sentence when it
  * wrote one (`apiRefusalMessage`), otherwise `describeFailure`. Reads the
  * body, so call it at most once per response. */
 export async function failureFromResponse(verb: string, noun: string, response: Response): Promise<string> {
-  return (await apiRefusalMessage(response)) ?? describeFailure(verb, noun, response.status);
+  return describeApiError(verb, noun, await readApiError(response));
 }
