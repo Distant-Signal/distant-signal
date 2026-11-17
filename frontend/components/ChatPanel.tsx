@@ -108,7 +108,7 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
   // stale registration with a bare 400 page. Say so, and offer Reconnect
   // (which starts over with a fresh registration), instead of leaving the
   // visitor to discover it on their next message. Read via
-  // `useSyncExternalStore` so the server render (no localStorage) and the
+  // `useSyncExternalStore` so the server render (no sessionStorage) and the
   // first client render agree.
   const abandonedAuthorization = useSyncExternalStore(
     noSubscription,

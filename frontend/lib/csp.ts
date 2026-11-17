@@ -4,7 +4,7 @@
 //
 // Why a per-request policy rather than the static `headers()` entry this
 // replaced: this app keeps a billable Anthropic API key and MCP OAuth
-// tokens in localStorage (lib/anthropicKey.ts, lib/mcpOAuthProvider.ts), so
+// tokens in sessionStorage (lib/anthropicKey.ts, lib/mcpOAuthProvider.ts), so
 // an injected inline `<script>` is the attack that matters. The old
 // `script-src 'self' 'unsafe-inline'` let one run. Now `script-src` carries a
 // fresh nonce and `'strict-dynamic'`: Next stamps the nonce onto its own
@@ -29,7 +29,7 @@
 // `style-src` keeps `'unsafe-inline'`: Mantine and this app use inline
 // `style` attributes and Mantine injects `<style>` tags throughout. Adding a
 // nonce there would make browsers ignore `'unsafe-inline'` and break every
-// inline style attribute. Injected CSS cannot read localStorage.
+// inline style attribute. Injected CSS cannot read sessionStorage.
 
 /** Header `proxy.ts` uses to hand the nonce to Server Components. */
 export const NONCE_HEADER = 'x-nonce';

@@ -63,7 +63,42 @@ describe('secretStorage', () => {
       });
       try {
         expect(() => migrateLegacySecrets()).not.toThrow();
-        expect(secretStorage()).toBe(sessionStorage);
+        expect(() => secretStorage()).not.toThrow();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  });
+
+  describe('when sessionStorage is blocked', () => {
+    it('keeps secrets in memory instead of throwing', () => {
+      const blocked = {
+        get length(): number {
+          throw new Error('SecurityError');
+        },
+        getItem(): string | null {
+          throw new Error('SecurityError');
+        },
+        setItem(): void {
+          throw new Error('SecurityError');
+        },
+        removeItem(): void {
+          throw new Error('SecurityError');
+        },
+        key(): string | null {
+          throw new Error('SecurityError');
+        },
+      };
+      vi.stubGlobal('sessionStorage', blocked);
+      try {
+        expect(getAnthropicApiKey()).toBeNull();
+        expect(() => setAnthropicApiKey('sk-ant-mem')).not.toThrow();
+        expect(getAnthropicApiKey()).toBe('sk-ant-mem');
+        expect(new BrowserMcpOAuthProvider('https://example.test/chat/callback').hasAbandonedAuthorization()).toBe(
+          false,
+        );
+        expect(() => clearSecretStorage()).not.toThrow();
+        expect(getAnthropicApiKey()).toBeNull();
       } finally {
         vi.unstubAllGlobals();
       }

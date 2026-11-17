@@ -48,14 +48,52 @@ export function migrateLegacySecrets(): void {
   }
 }
 
-/** The store for secrets, after migrating anything left in `localStorage`. */
-export function secretStorage(): Storage {
+/** The three `Storage` methods the secrets' callers use. */
+export type SecretStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+// Held only for this page load: what the store falls back to when
+// `sessionStorage` is blocked or full (private mode, disabled site data), so
+// the page still renders and the chat still works until the next navigation.
+const memory = new Map<string, string>();
+
+const secretStore: SecretStore = {
+  getItem(key) {
+    try {
+      const value = sessionStorage.getItem(key);
+      if (value !== null) return value;
+    } catch {
+      // Storage blocked: fall through to memory.
+    }
+    return memory.get(key) ?? null;
+  },
+  setItem(key, value) {
+    try {
+      sessionStorage.setItem(key, value);
+      memory.delete(key);
+    } catch {
+      memory.set(key, value);
+    }
+  },
+  removeItem(key) {
+    memory.delete(key);
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+      // Storage blocked: nothing stored.
+    }
+  },
+};
+
+/** The store for secrets, after migrating anything left in `localStorage`.
+ * Never throws: it keeps to memory if `sessionStorage` is unavailable. */
+export function secretStorage(): SecretStore {
   migrateLegacySecrets();
-  return sessionStorage;
+  return secretStore;
 }
 
-/** Removes every secret from both stores. Never throws. */
+/** Removes every secret from both stores and from memory. Never throws. */
 export function clearSecretStorage(): void {
+  memory.clear();
   for (const area of [() => sessionStorage, () => localStorage]) {
     try {
       const storage = area();
