@@ -58,6 +58,37 @@ const REFERRER_POLICY = 'strict-origin-when-cross-origin';
 const TOKEN_PAGE_REFERRER_POLICY = 'no-referrer';
 const TOKEN_PAGE_SOURCES = ['/journeys/shared/:token*', '/groups/join/:token*'];
 
+// Hardening headers for every response (see headers()).
+// Permissions-Policy denies the powerful features the app never uses. It
+// uses `geolocation` (the station search's "near me" button, same-origin
+// only), so that one is kept for `self`. Web Push and notifications are not
+// Permissions-Policy features, nor is the clipboard-write the share and copy
+// buttons use, so none is listed.
+const PERMISSIONS_POLICY = [
+  'accelerometer=()',
+  'browsing-topics=()',
+  'camera=()',
+  'display-capture=()',
+  'geolocation=(self)',
+  'gyroscope=()',
+  'hid=()',
+  'magnetometer=()',
+  'microphone=()',
+  'midi=()',
+  'payment=()',
+  'serial=()',
+  'usb=()',
+].join(', ');
+// No popups or window handles are used: sign-in is a plain top-level
+// redirect to the identity provider and back, and every `target="_blank"`
+// link is `noopener`, so the stricter opener policy changes nothing.
+const CROSS_ORIGIN_OPENER_POLICY = 'same-origin';
+// Other sites may not embed this site's resources (no-cors), except the
+// link-preview and social images, which chat apps and crawlers fetch from
+// anywhere (see headers()).
+const CORP_SAME_SITE = 'same-site';
+const CORP_CROSS_ORIGIN = 'cross-origin';
+
 // Cache-Control values for the static path classes (see headers()).
 const CACHE_NO_CACHE = 'no-cache';
 const CACHE_UNHASHED_ASSET = 'public, max-age=86400, stale-while-revalidate=604800';
@@ -114,6 +145,8 @@ const nextConfig = {
   // so none of `output: 'standalone'`'s other edge cases (custom
   // `outputFileTracingRoot`, workspace-relative tracing) apply.
   output: 'standalone',
+  // No `X-Powered-By: Next.js`.
+  poweredByHeader: false,
   // A hash of the frontend's inputs (scripts/build-id.mjs), not Next's
   // random default: the build ID is stamped into public/sw.js, so a random
   // one made every deploy install a new service worker and drop its
@@ -212,7 +245,12 @@ const nextConfig = {
       // Order matters: Next lets the later matching entry win a key.
       {
         source: '/:path*',
-        headers: [{ key: 'Referrer-Policy', value: REFERRER_POLICY }],
+        headers: [
+          { key: 'Referrer-Policy', value: REFERRER_POLICY },
+          { key: 'Permissions-Policy', value: PERMISSIONS_POLICY },
+          { key: 'Cross-Origin-Opener-Policy', value: CROSS_ORIGIN_OPENER_POLICY },
+          { key: 'Cross-Origin-Resource-Policy', value: CORP_SAME_SITE },
+        ],
       },
       ...TOKEN_PAGE_SOURCES.map((source) => ({
         source,
@@ -253,7 +291,24 @@ const nextConfig = {
       // rendered it as a document. Their Cache-Control is the route's own.
       {
         source: '/:path*/card.png',
-        headers: [{ key: 'Content-Security-Policy', value: API_CSP }],
+        headers: [
+          { key: 'Content-Security-Policy', value: API_CSP },
+          { key: 'Cross-Origin-Resource-Policy', value: CORP_CROSS_ORIGIN },
+        ],
+      },
+      // The `opengraph-image` metadata routes: proxy.ts skips them too, and
+      // their 404 (a route that has no image) is a plain response that
+      // would otherwise carry no policy at all.
+      ...['/:path*/opengraph-image', '/:path*/opengraph-image-:hash'].map((source) => ({
+        source,
+        headers: [
+          { key: 'Content-Security-Policy', value: API_CSP },
+          { key: 'Cross-Origin-Resource-Policy', value: CORP_CROSS_ORIGIN },
+        ],
+      })),
+      {
+        source: '/opengraph-image.png',
+        headers: [{ key: 'Cross-Origin-Resource-Policy', value: CORP_CROSS_ORIGIN }],
       },
       {
         source: '/robots.txt',

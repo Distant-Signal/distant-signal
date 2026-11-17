@@ -62,7 +62,8 @@ export function proxy(request: NextRequest) {
 //   the `opengraph-image` metadata routes. A PNG has no scripts for a nonce
 //   to guard, and the hop and a per-request header only get in the way of
 //   caching it. next.config.mjs gives `card.png` a locked-down policy of its
-//   own, as it does `/api/*`; the metadata routes' images are static.
+//   own, as it does `/api/*`; the metadata routes' images are static, and their 404s get that same
+//   policy from next.config.mjs.
 //
 // Prefetches are NOT skipped, unlike Next's CSP guide's example matcher
 // (`missing: next-router-prefetch / purpose: prefetch`). The guide skips
