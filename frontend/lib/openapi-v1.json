@@ -718,6 +718,10 @@
               "null"
             ]
           },
+          "disrupted": {
+            "description": "Whether the journey has an open break (`openBreak` is not `null`),\nfor a reader who is not given the break itself: the share-link view\nserves `openBreak: null` and `disrupted: true`. Additive\n(2026-11-17).",
+            "type": "boolean"
+          },
           "followedFrom": {
             "anyOf": [
               {
@@ -785,7 +789,7 @@
                 "type": "null"
               }
             ],
-            "description": "The day's train the regular journeys plan sweep chose for this\noccurrence: the choice, up to two alternatives and where it stands.\nOwner only; `null` for anyone else and when it was never planned.\nAdditive (2026-11-06)."
+            "description": "The day's train the regular journeys plan sweep chose for this\noccurrence: the choice, up to four alternatives and where it stands.\nOwner only; `null` for anyone else and when it was never planned.\nAdditive (2026-11-06)."
           },
           "revisionCount": {
             "description": "How many plans the journey has had (1: only the booked one).",
@@ -835,6 +839,7 @@
           "legs",
           "isOwner",
           "revisionCount",
+          "disrupted",
           "canFollow"
         ],
         "type": "object"
@@ -3150,7 +3155,7 @@
             ]
           },
           "headcode": {
-            "description": "The CIF `BS` Train Identity -- the 4-character signalling headcode\n(e.g. `\"1S00\"`) -- read from the published schedule\n(`schedule_destination_departures.headcode`), not from TRUST. `None`\nwhen no row carries one or the rows disagree.",
+            "description": "The CIF `BS` Train Identity -- the 4-character signalling headcode\n(e.g. `\"1S00\"`) -- read from the published schedule\n(`schedule_destination_departures.headcode`), not from TRUST. `None`\nwhen no row carries one or the rows disagree. The one exception is a\nlive-only train (a `trains` row with no schedule row at all, such as a\nlate STP or VSTP working absent from the full timetable): its headcode\nis the one embedded in `train_id`, the\nonly identity it has. A CIF headcode is never overridden, and\nschedule rows that disagree stay `None`.",
             "type": [
               "string",
               "null"
@@ -3249,6 +3254,17 @@
           "provisionalFrom": {
             "format": "date",
             "type": "string"
+          },
+          "scheduleSource": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where `journeyStops` came from: `cif` (the timetable), `darwin` (the\nDarwin Push Port's schedule, for a train the timetable lacks, such\nas a late-added special or charter) or `trust` (only the stops the\ntrain has reported so far; none ahead are known). `null` when there\nare no stops. `darwin` and `trust` are off unless the api's\n`DARWIN_STOPS_FALLBACK_ENABLED`/`TRUST_STOPS_FALLBACK_ENABLED` are\nset (`data::live_stops`)."
           },
           "scheduledDeparture": {
             "format": "date-time",
@@ -3447,6 +3463,26 @@
           "unresolved"
         ],
         "type": "string"
+      },
+      "ScheduleSource": {
+        "description": "Where a train's stops came from, served as `scheduleSource`.",
+        "oneOf": [
+          {
+            "const": "cif",
+            "description": "The CIF timetable (`trains.calling_points` or\n`schedule_calling_points_full`): every scheduled train.",
+            "type": "string"
+          },
+          {
+            "const": "darwin",
+            "description": "The Darwin Push Port's schedule for a train the CIF timetable lacks.",
+            "type": "string"
+          },
+          {
+            "const": "trust",
+            "description": "Only the stops TRUST has reported so far: no stops ahead are known.",
+            "type": "string"
+          }
+        ]
       },
       "ServiceMode": {
         "description": "What kind of vehicle a schedule is. The stored spelling is\n[`Self::as_db_str`] (`replacement_bus`), the wire spelling camelCase\n(`replacementBus`).",
