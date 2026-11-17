@@ -91,10 +91,27 @@ export async function gotoOk(page: Page, path: string) {
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeAttached();
 }
 
+/** Waits for the CSS transitions running now to end. A colour-scheme switch
+ * starts some (clickable cards' background, SegmentedControl labels), and
+ * axe reads colours half way between the light and dark values while they
+ * run, failing color-contrast with shades neither scheme uses. Only
+ * transitions: an infinite animation (a loader) would never finish. */
+async function settleTransitions(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation instanceof CSSTransition)
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
+}
+
 /** Scans the whole page (nav and footer included) in the current colour
  * scheme. Prefer this over `.include('main')`: chrome regressions then fail
  * every spec that reaches the page. */
 export async function scanPage(page: Page) {
+  await settleTransitions(page);
   return new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
 }
 
