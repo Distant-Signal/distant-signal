@@ -505,9 +505,13 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   //
   // With the cache policy on, `Cache-Control` is not relayed here: it is set
   // below, from the policy.
+  // An error's `Cache-Control` is not relayed either: the api marks every
+  // response to a cookie `private, no-store` (ds-api's security hardening),
+  // and `no-store` on an error whose body the page never reads leaves
+  // Chromium holding the request open (see the 304 note below).
   for (const name of [
     'Content-Disposition',
-    ...(cachePolicyOn ? [] : ['Cache-Control']),
+    ...(cachePolicyOn || response.status >= 400 ? [] : ['Cache-Control']),
     'X-Generated-At',
     'X-Polled-At',
     'Last-Modified',

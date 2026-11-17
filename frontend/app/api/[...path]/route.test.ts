@@ -465,6 +465,15 @@ describe('/api/[...path] proxy', () => {
       expect(res.headers.get('cache-control')).toBeNull();
     });
 
+    it("does not relay the api's no-store on an error (it stalls unread-body pages)", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response('nope', { status: 404, headers: { 'Cache-Control': 'private, no-store' } }),
+      );
+      const res = await GET(makeRequest('/api/preferences'), { params: Promise.resolve({ path: ['preferences'] }) });
+      expect(res.status).toBe(404);
+      expect(res.headers.get('cache-control')).toBeNull();
+    });
+
     it('passes X-Generated-At through (live departure board sample time)', async () => {
       vi.mocked(fetch).mockResolvedValueOnce(
         new Response('[]', {
