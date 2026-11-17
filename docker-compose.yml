@@ -188,7 +188,7 @@ services:
       # not a crash loop.
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     ports:
-      - "${API_HOST_PORT:-8080}:8080"
+      - "127.0.0.1:${API_HOST_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/public/health"]
       interval: 5s
@@ -638,7 +638,7 @@ services:
       schedule-feed-volume-permissions:
         condition: service_completed_successfully
     ports:
-      - "${SCHEDULE_SFTP_PORT:-2222}:2022"
+      - "127.0.0.1:${SCHEDULE_SFTP_PORT:-2222}:2022"
     volumes:
       - schedule_feed_data:/data/schedule-feed
       - ./schedule-sftp-host-keys:/srv/sftpgo/host_keys:ro
@@ -666,9 +666,9 @@ services:
       # equivalent: a fixed default username, an auto-generated password).
       # Compose has no template-engine equivalent of the Helm chart's
       # randAlphaNum-and-preserve generation, so SCHEDULE_SFTP_PASSWORD
-      # just gets a real (arbitrary, low-stakes for local dev) default
-      # below instead -- change it before actually giving these details to
-      # DTD for a real delivery.
+      # has no default: generate one into your env file (`openssl rand
+      # -hex 16`, see the example files) and compose refuses to resolve
+      # without it. Every published port here is bound to 127.0.0.1.
       #
       # CORRECTED 2026-09-01 (this task): SFTPGO_DEFAULT_ADMIN_USERNAME/
       # PASSWORD -- this comment's own earlier guess -- were proven wrong
@@ -687,7 +687,7 @@ services:
       # SCHEDULE_SFTP_LOADDATA_DIR: the chart uses a memory-backed emptyDir;
       # local dev keeps /tmp.
       SCHEDULE_SFTP_USERNAME: ${SCHEDULE_SFTP_USERNAME:-dtd-push}
-      SCHEDULE_SFTP_PASSWORD: ${SCHEDULE_SFTP_PASSWORD:-changeme-local-dev-password}
+      SCHEDULE_SFTP_PASSWORD: ${SCHEDULE_SFTP_PASSWORD:?SCHEDULE_SFTP_PASSWORD must be set, generate one with openssl rand -hex 16 and put it in your env file (see the schedule-feed section of local.env.example)}
       SCHEDULE_SFTP_HOME_DIR: /data/schedule-feed/${SCHEDULE_FEED_DESTINATION_PATH:-incoming}
       SCHEDULE_SFTP_LOADDATA_DIR: /tmp
 
@@ -865,7 +865,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "${RAIL_MCP_PORT:-3100}:3000"
+      - "127.0.0.1:${RAIL_MCP_PORT:-3100}:3000"
     environment:
       # The fork's own src/config.ts: Config.
       PORT: "3000"
@@ -950,7 +950,7 @@ services:
       LEGAL_ICO_REGISTRATION: ${LEGAL_ICO_REGISTRATION:-}
       LEGAL_MINIMUM_AGE: ${LEGAL_MINIMUM_AGE:-}
     ports:
-      - "${FRONTEND_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3000}:3000"
 
 volumes:
   postgres18_data:

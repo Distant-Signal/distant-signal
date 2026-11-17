@@ -117,7 +117,7 @@ services:
     volumes:
       - ./authentik-blueprints:/blueprints/local:ro
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
     networks:
       default:
         aliases:
