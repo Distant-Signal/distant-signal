@@ -8,7 +8,7 @@ import {
   TOKEN_PREVIEW_CACHE_CONTROL,
 } from './livePreview';
 import { guardPreview } from './previewRoute';
-import { PREVIEW_RATE_LIMIT, PREVIEW_RATE_WINDOW_MS, PreviewRateLimiter } from './previewRateLimit';
+import { PREVIEW_RATE_LIMIT, PREVIEW_RATE_WINDOW_MS, PreviewRateLimiter, rateLimitKey } from './previewRateLimit';
 import { stationCreditIds } from './stationPreview';
 import { previewTitle } from './incidentPreview';
 
@@ -52,6 +52,16 @@ describe('guardPreview', () => {
     expect((await guarded(request('198.51.100.4'), {})).status).toBe(200);
   });
 
+  it('counts every address in an IPv6 /64 as one client', async () => {
+    const limiter = new PreviewRateLimiter(2, 60_000);
+    const guarded = guardPreview(() => Promise.resolve(new Response('ok')), { limiter });
+    expect((await guarded(request('2001:db8:1:2::1'), {})).status).toBe(200);
+    expect((await guarded(request('2001:db8:1:2:aaaa:bbbb:cccc:dddd'), {})).status).toBe(200);
+    expect((await guarded(request('2001:db8:1:2::ffff'), {})).status).toBe(429);
+    expect((await guarded(request('2001:db8:1:3::1'), {})).status).toBe(200);
+    expect(limiter.size).toBe(2);
+  });
+
   it('limits nobody it cannot key: no trusted client IP', async () => {
     const limiter = new PreviewRateLimiter(1, 60_000);
     const guarded = guardPreview(() => Promise.resolve(new Response('ok')), { limiter });
@@ -90,6 +100,22 @@ describe('PreviewRateLimiter', () => {
 
   it('uses the defaults it documents', () => {
     expect([PREVIEW_RATE_LIMIT, PREVIEW_RATE_WINDOW_MS]).toEqual([60, 60_000]);
+  });
+});
+
+describe('rateLimitKey', () => {
+  it.each([
+    ['203.0.113.9', '203.0.113.9'],
+    ['2001:db8:1:2::1', '2001:db8:1:2::/64'],
+    ['2001:0DB8:0001:0002:ffff:0:0:1', '2001:db8:1:2::/64'],
+    ['2001:db8::', '2001:db8:0:0::/64'],
+    ['::1', '0:0:0:0::/64'],
+    ['fe80::1%eth0', 'fe80:0:0:0::/64'],
+    ['::ffff:192.0.2.1', '192.0.2.1'],
+    ['::ffff:c000:201', '192.0.2.1'],
+    ['2001:db8:1:2:3:4:192.0.2.1', '2001:db8:1:2::/64'],
+  ])('keys %s as %s', (ip, key) => {
+    expect(rateLimitKey(ip)).toBe(key);
   });
 });
 

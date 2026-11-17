@@ -1,7 +1,7 @@
 import { clientIpFromHeaders } from './clientIp';
 import { createLogger } from './logger';
 import { NOINDEX_HEADER, PREVIEW_ERROR_CACHE_CONTROL, TOKEN_PREVIEW_CACHE_CONTROL } from './livePreview';
-import { PreviewRateLimiter } from './previewRateLimit';
+import { PreviewRateLimiter, rateLimitKey } from './previewRateLimit';
 
 const log = createLogger('lib/previewRoute');
 
@@ -18,7 +18,7 @@ export interface GuardPreviewOptions {
 
 /** Wraps a card route's `GET`:
  * - a client over its render budget (`lib/previewRateLimit.ts`, keyed on
- *   the trusted client IP) gets a 429 before any api read or drawing;
+ *   the trusted client IP, an IPv6 one by its /64) gets a 429 before any api read or drawing;
  * - an api outage (anything thrown that the route did not already turn
  *   into a 404) is a 503 a chat app can retry, not an uncached 500 or a
  *   long-cached failure. The routes are dynamic (`lib/livePreview.ts`,
@@ -31,7 +31,7 @@ export function guardPreview<Ctx>(
   const cacheControl = options.token ? TOKEN_PREVIEW_CACHE_CONTROL : PREVIEW_ERROR_CACHE_CONTROL;
   return async (request, ctx) => {
     const client = clientIpFromHeaders(request.headers);
-    const wait = client === null ? null : (options.limiter ?? limiter).take(client);
+    const wait = client === null ? null : (options.limiter ?? limiter).take(rateLimitKey(client));
     if (wait !== null) {
       return new Response('Too many requests', {
         status: 429,
