@@ -1460,6 +1460,154 @@ JOIN train_subscriptions ts ON ts.id = l.train_subscription_id
 WHERE r.journey_id = 900301 AND r.revision_no = 2
 ON CONFLICT (revision_id, position) DO NOTHING;
 
+-- ---------------------------------------------------------------------
+-- The missed-train flow and the group dialogs (DS-534;
+-- e2e/journey-missed-train.spec.ts, e2e/group-dialogs.spec.ts and their
+-- visual shots). Two users of their own, so no earlier page, list or
+-- screenshot changes: `fixture-miss` owns the journeys and the two groups,
+-- `fixture-friend` is the second member of one group. Their sessions store
+-- the SHA-256 hex of the raw tokens 'fixture-miss-session-token-0123456789abcdef'
+-- and 'fixture-friend-session-token-0123456789abcdef'.
+--
+-- Times are relative to NOW(), London's, because the miss window is judged
+-- by the server's clock: open until 04:00 the morning after the leg's
+-- service date.
+--   journey 900401  "Fixture missed train": one leg ZXA to ZXB on E2EMS1,
+--                   which left 20 minutes ago and arrived 5 minutes ago (a
+--                   finished leg inside its window: "I missed this one", the
+--                   soft confirm, then the other ways). E2EMS2 and E2EMS3
+--                   leave ZXA four and five hours from now, the trains it
+--                   can take.
+--   journey 900402  the same leg two days ago: its window has closed.
+-- The Fixture Solo group has its owner alone (leaving it is deleting it);
+-- the Fixture Pair group has the owner and a second member.
+-- Made-up codes (ZXA, ZXB) and TIPLOCs in `stanox_crs` and
+-- `tiploc_locations` only. Inserted after every row whose id a spec reads.
+-- ---------------------------------------------------------------------
+INSERT INTO users (id, name, username, groups, created_at, last_login_at)
+VALUES
+  ('fixture-miss', 'Missy Fixture', 'missy-fixture', '{}', NOW(), NOW()),
+  ('fixture-friend', 'Friend Fixture', 'friend-fixture', '{}', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO sessions (id, user_id, refresh_token, created_at, expires_at)
+VALUES
+  (encode(sha256(convert_to('fixture-miss-session-token-0123456789abcdef', 'UTF8')), 'hex'), 'fixture-miss', NULL, NOW(), NOW() + INTERVAL '14 days'),
+  (encode(sha256(convert_to('fixture-friend-session-token-0123456789abcdef', 'UTF8')), 'hex'), 'fixture-friend', NULL, NOW(), NOW() + INTERVAL '14 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO stanox_crs (stanox, crs, tiploc, station_name, source_sequence)
+VALUES
+  ('E2EMS-ZXA', 'ZXA', 'E2EMSA', 'Fixture Hollow', 1),
+  ('E2EMS-ZXB', 'ZXB', 'E2EMSB', 'Fixture Wharf', 1)
+ON CONFLICT (stanox) DO NOTHING;
+
+INSERT INTO tiploc_locations (tiploc, location_type, name, display_name, source_sequence)
+VALUES
+  ('E2EMSA', 'station', 'Fixture Hollow', 'Fixture Hollow', 1),
+  ('E2EMSB', 'station', 'Fixture Wharf', 'Fixture Wharf', 1)
+ON CONFLICT DO NOTHING;
+
+-- One ZXA to ZXB train leaving at `dep` and arriving at `arr`: its timetable
+-- on the London date of `dep` (an arrival after midnight is day offset 1),
+-- its `trains` row, and the TRUST reports once `dep` / `arr` have passed.
+-- Returns the `trains.id`.
+CREATE FUNCTION pg_temp.seed_miss_train(uid text, dep timestamptz, arr timestamptz)
+RETURNS bigint LANGUAGE plpgsql AS $fn$
+DECLARE
+  sdate date := (dep AT TIME ZONE 'Europe/London')::date;
+  arr_offset integer := (arr AT TIME ZONE 'Europe/London')::date - sdate;
+  dep_time time := (dep AT TIME ZONE 'Europe/London')::time(0);
+  arr_time time := (arr AT TIME ZONE 'Europe/London')::time(0);
+  train bigint;
+BEGIN
+  INSERT INTO schedule_calling_points_full
+    (service_date, uid, seq, tiploc, kind, booked_arrival, booked_departure,
+     public_arrival, public_departure, day_offset, can_board, can_alight)
+  VALUES
+    (sdate, uid, 0, 'E2EMSA', 'origin', NULL, dep_time, NULL, dep_time, 0, TRUE, TRUE),
+    (sdate, uid, 1, 'E2EMSB', 'terminate', arr_time, NULL, arr_time, NULL, arr_offset, TRUE, TRUE)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO schedule_services (service_date, uid, mode, operator_atoc, stp)
+  VALUES (sdate, uid, 'train', 'SW', 'P')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO schedule_destination_departures
+    (service_date, destination_crs, scheduled, train_uid, origin_crs, true_origin_crs,
+     day_offset, public_departure, destination_arrival, public_destination_arrival, operator_atoc)
+  VALUES (sdate, 'ZXB', dep_time, uid, 'ZXA', 'ZXA', 0, dep_time, arr_time, arr_time, 'SW')
+  ON CONFLICT DO NOTHING;
+  INSERT INTO trains (train_uid, service_date, origin_crs, scheduled_departure, destination_crs, calling_points,
+                      train_id, resolved_at, created_at)
+  VALUES (
+    uid, sdate, 'ZXA', dep, 'ZXB',
+    jsonb_build_array(
+      jsonb_build_object('tiploc', 'E2EMSA', 'kind', 'Origin', 'bookedArrival', NULL, 'bookedDeparture', dep_time,
+        'publicDeparture', dep_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', 0),
+      jsonb_build_object('tiploc', 'E2EMSB', 'kind', 'Terminate', 'bookedArrival', arr_time, 'bookedDeparture', NULL,
+        'publicArrival', arr_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', arr_offset)),
+    'TRUST-' || uid, NOW(), NOW())
+  ON CONFLICT (train_uid, service_date) DO UPDATE SET resolved_at = EXCLUDED.resolved_at
+  RETURNING id INTO train;
+  IF dep <= NOW() THEN
+    INSERT INTO train_movement_events (dedup_key, msg_type, event_type, loc_stanox, loc_crs, planned_timestamp,
+                                       actual_timestamp, variation_status, raw_body, received_at, trains_id)
+    VALUES ('FIXTURE-' || uid || '-DEP', '0003', 'DEPARTURE', 'E2EMS-ZXA', 'ZXA', dep, dep, 'ON TIME', '{}'::jsonb, NOW(), train)
+    ON CONFLICT DO NOTHING;
+  END IF;
+  IF arr <= NOW() THEN
+    INSERT INTO train_movement_events (dedup_key, msg_type, event_type, loc_stanox, loc_crs, planned_timestamp,
+                                       actual_timestamp, variation_status, raw_body, received_at, trains_id)
+    VALUES ('FIXTURE-' || uid || '-ARR', '0003', 'ARRIVAL', 'E2EMS-ZXB', 'ZXB', arr, arr, 'ON TIME', '{}'::jsonb, NOW(), train)
+    ON CONFLICT DO NOTHING;
+    INSERT INTO train_current_state (status, last_reported_location, last_event_type, delay_minutes, updated_at, trains_id, event_time)
+    VALUES ('completed', 'ZXB', 'ARRIVAL', 0, NOW(), train, arr)
+    ON CONFLICT (trains_id) WHERE trains_id IS NOT NULL DO UPDATE SET
+      status = EXCLUDED.status, last_reported_location = EXCLUDED.last_reported_location,
+      last_event_type = EXCLUDED.last_event_type, updated_at = EXCLUDED.updated_at;
+  END IF;
+  RETURN train;
+END
+$fn$;
+
+SELECT pg_temp.seed_miss_train('E2EMS1', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '5 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS2', NOW() + INTERVAL '4 hours', NOW() + INTERVAL '4 hours 15 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS3', NOW() + INTERVAL '5 hours', NOW() + INTERVAL '5 hours 15 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS0', NOW() - INTERVAL '2 days 20 minutes', NOW() - INTERVAL '2 days 5 minutes');
+
+-- Each leg's tracking, and the two journeys.
+INSERT INTO train_subscriptions (user_id, service_date, pin_origin_crs, pin_destination_crs, resolution_status, tracked_at, trains_id, notifications_enabled)
+SELECT 'fixture-miss', t.service_date, 'ZXA', 'ZXB', 'resolved', NOW(), t.id, FALSE
+FROM trains t
+WHERE t.train_uid IN ('E2EMS1', 'E2EMS0')
+  AND NOT EXISTS (SELECT 1 FROM train_subscriptions ts WHERE ts.trains_id = t.id);
+
+INSERT INTO journeys (id, user_id, custom_name, created_at, updated_at)
+VALUES
+  (900401, 'fixture-miss', 'Fixture missed train', NOW(), NOW()),
+  (900402, 'fixture-miss', 'Fixture closed window', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO journey_legs (journey_id, leg_order, origin_crs, destination_crs, service_date, train_subscription_id, match_mode)
+SELECT CASE t.train_uid WHEN 'E2EMS1' THEN 900401 ELSE 900402 END, 1, 'ZXA', 'ZXB', t.service_date, ts.id, 'manual'
+FROM trains t
+JOIN train_subscriptions ts ON ts.trains_id = t.id AND ts.user_id = 'fixture-miss'
+WHERE t.train_uid IN ('E2EMS1', 'E2EMS0')
+ON CONFLICT (journey_id, leg_order) DO NOTHING;
+
+-- Groups: the owner alone, and the owner with a second member.
+INSERT INTO groups (id, name, created_by, created_at)
+VALUES
+  ('fixture-solo-group', 'Fixture Solo', 'fixture-miss', NOW()),
+  ('fixture-pair-group', 'Fixture Pair', 'fixture-miss', NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO group_members (group_id, user_id, role, joined_at)
+VALUES
+  ('fixture-solo-group', 'fixture-miss', 'owner', NOW()),
+  ('fixture-pair-group', 'fixture-miss', 'owner', NOW()),
+  ('fixture-pair-group', 'fixture-friend', 'member', NOW())
+ON CONFLICT (group_id, user_id) DO NOTHING;
+
 -- Opaque journey ids (DS-534): the api hands out journeys.public_id, which a
 -- migration fills with random ids. The specs name seeded journeys by
 -- testPublicId(id) (test/apiDefaults.ts: 'j_' and the id as 32 hex digits),

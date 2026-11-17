@@ -43,8 +43,18 @@ const JOURNEY_ID = process.env.E2E_JOURNEY_ID ?? '1';
 // does not mount).
 const testPublicId = (id: number) => `j_${id.toString(16).padStart(32, '0')}`;
 const testTrackingId = (id: number) => `t_${id.toString(16).padStart(32, '0')}`;
+const testLegId = (id: number) => `l_${id.toString(16).padStart(32, '0')}`;
 // The seed's group, with trains and journeys shared into it by both users.
 const GROUP_ID = process.env.E2E_GROUP_ID ?? 'fixture-group-1';
+
+// The seed's `fixture-miss` user (seed.sql, "The missed-train flow and the
+// group dialogs"): journey 900401 with a finished leg inside its miss
+// window, and two groups, the owner alone and the owner with a second
+// member. Its own session, so no earlier page changes.
+const MISS_SESSION_COOKIE = 'fixture-miss-session-token-0123456789abcdef';
+const MISSED_JOURNEY = testPublicId(900401);
+const SOLO_GROUP = 'fixture-solo-group';
+const PAIR_GROUP = 'fixture-pair-group';
 
 /** The browser's "now": midday on the seed's service date, in UK summer
  * time. Only the client's clock is fixed; the server's isn't (see VOLATILE). */
@@ -371,6 +381,122 @@ function tramPlan(ride: 'tram' | 'replacementBus'): TripPlanResponse {
   };
 }
 
+/** The sheet's other ways to a missed train, as `GET .../alternatives`
+ * answers them, with fixed times so the sheet's text never moves: two
+ * trains from the seed's fixture stations. `arrived` says whether the leg's
+ * train reached its destination (the soft confirm asks first). */
+function missedAlternatives(arrived: boolean): Api.SuggestionSet {
+  const train = (uid: string, dep: string, arr: string): Extract<Api.ReplanSuggestionLeg, { kind: 'train' }> => ({
+    kind: 'train',
+    trainUid: uid,
+    serviceDate: '2026-09-17',
+    originCrs: 'ZXA',
+    originName: 'Fixture Hollow',
+    destinationCrs: 'ZXB',
+    destinationName: 'Fixture Wharf',
+    departure: dep,
+    arrival: arr,
+    scheduledDeparture: dep,
+    scheduledArrival: arr,
+    operator: 'SW',
+    operatorName: 'South Western Railway',
+    platform: null,
+    cancelled: false,
+  });
+  const suggestion = (
+    id: string,
+    uid: string,
+    dep: string,
+    arr: string,
+    extra: Partial<Api.ReplanSuggestion>,
+  ): Api.ReplanSuggestion => ({
+    id,
+    departure: dep,
+    arrival: arr,
+    changeCount: 0,
+    delayMinutes: null,
+    throughLegId: 17,
+    throughLegPublicId: testLegId(17),
+    rejoinsLegId: null,
+    rejoinsLegPublicId: null,
+    legs: [train(uid, dep, arr)],
+    cost: 10,
+    fit: null,
+    fitLabel: null,
+    fitReason: null,
+    picks: [],
+    pickLabels: [],
+    card: true,
+    ...extra,
+  });
+  return {
+    generatedAt: '2026-09-17T09:50:00Z',
+    fingerprint: '',
+    fromLegId: 17,
+    fromLegPublicId: testLegId(17),
+    originCrs: 'ZXA',
+    originName: 'Fixture Hollow',
+    destinationCrs: 'ZXB',
+    destinationName: 'Fixture Wharf',
+    departAfter: '2026-09-17T09:50:00Z',
+    bookedArrival: null,
+    hint: "Ask station staff if there are any. If you have an Advance ticket, you'll likely need a new one. Check before you board.",
+    trigger: {
+      legId: 17,
+      legPublicId: testLegId(17),
+      departure: '2026-09-17T09:35:00Z',
+      originName: 'Fixture Hollow',
+      destinationName: 'Fixture Wharf',
+      trainDestinationName: 'Fixture Wharf',
+    },
+    suggestions: [
+      suggestion('s1', 'E2EMS2', '2026-09-17T10:05:00Z', '2026-09-17T10:20:00Z', {
+        picks: ['recommended', 'fastest'],
+        pickLabels: ['Recommended', 'Fastest'],
+      }),
+      suggestion('s2', 'E2EMS3', '2026-09-17T11:05:00Z', '2026-09-17T11:20:00Z', {}),
+    ],
+    stale: false,
+    leg: { departed: true, arrived },
+  };
+}
+
+/** Opens the missed-train sheet on the seed's finished leg, with the api's
+ * answer to its load fixed: `alternatives` for the other ways, or a refusal.
+ * The page behind is the real one; only the sheet is shot. */
+async function openMissedSheet(
+  page: Page,
+  answer: { alternatives: Api.SuggestionSet } | { refusal: string },
+): Promise<void> {
+  await page.route('**/api/Journeys/*/legs/*/alternatives?*', (route) =>
+    'alternatives' in answer
+      ? route.fulfill({ json: answer.alternatives })
+      : route.fulfill({ status: 409, contentType: 'text/plain; charset=utf-8', body: answer.refusal }),
+  );
+  await page.clock.setFixedTime(FIXED_NOW);
+  await page.goto(`/journeys/${MISSED_JOURNEY}`, { waitUntil: 'networkidle' });
+  await page.addStyleTag({ content: NO_MOTION_CSS });
+  await page.evaluate(() => document.fonts.ready);
+  // "I missed this train" under the fixed (past) clock, "I missed this one"
+  // under the real one: either opens the same sheet.
+  await page
+    .locator('#main-content')
+    .getByRole('button', { name: /^I missed this (train|one)$/ })
+    .click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+}
+
+/** A page of the seed's groups, logged in as `fixture-miss`, with the
+ * button's dialog open. */
+async function openGroupDialog(page: Page, path: string, button: string, title: string): Promise<void> {
+  await page.clock.setFixedTime(FIXED_NOW);
+  await page.goto(path, { waitUntil: 'networkidle' });
+  await page.addStyleTag({ content: NO_MOTION_CSS });
+  await page.evaluate(() => document.fonts.ready);
+  await page.getByRole('button', { name: button }).click();
+  await expect(page.getByRole('dialog', { name: title })).toBeVisible();
+}
+
 /** Station names for the tram plan's codes (`getStationNames` searches
  * each code). */
 const TRAM_PLAN_STATIONS: Record<string, string> = {
@@ -550,6 +676,101 @@ for (const scheme of SCHEMES) {
           caret: 'hide',
         });
       });
+
+      // The missed-train sheet (DS-534, the missed-train redesign) and the
+      // owner's leave and delete dialogs, as logged-in dialog shots. The
+      // sheet's load is answered here with fixed trains and times (the real
+      // ones follow the server's clock); the dialog alone is shot, so the
+      // page behind it, which does, stays out. Nothing is taken or deleted.
+      const MISSED_SHEETS: [name: string, run: (page: Page) => Promise<void>][] = [
+        [
+          // The train ran to its destination: asked once whether they got on.
+          'missed-sheet-confirm',
+          async (page) => {
+            await openMissedSheet(page, { alternatives: missedAlternatives(true) });
+            await expect(page.getByText('This train has already reached Fixture Wharf.')).toBeVisible();
+          },
+        ],
+        [
+          // The other ways, with where the search starts.
+          'missed-sheet-list',
+          async (page) => {
+            await openMissedSheet(page, { alternatives: missedAlternatives(false) });
+            await expect(page.getByText('Searching from Fixture Hollow')).toBeVisible();
+          },
+        ],
+        [
+          'missed-sheet-chooser',
+          async (page) => {
+            await openMissedSheet(page, { alternatives: missedAlternatives(false) });
+            await page.getByRole('button', { name: "I'm somewhere else" }).click();
+            await expect(page.getByRole('combobox', { name: "Station you're at" })).toBeVisible();
+          },
+        ],
+        [
+          'missed-sheet-window-closed',
+          async (page) => {
+            await openMissedSheet(page, { refusal: "It's too late to change this journey." });
+            await expect(page.getByRole('link', { name: 'Plan a journey' })).toBeVisible();
+          },
+        ],
+        [
+          // After taking a train: the plan is saved and Undo is offered.
+          'missed-sheet-taken',
+          async (page) => {
+            await page.route('**/api/Journeys/*/legs/*/replace', (route) =>
+              route.fulfill({
+                json: {
+                  journeyId: 900401,
+                  journeyPublicId: MISSED_JOURNEY,
+                  revisionNo: 2,
+                  newLegIds: [18],
+                  newLegPublicIds: [testLegId(18)],
+                  undoRevisionNo: 1,
+                } satisfies Api.ReplaceResponse,
+              }),
+            );
+            await openMissedSheet(page, { alternatives: missedAlternatives(false) });
+            await page
+              .getByRole('button', { name: /^Take this one/ })
+              .first()
+              .click();
+            await expect(page.getByText('You can undo this until your new train leaves.')).toBeVisible();
+          },
+        ],
+      ];
+      for (const [name, run] of MISSED_SHEETS) {
+        test(name, async ({ page, context }) => {
+          test.skip(!SESSION_COOKIE, 'E2E_SESSION_COOKIE is unset (no seeded stack)');
+          await context.addCookies([sessionCookie(MISS_SESSION_COOKIE)]);
+          await run(page);
+          await page.mouse.move(0, 0);
+          await expect(page.getByRole('dialog')).toHaveScreenshot(`${name}-${scheme}-${width}.png`, {
+            animations: 'disabled',
+            caret: 'hide',
+          });
+        });
+      }
+
+      const GROUP_DIALOGS: [name: string, path: string, button: string, title: string][] = [
+        // The sole owner leaving a group is deleting it.
+        ['group-leave-sole-owner', `/groups/${SOLO_GROUP}`, 'Leave group', 'Delete this group?'],
+        // An owner leaving a group with another member: who takes over.
+        ['group-leave-owner', `/groups/${PAIR_GROUP}`, 'Leave group', 'Leave this group?'],
+        ['group-delete', `/groups/${PAIR_GROUP}`, 'Delete group', 'Delete Fixture Pair?'],
+      ];
+      for (const [name, path, button, title] of GROUP_DIALOGS) {
+        test(name, async ({ page, context }) => {
+          test.skip(!SESSION_COOKIE, 'E2E_SESSION_COOKIE is unset (no seeded stack)');
+          await context.addCookies([sessionCookie(MISS_SESSION_COOKIE)]);
+          await openGroupDialog(page, path, button, title);
+          await page.mouse.move(0, 0);
+          await expect(page.getByRole('dialog', { name: title })).toHaveScreenshot(`${name}-${scheme}-${width}.png`, {
+            animations: 'disabled',
+            caret: 'hide',
+          });
+        });
+      }
     });
   }
 }
