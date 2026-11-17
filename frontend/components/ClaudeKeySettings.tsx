@@ -9,11 +9,11 @@ import { getAnthropicApiKey, setAnthropicApiKey, clearAnthropicApiKey } from '@/
  * /account/preferences (client-side-tokens design doc, Decision 6). It used
  * to sit at the top of /chat; the chat page now links here.
  *
- * The "saved in this browser" sentence is a trust requirement, not polish:
+ * The "kept in this browser tab" sentence is a trust requirement, not polish:
  * the key never reaches a Distant Signal server, which only has value if
  * the visitor is told so.
  *
- * `localStorage` doesn't exist during SSR, so `hasKey` starts at `false`
+ * `sessionStorage` doesn't exist during SSR, so `hasKey` starts at `false`
  * and picks up the stored value only after mount. */
 export function ClaudeKeySettings() {
   const mounted = useMounted();
@@ -23,7 +23,7 @@ export function ClaudeKeySettings() {
 
   useEffect(() => {
     if (!mounted) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads localStorage only after mount, so the server and first client render agree
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads sessionStorage only after mount, so the server and first client render agree
     setHasKey(getAnthropicApiKey() !== null);
   }, [mounted]);
 
@@ -46,12 +46,12 @@ export function ClaudeKeySettings() {
   return (
     <Stack gap="xs">
       <Text size="sm" fw={500}>
-        {displayedHasKey ? 'Key saved.' : 'No key set.'}
+        {displayedHasKey ? 'Key saved for this tab.' : 'No key set.'}
       </Text>
       <Group align="flex-end">
         <PasswordInput
           label="Claude API key"
-          description="Saved in this browser and sent only to Anthropic. Distant Signal's servers never see it."
+          description="Kept in this browser tab until you close it, and sent only to Anthropic. Distant Signal's servers never see it. You will need to enter it again in a new tab."
           placeholder="sk-ant-"
           value={input}
           onChange={(e) => setInput(e.currentTarget.value)}
@@ -69,7 +69,7 @@ export function ClaudeKeySettings() {
       </Group>
       {savedMessage && (
         <Text size="xs" c="dimmed" role="status">
-          Saved in this browser.
+          Saved for this tab.
         </Text>
       )}
     </Stack>

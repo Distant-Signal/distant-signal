@@ -188,16 +188,16 @@ describe('AccountMenu', () => {
 
   // DQ5 (FE-3/LEG-11/LEG-26): logout clears browser-held chat credentials.
   function seedBrowserAccountData() {
-    localStorage.setItem('ds-mcp-oauth:tokens', '{"access_token":"t"}');
-    localStorage.setItem('ds-mcp-oauth:client-information', '{}');
-    localStorage.setItem('ds-anthropic-api-key', 'sk-ant-x');
+    sessionStorage.setItem('ds-mcp-oauth:tokens', '{"access_token":"t"}');
+    sessionStorage.setItem('ds-mcp-oauth:client-information', '{}');
+    sessionStorage.setItem('ds-anthropic-api-key', 'sk-ant-x');
     localStorage.setItem('mantine-color-scheme-value', 'dark');
   }
 
   function expectBrowserAccountDataCleared() {
-    expect(localStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
-    expect(localStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
-    expect(localStorage.getItem('ds-anthropic-api-key')).toBeNull();
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
+    expect(sessionStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
+    expect(sessionStorage.getItem('ds-anthropic-api-key')).toBeNull();
     // Unrelated preferences survive.
     expect(localStorage.getItem('mantine-color-scheme-value')).toBe('dark');
   }
@@ -239,7 +239,7 @@ describe('AccountMenu', () => {
     openMenu();
     fireEvent.click(await menuItem('Log out other sessions'));
     expect(await menuItem("Couldn't log out other sessions. Try again.")).toBeInTheDocument();
-    expect(localStorage.getItem('ds-mcp-oauth:tokens')).not.toBeNull();
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).not.toBeNull();
   });
 
   it('allows Tab to reach its items, as a navigation menu must', async () => {

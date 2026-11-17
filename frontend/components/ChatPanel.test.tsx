@@ -19,7 +19,7 @@ vi.mock('@/lib/mcpAuthorization', async (importOriginal) => ({
 }));
 
 function seedMcpTokens() {
-  localStorage.setItem('ds-mcp-oauth:tokens', JSON.stringify({ access_token: 'tok', token_type: 'Bearer' }));
+  sessionStorage.setItem('ds-mcp-oauth:tokens', JSON.stringify({ access_token: 'tok', token_type: 'Bearer' }));
 }
 
 describe('ChatPanel', () => {
@@ -31,6 +31,7 @@ describe('ChatPanel', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     mockRunChatTurn.mockReset();
     mockStartMcpSignIn.mockReset();
   });
@@ -393,7 +394,7 @@ describe('ChatPanel', () => {
       send();
       const reconnect = await screen.findByRole('button', { name: 'Reconnect' });
       expect(screen.getByText(/has expired/i)).toBeInTheDocument();
-      expect(localStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
+      expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
       fireEvent.click(reconnect);
       expect(mockStartMcpSignIn).toHaveBeenCalledWith('https://mcp.example.com');
     });
@@ -430,7 +431,7 @@ describe('ChatPanel', () => {
     it('offers "Reconnect" (not Connect) when stored tokens belong to a registration the server has expired', async () => {
       setAnthropicApiKey('sk-ant-test');
       seedMcpTokens();
-      localStorage.setItem(
+      sessionStorage.setItem(
         'ds-mcp-oauth:client-information',
         JSON.stringify({ client_id: 'old', client_id_issued_at: Math.floor(Date.now() / 1000) - 31 * 24 * 60 * 60 }),
       );
@@ -438,12 +439,12 @@ describe('ChatPanel', () => {
       send();
       expect(await screen.findByRole('button', { name: 'Reconnect' })).toBeInTheDocument();
       expect(mockRunChatTurn).not.toHaveBeenCalled();
-      expect(localStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
-      expect(localStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
+      expect(sessionStorage.getItem('ds-mcp-oauth:client-information')).toBeNull();
+      expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
     });
 
     it('on load, reports a sign-in that left for the authorization server and never came back', async () => {
-      localStorage.setItem('ds-mcp-oauth:oauth-state', 'pending');
+      sessionStorage.setItem('ds-mcp-oauth:oauth-state', 'pending');
       renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
       expect(await screen.findByText(/last login to the rail data service didn.t finish/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Reconnect' })).toBeInTheDocument();

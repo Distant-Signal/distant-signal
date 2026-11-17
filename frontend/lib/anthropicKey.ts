@@ -1,21 +1,20 @@
-// A per-viewer, browser-local credential -- localStorage, same precedent
-// as the theme and pride preferences and BrowserMcpOAuthProvider (Task 7).
-// NEVER sent to any Distant Signal server -- this module's only consumers
-// are Task 10's direct-to-Anthropic client construction and
-// ClaudeKeySettings' own UI below. See the client-side-tokens design
-// doc's Decision 6 for why localStorage over sessionStorage/IndexedDB.
-/** Exported for `lib/browserAccountData.ts`, which clears it on logout. */
-export const ANTHROPIC_API_KEY_STORAGE_KEY = 'ds-anthropic-api-key';
-const STORAGE_KEY = ANTHROPIC_API_KEY_STORAGE_KEY;
+import { ANTHROPIC_API_KEY_STORAGE_KEY, secretStorage } from './secretStorage';
+
+// A per-tab, browser-local credential (`sessionStorage`, see
+// `lib/secretStorage.ts`): kept across reloads, forgotten when the tab
+// closes. NEVER sent to any Distant Signal server -- this module's only
+// consumers are the direct-to-Anthropic client construction in ChatPanel
+// and ClaudeKeySettings' own UI.
+export { ANTHROPIC_API_KEY_STORAGE_KEY };
 
 export function getAnthropicApiKey(): string | null {
-  return localStorage.getItem(STORAGE_KEY);
+  return secretStorage().getItem(ANTHROPIC_API_KEY_STORAGE_KEY);
 }
 
 export function setAnthropicApiKey(key: string): void {
-  localStorage.setItem(STORAGE_KEY, key);
+  secretStorage().setItem(ANTHROPIC_API_KEY_STORAGE_KEY, key);
 }
 
 export function clearAnthropicApiKey(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  secretStorage().removeItem(ANTHROPIC_API_KEY_STORAGE_KEY);
 }

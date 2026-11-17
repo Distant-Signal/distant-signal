@@ -110,7 +110,7 @@ type CallbackState = { kind: 'connecting' } | { kind: 'success' } | { kind: 'err
  * `StreamableHTTPClientTransport` calls internally on a 401, reused here
  * directly for the one-time authorization-code exchange, driven by
  * `BrowserMcpOAuthProvider` (Task 7) so the resulting tokens land in
- * `localStorage` the same way either caller would leave them.
+ * `sessionStorage` the same way either caller would leave them.
  *
  * Review §3.1.1: this used to keep "Connecting" as the heading in every
  * branch, including a failed one, and rendered the raw exchange error

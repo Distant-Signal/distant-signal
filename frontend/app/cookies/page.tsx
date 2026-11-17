@@ -76,8 +76,8 @@ const LOCAL_STORAGE: readonly StorageItem[] = [
   {
     name: 'ds-anthropic-api-key',
     purpose:
-      'Only if you choose to use the AI chat: your own Claude API key, stored in your browser at your choice and never sent to us. You can remove it in Preferences.',
-    lasts: 'Until you remove it, log out, or delete your account.',
+      'Only if you choose to use the AI chat: your own Claude API key, kept in your browser tab at your choice and never sent to us. You can remove it in Preferences.',
+    lasts: 'Until you close the tab, remove it, log out, or delete your account.',
   },
   {
     name: ANALYTICS_OPT_IN_STORAGE_KEY,
@@ -94,7 +94,7 @@ const LOCAL_STORAGE: readonly StorageItem[] = [
   {
     name: 'ds-mcp-oauth:*',
     purpose: 'Only if you use the AI chat: the login details that let the chat look up rail data for you.',
-    lasts: 'Until you log out, delete your account, or clear it.',
+    lasts: 'Until you close the tab, log out, delete your account, or clear it.',
   },
 ];
 

@@ -3,7 +3,10 @@ import { BROWSER_ACCOUNT_KEYS, clearBrowserAccountData, forgetThisDevicePush } f
 
 // DQ5 (FE-3/LEG-11/LEG-26).
 describe('clearBrowserAccountData', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
 
   it('covers every MCP OAuth key and the Anthropic key', () => {
     expect([...BROWSER_ACCOUNT_KEYS].sort()).toEqual(
@@ -19,11 +22,17 @@ describe('clearBrowserAccountData', () => {
   });
 
   it('removes those keys and leaves unrelated ones', () => {
-    for (const key of BROWSER_ACCOUNT_KEYS) localStorage.setItem(key, 'x');
+    for (const key of BROWSER_ACCOUNT_KEYS) sessionStorage.setItem(key, 'x');
     localStorage.setItem('ds-pride', 'on');
     clearBrowserAccountData();
-    for (const key of BROWSER_ACCOUNT_KEYS) expect(localStorage.getItem(key)).toBeNull();
+    for (const key of BROWSER_ACCOUNT_KEYS) expect(sessionStorage.getItem(key)).toBeNull();
     expect(localStorage.getItem('ds-pride')).toBe('on');
+  });
+
+  it('also removes secrets an earlier version left in localStorage', () => {
+    for (const key of BROWSER_ACCOUNT_KEYS) localStorage.setItem(key, 'x');
+    clearBrowserAccountData();
+    for (const key of BROWSER_ACCOUNT_KEYS) expect(localStorage.getItem(key)).toBeNull();
   });
 
   it('also sweeps any other ds-mcp-oauth:* key when storage can enumerate keys', () => {
@@ -42,7 +51,7 @@ describe('clearBrowserAccountData', () => {
       removeItem: (k: string) => void store.delete(k),
       clear: () => store.clear(),
     };
-    vi.stubGlobal('localStorage', storage);
+    vi.stubGlobal('sessionStorage', storage);
     try {
       clearBrowserAccountData();
       expect([...store.keys()]).toEqual(['keep-me']);
@@ -52,7 +61,7 @@ describe('clearBrowserAccountData', () => {
   });
 
   it('never throws when storage is blocked', () => {
-    vi.stubGlobal('localStorage', {
+    vi.stubGlobal('sessionStorage', {
       get length(): number {
         throw new Error('SecurityError');
       },

@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { AppNavBar } from '@/components/AppNavBar';
 import { AutoRefresh } from '@/components/AutoRefresh';
 import { ColorSchemeMeta } from '@/components/ColorSchemeMeta';
+import { BrowserSecretsGuard } from '@/components/BrowserSecretsGuard';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { UsageTracker } from '@/components/UsageTracker';
 import { OpenDataAttribution } from '@/components/OpenDataAttribution';
@@ -144,6 +145,10 @@ async function NavBarWithSession({ freshness }: { freshness: DataFreshness }) {
     <>
       <AppNavBar session={session} freshness={freshness} transitOn={transitNetworks.length > 0} />
       <UsageTracker signedIn={session.authenticated} accountOptIn={session.analyticsOptIn} />
+      {/* `getSessionOrLoggedOut()` returns `LOGGED_OUT_SESSION` itself only
+          when the check failed; a real answer is a fresh object. A failed
+          check is not a logout, so it must not wipe the visitor's secrets. */}
+      <BrowserSecretsGuard signedIn={session === LOGGED_OUT_SESSION ? null : session.authenticated} />
     </>
   );
 }

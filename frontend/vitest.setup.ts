@@ -112,9 +112,8 @@ if (typeof document !== 'undefined') {
 // this project's setup (e.g. `localStorage.setItem` isn't even a
 // function), but Mantine's color-scheme manager reads/writes it to
 // persist the light/dark/auto preference. Polyfill just the methods it
-// (and tests calling `localStorage.clear()` between cases) actually use —
-// `key`/`length` are part of the Storage interface but nothing here
-// exercises them, so they're deliberately omitted.
+// (and tests calling `localStorage.clear()` between cases) actually use,
+// plus `key`/`length`.
 //
 // FE-13: installed UNCONDITIONALLY, on both `window` and `globalThis`. This
 // used to be guarded by `typeof window.localStorage !== 'undefined'`. Node
@@ -122,29 +121,40 @@ if (typeof document !== 'undefined') {
 // `--localstorage-file` is given, and it shadows jsdom's -- so the guard was
 // false, the polyfill was skipped, and every test touching storage threw.
 if (typeof window !== 'undefined') {
-  const store = new Map<string, string>();
-  const storage = {
-    getItem(key: string) {
-      return store.get(key) ?? null;
-    },
-    setItem(key: string, value: string) {
-      // Storage coerces any value to a string at runtime; so does this.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- `value` is only a string by type
-      store.set(key, String(value));
-    },
-    removeItem(key: string) {
-      store.delete(key);
-    },
-    clear() {
-      store.clear();
-    },
-  };
-  for (const target of new Set<object>([window, globalThis])) {
-    Object.defineProperty(target, 'localStorage', {
-      value: storage,
-      writable: true,
-      configurable: true,
-    });
+  // `sessionStorage` gets the same polyfill (the visitor's secrets live
+  // there, `lib/secretStorage.ts`), and both carry `key`/`length` because
+  // that module enumerates them.
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
+    const store = new Map<string, string>();
+    const storage = {
+      get length() {
+        return store.size;
+      },
+      key(index: number) {
+        return [...store.keys()][index] ?? null;
+      },
+      getItem(key: string) {
+        return store.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        // Storage coerces any value to a string at runtime; so does this.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- `value` is only a string by type
+        store.set(key, String(value));
+      },
+      removeItem(key: string) {
+        store.delete(key);
+      },
+      clear() {
+        store.clear();
+      },
+    };
+    for (const target of new Set<object>([window, globalThis])) {
+      Object.defineProperty(target, name, {
+        value: storage,
+        writable: true,
+        configurable: true,
+      });
+    }
   }
 }
 
