@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { RepeatJourneyDialog } from './RepeatJourneyDialog';
 import type { JourneyRepeat, RegularPlanOption } from '@/lib/types';
+import { testPublicId } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -132,10 +133,10 @@ describe('RepeatJourneyDialog', () => {
   it('saves a new journey with the trains picked, its name kept, and opens it', async () => {
     vi.mocked(fetch)
       .mockReturnValueOnce(respond(200, repeat()))
-      .mockReturnValueOnce(respond(201, { journeyId: 42 }));
+      .mockReturnValueOnce(respond(201, { journeyId: 42, journeyPublicId: testPublicId(42) }));
     open();
     fireEvent.click(await screen.findByRole('button', { name: /^Track this journey, the 07:30/ }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/42'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(42)}`));
     const [url, init] = vi.mocked(fetch).mock.calls[1] as [string, RequestInit];
     expect(url).toBe('/api/Journeys/itinerary');
     expect(JSON.parse(init.body as string)).toEqual({

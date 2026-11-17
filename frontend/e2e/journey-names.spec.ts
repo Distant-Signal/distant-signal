@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { testPublicId } from '../test/apiDefaults';
 
 // The one journey-naming rule (lib/journeyName.ts, docs/style-guide.md
 // "Journey names") on /journeys, against the seeded backend: the page is
@@ -35,7 +36,7 @@ test.describe('journey names on /journeys', () => {
     const row = page.getByRole('link', {
       name: 'London Euston (EUS) to London Kings Cross (KGX), 17 Sep 2026',
     });
-    await expect(row).toHaveAttribute('href', `/journeys/${JOURNEY_ID}`);
+    await expect(row).toHaveAttribute('href', `/journeys/${testPublicId(Number(JOURNEY_ID))}`);
     // The row's own card: its leg count, and nothing naming the first
     // change as where the journey ends.
     const card = page.locator('.mantine-Card-root', { has: row });

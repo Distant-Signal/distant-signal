@@ -7,6 +7,7 @@ import {
   DELAY_REPAY_ESTIMATE_DEFAULTS,
   RELIABILITY_JOURNEY_DEFAULTS,
   RELIABILITY_TRAIN_DEFAULTS,
+  testPublicId,
 } from '@/test/apiDefaults';
 
 // Substring-equal to DelayRepayEstimate.test.tsx's own TOP_LEVEL_DISCLAIMER
@@ -18,7 +19,7 @@ function train(overrides: Partial<ReliabilityTrain> = {}): ReliabilityTrain {
   return {
     ...RELIABILITY_TRAIN_DEFAULTS,
     journeyId: 1,
-    journeyPublicId: 'j_1',
+    journeyPublicId: testPublicId(overrides.journeyId ?? 1),
     legId: 10,
     serviceDate: '2026-09-01',
     delayMinutes: 3,
@@ -30,7 +31,7 @@ function journey(overrides: Partial<ReliabilityJourney> = {}): ReliabilityJourne
   return {
     ...RELIABILITY_JOURNEY_DEFAULTS,
     journeyId: 1,
-    journeyPublicId: 'j_1',
+    journeyPublicId: testPublicId(overrides.journeyId ?? 1),
     serviceDate: '2026-09-01',
     delayMinutes: 35,
     estimate: { ...DELAY_REPAY_ESTIMATE_DEFAULTS, scheme: 'DR30', bandMinutes: 30, percentage: 50, disclaimer: 'e' },
@@ -73,7 +74,7 @@ describe('ReliabilityDigest', () => {
     expect(screen.getByText('Your most delayed trains:')).toBeInTheDocument();
     expect(screen.getByText('12 minutes late')).toBeInTheDocument();
     expect(screen.queryByText('-3 minutes late')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '1 Sep 2026' })).toHaveAttribute('href', '/journeys/7');
+    expect(screen.getByRole('link', { name: '1 Sep 2026' })).toHaveAttribute('href', `/journeys/${testPublicId(7)}`);
   });
 
   it('counts journeys for Delay Repay with no ticket, and says when one was measured against the booked train', () => {
@@ -136,7 +137,7 @@ describe('ReliabilityDigest', () => {
     // claim page: each journey's page carries its own claim link.
     const rollup = screen.getByTestId('delay-repay-rollup');
     for (const link of within(rollup).queryAllByRole('link')) {
-      expect(link.getAttribute('href')).toMatch(/^\/journeys\/\d+$/);
+      expect(link.getAttribute('href')).toMatch(/^\/journeys\/j_[0-9a-f]{32}$/);
     }
   });
 });

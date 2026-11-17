@@ -1,6 +1,7 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import { scanPageBothSchemes } from './a11y-helpers';
 import type * as Api from '../lib/api-types';
+import { testPublicId } from '../test/apiDefaults';
 
 // "Tube, bus or walk" legs (spec
 // docs/superpowers/specs/2026-10-20-untracked-legs-and-tracked-train-states-design.md
@@ -163,7 +164,7 @@ async function mockApi(page: Page, firstLegs: unknown[]): Promise<Record<string,
       if (body.leg.mode === 'untracked') legs.push(untrackedLegFrom(body.leg, 1));
       return json(route, {
         journeyId: JOURNEY_ID,
-        journeyPublicId: `j_${JOURNEY_ID}`,
+        journeyPublicId: testPublicId(JOURNEY_ID),
         legId: 1,
         trackingId: null,
         resolutionStatus: null,

@@ -1,5 +1,5 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import {
   getJourney,
   getAllTocs,
@@ -17,6 +17,7 @@ import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { FollowJourneyButton } from '@/components/FollowJourneyButton';
 import { followedFromLabel } from '@/lib/followedFrom';
+import { isLegacyJourneyId, isPublicJourneyId, journeyUrlWithQuery } from '@/lib/journeyId';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import type { Metadata } from 'next';
 import { DataCredits, journeyCredits } from '@/components/DataCredits';
@@ -52,13 +53,13 @@ export default async function JourneyDetailPage({
 }) {
   const { id } = await params;
   const query = (await searchParams) ?? {};
-  if (!/^\d+$/.test(id)) {
+  if (!isLegacyJourneyId(id) && !isPublicJourneyId(id)) {
     notFound();
   }
 
   let journey;
   try {
-    journey = await getJourney(Number(id));
+    journey = await getJourney(id);
   } catch (err) {
     if (err instanceof ApiNotFoundError) {
       notFound();
@@ -76,6 +77,15 @@ export default async function JourneyDetailPage({
       );
     }
     throw err;
+  }
+
+  // A numeric URL (an old bookmark, a push sent before DS-534) moves to the
+  // opaque one, query kept. After the read above, so only someone the api
+  // lets read this journey (its owner, a group member, a follower) is
+  // redirected: anyone else got the same 404 they get for a journey that
+  // does not exist.
+  if (isLegacyJourneyId(id) && journey.publicId) {
+    redirect(journeyUrlWithQuery(journey.publicId, query));
   }
 
   // `revalidate = 0` above means this page is a live, uncached fetch on

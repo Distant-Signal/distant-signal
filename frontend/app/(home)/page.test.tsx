@@ -24,7 +24,7 @@ import {
   trainState,
   untrackedLeg,
 } from '@/test/journeyFixtures';
-import { OPERATOR_SUMMARY_DEFAULTS } from '@/test/apiDefaults';
+import { OPERATOR_SUMMARY_DEFAULTS, testPublicId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
 // `withStaleFallback` (lib/liveDataCache.ts) reads the session cookie via
@@ -1795,7 +1795,7 @@ describe('DashboardPage -- journey sections', () => {
 
     const current = screen.getByRole('region', { name: 'Current journey' });
     const card = within(current).getByRole('link', { name: /Work trip/ });
-    expect(card).toHaveAttribute('href', '/journeys/10');
+    expect(card).toHaveAttribute('href', `/journeys/${testPublicId(10)}`);
     expect(within(cardOf(card)).getByText('Delayed')).toBeInTheDocument();
     expect(within(cardOf(card)).getByText('12 min late')).toBeInTheDocument();
 
@@ -1805,7 +1805,7 @@ describe('DashboardPage -- journey sections', () => {
       .map((link) => link.getAttribute('href'))
       .filter((href) => href?.startsWith('/journeys/') && href !== '/plan');
     // Soonest first; this morning's finished journey is on neither list.
-    expect(rows).toEqual(['/journeys/11', '/journeys/12']);
+    expect(rows).toEqual([`/journeys/${testPublicId(11)}`, `/journeys/${testPublicId(12)}`]);
     expect(within(upcoming).getByText(/Departs 18:00/)).toBeInTheDocument();
     expect(screen.queryByText('Early walk')).not.toBeInTheDocument();
     // Only today's journeys were read in full.
@@ -1848,13 +1848,16 @@ describe('DashboardPage -- journey sections', () => {
     expect(api.getMyJourneys).toHaveBeenCalledWith({ includeFollowed: true, includeShared: true });
     const current = screen.getByRole('region', { name: 'Current journey' });
     const card = within(current).getByRole('link', { name: /Work trip/ });
-    expect(card).toHaveAttribute('href', '/journeys/10');
+    expect(card).toHaveAttribute('href', `/journeys/${testPublicId(10)}`);
     expect(within(cardOf(card)).getByText('Shared by Olive')).toBeInTheDocument();
     const upcoming = screen.getByRole('region', { name: 'Upcoming journeys' });
     const rows = within(upcoming)
       .getAllByRole('link')
-      .filter((link) => link.getAttribute('href')?.match(/^\/journeys\/\d+$/));
-    expect(rows.map((link) => link.getAttribute('href'))).toEqual(['/journeys/11', '/journeys/12']);
+      .filter((link) => link.getAttribute('href')?.match(/^\/journeys\/j_[0-9a-f]{32}$/));
+    expect(rows.map((link) => link.getAttribute('href'))).toEqual([
+      `/journeys/${testPublicId(11)}`,
+      `/journeys/${testPublicId(12)}`,
+    ]);
     expect(within(cardOf(rows[0]!)).queryByText(/Shared by/)).not.toBeInTheDocument();
     expect(within(cardOf(rows[1]!)).getByText(/Shared by Olive/)).toBeInTheDocument();
   });
@@ -1877,7 +1880,7 @@ describe('DashboardPage -- journey sections', () => {
     ];
     // Olive's journey under way now, and a later one of hers with no
     // train picked yet; the caller's own evening out.
-    const olivesNow = { ...underWay, id: 20, customName: "Olive's trip", isOwner: false };
+    const olivesNow = { ...underWay, id: 20, publicId: testPublicId(20), customName: "Olive's trip", isOwner: false };
     const olivesLater = journeyDetail(
       21,
       [{ ...trainLeg(1, YRK, KGX, '2026-09-24T08:00:00Z', '2026-09-24T10:00:00Z'), trackedTrainState: null }],
@@ -1903,9 +1906,13 @@ describe('DashboardPage -- journey sections', () => {
     const hrefs = within(upcoming)
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'))
-      .filter((href) => href?.match(/^\/journeys\/\d+$/));
+      .filter((href) => href?.match(/^\/journeys\/j_[0-9a-f]{32}$/));
     // The caller's own first, then Olive's: under way, then to come.
-    expect(hrefs).toEqual(['/journeys/11', '/journeys/20', '/journeys/21']);
+    expect(hrefs).toEqual([
+      `/journeys/${testPublicId(11)}`,
+      `/journeys/${testPublicId(20)}`,
+      `/journeys/${testPublicId(21)}`,
+    ]);
     expect(within(upcoming).getByRole('heading', { name: 'Shared with you', level: 3 })).toBeInTheDocument();
     const now = cardOf(within(upcoming).getByRole('link', { name: "Olive's trip" }));
     expect(within(now).getByText(/Shared by Olive in Family/)).toBeInTheDocument();
@@ -2074,7 +2081,12 @@ describe('DashboardPage -- journey sections', () => {
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'))
       .filter((href) => href !== '/plan' && href !== '/journeys');
-    expect(rows).toEqual(['/train/W5/2026-09-17', '/journeys/11', '/train/W6/2026-09-20', '/journeys/12']);
+    expect(rows).toEqual([
+      '/train/W5/2026-09-17',
+      `/journeys/${testPublicId(11)}`,
+      '/train/W6/2026-09-20',
+      `/journeys/${testPublicId(12)}`,
+    ]);
     const lunch = within(upcoming).getByRole('link', { name: /^Lunch train/ });
     expect(
       within(cardOf(lunch)).getByText('London Kings Cross (KGX) to York (YRK), 17 Sep 2026 · 14:00'),

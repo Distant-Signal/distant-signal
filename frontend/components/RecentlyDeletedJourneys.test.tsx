@@ -3,6 +3,7 @@ import { screen, fireEvent, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { RecentlyDeletedJourneys } from './RecentlyDeletedJourneys';
 import type { RecentlyDeletedData } from '@/lib/types';
+import { testPublicId } from '@/test/apiDefaults';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -85,6 +86,7 @@ describe('RecentlyDeletedJourneys', () => {
       new Response(
         JSON.stringify({
           journeyId: 99,
+          journeyPublicId: testPublicId(99),
           legs: [{ leg: 1, outcome: 'without_train', reason: 'train_gone' }],
         }),
         { status: 201 },
@@ -99,7 +101,10 @@ describe('RecentlyDeletedJourneys', () => {
     expect(
       within(status).getByText("Leg 1's train is no longer available, so pick a train for it."),
     ).toBeInTheDocument();
-    expect(within(status).getByRole('link', { name: 'Open the journey' })).toHaveAttribute('href', '/journeys/99');
+    expect(within(status).getByRole('link', { name: 'Open the journey' })).toHaveAttribute(
+      'href',
+      `/journeys/${testPublicId(99)}`,
+    );
     expect(refreshMock).toHaveBeenCalled();
   });
 

@@ -13,6 +13,7 @@ import {
   JOURNEY_STOP_DEFAULTS,
   TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
   TRACKED_TRAIN_STATE_DEFAULTS,
+  testPublicId,
 } from './apiDefaults';
 
 /* Journey builders for the home page's journey tests (`lib/homeJourneys`,
@@ -149,7 +150,7 @@ export function untrackedLeg(
 }
 
 export function journeyDetail(id: number, legs: JourneyLegDetail[], customName: string | null = null): JourneyDetail {
-  return { ...JOURNEY_DETAIL_DEFAULTS, id, publicId: `j_test${id}`, customName, legs };
+  return { ...JOURNEY_DETAIL_DEFAULTS, id, publicId: testPublicId(id), customName, legs };
 }
 
 /** The `GET /Journeys/mine` row for a journey, its current leg being the
@@ -215,9 +216,11 @@ export function loneTrain(id: number, overrides: Partial<TrackedTrainListItem> =
     customName: null,
     sharedGroupCount: 0,
     journeyIds: [],
-    journeyPublicIds: [],
     travelled: false,
     trackingPhase: 'planned',
     ...overrides,
+    journeyPublicIds: overrides.journeyPublicIds ?? (overrides.journeyIds ?? []).map(testPublicId),
+    singleLegJourneyPublicIds:
+      overrides.singleLegJourneyPublicIds ?? (overrides.singleLegJourneyIds ?? []).map(testPublicId),
   };
 }

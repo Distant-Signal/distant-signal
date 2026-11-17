@@ -14,7 +14,7 @@ import {
   ApiUnauthorizedError,
 } from '@/lib/api';
 import type { GroupCustomLine, GroupJourney, GroupMember, GroupRole, GroupTrain, LineStatusReport } from '@/lib/types';
-import { GROUP_JOURNEY_DEFAULTS, GROUP_TRAIN_DEFAULTS } from '@/test/apiDefaults';
+import { GROUP_JOURNEY_DEFAULTS, GROUP_TRAIN_DEFAULTS, testPublicId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -963,7 +963,7 @@ describe('GroupDetailPage', () => {
       return {
         ...GROUP_JOURNEY_DEFAULTS,
         journeyId: 501,
-        journeyPublicId: 'j_501',
+        journeyPublicId: testPublicId(501),
         customName: null,
         legCount: 1,
         pinOriginCrs: 'WOK',
@@ -1023,7 +1023,7 @@ describe('GroupDetailPage', () => {
       expect(screen.getByRole('heading', { name: 'Shared journeys' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Woking \(WOK\) to London Waterloo \(WAT\)/ })).toHaveAttribute(
         'href',
-        '/journeys/501',
+        `/journeys/${testPublicId(501)}`,
       );
       expect(screen.getByText('Shared by Sam')).toBeInTheDocument();
       // The Track list's `TrackedRowStatusBadge`: the delay badge alone,
@@ -1047,6 +1047,7 @@ describe('GroupDetailPage', () => {
         // ending at the LAST leg's destination.
         journey({
           journeyId: 502,
+          journeyPublicId: testPublicId(502),
           legCount: 3,
           pinOriginCrs: null,
           pinDestinationCrs: null,
@@ -1074,7 +1075,7 @@ describe('GroupDetailPage', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByRole('link', { name: 'London Kings Cross (KGX) to Edinburgh (EDB), 11 Sep 2026' }),
-      ).toHaveAttribute('href', '/journeys/502');
+      ).toHaveAttribute('href', `/journeys/${testPublicId(502)}`);
       expect(screen.getByText('3 legs')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Scotland trip' })).toBeInTheDocument();
       expect(screen.getByText('WOK to EDB, 11 Sep 2026 · 2 legs')).toBeInTheDocument();

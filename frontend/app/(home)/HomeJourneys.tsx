@@ -156,7 +156,7 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
             align="flex-start"
             title={
               <Text fw={700} fz="lg" lineClamp={2} miw={0}>
-                <CardTitleLink href={`/journeys/${detail.id}`}>{journeyDisplayName(name)}</CardTitleLink>
+                <CardTitleLink href={`/journeys/${detail.publicId}`}>{journeyDisplayName(name)}</CardTitleLink>
               </Text>
             }
             trailing={
@@ -240,7 +240,7 @@ export function HomeJourneyRow({ journey, now }: { journey: HomeJourney; now?: D
           align="flex-start"
           title={
             <Text fw={500} lineClamp={2} miw={0}>
-              <CardTitleLink href={`/journeys/${journey.item.id}`}>{journeyDisplayName(name)}</CardTitleLink>
+              <CardTitleLink href={`/journeys/${journey.item.publicId}`}>{journeyDisplayName(name)}</CardTitleLink>
             </Text>
           }
           subtitle={

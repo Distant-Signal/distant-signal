@@ -22,6 +22,7 @@ import {
   RELIABILITY_TRAIN_DEFAULTS,
   TEMPLATE_TARGET_DEFAULTS,
   TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
+  testPublicId,
 } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api');
@@ -62,6 +63,9 @@ function train(overrides: Partial<TrackedTrainListItem> = {}): TrackedTrainListI
     sharedGroupCount: 0,
     ...overrides,
     customName: overrides.customName ?? null,
+    journeyPublicIds: overrides.journeyPublicIds ?? (overrides.journeyIds ?? []).map(testPublicId),
+    singleLegJourneyPublicIds:
+      overrides.singleLegJourneyPublicIds ?? (overrides.singleLegJourneyIds ?? []).map(testPublicId),
   };
 }
 
@@ -415,7 +419,7 @@ describe('JourneysPage', () => {
 
       expect(screen.queryByText(/You have no journeys yet/)).not.toBeInTheDocument();
       const link = screen.getByRole('link', { name: /Paddington to Reading/ });
-      expect(link).toHaveAttribute('href', '/journeys/501');
+      expect(link).toHaveAttribute('href', `/journeys/${testPublicId(501)}`);
       expect(screen.getByText('From Family')).toBeInTheDocument();
       expect(screen.getByText('From Commute Club')).toBeInTheDocument();
       expect(screen.getByText('Shared by Sam')).toBeInTheDocument();
@@ -497,8 +501,12 @@ describe('JourneysPage', () => {
         within(screen.getByRole('region', { name }))
           .getAllByRole('link')
           .map((link) => link.getAttribute('href'));
-      expect(hrefs('Upcoming')).toEqual(['/journeys/601', '/journeys/602']);
-      expect(hrefs('Past')).toEqual(['/journeys/603', '/journeys/604', '/journeys/605']);
+      expect(hrefs('Upcoming')).toEqual([`/journeys/${testPublicId(601)}`, `/journeys/${testPublicId(602)}`]);
+      expect(hrefs('Past')).toEqual([
+        `/journeys/${testPublicId(603)}`,
+        `/journeys/${testPublicId(604)}`,
+        `/journeys/${testPublicId(605)}`,
+      ]);
       // Each shared row keeps its badge; the caller's own rows have none.
       expect(within(screen.getByRole('region', { name: 'Past' })).getAllByText('From Family')).toHaveLength(2);
     });
@@ -532,13 +540,16 @@ describe('JourneysPage', () => {
       const links = within(upcoming)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'));
-      expect(links).toEqual(['/journeys/501', '/journeys/502']);
+      expect(links).toEqual([`/journeys/${testPublicId(501)}`, `/journeys/${testPublicId(502)}`]);
       expect(within(upcoming).getByText('Shared by Sam')).toBeInTheDocument();
       expect(within(upcoming).getAllByRole('button', { name: 'Unfollow' })).toHaveLength(1);
       expect(screen.queryByText('From Family')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Follow this journey' })).not.toBeInTheDocument();
       const past = screen.getByRole('region', { name: 'Past' });
-      expect(within(past).getByRole('link', { name: /Old outing/ })).toHaveAttribute('href', '/journeys/503');
+      expect(within(past).getByRole('link', { name: /Old outing/ })).toHaveAttribute(
+        'href',
+        `/journeys/${testPublicId(503)}`,
+      );
       expect(within(past).getByText('Shared with you by link')).toBeInTheDocument();
     });
 
@@ -881,7 +892,7 @@ describe('JourneysPage', () => {
       const row: JourneyListItem = {
         ...(JOURNEY_ROW as typeof JOURNEY_LIST_ITEM_DEFAULTS),
         id: 169,
-        publicId: 'j_169',
+        publicId: testPublicId(overrides.id ?? 169),
         customName: null,
         createdAt: '2026-09-22T18:13:54Z',
         legId: 194,
@@ -924,7 +935,7 @@ describe('JourneysPage', () => {
 
       const upcoming = screen.getByRole('region', { name: 'Upcoming' });
       const link = within(upcoming).getByRole('link', { name: /KGX to EDB/ });
-      expect(link).toHaveAttribute('href', '/journeys/169');
+      expect(link).toHaveAttribute('href', `/journeys/${testPublicId(169)}`);
       expect(screen.getByText('Needs a train picked')).toBeInTheDocument();
     });
 
@@ -974,7 +985,7 @@ describe('JourneysPage', () => {
       renderWithMantine(await JourneysPage());
 
       const link = screen.getByRole('link', { name: 'London Kings Cross (KGX) to Edinburgh (EDB), 22 Sep 2026' });
-      expect(link).toHaveAttribute('href', '/journeys/169');
+      expect(link).toHaveAttribute('href', `/journeys/${testPublicId(169)}`);
       expect(screen.getByText('3 legs')).toBeInTheDocument();
       expect(screen.queryByText(/to York/)).not.toBeInTheDocument();
     });
@@ -1018,7 +1029,10 @@ describe('JourneysPage', () => {
 
       renderWithMantine(await JourneysPage());
 
-      expect(screen.getByRole('link', { name: 'Trip north' })).toHaveAttribute('href', '/journeys/169');
+      expect(screen.getByRole('link', { name: 'Trip north' })).toHaveAttribute(
+        'href',
+        `/journeys/${testPublicId(169)}`,
+      );
       expect(screen.getByText('KGX to EDB, 22 Sep 2026')).toBeInTheDocument();
     });
 
@@ -1087,12 +1101,18 @@ describe('JourneysPage', () => {
         renderWithMantine(await JourneysPage());
 
         const upcoming = region('Upcoming');
-        expect(within(upcoming).getByRole('link', { name: /YRK to NCL/ })).toHaveAttribute('href', '/journeys/171');
+        expect(within(upcoming).getByRole('link', { name: /YRK to NCL/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(171)}`,
+        );
         expect(within(upcoming).getByText('Needs a train picked')).toBeInTheDocument();
         expect(within(upcoming).getByText(byVisibleText(/GLD to WOK/))).toBeInTheDocument();
 
         const past = region('Past');
-        expect(within(past).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute('href', '/journeys/170');
+        expect(within(past).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(170)}`,
+        );
         expect(within(past).getByText('Part cancelled').closest('[data-state-badge]')).toHaveAttribute(
           'data-state-badge',
           'critical',
@@ -1260,7 +1280,7 @@ describe('JourneysPage', () => {
         expect(within(region('Upcoming')).getByRole('link', { name: /YRK to NCL/ })).toBeInTheDocument();
         expect(within(region('Past')).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
           'href',
-          '/journeys/181',
+          `/journeys/${testPublicId(181)}`,
         );
       });
 
@@ -1299,8 +1319,14 @@ describe('JourneysPage', () => {
         const upcoming = region('Upcoming');
         const past = region('Past');
         expect(within(upcoming).getByRole('link', { name: /YRK to NCL/ })).toBeInTheDocument();
-        expect(within(past).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute('href', '/journeys/191');
-        expect(within(past).getByRole('link', { name: /PAD to RDG/ })).toHaveAttribute('href', '/journeys/192');
+        expect(within(past).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(191)}`,
+        );
+        expect(within(past).getByRole('link', { name: /PAD to RDG/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(192)}`,
+        );
       });
 
       it('keeps a journey that starts after today, and every row before it, upcoming', async () => {
@@ -1315,7 +1341,10 @@ describe('JourneysPage', () => {
         renderWithMantine(await JourneysPage());
 
         const upcoming = region('Upcoming');
-        expect(within(upcoming).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute('href', '/journeys/200');
+        expect(within(upcoming).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(200)}`,
+        );
         expect(within(upcoming).getByRole('link', { name: /YRK to NCL/ })).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Past' })).toBeNull();
       });
@@ -1347,9 +1376,15 @@ describe('JourneysPage', () => {
 
         const upcoming = region('Upcoming');
         const past = region('Past');
-        expect(within(upcoming).getByRole('link', { name: /YRK to NCL/ })).toHaveAttribute('href', '/journeys/210');
+        expect(within(upcoming).getByRole('link', { name: /YRK to NCL/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(210)}`,
+        );
         expect(within(upcoming).getByText(byVisibleText(/GLD to WOK/))).toBeInTheDocument();
-        expect(within(past).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute('href', '/journeys/211');
+        expect(within(past).getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
+          'href',
+          `/journeys/${testPublicId(211)}`,
+        );
         expect(within(past).getByText(byVisibleText(/WAT to WOK/))).toBeInTheDocument();
       });
 
@@ -1395,7 +1430,10 @@ describe('JourneysPage', () => {
 
       // The journey row is the one that survives; the bare train row for
       // the same subscription is suppressed.
-      expect(screen.getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute('href', '/journeys/169');
+      expect(screen.getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
+        'href',
+        `/journeys/${testPublicId(169)}`,
+      );
       expect(screen.queryByText(byVisibleText(/WAT to WOK/))).not.toBeInTheDocument();
     });
 
@@ -1412,7 +1450,10 @@ describe('JourneysPage', () => {
 
       renderWithMantine(await JourneysPage());
 
-      expect(screen.getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute('href', '/journeys/169');
+      expect(screen.getByRole('link', { name: /KGX to EDB/ })).toHaveAttribute(
+        'href',
+        `/journeys/${testPublicId(169)}`,
+      );
       expect(screen.queryByText(byVisibleText(/WAT to WOK/))).not.toBeInTheDocument();
       expect(screen.queryByText(byVisibleText(/YRK to NCL/))).not.toBeInTheDocument();
       expect(screen.queryByText(byVisibleText(/NCL to EDB/))).not.toBeInTheDocument();

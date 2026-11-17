@@ -427,7 +427,7 @@ export function TrackTrainForm({
         if (onCreated) {
           onCreated(result);
         } else {
-          router.push(`/journeys/${result.journeyId}`);
+          router.push(`/journeys/${result.journeyPublicId}`);
         }
         return;
       }
@@ -493,7 +493,7 @@ export function TrackTrainForm({
         if (onCreated) {
           onCreated(result);
         } else {
-          router.push(`/journeys/${result.journeyId}`);
+          router.push(`/journeys/${result.journeyPublicId}`);
         }
         return;
       }

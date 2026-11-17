@@ -51,7 +51,7 @@ async function saveJourney(request: APIRequestContext, base: URL, name: string, 
   return ((await created.json()) as { journeyId: number }).journeyId;
 }
 
-async function deleteJourney(request: APIRequestContext, base: URL, id: number) {
+async function deleteJourney(request: APIRequestContext, base: URL, id: number | string) {
   await request.delete(`/api/Journeys/${id}`, {
     headers: { cookie: `distant_signal_session=${SESSION_COOKIE}`, origin: base.origin },
   });
@@ -64,10 +64,12 @@ test.describe('track again and move', () => {
     const base = new URL(process.env.E2E_BASE_URL ?? 'http://localhost:3000');
     await logIn(context, base);
     const journeyId = await saveJourney(request, base, 'E2E repeat', londonDate(1));
-    let repeatedId: number | null = null;
+    let repeatedId: string | null = null;
     try {
       await page.goto(`/journeys/${journeyId}`);
       await page.locator('#main-content').getByRole('button', { name: 'Track this journey again' }).click();
+      // The numeric URL moved to the journey's opaque one.
+      const originalPath = new URL(page.url()).pathname;
 
       const dialog = page.getByRole('dialog', { name: 'Track this journey again' });
       await expect(dialog.getByText('The same trains as before.')).toBeVisible();
@@ -79,9 +81,9 @@ test.describe('track again and move', () => {
 
       await track.click();
       await page.waitForURL(
-        (url) => /^\/journeys\/\d+$/.test(url.pathname) && url.pathname !== `/journeys/${journeyId}`,
+        (url) => /^\/journeys\/j_[0-9a-f]{32}$/.test(url.pathname) && url.pathname !== originalPath,
       );
-      repeatedId = Number(new URL(page.url()).pathname.split('/').pop());
+      repeatedId = new URL(page.url()).pathname.split('/').pop() ?? null;
       // Both legs, the same trains, under the journey's own name.
       await expect(page.getByRole('heading', { level: 1, name: 'E2E repeat' })).toBeVisible();
       const legs = await request.get(`/api/Journeys/${repeatedId}`, {

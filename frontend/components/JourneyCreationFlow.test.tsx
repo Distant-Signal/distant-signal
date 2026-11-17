@@ -80,9 +80,18 @@ function mockFetchByUrl(
     }
     if (url === '/api/Journeys' && init?.method === 'POST') {
       return Promise.resolve(
-        new Response(JSON.stringify({ journeyId: 99, legId: 1, trackingId: 42, resolutionStatus: 'pending' }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({
+            journeyId: 99,
+            journeyPublicId: 'j_00000000000000000000000000000063',
+            legId: 1,
+            trackingId: 42,
+            resolutionStatus: 'pending',
+          }),
+          {
+            status: 200,
+          },
+        ),
       );
     }
     if (url === '/api/Journeys/itinerary' && init?.method === 'POST' && options.itinerary) {
@@ -195,7 +204,10 @@ describe('JourneyCreationFlow', () => {
 
     await createLegOne(fetchMock);
 
-    expect(await screen.findByRole('link', { name: /view journey/i })).toHaveAttribute('href', '/journeys/99');
+    expect(await screen.findByRole('link', { name: /view journey/i })).toHaveAttribute(
+      'href',
+      '/journeys/j_00000000000000000000000000000063',
+    );
     // The leg-1 form is gone -- this is a single continuous flow, not a
     // page that navigates away and back.
     expect(screen.queryByRole('button', { name: /Track this train/ })).not.toBeInTheDocument();
@@ -281,7 +293,10 @@ describe('JourneyCreationFlow', () => {
 
     await createLegOne(fetchMock);
 
-    expect(await screen.findByRole('link', { name: /view journey/i })).toHaveAttribute('href', '/journeys/99');
+    expect(await screen.findByRole('link', { name: /view journey/i })).toHaveAttribute(
+      'href',
+      '/journeys/j_00000000000000000000000000000063',
+    );
     expect(screen.queryByRole('button', { name: 'Add a leg' })).not.toBeInTheDocument();
   });
 
@@ -351,6 +366,7 @@ describe('JourneyCreationFlow', () => {
         new Response(
           JSON.stringify({
             journeyId: 99,
+            journeyPublicId: 'j_00000000000000000000000000000063',
             legId: 1,
             trackingId: 42,
             resolutionStatus: null,
@@ -381,6 +397,9 @@ describe('JourneyCreationFlow', () => {
     fireEvent.click(radios[radios.length - 1]!);
     fireEvent.click(screen.getByText('Track this journey'));
 
-    expect(await screen.findByRole('link', { name: /view journey/i })).toHaveAttribute('href', '/journeys/99');
+    expect(await screen.findByRole('link', { name: /view journey/i })).toHaveAttribute(
+      'href',
+      '/journeys/j_00000000000000000000000000000063',
+    );
   });
 });

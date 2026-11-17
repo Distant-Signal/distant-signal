@@ -976,7 +976,7 @@ export async function getMyTrackedTrains(): Promise<TrackedTrainListItem[] | nul
  * 401 (not logged in at all) via `errorForResponse`, so
  * `app/journeys/[id]/page.tsx` can render the same two distinct page
  * states `app/train/by-id/[trackingId]/page.tsx` already does. */
-export async function getJourney(id: number): Promise<JourneyDetail> {
+export async function getJourney(id: number | string): Promise<JourneyDetail> {
   const url = `${baseUrl()}/Journeys/${id}`;
   const response = await apiFetch(url, {
     cache: 'no-store',

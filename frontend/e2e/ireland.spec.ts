@@ -1,4 +1,5 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
+import { testPublicId } from '../test/apiDefaults';
 
 // The island of Ireland pages against the live api and the seed's Irish
 // stations, lines and Dublin Connolly's live board
@@ -158,7 +159,7 @@ test.describe('tracking an Iarnród Éireann train', () => {
     // fixture-owner has a group, so the picker asks where to: Personal.
     await page.getByRole('dialog').getByRole('button', { name: 'Confirm' }).click();
 
-    await expect(page).toHaveURL(/\/journeys\/\d+$/);
+    await expect(page).toHaveURL(/\/journeys\/j_[0-9a-f]{32}$/);
     await expect(page.getByRole('heading', { level: 1, name: /Dublin Connolly to Drogheda/ })).toBeVisible();
     await page.getByRole('link', { name: 'Train A102' }).click();
 
@@ -188,13 +189,13 @@ test.describe('tracking an Iarnród Éireann train', () => {
       name: 'Dublin Connolly to Belfast Grand Central, 17 Sep 2026',
       exact: true,
     });
-    await expect(journey).toHaveAttribute('href', '/journeys/900121');
+    await expect(journey).toHaveAttribute('href', `/journeys/${testPublicId(900121)}`);
     // The shared train links straight to its Irish page.
     const train = page.getByRole('link', { name: /^Dublin Connolly to Belfast Grand Central, 17 Sep 2026 · / });
     await train.click();
     await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17$/);
 
-    await page.goto('/journeys/900121');
+    await page.goto(`/journeys/${testPublicId(900121)}`);
     await page.getByRole('link', { name: 'Train A101' }).click();
     await expect(page).toHaveURL(/\/island-of-ireland\/iarnrod-eireann\/trains\/A101\/2026-09-17$/);
   });

@@ -15,7 +15,7 @@ export function isEligibleForPunctuality(train: ReliabilityTrain): boolean {
 
 export interface WorstTrain {
   key: string;
-  journeyId: number;
+  journeyPublicId: string;
   trainUid: string | null;
   serviceDate: string;
   delayMinutes: number;
@@ -59,7 +59,7 @@ export function computePunctualitySummary(trains: ReliabilityTrain[]): Punctuali
     .slice(0, 5)
     .map((t) => ({
       key: `${t.journeyId}-${t.legId ?? 'booked'}-${t.trainUid ?? ''}`,
-      journeyId: t.journeyId,
+      journeyPublicId: t.journeyPublicId,
       trainUid: t.trainUid,
       serviceDate: t.serviceDate,
       delayMinutes: t.delayMinutes as number,

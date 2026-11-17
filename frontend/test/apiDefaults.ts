@@ -6,6 +6,13 @@ import type * as Api from '@/lib/api-types';
  * test is about, so a fixture keeps type-checking when the api adds a
  * field. */
 
+/** A journey's `publicId` for a fixture: `j_` and 32 hex digits, the number
+ * in the last digits. Set it with the journey's numeric id in the same
+ * fixture, so a test that follows a link can name it. */
+export function testPublicId(n: number): string {
+  return `j_${n.toString(16).padStart(32, '0')}`;
+}
+
 /** A `JourneyStop`, less what places it: `crs`, `name`, `kind` and times. */
 export const JOURNEY_STOP_DEFAULTS = {
   locationType: null,
@@ -124,8 +131,8 @@ export const TRACKED_TRAIN_LIST_ITEM_DEFAULTS = {
   firstReportExpectedAt: null,
   journeyIds: [],
   journeyPublicIds: [],
-  singleLegJourneyIds: [],
   singleLegJourneyPublicIds: [],
+  singleLegJourneyIds: [],
   travelled: false,
   cancellation: null,
   serviceMode: 'train',
@@ -161,6 +168,7 @@ export const JOURNEY_LEG_DEFAULTS = {
 
 /** A `JourneyDetailResponse`, less its id and legs. */
 export const JOURNEY_DETAIL_DEFAULTS = {
+  publicId: testPublicId(0),
   customName: null,
   createdAt: '2026-09-01T00:00:00Z',
   isOwner: true,
@@ -177,6 +185,7 @@ export const JOURNEY_DETAIL_DEFAULTS = {
 /** A `JourneyListItem` (`GET /Journeys/mine`), less its ids, current leg
  * and date. */
 export const JOURNEY_LIST_ITEM_DEFAULTS = {
+  publicId: testPublicId(0),
   customName: null,
   createdAt: '2026-09-01T00:00:00Z',
   originName: null,
@@ -351,6 +360,7 @@ export const LEG_DELAY_REPAY_DEFAULTS = {
 
 /** A `ReliabilityJourney`, less its journey, date and delay. */
 export const RELIABILITY_JOURNEY_DEFAULTS = {
+  journeyPublicId: testPublicId(0),
   ...DELAY_REPAY_DEFAULTS,
   customName: null,
   destinationCrs: 'YRK',
@@ -365,6 +375,7 @@ export const RELIABILITY_JOURNEY_DEFAULTS = {
 
 /** A `ReliabilityTrain`, less its journey, leg, date and delay. */
 export const RELIABILITY_TRAIN_DEFAULTS = {
+  journeyPublicId: testPublicId(0),
   trainUid: 'W12345',
   originCrs: 'KGX',
   destinationCrs: 'YRK',
@@ -388,6 +399,7 @@ export const GROUP_TRAIN_DEFAULTS = {
 /** A `GroupJourney` (and `SharedJourney`) summarising a train leg, less
  * the journey and its pin. */
 export const GROUP_JOURNEY_DEFAULTS = {
+  journeyPublicId: testPublicId(0),
   firstOriginCrs: null,
   firstOriginName: null,
   lastDestinationCrs: null,

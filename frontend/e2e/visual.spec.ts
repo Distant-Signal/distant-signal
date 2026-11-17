@@ -38,6 +38,10 @@ const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE;
 const TRACKING_ID = process.env.E2E_TRACKING_ID ?? '1';
 const PLANNED_TRACKING_ID = process.env.E2E_PLANNED_TRACKING_ID ?? '3';
 const JOURNEY_ID = process.env.E2E_JOURNEY_ID ?? '1';
+// The seed gives each journey the public id 'j_' and its id as 32 hex digits
+// (the same as test/apiDefaults.ts's testPublicId, which the visual container
+// does not mount).
+const testPublicId = (id: number) => `j_${id.toString(16).padStart(32, '0')}`;
 // The seed's group, with trains and journeys shared into it by both users.
 const GROUP_ID = process.env.E2E_GROUP_ID ?? 'fixture-group-1';
 
@@ -84,7 +88,7 @@ const PAGES: [name: string, path: string][] = [
   // not in the timetable, a planned train, and a journey with a walk.
   ['train-no-timetable', `/train/by-id/${TRACKING_ID}`],
   ['train-planned', `/train/by-id/${PLANNED_TRACKING_ID}`],
-  ['journey', `/journeys/${JOURNEY_ID}`],
+  ['journey', `/journeys/${testPublicId(Number(JOURNEY_ID))}`],
   // Open to everyone: logged out it is the appearance settings and one log
   // in prompt, logged in the account sections too.
   ['preferences', '/account/preferences'],
@@ -102,7 +106,7 @@ const PAGES: [name: string, path: string][] = [
   ['regular-journey-new', '/journeys/regular/new'],
   // A journey of the seed's regular journey with the day's suggested train
   // (regular journeys design §6.6), logged in.
-  ['regular-journey-day', '/journeys/900203'],
+  ['regular-journey-day', `/journeys/${testPublicId(900203)}`],
   // A group's shared trains and journeys, logged in as its owner: a live
   // train, a planned one, a timetabled bus, a journey whose train is
   // planned and a walk-and-Tube journey (2026-10-20: the owner's own

@@ -23,6 +23,7 @@ import { trackedTrainRowStatus } from '@/lib/trackedRowStatus';
 import type { JourneyDetail, TrackedTrainListItem } from '@/lib/types';
 import { CurrentJourneyCard, CurrentJourneySection, sharedViaLabel, UpcomingJourneysSection } from './HomeJourneys';
 import { openBreakSummary } from '@/test/replanFixtures';
+import { testPublicId } from '@/test/apiDefaults';
 
 // The open-break banner's "See options" sheet is a client component.
 vi.mock('next/navigation', () => ({
@@ -126,7 +127,7 @@ describe('CurrentJourneyCard', () => {
   it('shows the journey, its live status, the leg under way and the next change, linking to the journey', () => {
     renderWithMantine(<CurrentJourneyCard journey={journey()} now={new Date('2026-09-17T10:00:00Z')} />);
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', '/journeys/7');
+    expect(link).toHaveAttribute('href', `/journeys/${testPublicId(7)}`);
     // Named by the journey's name alone, not every word on the card.
     expect(link).toHaveAccessibleName('London Kings Cross (KGX) to Edinburgh (EDB), 17 Sep 2026');
     expect(
@@ -296,7 +297,10 @@ describe('CurrentJourneySection', () => {
     const section = screen.getByRole('region', { name: 'Current journey' });
     expect(within(section).getByRole('heading', { name: 'Current journey', level: 2 })).toBeInTheDocument();
     expect(within(section).getByRole('heading', { name: 'Also in progress', level: 3 })).toBeInTheDocument();
-    expect(within(section).getByRole('link', { name: /Second trip/ })).toHaveAttribute('href', '/journeys/8');
+    expect(within(section).getByRole('link', { name: /Second trip/ })).toHaveAttribute(
+      'href',
+      `/journeys/${testPublicId(8)}`,
+    );
   });
 
   it('shows an open break under the current journey, with its options for the owner', () => {
@@ -369,7 +373,10 @@ describe('CurrentJourneySection', () => {
     expect(within(cardOf(card)).getByText('London Kings Cross (KGX) to York (YRK) · 10:00')).toBeInTheDocument();
     expect(within(cardOf(card)).getByText('York (YRK)')).toBeInTheDocument();
     expect(within(cardOf(card)).getByText('6 min late')).toBeInTheDocument();
-    expect(within(section).getByRole('link', { name: /Second trip/ })).toHaveAttribute('href', '/journeys/8');
+    expect(within(section).getByRole('link', { name: /Second trip/ })).toHaveAttribute(
+      'href',
+      `/journeys/${testPublicId(8)}`,
+    );
   });
 
   it('lists a lone train under way beside the current journey', () => {
@@ -445,7 +452,7 @@ describe('UpcomingJourneysSection', () => {
     const first = within(section).getByRole('link', {
       name: /^London Kings Cross \(KGX\) to York \(YRK\), 20 Sep 2026/,
     });
-    expect(first).toHaveAttribute('href', '/journeys/1');
+    expect(first).toHaveAttribute('href', `/journeys/${testPublicId(1)}`);
     expect(within(cardOf(first)).getByText('Departs 10:00')).toBeInTheDocument();
     expect(within(cardOf(first)).getByText('Planned')).toBeInTheDocument();
     const second = within(section).getByRole('link', { name: /Weekend away/ });
@@ -462,7 +469,10 @@ describe('UpcomingJourneysSection', () => {
     renderWithMantine(<UpcomingJourneysSection upcoming={[upcoming(1, 'Mine'), followed]} />);
     const section = screen.getByRole('region', { name: 'Upcoming journeys' });
     const links = within(section).getAllByRole('link', { name: /London Kings Cross|Mine/ });
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/journeys/1', '/journeys/2']);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      `/journeys/${testPublicId(1)}`,
+      `/journeys/${testPublicId(2)}`,
+    ]);
     expect(within(cardOf(links[1]!)).getByText(/Shared with you by link/)).toBeInTheDocument();
     expect(within(cardOf(links[0]!)).queryByText(/Shared/)).not.toBeInTheDocument();
   });
@@ -542,7 +552,7 @@ describe('UpcomingJourneysSection', () => {
       const olives = within(section).getByRole('link', { name: /Olive's trip/ });
       expect(mine.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(heading.compareDocumentPosition(olives) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(olives).toHaveAttribute('href', '/journeys/2');
+      expect(olives).toHaveAttribute('href', `/journeys/${testPublicId(2)}`);
       expect(within(cardOf(olives)).getByText(/Shared by Olive in Family/)).toBeInTheDocument();
       expect(within(cardOf(olives)).getByText('Planned')).toBeInTheDocument();
       expect(within(cardOf(mine)).queryByText(/Shared/)).not.toBeInTheDocument();

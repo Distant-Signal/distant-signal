@@ -1,4 +1,5 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
+import { testPublicId } from '../test/apiDefaults';
 
 // The Journeys page (DS-115): `/journeys`, which was the Track page at
 // `/track/mine`, and "Plan a journey" (`/plan`, DS-194), which is reached
@@ -92,9 +93,9 @@ test.describe('the Journeys page, logged in', () => {
     // for a few hundred ms after `load`, so Past may not be shown yet.
     await expect(past).toBeVisible();
     const hrefs = await past.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('href')));
-    const later = hrefs.indexOf('/journeys/900101');
-    const own = hrefs.indexOf('/journeys/900001');
-    const earlier = hrefs.indexOf('/journeys/900102');
+    const later = hrefs.indexOf(`/journeys/${testPublicId(900101)}`);
+    const own = hrefs.indexOf(`/journeys/${testPublicId(900001)}`);
+    const earlier = hrefs.indexOf(`/journeys/${testPublicId(900102)}`);
     expect(later, hrefs.join(' ')).toBeGreaterThanOrEqual(0);
     expect(later).toBeLessThan(own);
     expect(own).toBeLessThan(earlier);
@@ -103,7 +104,9 @@ test.describe('the Journeys page, logged in', () => {
       await expect(row.getByText('From Fixture Family')).toBeVisible();
       await expect(row.getByText('Shared by Rider Fixture')).toBeVisible();
     }
-    const ownRow = past.locator('.mantine-Card-root').filter({ has: page.locator('a[href="/journeys/900001"]') });
+    const ownRow = past
+      .locator('.mantine-Card-root')
+      .filter({ has: page.locator(`a[href="/journeys/${testPublicId(900001)}"]`) });
     await expect(ownRow.getByText('From Fixture Family')).toHaveCount(0);
   });
 
