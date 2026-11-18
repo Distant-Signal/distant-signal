@@ -20,7 +20,7 @@ import {
   type HomeLoneTrain,
 } from '@/lib/homeJourneys';
 import { trackedTrainRowStatus } from '@/lib/trackedRowStatus';
-import type { JourneyDetail, TrackedTrainListItem } from '@/lib/types';
+import type { JourneyDetail, JourneyLegDetail, TrackedTrainListItem } from '@/lib/types';
 import {
   CurrentJourneyCard,
   CurrentJourneySection,
@@ -239,6 +239,48 @@ describe('CurrentJourneyCard', () => {
     // Without the flag, no note.
     renderWithMantine(<CurrentJourneyCard journey={journey()} now={new Date('2026-09-17T10:00:00Z')} />);
     expect(screen.queryByText(/running late/)).not.toBeInTheDocument();
+  });
+
+  describe('with a walk between the trains', () => {
+    /** The same two trains with a 10 minute walk at York between them, which
+     * the journey page folds into one row. */
+    function withWalk(overrides: Partial<JourneyLegDetail> = {}): HomeJourney & { detail: JourneyDetail } {
+      const base = journey();
+      const [first, second] = base.detail.legs as [JourneyLegDetail, JourneyLegDetail];
+      const walk = untrackedLeg(5, 'York', 'York', '2026-09-17T11:05:00Z', '2026-09-17T11:15:00Z', {
+        transitMode: 'walk',
+        lineName: null,
+        ...overrides,
+      });
+      const detail = { ...base.detail, legs: [first, walk, second] };
+      return { ...base, detail };
+    }
+
+    it('numbers only the legs the journey page shows, on the first train', () => {
+      renderWithMantine(<CurrentJourneyCard journey={withWalk()} now={new Date('2026-09-17T10:00:00Z')} />);
+      expect(screen.getByText('Now, leg 1 of 2')).toBeInTheDocument();
+    });
+
+    it('numbers the last train as the second of two, not the third of three', () => {
+      renderWithMantine(<CurrentJourneyCard journey={withWalk()} now={new Date('2026-09-17T12:00:00Z')} />);
+      expect(screen.getByText('Now, leg 2 of 2')).toBeInTheDocument();
+    });
+
+    it('does not number a walk the journey page folds away', () => {
+      renderWithMantine(<CurrentJourneyCard journey={withWalk()} now={new Date('2026-09-17T11:13:00Z')} />);
+      expect(screen.getByText('Now')).toBeInTheDocument();
+      expect(screen.queryByText(/^Now, leg/)).not.toBeInTheDocument();
+    });
+
+    it('counts a walk that is shown, as the journey page does', () => {
+      renderWithMantine(
+        <CurrentJourneyCard
+          journey={withWalk({ untrackedStatus: 'inProgress' })}
+          now={new Date('2026-09-17T11:13:00Z')}
+        />,
+      );
+      expect(screen.getByText('Now, leg 2 of 3')).toBeInTheDocument();
+    });
   });
 
   it('on the last leg, gives the destination and arrival instead of a change', () => {

@@ -45,7 +45,7 @@ import { delayLabel } from '@/lib/serviceStatus';
 import { nextTimetabledNote, retimedArrival } from '@/lib/timetabledLeg';
 import { formatTime } from '@/lib/dateFormat';
 import { isUntrackedLeg, UNTRACKED_STATUS_LABEL } from '@/lib/untrackedLeg';
-import { groupCollapsibleLegs, isInertWalkLeg, journeyCollapsedLabel } from '@/lib/legCollapse';
+import { groupCollapsibleLegs, isInertWalkLeg, journeyCollapsedLabel, shownLegs } from '@/lib/legCollapse';
 import { CollapsedLegs } from './CollapsedLegs';
 
 /** The page's name for the journey (2026-09-22 UX review finding M18: never
@@ -227,8 +227,8 @@ export function JourneyDetailView({
   // (DS-590): the journey reads as its trains, and "Leg N of M" counts only
   // the legs shown.
   const groups = groupCollapsibleLegs(journey.legs, (leg) => isInertWalkLeg(leg, openBreak));
-  const shownLegs = groups.flatMap((group) => (group.kind === 'leg' ? [group.leg] : []));
-  const multiLeg = shownLegs.length > 1;
+  const shown = shownLegs(groups);
+  const multiLeg = shown.length > 1;
   const name = journeyNameInput(journey);
   // Mid-journey changes (spec 2026-10-22 §8.2): which leg can be missed,
   // and the open break, for the owner's leg actions.
@@ -366,7 +366,7 @@ export function JourneyDetailView({
           one leg to summarise. */}
       {multiLeg && (
         <Text size="sm" c="dimmed">
-          {shownLegs.map((leg, index) => `Leg ${index + 1} ${legSummaryPhrase(leg)}`).join(' · ')}
+          {shown.map((leg, index) => `Leg ${index + 1} ${legSummaryPhrase(leg)}`).join(' · ')}
         </Text>
       )}
       <LastUpdated timestamp={fetchedAt} label="Data as of" />
@@ -426,7 +426,7 @@ export function JourneyDetailView({
           );
         }
         const { leg, index } = group;
-        const shownPosition = shownLegs.indexOf(leg);
+        const shownPosition = shown.indexOf(leg);
         const next = groups[groupIndex + 1];
         return (
           // 2026-09-22 UX review finding I12/2.6: "the journey is not drawn
@@ -442,7 +442,7 @@ export function JourneyDetailView({
           <Stack key={legRef(leg)} id={`leg-${legRef(leg)}`} gap={4}>
             {multiLeg && (
               <Text size="xs" fw={700} c="dimmed" tt="uppercase">
-                Leg {shownPosition + 1} of {shownLegs.length}
+                Leg {shownPosition + 1} of {shown.length}
               </Text>
             )}
             {renderLegCard(leg, index)}

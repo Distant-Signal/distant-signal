@@ -4,6 +4,8 @@ import {
   groupCollapsibleLegs,
   isInertTransfer,
   isInertWalkLeg,
+  shownLegPosition,
+  shownLegs,
   journeyCollapsedLabel,
   transferRunLabel,
 } from './legCollapse';
@@ -145,5 +147,33 @@ describe('isInertTransfer and transferRunLabel', () => {
     expect(transferRunLabel([{ ...WALK_TO_TRAM, destinationCrs: 'EUS' }, change], names)).toBe(
       'Walk and transfer to London Euston, 10 min',
     );
+  });
+});
+
+describe('shownLegs and shownLegPosition', () => {
+  const isWalk = (leg: string) => leg.startsWith('w');
+
+  it('lists only the legs that are rows', () => {
+    expect(shownLegs(groupCollapsibleLegs(['t1', 'w1', 'w2', 't2'], isWalk))).toEqual(['t1', 't2']);
+  });
+
+  it('numbers the legs shown, skipping folded ones', () => {
+    const legs = ['t1', 'w1', 'w2', 't2', 'w3', 't3'];
+    expect(shownLegPosition(legs, 't1', isWalk)).toEqual({ position: 1, total: 3 });
+    expect(shownLegPosition(legs, 't2', isWalk)).toEqual({ position: 2, total: 3 });
+    expect(shownLegPosition(legs, 't3', isWalk)).toEqual({ position: 3, total: 3 });
+  });
+
+  it('has no number for a folded leg', () => {
+    expect(shownLegPosition(['t1', 'w1', 't2'], 'w1', isWalk)).toBeNull();
+  });
+
+  it('has no number when one row or none is shown', () => {
+    expect(shownLegPosition(['t1', 'w1'], 't1', isWalk)).toBeNull();
+    expect(shownLegPosition(['t1'], 't1', isWalk)).toBeNull();
+  });
+
+  it('counts every leg of a journey of nothing but walks, which is never folded', () => {
+    expect(shownLegPosition(['w1', 'w2'], 'w2', isWalk)).toEqual({ position: 2, total: 2 });
   });
 });

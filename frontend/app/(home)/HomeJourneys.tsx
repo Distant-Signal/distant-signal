@@ -40,6 +40,7 @@ import {
 } from '@/lib/journeyName';
 import { legStatusGroup, type JourneySummaryGroup } from '@/lib/journeyStatus';
 import { routeLabel, stationLabel } from '@/lib/stationLabel';
+import { isInertWalkLeg, shownLegPosition } from '@/lib/legCollapse';
 import { memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/memberLabel';
 import { journeyListItemCancellation, viewerCanPickTrain } from '@/lib/trackedRowStatus';
 import { trackedTrainDisplayName, trackedTrainHref, trackedTrainRouteLabel } from '@/lib/trackingName';
@@ -139,6 +140,11 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
   const headline = homeJourneyStatusGroup(journey);
   const leg = currentLeg(detail, now);
   const legIndex = leg === null ? -1 : detail.legs.indexOf(leg);
+  // Numbered as the journey page numbers it: only the legs it shows as rows.
+  const legNumber =
+    leg === null
+      ? null
+      : shownLegPosition(detail.legs, leg, (candidate) => isInertWalkLeg(candidate, detail.openBreak ?? null));
   const isLastLeg = legIndex === detail.legs.length - 1;
   const neighbours = { previous: detail.legs[legIndex - 1], next: detail.legs[legIndex + 1] };
   const end = leg === null ? null : legEndText(leg, neighbours);
@@ -194,7 +200,7 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
         {leg !== null && (
           <dl className="keyFacts keyFacts--compact">
             <div>
-              <dt>{detail.legs.length > 1 ? `Now, leg ${legIndex + 1} of ${detail.legs.length}` : 'Now'}</dt>
+              <dt>{legNumber ? `Now, leg ${legNumber.position} of ${legNumber.total}` : 'Now'}</dt>
               <dd>
                 <Group gap="xs" wrap="wrap">
                   <span>{legNowText(leg, neighbours)}</span>
