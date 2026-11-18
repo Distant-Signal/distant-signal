@@ -878,4 +878,69 @@ describe('ItineraryOption: station groups (2026-10-07)', () => {
       expect(screen.getByText('This route needs no train, so there is nothing to track.')).toBeInTheDocument();
     });
   });
+
+  describe('walking legs (DS-590)', () => {
+    it('folds a walk between two trains into one closed row with its minutes', () => {
+      renderWithMantine(
+        <ItineraryOption
+          itinerary={{
+            ...trainItinerary,
+            legs: [
+              ...trainItinerary.legs,
+              { kind: 'transfer', mode: 'WALK', originCrs: 'EUS', destinationCrs: 'KGX', minutes: 7 },
+              ...trainItinerary.legs,
+            ],
+          }}
+          selected={false}
+          onSelect={() => {}}
+          stationNames={new Map([['KGX', 'London Kings Cross']])}
+        />,
+      );
+      const toggle = screen.getByRole('button', { name: 'Walk to London Kings Cross, 7 min' });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByText(/Walk EUS/)).not.toBeVisible();
+      fireEvent.click(toggle);
+      expect(screen.getByText(/Walk EUS/)).toBeVisible();
+    });
+
+    it('does not select the option when the row is opened', () => {
+      const onSelect = vi.fn();
+      renderWithMantine(
+        <ItineraryOption
+          itinerary={{
+            ...trainItinerary,
+            legs: [
+              ...trainItinerary.legs,
+              { kind: 'transfer', mode: 'WALK', originCrs: 'EUS', destinationCrs: 'KGX', minutes: 7 },
+              ...trainItinerary.legs,
+            ],
+          }}
+          selected={false}
+          onSelect={onSelect}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^Walk to/ }));
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('leaves a Tube ride and a route of nothing but a walk as they are', () => {
+      const { unmount } = renderWithMantine(
+        <ItineraryOption itinerary={fixedLinkOnlyItinerary} selected={false} onSelect={() => {}} />,
+      );
+      expect(screen.queryByRole('button', { name: /^(Walk|Transfer)/ })).not.toBeInTheDocument();
+      unmount();
+      renderWithMantine(
+        <ItineraryOption
+          itinerary={{
+            ...fixedLinkOnlyItinerary,
+            legs: [{ kind: 'transfer', mode: 'WALK', originCrs: 'EUS', destinationCrs: 'KGX', minutes: 7 }],
+          }}
+          selected={false}
+          onSelect={() => {}}
+        />,
+      );
+      expect(screen.queryByRole('button', { name: /^Walk to/ })).not.toBeInTheDocument();
+      expect(screen.getByText(/Walk EUS/)).toBeVisible();
+    });
+  });
 });

@@ -631,9 +631,11 @@ describe('JourneyDetailPage: untracked legs', () => {
   });
 
   it("works out the change from a late train's estimated arrival to the next leg", async () => {
-    vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ legs: [matchedLeg(), tubeLeg()] }));
+    vi.mocked(api.getJourney).mockResolvedValue(
+      baseJourney({ legs: [matchedLeg(), tubeLeg({ transitMode: 'tube' })] }),
+    );
     await renderPage();
-    // The train is estimated at York at 18:22 (BST), the walk leaves 18:15.
+    // The train is estimated at York at 18:22 (BST), the ride leaves 18:15.
     expect(
       screen.getByText(/Change at York, arrive est\. 18:22\. The next leg leaves before this one arrives\./),
     ).toBeInTheDocument();
@@ -643,13 +645,18 @@ describe('JourneyDetailPage: untracked legs', () => {
     vi.mocked(api.getJourney).mockResolvedValue(
       baseJourney({
         legs: [
-          tubeLeg({ id: 1, plannedDeparture: '2026-09-22T14:20:00Z', plannedArrival: '2026-09-22T14:48:00Z' }),
+          tubeLeg({
+            id: 1,
+            transitMode: 'tube',
+            plannedDeparture: '2026-09-22T14:20:00Z',
+            plannedArrival: '2026-09-22T14:48:00Z',
+          }),
           matchedLeg({ id: 2 }),
         ],
       }),
     );
     await renderPage();
-    // Walk arrives 15:48 BST, the train leaves King's Cross at 16:00.
+    // Ride arrives 15:48 BST, the train leaves King's Cross at 16:00.
     expect(screen.getByText(/Change at York Minster, arrive 15:48\. 12 min to change\./)).toBeInTheDocument();
     // Named from the walk's place, never "Unknown station".
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^York to York \(YRK\), 22 Sep 2026$/);
@@ -692,7 +699,10 @@ describe('JourneyDetailPage: untracked legs', () => {
   it('summarises a multi-leg journey with each untracked state', async () => {
     vi.mocked(api.getJourney).mockResolvedValue(
       baseJourney({
-        legs: [tubeLeg({ id: 1, untrackedStatus: 'done' }), tubeLeg({ id: 2, untrackedStatus: 'inProgress' })],
+        legs: [
+          tubeLeg({ id: 1, transitMode: 'tube', untrackedStatus: 'done' }),
+          tubeLeg({ id: 2, transitMode: 'tube', untrackedStatus: 'inProgress' }),
+        ],
       }),
     );
     await renderPage();

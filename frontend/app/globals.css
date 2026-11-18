@@ -2661,3 +2661,39 @@ svg[data-icon='external-link'] {
   min-height: 24px;
   line-height: 24px;
 }
+
+/* A run of walks folded into one row (`components/CollapsedLegs.tsx`,
+   DS-590): the toggle's label may wrap on a narrow screen, and its chevron
+   points right while closed and down while open. Motion only under
+   `prefers-reduced-motion: no-preference`. */
+.collapsedLegs__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--mantine-spacing-xs);
+}
+
+.collapsedLegs__toggle {
+  height: auto;
+  min-height: 24px;
+  padding-block: 4px;
+}
+
+.collapsedLegs__toggle .mantine-Button-label {
+  white-space: normal;
+  text-align: start;
+}
+
+.collapsedLegs__chevron {
+  transform: rotate(-90deg);
+}
+
+.collapsedLegs__toggle[aria-expanded='true'] .collapsedLegs__chevron {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .collapsedLegs__chevron {
+    transition: transform 150ms ease;
+  }
+}

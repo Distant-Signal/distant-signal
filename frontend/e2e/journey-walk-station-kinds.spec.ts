@@ -60,6 +60,8 @@ test.describe('walk station kinds on the journey page', () => {
 
     try {
       await page.goto(`/journeys/${journeyId}`);
+      // The walk is folded into a row until it is opened (DS-590).
+      await page.getByRole('button', { name: /^Walk to Zed Bee/ }).click();
       const walk = page.locator('[data-untracked-leg]').first();
       await expect(walk).toContainText('Walk');
       await expect(walk.getByText('Zed Bee (National Rail) to Zed Bee (Tube)', { exact: true })).toBeVisible();

@@ -36,6 +36,8 @@ import {
 import { transitServiceModeLabel } from '@/lib/serviceMode';
 import { SCHEDULED_CAPTION } from '@/lib/transitStops';
 import { StateBadge } from './StateBadge';
+import { CollapsedLegs } from './CollapsedLegs';
+import { groupCollapsibleLegs, isInertTransfer, transferRunLabel } from '@/lib/legCollapse';
 import { StatusBadge } from './StatusBadge';
 import { TransitLineSwatch } from './TransitLineSwatch';
 import { LateDepartureNote, plannerLateDepartureTimes } from './LateDepartureNote';
@@ -220,6 +222,63 @@ export function ItineraryOption({
       (code) => groups.find((group) => group.code === code)?.name,
     );
 
+  // A bus or ferry leg keeps `kind: 'train'`; its own badge says what it
+  // really is (and that it isn't tracked live).
+  const renderLeg = (leg: TripPlanLeg, index: number) => (
+    <Stack key={index} gap={0}>
+      {/* A Tube hop's walks to and from its Tube stations are
+          rows of their own around the ride. */}
+      {(leg.kind === 'transfer' ? withStationWalks(leg) : [leg]).map((part, partIndex) => (
+        <Group key={partIndex} gap="xs" wrap="wrap">
+          <Text size="sm">{legSummary(part, stationNames)}</Text>
+          {part.kind === 'train' && <ServiceModeBadge mode={part.serviceMode} />}
+          {part.kind === 'transit' && <ServiceModeBadge transitMode={part.serviceMode} />}
+        </Group>
+      ))}
+      {leg.kind === 'transfer' && leg.access && (
+        <Text size="xs" c="dimmed" pl="sm">
+          {accessLegNote(leg.access, accessLegStopCount(leg, stopAccess))}
+        </Text>
+      )}
+      {leg.kind === 'transfer' && leg.access && accessStopsNote(leg.access) && (
+        <Text size="xs" c="dimmed" pl="sm">
+          {accessStopsNote(leg.access)}
+        </Text>
+      )}
+      {leg.kind === 'train' && leg.operator && operatorName && (
+        <Text size="xs" c="dimmed" pl="sm" data-leg-operator>
+          {operatorName(leg.operator)}
+        </Text>
+      )}
+      {leg.kind === 'transfer' && leg.estimatedWalk && (
+        <Text size="xs" c="dimmed" pl="sm">
+          Estimated walk, instead of the Tube
+        </Text>
+      )}
+      {leg.kind === 'transfer' && leg.transitWalk && (
+        <Text size="xs" c="dimmed" pl="sm">
+          {transitWalkNote(leg.transitWalk)}
+        </Text>
+      )}
+      {leg.kind === 'transit' && <TransitLegNotes leg={leg} />}
+      {leg.kind === 'train' && liveArrivalNote(leg) && (
+        <Text size="xs" c="dimmed" pl="sm" data-leg-live-arrival>
+          {liveArrivalNote(leg)}
+        </Text>
+      )}
+      {leg.kind === 'train' && leg.live?.reliesOnLateDeparture && (
+        <LateDepartureNote {...plannerLateDepartureTimes(leg.live.reliesOnLateDeparture)} />
+      )}
+      {viaPasses
+        .filter((via) => via.leg === index)
+        .map((via, viaIndex) => (
+          <Text key={viaIndex} size="xs" c="dimmed" pl="sm">
+            {viaSatisfiedLabel(via, stationLabelOf(via))}
+          </Text>
+        ))}
+    </Stack>
+  );
+
   // A route with a train is a selectable card: its radio is the target and
   // a click anywhere on the card picks it. One with no train can't be
   // picked, so it is flat.
@@ -233,62 +292,18 @@ export function ItineraryOption({
           disabled={!hasTrainLeg}
           label={
             <Stack gap={4}>
-              {itinerary.legs.map((leg, index) => (
-                // A bus or ferry leg keeps `kind: 'train'`; its own badge
-                // says what it really is (and that it isn't tracked live).
-                <Stack key={index} gap={0}>
-                  {/* A Tube hop's walks to and from its Tube stations are
-                      rows of their own around the ride. */}
-                  {(leg.kind === 'transfer' ? withStationWalks(leg) : [leg]).map((part, partIndex) => (
-                    <Group key={partIndex} gap="xs" wrap="wrap">
-                      <Text size="sm">{legSummary(part, stationNames)}</Text>
-                      {part.kind === 'train' && <ServiceModeBadge mode={part.serviceMode} />}
-                      {part.kind === 'transit' && <ServiceModeBadge transitMode={part.serviceMode} />}
-                    </Group>
-                  ))}
-                  {leg.kind === 'transfer' && leg.access && (
-                    <Text size="xs" c="dimmed" pl="sm">
-                      {accessLegNote(leg.access, accessLegStopCount(leg, stopAccess))}
-                    </Text>
-                  )}
-                  {leg.kind === 'transfer' && leg.access && accessStopsNote(leg.access) && (
-                    <Text size="xs" c="dimmed" pl="sm">
-                      {accessStopsNote(leg.access)}
-                    </Text>
-                  )}
-                  {leg.kind === 'train' && leg.operator && operatorName && (
-                    <Text size="xs" c="dimmed" pl="sm" data-leg-operator>
-                      {operatorName(leg.operator)}
-                    </Text>
-                  )}
-                  {leg.kind === 'transfer' && leg.estimatedWalk && (
-                    <Text size="xs" c="dimmed" pl="sm">
-                      Estimated walk, instead of the Tube
-                    </Text>
-                  )}
-                  {leg.kind === 'transfer' && leg.transitWalk && (
-                    <Text size="xs" c="dimmed" pl="sm">
-                      {transitWalkNote(leg.transitWalk)}
-                    </Text>
-                  )}
-                  {leg.kind === 'transit' && <TransitLegNotes leg={leg} />}
-                  {leg.kind === 'train' && liveArrivalNote(leg) && (
-                    <Text size="xs" c="dimmed" pl="sm" data-leg-live-arrival>
-                      {liveArrivalNote(leg)}
-                    </Text>
-                  )}
-                  {leg.kind === 'train' && leg.live?.reliesOnLateDeparture && (
-                    <LateDepartureNote {...plannerLateDepartureTimes(leg.live.reliesOnLateDeparture)} />
-                  )}
-                  {viaPasses
-                    .filter((via) => via.leg === index)
-                    .map((via, viaIndex) => (
-                      <Text key={viaIndex} size="xs" c="dimmed" pl="sm">
-                        {viaSatisfiedLabel(via, stationLabelOf(via))}
-                      </Text>
-                    ))}
-                </Stack>
-              ))}
+              {groupCollapsibleLegs(
+                itinerary.legs,
+                (leg, index) => isInertTransfer(leg) && !viaPasses.some((via) => via.leg === index),
+              ).map((group) =>
+                group.kind === 'leg' ? (
+                  renderLeg(group.leg, group.index)
+                ) : (
+                  <CollapsedLegs key={`walks-${group.startIndex}`} label={transferRunLabel(group.legs, stationNames)}>
+                    {group.legs.map((leg, offset) => renderLeg(leg, group.startIndex + offset))}
+                  </CollapsedLegs>
+                ),
+              )}
               {waypointStops.map((stop, stopIndex) => (
                 <Text key={`stop-${stopIndex}`} size="xs" c="dimmed">
                   {waypointSatisfiedLabel(stop, stationLabelOf(stop))}
