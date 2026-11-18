@@ -297,6 +297,38 @@ describe('ItineraryOption', () => {
     expect(screen.getByRole('radio', { name: /Expected 08:59, 9 min late/ })).toBeInTheDocument();
   });
 
+  it("says an arrived leg's arrival in the card's accessible name too", () => {
+    const leg = trainItinerary.legs[0]!;
+    const { container } = renderWithMantine(
+      <ItineraryOption
+        itinerary={{
+          ...trainItinerary,
+          legs: [
+            {
+              ...leg,
+              live: {
+                status: 'Departed',
+                cancelled: false,
+                delayMinutes: 12,
+                arrivalDelayMinutes: 9,
+                arrivalIsActual: true,
+                reason: null,
+                reasonSource: null,
+                platform: null,
+                observedAt: null,
+                interchangeFeasible: null,
+              },
+            } as typeof leg,
+          ],
+        }}
+        selected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('radio', { name: /Arrived 08:59, 9 min late/ })).toBeInTheDocument();
+    expect(container.querySelector('[data-leg-live-arrival]')?.textContent).toBe('Arrived 08:59, 9 min late');
+  });
+
   it('disables selection for a fixed-link-only itinerary with no train leg', () => {
     renderWithMantine(<ItineraryOption itinerary={fixedLinkOnlyItinerary} selected={false} onSelect={vi.fn()} />);
     expect(screen.getByRole('radio')).toBeDisabled();

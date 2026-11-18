@@ -816,6 +816,19 @@ describe('liveArrivalNote', () => {
     expect(liveArrivalNote(leg({ live: { ...live, arrivalDelayMinutes: -3 } }))).toBe('Expected 08:47, 3 min early');
   });
 
+  it('says arrived when the api says the arrival is an actual', () => {
+    const actual = { ...live, arrivalIsActual: true };
+    expect(liveArrivalNote(leg({ live: actual }))).toBe('Arrived 08:59, 9 min late');
+    expect(liveArrivalNote(leg({ live: { ...actual, arrivalDelayMinutes: 0 } }))).toBe('Arrived 08:50, on time');
+    expect(liveArrivalNote(leg({ live: { ...actual, arrivalDelayMinutes: -3 } }))).toBe('Arrived 08:47, 3 min early');
+    expect(liveArrivalNote(leg({ live: actual, scheduledArrival: '23:55:00' }))).toBe('Arrived 00:04, 9 min late');
+  });
+
+  it('keeps saying expected for a false flag or an api that does not send it', () => {
+    expect(liveArrivalNote(leg({ live: { ...live, arrivalIsActual: false } }))).toBe('Expected 08:59, 9 min late');
+    expect(liveArrivalNote(leg({ live }))).toBe('Expected 08:59, 9 min late');
+  });
+
   it('adds nothing for no live data, an on-time train, a cancelled one or no arrival data', () => {
     expect(liveArrivalNote(leg())).toBeNull();
     expect(liveArrivalNote(leg({ live: null }))).toBeNull();
