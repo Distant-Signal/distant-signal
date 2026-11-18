@@ -415,6 +415,9 @@ export function JourneyLegCard({
   );
 }
 
+/** How many trains from before the search "Change train" lists. */
+const EARLIER_TRAINS = 3;
+
 /** A train leg's candidates and its search, for the owner: the search
  * the leg was made with (`criteria`, its times in words), "Edit search"
  * to change any of it in place (`LegSearchForm`, opened with everything
@@ -488,6 +491,10 @@ function LegTrainPicker({
         serviceDate={leg.serviceDate}
         search={search}
         storedFilters={leg.searchFilters ?? null}
+        // "Change train" (a train is picked) also lists the trains just
+        // before the search, marking the one the leg is on.
+        currentUid={leg.trackedTrainState?.trainUid ?? null}
+        earlier={leg.trackedTrainState ? EARLIER_TRAINS : 0}
         onEditSearch={() => setEditing(true)}
         onPicked={onPicked}
       />

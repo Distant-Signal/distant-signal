@@ -872,3 +872,208 @@ describe('JourneyLegCandidates: service mode and live fields', () => {
     expect(row).toHaveTextContent('8 min late');
   });
 });
+
+describe('JourneyLegCandidates: earlier trains and the current one', () => {
+  const onPicked = vi.fn();
+  const row = (uid: string, scheduled: string, arrival: string) => ({
+    uid,
+    scheduled,
+    destinationCrs: 'SWI',
+    originCrs: 'BTH',
+    destinationArrival: arrival,
+    legOriginCrs: 'BTH',
+    legDestinationCrs: 'SWI',
+    legDestinationArrival: arrival,
+    legDestinationArrivalDayOffset: 0,
+    operator: null,
+  });
+  const EARLIER = [row('E0950', '09:50', '10:20'), row('E1010', '10:10', '10:40')];
+  const WINDOW = [row('W1030', '10:30', '11:00'), row('W1100', '11:00', '11:30')];
+
+  function stubCandidates(body: object) {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (/\/candidates(\?.*)?$/.test(url)) return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+      throw new Error(`unexpected fetch for ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  beforeEach(() => {
+    onPicked.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks for the earlier trains only when told to', async () => {
+    const plain = stubCandidates({ results: WINDOW, nextCursor: null });
+    const { unmount } = renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" onPicked={onPicked} />,
+    );
+    await screen.findByRole('list', { name: 'Candidate trains' });
+    expect(plain.mock.calls.map((call) => String(call[0]))).toEqual(['/api/Journeys/1/legs/2/candidates']);
+    unmount();
+
+    const asking = stubCandidates({ results: WINDOW, earlier: EARLIER, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    await screen.findByRole('list', { name: 'Trains in your search' });
+    expect(asking.mock.calls.map((call) => String(call[0]))).toEqual(['/api/Journeys/1/legs/2/candidates?earlier=3']);
+  });
+
+  it('lists the earlier trains above the search, each in its own named list with a heading', async () => {
+    stubCandidates({ results: WINDOW, earlier: EARLIER, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+
+    const earlier = await screen.findByRole('list', { name: 'Earlier trains' });
+    const later = screen.getByRole('list', { name: 'Trains in your search' });
+    expect(within(earlier).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(later).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(earlier).getByRole('button', { name: /^Track this train: 09:50/ })).toBeInTheDocument();
+    expect(earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('Earlier trains')).toBeInTheDocument();
+    expect(screen.getByText('Trains in your search')).toBeInTheDocument();
+    // The count is of the search's own trains.
+    expect(screen.getByText(/2 trains match your search/)).toBeInTheDocument();
+  });
+
+  it('shows no earlier group, and the old list name, when there are none', async () => {
+    stubCandidates({ results: WINDOW, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    expect(await screen.findByRole('list', { name: 'Candidate trains' })).toBeInTheDocument();
+    expect(screen.queryByText('Earlier trains')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Earlier trains' })).not.toBeInTheDocument();
+  });
+
+  it('still lists the earlier trains when the search itself finds none', async () => {
+    stubCandidates({ results: [], earlier: EARLIER, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    const earlier = await screen.findByRole('list', { name: 'Earlier trains' });
+    expect(within(earlier).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByText(/No trains match your search, but these leave earlier/)).toBeInTheDocument();
+    expect(screen.queryByText(/No scheduled trains match this window/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Trains in your search' })).not.toBeInTheDocument();
+  });
+
+  it('says there are no trains when neither the search nor the earlier list has any', async () => {
+    stubCandidates({ results: [], nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    expect(await screen.findByText(/No scheduled trains match this window\./)).toBeInTheDocument();
+  });
+
+  it('marks the current train with a badge instead of a pick button', async () => {
+    stubCandidates({ results: WINDOW, earlier: EARLIER, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates
+        journeyId="1"
+        legId="2"
+        serviceDate="2026-09-22"
+        currentUid="W1030"
+        earlier={3}
+        onPicked={onPicked}
+      />,
+    );
+    const later = await screen.findByRole('list', { name: 'Trains in your search' });
+    const [first, second] = within(later).getAllByRole('listitem');
+    expect(within(first!).getByText(/Current train/)).toBeInTheDocument();
+    expect(within(first!).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(second!).getByRole('button', { name: /^Track this train: 11:00/ })).toBeInTheDocument();
+    expect(screen.getAllByText(/Current train/)).toHaveLength(1);
+  });
+
+  it('marks the current train when it is one of the earlier ones', async () => {
+    stubCandidates({ results: WINDOW, earlier: EARLIER, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates
+        journeyId="1"
+        legId="2"
+        serviceDate="2026-09-22"
+        currentUid="E1010"
+        earlier={3}
+        onPicked={onPicked}
+      />,
+    );
+    const earlier = await screen.findByRole('list', { name: 'Earlier trains' });
+    const [, second] = within(earlier).getAllByRole('listitem');
+    expect(within(second!).getByText(/Current train/)).toBeInTheDocument();
+  });
+
+  it('does not mark the current train in a search for another day', async () => {
+    stubCandidates({ results: WINDOW, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates
+        journeyId="1"
+        legId="2"
+        serviceDate="2026-09-22"
+        search={{
+          originCrs: 'BTH',
+          destinationCrs: 'SWI',
+          serviceDate: '2026-09-23',
+          departAfter: '10:30',
+          departBefore: null,
+          arriveAfter: null,
+          arriveBefore: null,
+          filters: null,
+        }}
+        currentUid="W1030"
+        earlier={3}
+        onPicked={onPicked}
+      />,
+    );
+    await screen.findByRole('list', { name: 'Candidate trains' });
+    expect(screen.queryByText(/Current train/)).not.toBeInTheDocument();
+  });
+
+  it('picks an earlier train like any other', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/train') && init?.method === 'POST') {
+        return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ results: WINDOW, earlier: EARLIER, nextCursor: null }), { status: 200 }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /^Track this train: 09:50/ }));
+    await waitFor(() => expect(onPicked).toHaveBeenCalledTimes(1));
+    const post = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST');
+    expect(JSON.parse(String(post?.[1]?.body))).toEqual({ trainUid: 'E0950', serviceDate: '2026-09-22' });
+  });
+
+  it('keeps the earlier trains when the next page is loaded, and does not ask for them again', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      const body = url.includes('after=')
+        ? { results: [WINDOW[1]], nextCursor: null }
+        : { results: [WINDOW[0]], earlier: EARLIER, nextCursor: 'C1' };
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Load more' }));
+    await screen.findByRole('link', { name: /^11:00 to/ });
+    expect(within(screen.getByRole('list', { name: 'Earlier trains' })).getAllByRole('listitem')).toHaveLength(2);
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+      '/api/Journeys/1/legs/2/candidates?earlier=3',
+      '/api/Journeys/1/legs/2/candidates?after=C1',
+    ]);
+  });
+});

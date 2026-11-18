@@ -4,7 +4,7 @@ import { useOperatorNames } from './OperatorNamesContext';
 import { operatorNameAndCode } from '@/lib/displayLabels';
 import { ownValue } from '@/lib/ownValue';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Stack, Text } from '@mantine/core';
+import { Alert, Badge, Button, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { LoadMoreControl } from './LoadMoreControl';
 import { ServiceRow, ServiceRowList } from './ServiceRow';
 import { TextLink } from './TextLink';
@@ -55,15 +55,20 @@ type CandidatesResponse = LegCandidatesResponse;
  * live INSIDE it so a fresh fetch (a `journeyId`/`legId` change) or an error
  * discard them automatically rather than needing a separate `useState` each
  * that could survive a state transition it doesn't belong to. */
-type Results =
-  { rows: CandidateRow[]; nextCursor: string | null; loadMoreFailed: boolean } | 'loading' | 'error' | null;
+interface Loaded {
+  rows: CandidateRow[];
+  /** The trains just before the search, in departure order (`?earlier=`);
+   * only the first page has them. */
+  earlier: CandidateRow[];
+  nextCursor: string | null;
+  loadMoreFailed: boolean;
+}
+type Results = Loaded | 'loading' | 'error' | null;
 
 /** Narrows `Results` to the "has rows" branch -- see `TrainSearchForm.tsx`'s
  * identical helper. `handleLoadMore`'s early-return guard plus each of its
  * functional `setResults` updaters need this exact check. */
-function hasRows(
-  results: Results,
-): results is { rows: CandidateRow[]; nextCursor: string | null; loadMoreFailed: boolean } {
+function hasRows(results: Results): results is Loaded {
   return results !== null && results !== 'loading' && results !== 'error';
 }
 
@@ -94,6 +99,8 @@ export function JourneyLegCandidates({
   serviceDate: storedServiceDate,
   search = null,
   storedFilters = null,
+  currentUid = null,
+  earlier = 0,
   onEditSearch,
   onPicked,
 }: {
@@ -105,12 +112,21 @@ export function JourneyLegCandidates({
    * which the api applies unless `search` (with its own) is given. Named
    * above the list, so a train they leave out isn't a mystery. */
   storedFilters?: LegSearchFilters | null;
+  /** The train the leg is on now ("Change train"): marked in the list
+   * instead of offering to pick it again. Only for the leg's own service
+   * date, never an edited search's other day. */
+  currentUid?: string | null;
+  /** How many trains from before the search to list above it (the api's
+   * `?earlier=`): the ones still to leave, and reachable after the leg
+   * before. `0` for none. */
+  earlier?: number;
   /** Offered when no train matches, instead of a manual search that would
    * leave the journey. */
   onEditSearch?: () => void;
   onPicked: () => void;
 }) {
   const serviceDate = search?.serviceDate ?? storedServiceDate;
+  const current = serviceDate === storedServiceDate ? currentUid : null;
   const searchQuery = search ? legSearchQuery(search).toString() : '';
   const filters = legFiltersFromApi(search ? search.filters : storedFilters);
   const { labels: filterNames } = useStopFilterLabels(filters.stops);
@@ -170,6 +186,7 @@ export function JourneyLegCandidates({
     setResults('loading');
     needsLoginState.reset();
     const params = new URLSearchParams(searchQuery);
+    if (earlier > 0) params.set('earlier', String(earlier));
     if (committedOperator) params.set('operator', committedOperator);
     const query = params.toString();
     fetch(`/api/Journeys/${journeyId}/legs/${legId}/candidates${query ? `?${query}` : ''}`)
@@ -177,7 +194,14 @@ export function JourneyLegCandidates({
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- see above
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
       .then((body: CandidatesResponse) => {
-        if (!cancelled) setResults({ rows: body.results, nextCursor: body.nextCursor, loadMoreFailed: false });
+        if (!cancelled) {
+          setResults({
+            rows: body.results,
+            earlier: body.earlier ?? [],
+            nextCursor: body.nextCursor,
+            loadMoreFailed: false,
+          });
+        }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -203,7 +227,7 @@ export function JourneyLegCandidates({
     // instead of only on a real prop/filter change.
     // An edited search (`searchQuery`, its query string) is a fresh search too.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- needsLoginState is a fresh object every render (see above)
-  }, [journeyId, legId, committedOperator, searchQuery]);
+  }, [journeyId, legId, committedOperator, searchQuery, earlier]);
 
   // Mirrors `TrainSearchForm.tsx`'s own `handleLoadMore` almost verbatim:
   // the `pagedFrom` identity check guards against a page 2 response landing
@@ -235,7 +259,7 @@ export function JourneyLegCandidates({
       const body = (await response.json()) as CandidatesResponse;
       setResults((current) =>
         current === pagedFrom
-          ? { rows: [...current.rows, ...body.results], nextCursor: body.nextCursor, loadMoreFailed: false }
+          ? { ...current, rows: [...current.rows, ...body.results], nextCursor: body.nextCursor, loadMoreFailed: false }
           : current,
       );
     } catch {
@@ -278,6 +302,12 @@ export function JourneyLegCandidates({
   // uniformly, rather than being duplicated into every early-return branch.
   const usualRow = hasRows(results) && usualUid ? (results.rows.find((row) => row.uid === usualUid) ?? null) : null;
   const otherRows = hasRows(results) ? results.rows.filter((row) => row !== usualRow) : [];
+  // The list's name (and its heading when something comes before it).
+  const mainHeading = usualRow
+    ? 'Other trains'
+    : hasRows(results) && results.earlier.length > 0
+      ? 'Trains in your search'
+      : 'Candidate trains';
 
   function body() {
     if (results === null || results === 'loading') {
@@ -297,7 +327,7 @@ export function JourneyLegCandidates({
         </Alert>
       );
     }
-    if (results.rows.length === 0) {
+    if (results.rows.length === 0 && results.earlier.length === 0) {
       return (
         <Text size="sm" c="dimmed">
           {committedOperator
@@ -338,9 +368,9 @@ export function JourneyLegCandidates({
             wrong number, the same posture `TrainSearchForm.tsx` takes by
             simply not stating a total at all. */}
         <Text size="sm" c="dimmed">
-          {results.rows.length} train{results.rows.length === 1 ? '' : 's'}{' '}
-          {results.rows.length === 1 ? 'matches' : 'match'} your search. Pick the one you&apos;ll be on. You can change
-          it later.
+          {results.rows.length === 0
+            ? "No trains match your search, but these leave earlier. Pick the one you'll be on. You can change it later."
+            : `${results.rows.length} train${results.rows.length === 1 ? '' : 's'} ${results.rows.length === 1 ? 'matches' : 'match'} your search. Pick the one you'll be on. You can change it later.`}
         </Text>
         <Text size="sm" c="dimmed">
           Times are when each train leaves the station you board at and reaches the one you get off at.
@@ -356,32 +386,63 @@ export function JourneyLegCandidates({
                 row={usualRow}
                 serviceDate={serviceDate}
                 picking={picking}
+                current={usualRow.uid === current}
                 onPick={() => pick(usualRow.uid)}
               />
             </ServiceRowList>
-            <Text size="sm" fw={600} mt="xs">
-              Other trains
-            </Text>
           </Stack>
         )}
-        <ServiceRowList aria-label={usualRow ? 'Other trains' : 'Candidate trains'}>
-          {otherRows.map((row) => (
-            <CandidateRowView
-              key={`${row.uid}-${row.scheduled ?? ''}`}
-              row={row}
-              serviceDate={serviceDate}
-              picking={picking}
-              onPick={() => pick(row.uid)}
+        {results.earlier.length > 0 && (
+          <Stack gap={4}>
+            <Text size="sm" fw={600} mt="xs">
+              Earlier trains
+            </Text>
+            <Text size="xs" c="dimmed">
+              These leave before your search starts. Trains that have gone, or that you couldn&apos;t reach in time, are
+              left out.
+            </Text>
+            <ServiceRowList aria-label="Earlier trains">
+              {results.earlier.map((row) => (
+                <CandidateRowView
+                  key={`${row.uid}-${row.scheduled ?? ''}`}
+                  row={row}
+                  serviceDate={serviceDate}
+                  picking={picking}
+                  current={row.uid === current}
+                  onPick={() => pick(row.uid)}
+                />
+              ))}
+            </ServiceRowList>
+          </Stack>
+        )}
+        {results.rows.length > 0 && (
+          <>
+            {(usualRow !== null || results.earlier.length > 0) && (
+              <Text size="sm" fw={600} mt="xs">
+                {mainHeading}
+              </Text>
+            )}
+            <ServiceRowList aria-label={mainHeading}>
+              {otherRows.map((row) => (
+                <CandidateRowView
+                  key={`${row.uid}-${row.scheduled ?? ''}`}
+                  row={row}
+                  serviceDate={serviceDate}
+                  picking={picking}
+                  current={row.uid === current}
+                  onPick={() => pick(row.uid)}
+                />
+              ))}
+            </ServiceRowList>
+            <LoadMoreControl
+              hasMore={results.nextCursor !== null}
+              loading={loadingMore}
+              failed={results.loadMoreFailed}
+              onLoadMore={handleLoadMore}
+              endMessage="You've reached the end. No more candidate trains match this window."
             />
-          ))}
-        </ServiceRowList>
-        <LoadMoreControl
-          hasMore={results.nextCursor !== null}
-          loading={loadingMore}
-          failed={results.loadMoreFailed}
-          onLoadMore={handleLoadMore}
-          endMessage="You've reached the end. No more candidate trains match this window."
-        />
+          </>
+        )}
       </>
     );
   }
@@ -441,11 +502,14 @@ function CandidateRowView({
   row,
   serviceDate,
   picking,
+  current = false,
   onPick,
 }: {
   row: CandidateRow;
   serviceDate: string;
   picking: string | null;
+  /** The train the leg is on now: a "Current train" badge, not a pick. */
+  current?: boolean;
   onPick: () => void;
 }) {
   const train = searchRowSummary(row);
@@ -477,15 +541,22 @@ function CandidateRowView({
       arrivalDayOffset={row.legDestinationArrivalDayOffset}
       details={details}
       actions={
-        <Button
-          size="xs"
-          loading={picking === row.uid}
-          disabled={picking !== null}
-          onClick={onPick}
-          aria-label={`Track this ${noun}: ${spoken}`}
-        >
-          Track this {noun}
-        </Button>
+        current ? (
+          <Badge variant="light" size="lg">
+            Current {noun}
+            <VisuallyHidden>: {spoken}</VisuallyHidden>
+          </Badge>
+        ) : (
+          <Button
+            size="xs"
+            loading={picking === row.uid}
+            disabled={picking !== null}
+            onClick={onPick}
+            aria-label={`Track this ${noun}: ${spoken}`}
+          >
+            Track this {noun}
+          </Button>
+        )
       }
     />
   );
