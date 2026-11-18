@@ -12,6 +12,7 @@ import type {
   TripPlanWaypointSatisfied,
 } from './types';
 import { describeFailure } from './failure';
+import { formatClock, parseMinute } from './lineTrains';
 import { createLogger } from './logger';
 
 const log = createLogger('lib/tripPlan');
@@ -455,4 +456,27 @@ export function viaSatisfiedLabel(via: Pick<TripPlanViaSatisfied, 'crs' | 'how'>
     case 'walk':
       return `Goes via ${station} on foot`;
   }
+}
+
+/** Where a planned train leg is expected to arrive, from the live overlay's
+ * `arrivalDelayMinutes` (the alighting call's delay, carried from the last
+ * known one): "Expected 08:59, 9 min late", "Expected 08:50, on time" for a
+ * train that has made the time back, or "Expected 08:47, 3 min early". Always
+ * an expectation, never a report: the plan does not say whether the train
+ * has arrived. `null` when there is nothing to add: no live data, a
+ * cancelled train (its own note says so), no arrival delay, or a train
+ * running on time throughout. The time is the leg's public arrival plus the
+ * delay, wrapped past midnight like the planner's other clock times. */
+export function liveArrivalNote(leg: Extract<TripPlanLeg, { kind: 'train' }>): string | null {
+  const live = leg.live;
+  if (!live || live.cancelled) return null;
+  const delay = live.arrivalDelayMinutes;
+  if (delay === null) return null;
+  if (delay === 0 && !live.delayMinutes) return null;
+  const scheduled = parseMinute((leg.publicArrival ?? leg.scheduledArrival).slice(0, 5));
+  if (scheduled === null) return null;
+  const time = formatClock(scheduled + delay);
+  if (delay > 0) return `Expected ${time}, ${delay} min late`;
+  if (delay < 0) return `Expected ${time}, ${-delay} min early`;
+  return `Expected ${time}, on time`;
 }

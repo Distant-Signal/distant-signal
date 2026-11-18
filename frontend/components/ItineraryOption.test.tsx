@@ -197,6 +197,106 @@ describe('ItineraryOption', () => {
     expect(screen.getByText('Live data says this route may no longer work')).toBeInTheDocument();
   });
 
+  it("shows each train leg's expected arrival under it, for every leg of the plan", () => {
+    const live = {
+      status: 'Late' as const,
+      cancelled: false,
+      delayMinutes: 12,
+      arrivalDelayMinutes: 9,
+      reason: null,
+      reasonSource: null,
+      platform: null,
+      observedAt: null,
+      interchangeFeasible: null,
+    };
+    const first = trainItinerary.legs[0]!;
+    const onward = {
+      ...first,
+      trainUid: 'C11053',
+      originCrs: 'MKC',
+      destinationCrs: 'BHM',
+      scheduledDeparture: '08:55:00',
+      scheduledArrival: '09:40:00',
+      live: { ...live, delayMinutes: 9, arrivalDelayMinutes: 4, interchangeFeasible: true },
+    } as typeof first;
+    const { container } = renderWithMantine(
+      <ItineraryOption
+        itinerary={{
+          ...trainItinerary,
+          legs: [{ ...first, live } as typeof first, onward],
+          changeCount: 1,
+          liveFeasible: true,
+        }}
+        selected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+    const notes = [...container.querySelectorAll('[data-leg-live-arrival]')].map((node) => node.textContent);
+    expect(notes).toEqual(['Expected 08:59, 9 min late', 'Expected 09:44, 4 min late']);
+  });
+
+  it('shows no expected arrival for a leg with no live data, a cancelled one or one with no arrival delay', () => {
+    const live = {
+      status: 'Late' as const,
+      cancelled: false,
+      delayMinutes: 12,
+      arrivalDelayMinutes: 9,
+      reason: null,
+      reasonSource: null,
+      platform: null,
+      observedAt: null,
+      interchangeFeasible: null,
+    };
+    const leg = trainItinerary.legs[0]!;
+    for (const variant of [
+      undefined,
+      { ...live, status: 'Cancelled' as const, cancelled: true },
+      { ...live, arrivalDelayMinutes: null },
+      { ...live, status: 'OnTime' as const, delayMinutes: 0, arrivalDelayMinutes: 0 },
+    ]) {
+      const { container, unmount } = renderWithMantine(
+        <ItineraryOption
+          itinerary={{ ...trainItinerary, legs: [{ ...leg, live: variant } as typeof leg] }}
+          selected={false}
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(container.querySelector('[data-leg-live-arrival]')).toBeNull();
+      expect(container.textContent).not.toMatch(/Expected/);
+      unmount();
+    }
+  });
+
+  it("says a delayed leg's expected arrival in the card's accessible name too", () => {
+    const leg = trainItinerary.legs[0]!;
+    renderWithMantine(
+      <ItineraryOption
+        itinerary={{
+          ...trainItinerary,
+          legs: [
+            {
+              ...leg,
+              live: {
+                status: 'Late',
+                cancelled: false,
+                delayMinutes: 12,
+                arrivalDelayMinutes: 9,
+                reason: null,
+                reasonSource: null,
+                platform: null,
+                observedAt: null,
+                interchangeFeasible: null,
+              },
+            } as typeof leg,
+          ],
+        }}
+        selected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('radio', { name: /Expected 08:59, 9 min late/ })).toBeInTheDocument();
+  });
+
   it('disables selection for a fixed-link-only itinerary with no train leg', () => {
     renderWithMantine(<ItineraryOption itinerary={fixedLinkOnlyItinerary} selected={false} onSelect={vi.fn()} />);
     expect(screen.getByRole('radio')).toBeDisabled();
