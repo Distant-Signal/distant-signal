@@ -45,6 +45,8 @@ import { delayLabel } from '@/lib/serviceStatus';
 import { nextTimetabledNote, retimedArrival } from '@/lib/timetabledLeg';
 import { formatTime } from '@/lib/dateFormat';
 import { isUntrackedLeg, UNTRACKED_STATUS_LABEL } from '@/lib/untrackedLeg';
+import { groupCollapsibleLegs, isInertWalkLeg, journeyCollapsedLabel } from '@/lib/legCollapse';
+import { CollapsedLegs } from './CollapsedLegs';
 
 /** The page's name for the journey (2026-09-22 UX review finding M18: never
  * the generic "Tracked journey"), by the one journey-naming rule in
@@ -123,8 +125,6 @@ function LegConnector({ leg, next }: { leg: JourneyLegDetail; next: JourneyLegDe
   // when it sent one, else the page's own, which assumes no minimum.
   const gapText = next === null ? null : connectionText(leg, next);
   if (!stationName && !gapText) return null;
-  const reliance = next?.connection?.reliesOnLateDeparture;
-  const retimed = next === null ? null : nextTimetabledNote(next);
   const connector = (
     <Text size="xs" c="dimmed" pl="sm" data-leg-connector>
       <span aria-hidden="true">↓</span> {stationName ? `Change at ${stationName}` : 'Change'}
@@ -132,22 +132,39 @@ function LegConnector({ leg, next }: { leg: JourneyLegDetail; next: JourneyLegDe
       {gapText ? `. ${gapText}.` : ''}
     </Text>
   );
-  if (!reliance && !retimed) return connector;
+  if (!next || !nextLegNotes(next)) return connector;
   return (
     <Stack gap={0}>
       {connector}
+      <NextLegNotes next={next} />
+    </Stack>
+  );
+}
+
+/** Whether `NextLegNotes` has anything to say about `next`. */
+function nextLegNotes(next: JourneyLegDetail): boolean {
+  return Boolean(next.connection?.reliesOnLateDeparture) || nextTimetabledNote(next) !== null;
+}
+
+/** What is worth saying about the leg after a connector: the timetable's
+ * next ride when the leg can't be made as planned (DS-237), and that the
+ * change works only because the next train is running late (DS-141). */
+function NextLegNotes({ next }: { next: JourneyLegDetail }) {
+  const reliance = next.connection?.reliesOnLateDeparture;
+  const retimed = nextTimetabledNote(next);
+  return (
+    <>
       {retimed && (
         <Text size="xs" c="dimmed" pl="sm" data-next-timetabled>
           {retimed}
         </Text>
       )}
-      {/* The change works only because the next train is running late (DS-141). */}
       {reliance && (
         <Box pl="sm">
           <LateDepartureNote {...instantLateDepartureTimes(reliance)} subject="the next train" />
         </Box>
       )}
-    </Stack>
+    </>
   );
 }
 
@@ -205,11 +222,31 @@ export function JourneyDetailView({
   const priorStopId = journeyPriorDestination(journey)?.stopId ?? null;
   const firstLegStart = journeyFirstLegStart(journey);
   const canAddLeg = journeyCanAddLeg(journey);
-  const multiLeg = journey.legs.length > 1;
+  const openBreak = journey.openBreak ?? null;
+  // Walks and transfers with nothing to act on fold into one row each
+  // (DS-590): the journey reads as its trains, and "Leg N of M" counts only
+  // the legs shown.
+  const groups = groupCollapsibleLegs(journey.legs, (leg) => isInertWalkLeg(leg, openBreak));
+  const shownLegs = groups.flatMap((group) => (group.kind === 'leg' ? [group.leg] : []));
+  const multiLeg = shownLegs.length > 1;
   const name = journeyNameInput(journey);
   // Mid-journey changes (spec 2026-10-22 §8.2): which leg can be missed,
   // and the open break, for the owner's leg actions.
-  const openBreak = journey.openBreak ?? null;
+
+  const renderLegCard = (leg: JourneyLegDetail, index: number) => (
+    <JourneyLegCard
+      journeyId={journey.publicId}
+      leg={leg}
+      isOwner={journey.isOwner}
+      isOnlyLeg={journey.legs.length === 1}
+      neighbours={{ previous: journey.legs[index - 1], next: journey.legs[index + 1] }}
+      replan={{
+        openBreakId: openBreak?.id ?? null,
+        isBreakTrigger: openBreak !== null && isTriggerLeg(leg, openBreak),
+        suggestionsMuted: journey.suggestionsMuted ?? false,
+      }}
+    />
+  );
 
   return (
     <MissedOfferProvider legs={journey.legs} initialNow={fetchedAt}>
@@ -329,7 +366,7 @@ export function JourneyDetailView({
           one leg to summarise. */}
       {multiLeg && (
         <Text size="sm" c="dimmed">
-          {journey.legs.map((leg, index) => `Leg ${index + 1} ${legSummaryPhrase(leg)}`).join(' · ')}
+          {shownLegs.map((leg, index) => `Leg ${index + 1} ${legSummaryPhrase(leg)}`).join(' · ')}
         </Text>
       )}
       <LastUpdated timestamp={fetchedAt} label="Data as of" />
@@ -357,38 +394,62 @@ export function JourneyDetailView({
           fromPush={fromPush}
         />
       )}
-      {journey.legs.map((leg, index) => (
-        // 2026-09-22 UX review finding I12/2.6: "the journey is not drawn
-        // as a chain" -- two cards with a bare 16px gap and no
-        // relationship between them. The "Leg N of M" label (multi-leg
-        // journeys only -- a single-leg journey has nothing to number)
-        // plus the connector after every leg but the last are what turn a
-        // list of unrelated cards into one readable journey.
-        // `id="leg-{id}"` (2026-09-22 UX review finding I15/2.3): the
-        // scroll target `JourneyStatusBadge`'s own anchor points at when
-        // the worst status is `unmatched` -- see that component's doc
-        // comment.
-        <Stack key={legRef(leg)} id={`leg-${legRef(leg)}`} gap={4}>
-          {multiLeg && (
-            <Text size="xs" fw={700} c="dimmed" tt="uppercase">
-              Leg {index + 1} of {journey.legs.length}
-            </Text>
-          )}
-          <JourneyLegCard
-            journeyId={journey.publicId}
-            leg={leg}
-            isOwner={journey.isOwner}
-            isOnlyLeg={journey.legs.length === 1}
-            neighbours={{ previous: journey.legs[index - 1], next: journey.legs[index + 1] }}
-            replan={{
-              openBreakId: openBreak?.id ?? null,
-              isBreakTrigger: openBreak !== null && isTriggerLeg(leg, openBreak),
-              suggestionsMuted: journey.suggestionsMuted ?? false,
-            }}
-          />
-          {index < journey.legs.length - 1 && <LegConnector leg={leg} next={journey.legs[index + 1] ?? null} />}
-        </Stack>
-      ))}
+      {groups.map((group, groupIndex) => {
+        if (group.kind === 'collapsed') {
+          const previous = groups[groupIndex - 1];
+          const following = groups[groupIndex + 1];
+          const before = previous?.kind === 'leg' ? previous.leg : undefined;
+          const after = following?.kind === 'leg' ? following.leg : undefined;
+          // The change is from the train before to the train after, whatever
+          // lies between: the page's own gap, not the api's to the first walk.
+          const gap = before && after ? connectionText(before, { ...after, connection: null }) : null;
+          return (
+            <Stack key={`walks-${legRef(group.legs[0] as JourneyLegDetail)}`} gap={4}>
+              <CollapsedLegs
+                label={journeyCollapsedLabel(group.legs, { previous: before, next: after })}
+                detail={gap ? `${gap}.` : null}
+              >
+                {group.legs.map((leg, offset) => {
+                  const index = group.startIndex + offset;
+                  return (
+                    <Stack key={legRef(leg)} id={`leg-${legRef(leg)}`} gap={4}>
+                      {renderLegCard(leg, index)}
+                      {offset < group.legs.length - 1 && (
+                        <LegConnector leg={leg} next={journey.legs[index + 1] ?? null} />
+                      )}
+                    </Stack>
+                  );
+                })}
+              </CollapsedLegs>
+              {after && <NextLegNotes next={after} />}
+            </Stack>
+          );
+        }
+        const { leg, index } = group;
+        const shownPosition = shownLegs.indexOf(leg);
+        const next = groups[groupIndex + 1];
+        return (
+          // 2026-09-22 UX review finding I12/2.6: "the journey is not drawn
+          // as a chain" -- two cards with a bare 16px gap and no
+          // relationship between them. The "Leg N of M" label (multi-leg
+          // journeys only -- a single-leg journey has nothing to number)
+          // plus the connector after every leg but the last are what turn a
+          // list of unrelated cards into one readable journey.
+          // `id="leg-{id}"` (2026-09-22 UX review finding I15/2.3): the
+          // scroll target `JourneyStatusBadge`'s own anchor points at when
+          // the worst status is `unmatched` -- see that component's doc
+          // comment.
+          <Stack key={legRef(leg)} id={`leg-${legRef(leg)}`} gap={4}>
+            {multiLeg && (
+              <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+                Leg {shownPosition + 1} of {shownLegs.length}
+              </Text>
+            )}
+            {renderLegCard(leg, index)}
+            {next?.kind === 'leg' && <LegConnector leg={leg} next={next.leg} />}
+          </Stack>
+        );
+      })}
       {journey.isOwner && <EarlierPlans journeyId={journey.publicId} revisionCount={journey.revisionCount} />}
     </MissedOfferProvider>
   );

@@ -80,7 +80,8 @@ test.describe('edit and insert journey legs', () => {
     await add.getByRole('textbox', { name: 'Leaves', exact: true }).fill('07:30');
     await add.getByRole('button', { name: 'Add leg' }).click();
 
-    await expect(main.getByText('Leg 1 of 2')).toBeVisible();
+    // The walk folds into a row ahead of the ride (DS-590), opened to read it.
+    await main.getByRole('button', { name: /^Walk to Victoria/ }).click();
     const cards = main.locator('[data-untracked-leg]');
     await expect(cards.nth(0)).toContainText('Walk');
     await expect(cards.nth(0)).toContainText('Pimlico to Victoria');

@@ -283,6 +283,12 @@ test('plans a route with a tram in the middle, and saves the tram as an untracke
   const card = page.locator('[data-plan-entry]').first();
   await expect(card.getByText('07:02 Tram (Blue Line) Piccadilly to Eccles 07:27')).toBeVisible();
   await expect(card.getByText('Tram', { exact: true })).toBeVisible();
+  // The walks are folded into rows of their own until opened (DS-590).
+  const walkRows = card.getByRole('button', { name: /^Walk/ });
+  await expect(walkRows).toHaveCount(2);
+  await expect(walkRows.first()).toHaveAttribute('aria-expanded', 'false');
+  await expect(card.getByText(/^Walk MAN( · .+)? to Piccadilly tram stop, \d+ min$/)).toBeHidden();
+  for (const row of await walkRows.all()) await row.click();
   await expect(card.getByText(/^Walk MAN( · .+)? to Piccadilly tram stop, \d+ min$/)).toBeVisible();
   await expect(card.getByText(/^Walk Eccles tram stop to ZTE( · .+)?, \d+ min$/)).toBeVisible();
   await expect(card.getByText(/^About \d+ min walk, estimated$/).first()).toBeVisible();
@@ -421,6 +427,8 @@ for (const { name, plan, label, saved: expected } of TRANSFER_CASES) {
     await openPlan(page, 'origin=ZEA&destination=ZEC&date=2026-09-17&departAfter=07:30');
     await findRoutes(page);
     const card = page.locator('[data-plan-entry]').first();
+    // A plain transfer folds into a row until it is opened (DS-590); a Tube ride does not.
+    if (label === 'Transfer') await card.getByRole('button', { name: 'Transfer to ZXC, 19 min' }).click();
     await expect(card.getByText(`${label} ZXB to ZXC, 19 min`, { exact: true })).toBeVisible();
     await card.getByRole('radio').check({ force: true });
     await page.getByRole('button', { name: 'Track this journey' }).click();
@@ -534,6 +542,12 @@ test('saves a plan with walks to and from a Tube station, the stop ids only on t
   await openPlan(page, 'origin=ZEA&destination=ZEC&date=2026-09-17&departAfter=07:30');
   await findRoutes(page);
   const card = page.locator('[data-plan-entry]').first();
+  // The walks are folded into rows of their own until opened (DS-590).
+  const walkRows = card.getByRole('button', { name: /^Walk/ });
+  await expect(walkRows).toHaveCount(2);
+  await expect(walkRows.first()).toHaveAttribute('aria-expanded', 'false');
+  await expect(card.getByText('Walk EUS · London Euston (National Rail) to Euston (Tube), 4 min')).toBeHidden();
+  for (const row of await walkRows.all()) await row.click();
   await expect(card.getByText('Walk EUS · London Euston (National Rail) to Euston (Tube), 4 min')).toBeVisible();
   await expect(card.getByText(/^Walk West Test \(Tube\) to ZWT( · .+)?, 4 min$/)).toBeVisible();
   await card.getByRole('radio').check({ force: true });
