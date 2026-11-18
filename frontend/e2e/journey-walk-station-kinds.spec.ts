@@ -56,7 +56,7 @@ test.describe('walk station kinds on the journey page', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { journeyId } = (await created.json()) as { journeyId: number };
+    const { journeyPublicId: journeyId } = (await created.json()) as { journeyPublicId: string };
 
     try {
       await page.goto(`/journeys/${journeyId}`);

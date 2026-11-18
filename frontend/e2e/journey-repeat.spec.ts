@@ -32,7 +32,7 @@ async function logIn(context: BrowserContext, base: URL) {
 }
 
 /** The two-leg journey on `date`: E2ERP1 then E2ERP2. */
-async function saveJourney(request: APIRequestContext, base: URL, name: string, date: string): Promise<number> {
+async function saveJourney(request: APIRequestContext, base: URL, name: string, date: string): Promise<string> {
   const created = await request.post('/api/Journeys/itinerary', {
     headers: {
       cookie: `distant_signal_session=${SESSION_COOKIE}`,
@@ -48,7 +48,7 @@ async function saveJourney(request: APIRequestContext, base: URL, name: string, 
     },
   });
   expect(created.ok(), await created.text()).toBe(true);
-  return ((await created.json()) as { journeyId: number }).journeyId;
+  return ((await created.json()) as { journeyPublicId: string }).journeyPublicId;
 }
 
 async function deleteJourney(request: APIRequestContext, base: URL, id: number | string) {

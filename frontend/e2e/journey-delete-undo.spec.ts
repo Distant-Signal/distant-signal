@@ -31,7 +31,7 @@ async function logIn(context: BrowserContext) {
 
 const fromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
 
-async function createJourney(request: APIRequestContext, name: string): Promise<number> {
+async function createJourney(request: APIRequestContext, name: string): Promise<string> {
   const created = await request.post('/api/Journeys', {
     headers: HEADERS,
     data: {
@@ -47,13 +47,13 @@ async function createJourney(request: APIRequestContext, name: string): Promise<
     },
   });
   expect(created.ok(), await created.text()).toBe(true);
-  return ((await created.json()) as { journeyId: number }).journeyId;
+  return ((await created.json()) as { journeyPublicId: string }).journeyPublicId;
 }
 
-const status = async (request: APIRequestContext, id: number) =>
+const status = async (request: APIRequestContext, id: string) =>
   (await request.get(`/api/Journeys/${id}`, { headers: HEADERS })).status();
 
-async function confirmDelete(page: import('@playwright/test').Page, id: number) {
+async function confirmDelete(page: import('@playwright/test').Page, id: string) {
   await page.goto(`/journeys/${id}`);
   await page.getByRole('button', { name: 'Delete journey', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('You can undo for a few seconds');
@@ -65,7 +65,7 @@ async function confirmDelete(page: import('@playwright/test').Page, id: number) 
 test.describe('undoing a journey delete (logged in)', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to the seed session');
 
-  let journeyId: number | null = null;
+  let journeyId: string | null = null;
 
   test.beforeEach(async ({ context }) => {
     await logIn(context);
@@ -94,7 +94,7 @@ test.describe('undoing a journey delete (logged in)', () => {
     journeyId = await createJourney(request, 'E2E let it go');
     await confirmDelete(page, journeyId);
     expect(await status(request, journeyId)).toBe(200);
-    await expect.poll(() => status(request, journeyId as number), { timeout: 20_000 }).toBe(404);
+    await expect.poll(() => status(request, journeyId as string), { timeout: 20_000 }).toBe(404);
     await expect(page.getByText('Journey deleted')).toHaveCount(0);
   });
 
@@ -103,6 +103,6 @@ test.describe('undoing a journey delete (logged in)', () => {
     await confirmDelete(page, journeyId);
     // A full navigation fires pagehide, well inside the 10 seconds.
     await page.goto('/privacy');
-    await expect.poll(() => status(request, journeyId as number), { timeout: 5_000 }).toBe(404);
+    await expect.poll(() => status(request, journeyId as string), { timeout: 5_000 }).toBe(404);
   });
 });

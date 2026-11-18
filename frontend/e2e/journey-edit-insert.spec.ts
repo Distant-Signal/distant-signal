@@ -48,7 +48,7 @@ test.describe('edit and insert journey legs', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { journeyId } = (await created.json()) as { journeyId: number };
+    const { journeyPublicId: journeyId } = (await created.json()) as { journeyPublicId: string };
 
     await page.goto(`/journeys/${journeyId}`);
     const main = page.locator('#main-content');

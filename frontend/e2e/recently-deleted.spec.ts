@@ -49,7 +49,7 @@ async function saveAndDelete(context: BrowserContext, name: string): Promise<voi
     },
   });
   expect(saved.ok()).toBe(true);
-  const { journeyId } = (await saved.json()) as { journeyId: number };
+  const { journeyPublicId: journeyId } = (await saved.json()) as { journeyPublicId: string };
   const deleted = await context.request.delete(`/api/Journeys/${journeyId}`, { headers: ORIGIN });
   expect(deleted.status()).toBe(204);
 }

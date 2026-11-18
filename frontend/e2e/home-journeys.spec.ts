@@ -51,14 +51,14 @@ function untrackedLeg(mode: string, from: string, to: string, departIn: number, 
 /** A walk under way now, then a Tube ride: returns the journey's id.
  * Named per test, so a leftover from a failed run can't be mistaken for
  * this one. */
-async function createJourneyUnderWay(request: APIRequestContext, name: string): Promise<number> {
+async function createJourneyUnderWay(request: APIRequestContext, name: string): Promise<string> {
   const headers = { cookie: `distant_signal_session=${SESSION_COOKIE}` };
   const created = await request.post('/api/Journeys', {
     headers,
     data: { customName: name, leg: untrackedLeg('walk', 'Islington', 'Angel', -10, 20) },
   });
   expect(created.ok(), await created.text()).toBe(true);
-  const { journeyId } = (await created.json()) as { journeyId: number };
+  const { journeyPublicId: journeyId } = (await created.json()) as { journeyPublicId: string };
   const added = await request.post(`/api/Journeys/${journeyId}/legs`, {
     headers,
     data: { ...untrackedLeg('tube', 'Angel', 'Bank', 25, 45), lineName: 'Northern line' },
@@ -73,7 +73,7 @@ test.describe('home page journeys (logged in)', () => {
   // the other's, and show as "Also in progress" there.
   test.describe.configure({ mode: 'serial' });
 
-  let journeyId: number | null = null;
+  let journeyId: string | null = null;
 
   test.beforeEach(async ({ context }) => {
     await logIn(context);
