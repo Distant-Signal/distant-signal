@@ -6,6 +6,7 @@ import { labelPlaceEnds, RAIL_PLACE, stopPlaceKind, type PlaceKind } from '@/lib
 import { ServiceModeBadge } from './ServiceModeBadge';
 import {
   accessLegStopCount,
+  liveArrivalNote,
   optionLabelText,
   satisfiedStationLabel,
   viaSatisfiedLabel,
@@ -271,6 +272,11 @@ export function ItineraryOption({
                     </Text>
                   )}
                   {leg.kind === 'transit' && <TransitLegNotes leg={leg} />}
+                  {leg.kind === 'train' && liveArrivalNote(leg) && (
+                    <Text size="xs" c="dimmed" pl="sm" data-leg-live-arrival>
+                      {liveArrivalNote(leg)}
+                    </Text>
+                  )}
                   {leg.kind === 'train' && leg.live?.reliesOnLateDeparture && (
                     <LateDepartureNote {...plannerLateDepartureTimes(leg.live.reliesOnLateDeparture)} />
                   )}

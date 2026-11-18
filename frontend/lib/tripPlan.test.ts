@@ -6,6 +6,7 @@ import {
   optionLabelText,
   countAdvancedOptions,
   fetchTripPlan,
+  liveArrivalNote,
   isTooLargeSearchError,
   noResultHint,
   trainLegsForTracking,
@@ -772,5 +773,55 @@ describe('accessLegStopCount', () => {
     expect(accessLegStopCount(leg('both'), { origin: { stop, candidates }, destination: null })).toBeUndefined();
     expect(accessLegStopCount(leg('origin'), undefined)).toBeUndefined();
     expect(accessLegStopCount(leg('destination'), { origin: { stop, candidates }, destination: null })).toBeUndefined();
+  });
+});
+
+describe('liveArrivalNote', () => {
+  const live = {
+    status: 'Late' as const,
+    cancelled: false,
+    delayMinutes: 5,
+    arrivalDelayMinutes: 9,
+    reason: null,
+    reasonSource: null,
+    platform: null,
+    observedAt: null,
+    interchangeFeasible: null,
+  };
+  const leg = (overrides: Record<string, unknown> = {}) =>
+    plannedTrainLeg({
+      trainUid: 'C11052',
+      serviceDate: '2026-09-23',
+      originCrs: 'EUS',
+      destinationCrs: 'MKC',
+      scheduledDeparture: '08:00:00',
+      scheduledArrival: '08:50:00',
+      ...overrides,
+    });
+
+  it('says when a late train is expected, in words', () => {
+    expect(liveArrivalNote(leg({ live }))).toBe('Expected 08:59, 9 min late');
+  });
+
+  it('uses the public arrival, not the working one', () => {
+    expect(liveArrivalNote(leg({ live, publicArrival: '08:52:00' }))).toBe('Expected 09:01, 9 min late');
+  });
+
+  it('wraps past midnight like the rest of the planner', () => {
+    expect(liveArrivalNote(leg({ live, scheduledArrival: '23:55:00' }))).toBe('Expected 00:04, 9 min late');
+  });
+
+  it('says on time for a train that has made the time back, and early for one ahead', () => {
+    expect(liveArrivalNote(leg({ live: { ...live, arrivalDelayMinutes: 0 } }))).toBe('Expected 08:50, on time');
+    expect(liveArrivalNote(leg({ live: { ...live, arrivalDelayMinutes: -3 } }))).toBe('Expected 08:47, 3 min early');
+  });
+
+  it('adds nothing for no live data, an on-time train, a cancelled one or no arrival data', () => {
+    expect(liveArrivalNote(leg())).toBeNull();
+    expect(liveArrivalNote(leg({ live: null }))).toBeNull();
+    expect(liveArrivalNote(leg({ live: { ...live, delayMinutes: 0, arrivalDelayMinutes: 0 } }))).toBeNull();
+    expect(liveArrivalNote(leg({ live: { ...live, delayMinutes: null, arrivalDelayMinutes: 0 } }))).toBeNull();
+    expect(liveArrivalNote(leg({ live: { ...live, cancelled: true, status: 'Cancelled' } }))).toBeNull();
+    expect(liveArrivalNote(leg({ live: { ...live, arrivalDelayMinutes: null } }))).toBeNull();
   });
 });
