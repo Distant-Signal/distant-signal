@@ -1621,3 +1621,9 @@ UPDATE journeys SET public_id = 'j_' || lpad(to_hex(id), 32, '0');
 UPDATE journey_legs SET public_id = 'l_' || lpad(to_hex(id), 32, '0');
 UPDATE train_subscriptions SET public_id = 't_' || lpad(to_hex(id), 32, '0');
 UPDATE push_subscriptions SET public_id = 'd_' || lpad(to_hex(id), 32, '0');
+
+-- Opaque regular journey ids (DS-534 wave 2): a migration fills these with
+-- random ids as well. The specs name the seeded regular journeys by
+-- testTemplateId (test/apiDefaults.ts: 'r_' and the numeric id as 32
+-- hex characters).
+UPDATE journey_templates SET public_id = 'r_' || lpad(to_hex(id), 32, '0');

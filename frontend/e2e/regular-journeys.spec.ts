@@ -4,6 +4,7 @@ import type { JourneyTemplateListItem, TripPlanResponse } from '../lib/types';
 import {
   ITINERARY_DEFAULTS,
   testPublicId,
+  testTemplateId,
   SEGMENT_DEFAULTS,
   TRIP_PLAN_DEFAULTS,
   plannedTrainLeg,
@@ -530,13 +531,13 @@ test.describe('regular journeys', () => {
 
   test('a regular journey page passes axe', async ({ page, context }) => {
     await logIn(context);
-    await page.goto('/journeys/regular/900201');
+    await page.goto(`/journeys/regular/${testTemplateId(900201)}`);
     await expect(
       page.getByRole('heading', { level: 1, name: 'London Kings Cross to London Euston, leave after 09:00' }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'The return journey' })).toHaveAttribute(
       'href',
-      '/journeys/regular/900202',
+      `/journeys/regular/${testTemplateId(900202)}`,
     );
     const axe = await scanPageBothSchemes(page);
     expect(axe.violations).toEqual([]);
