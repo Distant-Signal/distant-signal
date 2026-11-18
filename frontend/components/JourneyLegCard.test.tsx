@@ -850,7 +850,7 @@ describe('JourneyLegCard: Edit search', () => {
 
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        `/api/Journeys/7/legs/${testLegId(4)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&arriveBefore=18%3A00`,
+        `/api/Journeys/7/legs/${testLegId(4)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&arriveBefore=18%3A00&earlier=3`,
       ),
     );
     expect(screen.getByText('Arriving at or before 18:00')).toBeInTheDocument();
@@ -868,6 +868,22 @@ describe('JourneyLegCard: Edit search', () => {
     });
   });
 
+  it('marks the train the leg is on in the "Change train" list instead of offering it again', async () => {
+    mockApi();
+    renderWithMantine(
+      <JourneyLegCard
+        journeyId="7"
+        isOwner
+        isOnlyLeg={false}
+        leg={baseLeg({ id: 6, trackedTrainState: trackedState({ trainUid: 'C11052' }) })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Change train' }));
+
+    expect(await screen.findByText(/Current train/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Track this train: 10:32/ })).not.toBeInTheDocument();
+  });
+
   it('changes the train on a leg never window-searched, from its stations, date and departure', async () => {
     const fetchMock = mockApi();
     renderWithMantine(<JourneyLegCard journeyId="7" isOwner isOnlyLeg={false} leg={baseLeg({ id: 5 })} />);
@@ -876,7 +892,7 @@ describe('JourneyLegCard: Edit search', () => {
     // 16:00Z is 17:00 in London: trains from the booked one on.
     await waitFor(() =>
       expect(calls(fetchMock, '/candidates').map(([input]) => String(input))).toContain(
-        `/api/Journeys/7/legs/${testLegId(5)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&departAfter=17%3A00`,
+        `/api/Journeys/7/legs/${testLegId(5)}/candidates?origin=KGX&destination=YRK&serviceDate=2026-09-22&departAfter=17%3A00&earlier=3`,
       ),
     );
     expect(screen.getByText(/^Other trains:/)).toBeInTheDocument();
