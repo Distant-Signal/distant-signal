@@ -8,6 +8,7 @@ import { LoginControl } from './LoginControl';
 import { TimeFilterInput } from './TimeFilterInput';
 import type { JourneyTemplateDetail, PutJourneyTemplateRequest, TemplateLegRequest } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { templateRef } from '@/lib/publicId';
 import { resolveStationCode } from '@/lib/suggestionAutocomplete';
 import { BankHolidaySwitch, useBankHolidayDivision } from './BankHolidaySwitch';
 import { StationBufferField } from './StationBufferField';
@@ -42,9 +43,9 @@ interface EditableLeg {
   arriveTo: string;
 }
 
-function toEditableLeg(leg: JourneyTemplateDetail['legs'][number]): EditableLeg {
+function toEditableLeg(leg: JourneyTemplateDetail['legs'][number], index: number): EditableLeg {
   return {
-    key: `server-${leg.id}`,
+    key: `server-${index}`,
     originCrs: leg.originCrs ?? '',
     destinationCrs: leg.destinationCrs ?? '',
     // A saved leg's fields hold its codes, which resolve without a search.
@@ -153,7 +154,7 @@ function keysToDaysOfWeek(keys: string[]): number | null {
 export function EditJourneyTemplateForm({ template }: { template: JourneyTemplateDetail }) {
   const router = useRouter();
   const [customName, setCustomName] = useState(template.customName ?? '');
-  const [legs, setLegs] = useState<EditableLeg[]>(template.legs.map(toEditableLeg));
+  const [legs, setLegs] = useState<EditableLeg[]>(template.legs.map((leg, index) => toEditableLeg(leg, index)));
   // Per-leg incomplete-time tracking, keyed by `EditableLeg.key` (not array
   // index -- see that field's own doc comment). Absent entries mean "no
   // incomplete field reported yet", equivalent to `NO_INCOMPLETE_TIMES`.
@@ -276,7 +277,7 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
         stationBufferMinutes: buffer,
         skipBankHolidays,
       };
-      const response = await fetch(`/api/JourneyTemplates/${template.id}`, {
+      const response = await fetch(`/api/JourneyTemplates/${templateRef(template)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

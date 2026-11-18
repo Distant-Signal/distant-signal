@@ -11,7 +11,7 @@ import {
 import { OperatorNamesProvider } from '@/components/OperatorNamesContext';
 import { UsualTrainProvider } from '@/components/UsualTrainContext';
 import { usualTrainLegs } from '@/lib/regularJourneys';
-import { legRef } from '@/lib/publicId';
+import { legRef, matchesBreakParam, optionalTemplateRef } from '@/lib/publicId';
 import type { JourneyDetail, JourneyTemplateDetail } from '@/lib/types';
 import { JourneyDetailView } from '@/components/JourneyDetailView';
 import { LoginControl } from '@/components/LoginControl';
@@ -48,7 +48,8 @@ export default async function JourneyDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  /** The break push's deep link: `?break={breakId}&src=push` (mid-journey
+  /** The break push's deep link: `?break={b_ id}&src=push`
+   * (a numeric id too: pushes queued before the opaque ids carry one) (mid-journey
    * changes spec 2026-10-22 §6.4). */
   searchParams?: Promise<{ break?: string | string[]; src?: string | string[]; pick?: string | string[] }>;
 }) {
@@ -110,10 +111,10 @@ export default async function JourneyDetailPage({
   // (regular journeys design §4.3): each leg's usual train goes first.
   // A regular journey's day: its template, for the usual trains and
   // whether it reminds the traveller to pick (DS-398).
-  const template =
-    journey.isOwner && journey.sourceTemplateId !== null
-      ? await getJourneyTemplate(journey.sourceTemplateId).catch(() => null)
-      : null;
+  const sourceTemplate = journey.isOwner
+    ? optionalTemplateRef(journey.sourceTemplatePublicId, journey.sourceTemplateId)
+    : null;
+  const template = sourceTemplate !== null ? await getJourneyTemplate(sourceTemplate).catch(() => null) : null;
   // Names for the operator codes the page's earlier plans and candidate
   // trains carry on their own; without the list they show the code.
   const operatorNames = journey.isOwner
@@ -168,7 +169,7 @@ export default async function JourneyDetailPage({
             // The deep link opens the suggestions only on the owner's own,
             // still open break; an old link just shows the page.
             openBreakOnLoad={
-              journey.isOwner && journey.openBreak != null && query.break === String(journey.openBreak.id)
+              journey.isOwner && journey.openBreak != null && matchesBreakParam(query.break, journey.openBreak)
             }
             fromPush={query.src === 'push'}
             calendarDownload={calendarDownload}

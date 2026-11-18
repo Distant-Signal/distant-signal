@@ -13,7 +13,7 @@ export function RegularJourneyLine({
   canSkip,
   afterSkipHref,
 }: {
-  templateId: number;
+  templateId: string;
   /** The journey's date (`YYYY-MM-DD`), the one "Skip" skips. */
   date: string;
   canSkip: boolean;

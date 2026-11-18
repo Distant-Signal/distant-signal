@@ -29,7 +29,7 @@ import {
   UpcomingJourneysTeaser,
 } from './HomeJourneys';
 import { openBreakSummary } from '@/test/replanFixtures';
-import { testPublicId, testTrackingId } from '@/test/apiDefaults';
+import { testPublicId, testTemplateId, testTrackingId } from '@/test/apiDefaults';
 
 // The open-break banner's "See options" sheet is a client component.
 vi.mock('next/navigation', () => ({
@@ -463,13 +463,16 @@ describe('UpcomingJourneysSection', () => {
     renderWithMantine(
       <UpcomingJourneysSection
         upcoming={[
-          { ...planned, item: { ...planned.item, sourceTemplateId: 5 } },
+          { ...planned, item: { ...planned.item, sourceTemplateId: 5, sourceTemplatePublicId: testTemplateId(5) } },
           { ...started, item: { ...started.item, sourceTemplateId: 6, startedLegCount: 1 } },
         ]}
       />,
     );
     const first = cardOf(screen.getByRole('link', { name: /^London Kings Cross \(KGX\) to York \(YRK\)/ }));
-    expect(within(first).getByRole('link', { name: 'Regular journey' })).toHaveAttribute('href', '/journeys/regular/5');
+    expect(within(first).getByRole('link', { name: 'Regular journey' })).toHaveAttribute(
+      'href',
+      `/journeys/regular/${testTemplateId(5)}`,
+    );
     expect(within(first).getByRole('button', { name: 'Skip' })).toBeInTheDocument();
     const second = cardOf(screen.getByRole('link', { name: /Already off/ }));
     expect(within(second).getByRole('link', { name: 'Regular journey' })).toBeInTheDocument();

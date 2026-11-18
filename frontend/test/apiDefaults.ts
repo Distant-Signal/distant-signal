@@ -29,6 +29,17 @@ export function testDeviceId(n: number): string {
   return `d_${n.toString(16).padStart(32, '0')}`;
 }
 
+/** A regular journey's (journey template's) `publicId` for a fixture: `r_`
+ * and 32 hex digits. */
+export function testTemplateId(n: number): string {
+  return `r_${n.toString(16).padStart(32, '0')}`;
+}
+
+/** A journey break's `publicId` for a fixture: `b_` and 32 hex digits. */
+export function testBreakId(n: number): string {
+  return `b_${n.toString(16).padStart(32, '0')}`;
+}
+
 /** A `JourneyStop`, less what places it: `crs`, `name`, `kind` and times. */
 export const JOURNEY_STOP_DEFAULTS = {
   locationType: null,
@@ -197,6 +208,7 @@ export const JOURNEY_DETAIL_DEFAULTS = {
   disrupted: false,
   revisionCount: 0,
   sourceTemplateId: null,
+  sourceTemplatePublicId: null,
   regularPlan: null,
   stationBufferMinutes: null,
   leaveBy: null,
@@ -242,9 +254,11 @@ export const JOURNEY_LIST_ITEM_DEFAULTS = {
   finalArrivalDelayMinutes: null,
   finalArrivalDelayProvisional: false,
   openBreakId: null,
+  openBreakPublicId: null,
   cancellation: null,
   irishTrain: null,
   sourceTemplateId: null,
+  sourceTemplatePublicId: null,
   stationBufferMinutes: null,
   leaveBy: null,
 } satisfies Partial<Api.JourneyListItem>;
@@ -258,6 +272,7 @@ export const TEMPLATE_TARGET_DEFAULTS = {
   destinationName: null,
   target: null,
   pairedTemplateId: null,
+  pairedTemplatePublicId: null,
   nextDate: null,
   skippedDates: [],
   skipBankHolidays: true,

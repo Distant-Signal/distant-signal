@@ -6,7 +6,7 @@ import { LegReplanActions, type LegReplanContext } from './LegReplanActions';
 import { MissedOfferProvider } from './MissedOfferContext';
 import type { JourneyLegDetail } from '@/lib/types';
 import { trainLeg } from '@/test/journeyFixtures';
-import { testLegId } from '@/test/apiDefaults';
+import { testBreakId, testLegId } from '@/test/apiDefaults';
 import { breakResponse, suggestionSet } from '@/test/replanFixtures';
 
 vi.mock('next/navigation', () => ({
@@ -110,7 +110,7 @@ describe('LegReplanActions', () => {
 
   it("opens the open break's suggestions on its trigger leg", async () => {
     const fetchMock = stubFetch(breakResponse());
-    renderActions(leg(), BEFORE, { ...context, openBreakId: 5, isBreakTrigger: true });
+    renderActions(leg(), BEFORE, { ...context, openBreakId: testBreakId(5), isBreakTrigger: true });
     fireEvent.click(screen.getByRole('button', { name: 'Find another way' }));
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/42/breaks/current', { method: 'GET' });

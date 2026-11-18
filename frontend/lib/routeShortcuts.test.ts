@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { recentRoutes, savedRoutes } from './routeShortcuts';
-import { JOURNEY_LIST_ITEM_DEFAULTS, TEMPLATE_TARGET_DEFAULTS } from '@/test/apiDefaults';
+import { JOURNEY_LIST_ITEM_DEFAULTS, TEMPLATE_TARGET_DEFAULTS, testTemplateId } from '@/test/apiDefaults';
 import type { JourneyListItem, JourneyTemplateListItem, SharedVia } from './types';
 
 function template(id: number, overrides: Partial<JourneyTemplateListItem> = {}): JourneyTemplateListItem {
   return {
     ...TEMPLATE_TARGET_DEFAULTS,
     id,
+    publicId: testTemplateId(id),
     customName: null,
     createdAt: '2026-11-01T00:00:00Z',
     legCount: 1,
@@ -53,8 +54,13 @@ describe('savedRoutes', () => {
       template(4, { firstOriginCrs: null }),
     ]);
     expect(routes).toEqual([
-      { key: 'saved-1', label: 'Office', originCrs: 'WOK', destinationCrs: 'WAT' },
-      { key: 'saved-3', label: 'Guildford to London Waterloo', originCrs: 'GLD', destinationCrs: 'WAT' },
+      { key: `saved-${testTemplateId(1)}`, label: 'Office', originCrs: 'WOK', destinationCrs: 'WAT' },
+      {
+        key: `saved-${testTemplateId(3)}`,
+        label: 'Guildford to London Waterloo',
+        originCrs: 'GLD',
+        destinationCrs: 'WAT',
+      },
     ]);
     expect(savedRoutes(null)).toEqual([]);
   });

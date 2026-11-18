@@ -5,7 +5,7 @@ import type {
   ReplanSuggestionLeg,
   SuggestionSet,
 } from '@/lib/types';
-import { testLegId } from './apiDefaults';
+import { testBreakId, testLegId } from './apiDefaults';
 
 /* Mid-journey changes builders (`lib/journeyBreak`, `AlternativesSheet`,
  * `JourneyBreakBanner`). Defaults describe a journey to Edinburgh whose
@@ -118,6 +118,7 @@ export function suggestionSet(overrides: Partial<SuggestionSet> = {}): Suggestio
 export function breakResponse(overrides: Partial<BreakResponse> = {}): BreakResponse {
   return {
     id: 5,
+    publicId: testBreakId(5),
     journeyId: 42,
     journeyPublicId: 'j_0000000000000000000000000000002a',
     cause: 'connection_missed',
@@ -138,6 +139,7 @@ export function breakResponse(overrides: Partial<BreakResponse> = {}): BreakResp
 export function openBreakSummary(overrides: Partial<OpenBreakSummary> = {}): OpenBreakSummary {
   return {
     id: 5,
+    publicId: testBreakId(5),
     cause: 'connection_missed',
     fault: 'operator',
     severity: 3,

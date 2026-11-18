@@ -125,9 +125,12 @@ describe('next.config.mjs redirects', () => {
     expect(sources).not.toContain('/track/mine/add-ticket');
     expect(sources).not.toContain('/journeys');
     // The one parameterised source, for links sent before 22 Oct 2026, takes
-    // digits only, so it can't catch `/track/mine` or anything under it.
+    // digits or an `r_` id only, so it can't catch `/track/mine` or anything under it.
     const parameterised = sources.filter((source) => source.includes(':') || source.includes('*'));
-    expect(parameterised).toEqual(['/journeys/templates/:id(\\d+)', '/track/:trackingId(\\d+|t_[0-9a-f]+)']);
+    expect(parameterised).toEqual([
+      '/journeys/templates/:id(\\d+|r_[0-9a-f]+)',
+      '/track/:trackingId(\\d+|t_[0-9a-f]+)',
+    ]);
   });
 
   it('sends the old journey templates pages to Regular journeys for good', async () => {
@@ -135,7 +138,7 @@ describe('next.config.mjs redirects', () => {
     const entries = await nextConfig.redirects();
     expect(entries.filter((entry) => entry.source.startsWith('/journeys/templates'))).toEqual([
       { source: '/journeys/templates', destination: '/journeys/regular', permanent: true },
-      { source: '/journeys/templates/:id(\\d+)', destination: '/journeys/regular/:id', permanent: true },
+      { source: '/journeys/templates/:id(\\d+|r_[0-9a-f]+)', destination: '/journeys/regular/:id', permanent: true },
     ]);
   });
 

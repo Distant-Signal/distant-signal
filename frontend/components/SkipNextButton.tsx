@@ -10,6 +10,12 @@ import { formatDate } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import type { SkipTemplateDateRequest, SkipTemplateDateResponse } from '@/lib/types';
 
+/** The skipped regular journeys' references: their `r_` ids, or the numeric
+ * ids from an api that returns none. */
+function templateRefs(publicIds: string[] | undefined, ids: number[]): string[] {
+  return publicIds?.length ? publicIds : ids.map(String);
+}
+
 /** "Skip next" on a regular journey, or "Skip" on one of its journeys
  * (regular journeys design §4.4): a small dialog, "Skip 10 Nov 2026?"
  * (with `dates`, a choice of how many of the next dates to skip: "Skip 3
@@ -30,7 +36,7 @@ export function SkipNextButton({
   label = 'Skip next',
   afterSkipHref,
 }: {
-  templateId: number;
+  templateId: string;
   /** The London date to skip (`YYYY-MM-DD`). */
   date: string;
   /** The next dates a journey is made for, `date` first: offers "Skip
@@ -47,7 +53,7 @@ export function SkipNextButton({
   const [withReturn, setWithReturn] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [skipped, setSkipped] = useState<{ dates: string[]; templateIds: number[] } | null>(null);
+  const [skipped, setSkipped] = useState<{ dates: string[]; templateIds: string[] } | null>(null);
   const [undoError, setUndoError] = useState<string | null>(null);
   const [count, setCount] = useState(1);
   const needsLoginState = useNeedsLogin();
@@ -93,7 +99,9 @@ export function SkipNextButton({
         router.push(afterSkipHref);
         return;
       }
-      setSkipped({ dates: result.serviceDates, templateIds: result.templateIds });
+      // The opaque ids, or the numeric ones from an api that returns none.
+      const refs = templateRefs(result.templatePublicIds, result.templateIds);
+      setSkipped({ dates: result.serviceDates, templateIds: refs });
       router.refresh();
     } catch {
       setError(describeFailure('skip', 'this journey'));

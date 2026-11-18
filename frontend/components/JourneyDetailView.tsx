@@ -1,4 +1,4 @@
-import { isTriggerLeg, legRef } from '@/lib/publicId';
+import { breakRef, isTriggerLeg, legRef, optionalTemplateRef } from '@/lib/publicId';
 import { Alert, Box, Group, Stack, Text, Title } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
 import { DownloadCalendarButton } from './DownloadCalendarButton';
@@ -223,6 +223,7 @@ export function JourneyDetailView({
   const firstLegStart = journeyFirstLegStart(journey);
   const canAddLeg = journeyCanAddLeg(journey);
   const openBreak = journey.openBreak ?? null;
+  const sourceTemplate = optionalTemplateRef(journey.sourceTemplatePublicId, journey.sourceTemplateId);
   // Walks and transfers with nothing to act on fold into one row each
   // (DS-590): the journey reads as its trains, and "Leg N of M" counts only
   // the legs shown.
@@ -241,7 +242,7 @@ export function JourneyDetailView({
       isOnlyLeg={journey.legs.length === 1}
       neighbours={{ previous: journey.legs[index - 1], next: journey.legs[index + 1] }}
       replan={{
-        openBreakId: openBreak?.id ?? null,
+        openBreakId: openBreak ? breakRef(openBreak) : null,
         isBreakTrigger: openBreak !== null && isTriggerLeg(leg, openBreak),
         suggestionsMuted: journey.suggestionsMuted ?? false,
       }}
@@ -315,9 +316,9 @@ export function JourneyDetailView({
       </Group>
       {/* Made from a regular journey: a link to it, and "Skip" while
           this journey hasn't started (regular journeys design §4.4). */}
-      {journey.isOwner && journey.sourceTemplateId !== null && journey.legs[0] && (
+      {journey.isOwner && sourceTemplate !== null && journey.legs[0] && (
         <RegularJourneyLine
-          templateId={journey.sourceTemplateId}
+          templateId={sourceTemplate}
           date={journey.legs[0].serviceDate}
           canSkip={!regularOccurrenceStarted(journey.legs, new Date(fetchedAt))}
           afterSkipHref="/journeys"

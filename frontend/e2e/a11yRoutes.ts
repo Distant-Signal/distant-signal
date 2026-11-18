@@ -4,7 +4,7 @@
 // ALLOWED_UNSCANNED. Kept apart from the spec because Playwright does not
 // let one spec import another.
 
-import { testPublicId } from '../test/apiDefaults';
+import { testPublicId, testTemplateId } from '../test/apiDefaults';
 
 /** The raw token of the unlisted link to journey 900002 (seed.sql). */
 export const SHARED_JOURNEY_TOKEN = 'fixture-leg-progress-token-12345';
@@ -127,7 +127,7 @@ export const PUBLIC_ROUTES: [name: string, path: string][] = [
   ['/account/connected-apps/[client] (anonymous login prompt)', '/account/connected-apps/e2e-app'],
   ['/journeys/regular (anonymous login prompt)', '/journeys/regular'],
   ['/journeys/regular/new (anonymous login prompt)', '/journeys/regular/new'],
-  ['/journeys/regular/[id] (anonymous login prompt)', '/journeys/regular/900201'],
+  ['/journeys/regular/[id] (anonymous login prompt)', `/journeys/regular/${testTemplateId(900201)}`],
   ['/journeys/recently-deleted (anonymous login prompt)', '/journeys/recently-deleted'],
   ['/journeys/shared/[token]', `/journeys/shared/${SHARED_JOURNEY_TOKEN}`],
   // Retired: redirects to /journeys (the page's own comment).
@@ -175,7 +175,7 @@ export const LOGGED_IN_ROUTES: [name: string, path: string][] = [
   ['/account/connected-apps/[client]', '/account/connected-apps/e2e-app'],
   ['/journeys/regular', '/journeys/regular'],
   ['/journeys/regular/new', '/journeys/regular/new'],
-  ['/journeys/regular/[id]', '/journeys/regular/900201'],
+  ['/journeys/regular/[id]', `/journeys/regular/${testTemplateId(900201)}`],
   ['/journeys/recently-deleted', '/journeys/recently-deleted'],
   ['/journeys/900301 (reliability and Delay Repay)', `/journeys/${testPublicId(900301)}`],
   ['/journeys/900203 (a regular journey in remind mode)', `/journeys/${testPublicId(900203)}`],

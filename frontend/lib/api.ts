@@ -272,8 +272,7 @@ export async function hasSessionCookie(): Promise<boolean> {
  * `encodeURIComponent` closes it because it percent-encodes `/`, `?`, `#`
  * and `..`'s separators, so the segment can only ever *be* a segment.
  *
- * Helpers whose id parameter is typed `number` (`getTrackedTrainById`,
- * `getJourney`, `getJourneyTemplate`) are deliberately left uninterpolated-but-unencoded:
+ * Helpers whose id parameter is typed `number` (`getTrackedTrainById`) are deliberately left uninterpolated-but-unencoded:
  * a `number` cannot carry a `/`, `?` or `.`-pair, and every call site coerces
  * with `Number(...)` first (worst case `NaN`, a harmless 4-char segment). If
  * one of those signatures ever widens to `string`, it must gain
@@ -1046,8 +1045,8 @@ export async function getMyJourneyTemplates(): Promise<JourneyTemplateListItem[]
  * Phase B, unlike a journey) and `ApiUnauthorizedError` on a 401, so
  * `app/journeys/regular/[id]/page.tsx` can render the same two distinct
  * page states `app/journeys/[id]/page.tsx` already does. */
-export async function getJourneyTemplate(id: number): Promise<JourneyTemplateDetail> {
-  const url = `${baseUrl()}/JourneyTemplates/${id}`;
+export async function getJourneyTemplate(id: string): Promise<JourneyTemplateDetail> {
+  const url = `${baseUrl()}/JourneyTemplates/${encodeURIComponent(id)}`;
   const response = await apiFetch(url, {
     cache: 'no-store',
     ...(await cookieForwardInit()),

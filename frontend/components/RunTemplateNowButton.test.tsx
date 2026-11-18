@@ -3,7 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { nowInLondon } from '@/lib/londonWallClock';
 import { renderWithMantine } from '@/test/render';
 import { RunTemplateNowButton } from './RunTemplateNowButton';
-import { testPublicId } from '@/test/apiDefaults';
+import { testPublicId, testTemplateId } from '@/test/apiDefaults';
 
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -31,7 +31,7 @@ describe('RunTemplateNowButton', () => {
   });
 
   it('defaults the service date field to today on open', async () => {
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
 
     expect(await screen.findByLabelText('Date')).toHaveValue(todayShown);
@@ -41,7 +41,7 @@ describe('RunTemplateNowButton', () => {
     // FE-4: 23:30 UTC on 15 July is 00:30 on 16 July in London (BST).
     vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-15T23:30:00Z'));
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     expect(await screen.findByLabelText('Date')).toHaveValue('16 Jul 2026');
   });
@@ -52,13 +52,13 @@ describe('RunTemplateNowButton', () => {
       new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1] }), { status: 200 }),
     );
 
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/JourneyTemplates/167/materialize',
+        `/api/JourneyTemplates/${testTemplateId(167)}/materialize`,
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ serviceDate: today }),
@@ -75,7 +75,7 @@ describe('RunTemplateNowButton', () => {
       }),
     );
 
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
@@ -86,7 +86,7 @@ describe('RunTemplateNowButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
 
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
@@ -100,7 +100,7 @@ describe('RunTemplateNowButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('template has no legs', { status: 400 }));
 
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add journey' }));
 
@@ -116,7 +116,7 @@ describe('RunTemplateNowButton', () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1] }), { status: 200 }),
     );
-    renderWithMantine(<RunTemplateNowButton templateId={167} />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
 
     const serviceDate = await screen.findByLabelText('Date');
@@ -128,7 +128,7 @@ describe('RunTemplateNowButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add journey' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/JourneyTemplates/167/materialize',
+        `/api/JourneyTemplates/${testTemplateId(167)}/materialize`,
         expect.objectContaining({ body: JSON.stringify({ serviceDate: today }) }),
       ),
     );
@@ -138,7 +138,7 @@ describe('RunTemplateNowButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const later = nowInLondon().add(10, 'day');
-    renderWithMantine(<RunTemplateNowButton templateId={167} keepLaterDates />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} keepLaterDates />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     const serviceDate = await screen.findByLabelText('Date');
     fireEvent.focus(serviceDate);
@@ -149,7 +149,7 @@ describe('RunTemplateNowButton', () => {
       await screen.findByText(`Added ${later.format('D MMM YYYY')}. The journey is added the evening before.`),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/JourneyTemplates/167/extra-dates',
+      `/api/JourneyTemplates/${testTemplateId(167)}/extra-dates`,
       expect.objectContaining({ body: JSON.stringify({ serviceDate: later.format('YYYY-MM-DD') }) }),
     );
     expect(pushMock).not.toHaveBeenCalled();
@@ -161,7 +161,7 @@ describe('RunTemplateNowButton', () => {
       new Response(JSON.stringify({ journeyId: 42, journeyPublicId: testPublicId(42), legIds: [1] }), { status: 200 }),
     );
     const tomorrow = nowInLondon().add(1, 'day');
-    renderWithMantine(<RunTemplateNowButton templateId={167} keepLaterDates />);
+    renderWithMantine(<RunTemplateNowButton templateId={testTemplateId(167)} keepLaterDates />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     const serviceDate = await screen.findByLabelText('Date');
     fireEvent.focus(serviceDate);
@@ -169,6 +169,6 @@ describe('RunTemplateNowButton', () => {
     fireEvent.blur(serviceDate);
     fireEvent.click(screen.getByRole('button', { name: 'Add journey' }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith(`/journeys/${testPublicId(42)}`));
-    expect(String(fetchMock.mock.calls[0]![0])).toBe('/api/JourneyTemplates/167/materialize');
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(`/api/JourneyTemplates/${testTemplateId(167)}/materialize`);
   });
 });

@@ -11,6 +11,8 @@ import {
   JOURNEY_LEG_DEFAULTS,
   JOURNEY_STOP_DEFAULTS,
   TRACKED_TRAIN_STATE_DEFAULTS,
+  testBreakId,
+  testTemplateId,
 } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
@@ -717,6 +719,7 @@ describe('JourneyDetailPage: untracked legs', () => {
 describe('JourneyDetailPage break deep link', () => {
   const openBreak = {
     id: 5,
+    publicId: testBreakId(5),
     cause: 'connection_missed' as const,
     fault: 'operator' as const,
     severity: 3 as const,
@@ -757,6 +760,29 @@ describe('JourneyDetailPage break deep link', () => {
     expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/${testPublicId(167)}/breaks/current?src=push`, {
       method: 'GET',
     });
+  });
+
+  it("opens it from the break link's b_ id too", async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(baseJourney({ isOwner: true, openBreak }));
+    await renderWithQuery({ break: testBreakId(5), src: 'push' });
+    expect(screen.getByText('Loading trains')).toBeInTheDocument();
+  });
+
+  it('opens it from a numeric link where the api returns no b_ id', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(
+      baseJourney({ isOwner: true, openBreak: { ...openBreak, publicId: '' } }),
+    );
+    await renderWithQuery({ break: '5', src: 'push' });
+    expect(screen.getByText('Loading trains')).toBeInTheDocument();
+  });
+
+  it('never matches break=0 against a break whose id is blanked', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(
+      baseJourney({ isOwner: true, openBreak: { ...openBreak, id: 0, publicId: '' } }),
+    );
+    await renderWithQuery({ break: '0', src: 'push' });
+    expect(screen.queryByText('Loading trains')).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('only shows the banner for another break id', async () => {
@@ -834,6 +860,7 @@ describe('JourneyDetailPage following', () => {
       return baseJourney({
         isOwner: true,
         sourceTemplateId: 5,
+        sourceTemplatePublicId: testTemplateId(5),
         legs: [
           matchedLeg({
             serviceDate: '2099-01-05',
@@ -847,8 +874,17 @@ describe('JourneyDetailPage following', () => {
     it('links to it and offers Skip while the journey has not started', async () => {
       vi.mocked(api.getJourney).mockResolvedValue(occurrence());
       await renderPage();
-      expect(screen.getByRole('link', { name: 'Regular journey' })).toHaveAttribute('href', '/journeys/regular/5');
+      expect(screen.getByRole('link', { name: 'Regular journey' })).toHaveAttribute(
+        'href',
+        `/journeys/regular/${testTemplateId(5)}`,
+      );
       expect(screen.getByRole('button', { name: 'Skip' })).toBeInTheDocument();
+    });
+
+    it('links by the numeric id where the api returns no opaque one', async () => {
+      vi.mocked(api.getJourney).mockResolvedValue({ ...occurrence(), sourceTemplatePublicId: null });
+      await renderPage();
+      expect(screen.getByRole('link', { name: 'Regular journey' })).toHaveAttribute('href', '/journeys/regular/5');
     });
 
     it('offers no Skip once the journey has started', async () => {
@@ -871,7 +907,7 @@ describe('JourneyDetailPage following', () => {
           searchParams: Promise.resolve({ pick: 'usual' }),
         }),
       );
-      expect(api.getJourneyTemplate).toHaveBeenCalledWith(5);
+      expect(api.getJourneyTemplate).toHaveBeenCalledWith(testTemplateId(5));
     });
 
     // DS-398: Remind me to pick my train. The leg's window is the usual

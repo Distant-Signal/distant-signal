@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { AlternativesSheet, type AlternativesMode } from './AlternativesSheet';
-import { testLegId } from '@/test/apiDefaults';
+import { testBreakId, testLegId } from '@/test/apiDefaults';
 import { breakResponse, replanSuggestion, suggestionSet, trainSuggestionLeg } from '@/test/replanFixtures';
 
 const refreshMock = vi.fn();
@@ -31,7 +31,7 @@ function mockFetch(routes: Record<string, Handler>) {
   return fetchMock;
 }
 
-function renderSheet(mode: AlternativesMode = { kind: 'break', breakId: 5 }, onClose = vi.fn()) {
+function renderSheet(mode: AlternativesMode = { kind: 'break', breakId: testBreakId(5) }, onClose = vi.fn()) {
   renderWithMantine(
     <AlternativesSheet
       journeyId="42"
@@ -127,7 +127,7 @@ describe('AlternativesSheet', () => {
 
   it('opens with the push source when the deep link opened it', async () => {
     const fetchMock = mockFetch({ [`${BREAK_URL}?src=push`]: () => json(breakResponse()) });
-    renderSheet({ kind: 'break', breakId: 5, fromPush: true });
+    renderSheet({ kind: 'break', breakId: testBreakId(5), fromPush: true });
     await screen.findByText('10:04 York to Edinburgh, direct');
     expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/42/breaks/current?src=push', { method: 'GET' });
   });
@@ -146,7 +146,7 @@ describe('AlternativesSheet', () => {
     expect(list).toHaveAttribute('aria-busy', 'true');
     expect(screen.getAllByRole('button', { name: /^Take this one/ })[0]).toBeDisabled();
     const previewCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/replan/preview'));
-    expect(previewCall?.[1]?.body).toBe(JSON.stringify({ breakId: 5 }));
+    expect(previewCall?.[1]?.body).toBe(JSON.stringify({ breakId: testBreakId(5) }));
 
     const fresh = suggestionSet({
       fingerprint: 'fp-2',
@@ -176,6 +176,26 @@ describe('AlternativesSheet', () => {
     expect(await screen.findByText('10:04 York to Edinburgh, direct')).toBeInTheDocument();
   });
 
+  it('sends the numeric break id where the api returns no opaque one, never 0', async () => {
+    const fetchMock = mockFetch({
+      [BREAK_URL]: () => json(breakResponse({ stale: true, publicId: '' })),
+      'POST /api/Journeys/42/replan/preview': () => new Promise<Response>(() => {}),
+    });
+    renderSheet();
+    await screen.findByText('Updating');
+    const previewCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/replan/preview'));
+    expect(previewCall?.[1]?.body).toBe(JSON.stringify({ breakId: '5' }));
+  });
+
+  it('plans nothing for a break with no usable id', async () => {
+    const fetchMock = mockFetch({
+      [BREAK_URL]: () => json(breakResponse({ stale: true, id: 0, publicId: '' })),
+    });
+    renderSheet();
+    await screen.findByText('10:04 York to Edinburgh, direct');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/replan/preview'))).toBe(false);
+  });
+
   it('takes a suggestion, offers Undo for 2 minutes, then refreshes', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const fetchMock = mockFetch({
@@ -187,7 +207,7 @@ describe('AlternativesSheet', () => {
 
     expect(await screen.findByText('Journey updated. Booked plan saved.')).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/replan/accept'));
-    expect(call?.[1]?.body).toBe(JSON.stringify({ breakId: 5, suggestionId: 's1', fingerprint: 'fp-1' }));
+    expect(call?.[1]?.body).toBe(JSON.stringify({ breakId: testBreakId(5), suggestionId: 's1', fingerprint: 'fp-1' }));
     const headers = call?.[1]?.headers as Record<string, string>;
     expect(headers['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
@@ -213,7 +233,7 @@ describe('AlternativesSheet', () => {
       'POST /api/Journeys/42/revisions/3/revert': () =>
         json({ journeyId: 42, revisionNo: 5, newLegIds: [7], undoRevisionNo: null }),
     });
-    renderSheet({ kind: 'break', breakId: 5 }, onClose);
+    renderSheet({ kind: 'break', breakId: testBreakId(5) }, onClose);
     fireEvent.click(await screen.findByRole('button', { name: 'Take this one: 10:04 York to Edinburgh, direct' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
 
@@ -341,7 +361,7 @@ describe('AlternativesSheet', () => {
   describe.each([
     {
       variant: 'railway-caused',
-      mode: { kind: 'break', breakId: 5 } as AlternativesMode,
+      mode: { kind: 'break', breakId: testBreakId(5) } as AlternativesMode,
       route: BREAK_URL,
       body: (hint: string) =>
         breakResponse({

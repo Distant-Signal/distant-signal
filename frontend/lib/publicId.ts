@@ -1,15 +1,28 @@
 /** Opaque ids for legs, tracked trains and push devices (DS-534). Each has a
  * `publicId` (a one-letter prefix, `_` and 32 lowercase hex digits: `l_` a
- * leg, `t_` a tracked train, `d_` a device; never all digits) beside the
+ * leg, `t_` a tracked train, `d_` a device, `r_` a regular journey (a
+ * journey template), `b_` a journey break; never all digits) beside the
  * deprecated numeric `id`. Every route takes either; the app sends the opaque
  * one. Journeys' `j_` ids are in `journeyId.ts`. */
 
 const PUBLIC_TRACKING_ID = /^t_[0-9a-f]{32}$/;
+const PUBLIC_TEMPLATE_ID = /^r_[0-9a-f]{32}$/;
+const PUBLIC_BREAK_ID = /^b_[0-9a-f]{32}$/;
 const LEGACY_ID = /^\d+$/;
 
 /** Whether `id` has the shape of a tracked train's `publicId`. */
 export function isPublicTrackingId(id: string): boolean {
   return PUBLIC_TRACKING_ID.test(id);
+}
+
+/** Whether `id` has the shape of a regular journey's `publicId`. */
+export function isPublicTemplateId(id: string): boolean {
+  return PUBLIC_TEMPLATE_ID.test(id);
+}
+
+/** Whether `id` has the shape of a journey break's `publicId`. */
+export function isPublicBreakId(id: string): boolean {
+  return PUBLIC_BREAK_ID.test(id);
 }
 
 /** Whether `id` is a deprecated numeric id. */
@@ -43,4 +56,36 @@ export function isTriggerLeg(
 ): boolean {
   if (openBreak.triggerLegPublicId) return leg.publicId === openBreak.triggerLegPublicId;
   return openBreak.triggerLegId !== null && leg.id === openBreak.triggerLegId;
+}
+
+/** A regular journey's reference for a path, body, link or key: its `r_` id,
+ * or the numeric one from an api that has none yet. */
+export function templateRef(template: { id: number; publicId?: string | null }): string {
+  return publicRef(template.publicId, template.id);
+}
+
+/** A regular journey's reference from a response's pair of fields (a
+ * `sourceTemplateId` beside its `sourceTemplatePublicId`), `null` for none. */
+export function optionalTemplateRef(publicId: string | null | undefined, id: number | null): string | null {
+  if (publicId) return publicId;
+  return id === null ? null : String(id);
+}
+
+/** An open break's reference for a body or key: its `b_` id, else a real
+ * numeric one, else `null`. A reader who is not the journey's owner gets
+ * `id` 0, which is never an id. */
+export function breakRef(openBreak: { id: number; publicId?: string | null }): string | null {
+  if (openBreak.publicId) return openBreak.publicId;
+  return openBreak.id > 0 ? String(openBreak.id) : null;
+}
+
+/** Whether a `?break=` link names this open break: by its `b_` id, or by the
+ * numeric id a push queued before the opaque ids carries. */
+export function matchesBreakParam(
+  param: string | string[] | undefined,
+  openBreak: { id: number; publicId?: string | null },
+): boolean {
+  if (typeof param !== 'string' || param === '') return false;
+  if (openBreak.publicId && param === openBreak.publicId) return true;
+  return openBreak.id > 0 && param === String(openBreak.id);
 }

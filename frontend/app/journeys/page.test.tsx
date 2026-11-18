@@ -23,6 +23,7 @@ import {
   TEMPLATE_TARGET_DEFAULTS,
   TRACKED_TRAIN_LIST_ITEM_DEFAULTS,
   testPublicId,
+  testTemplateId,
   testTrackingId,
 } from '@/test/apiDefaults';
 
@@ -353,6 +354,7 @@ describe('JourneysPage', () => {
       {
         ...TEMPLATE_TARGET_DEFAULTS,
         id: 5,
+        publicId: testTemplateId(5),
         customName: 'Office',
         createdAt: '2026-08-01T00:00:00Z',
         legCount: 1,

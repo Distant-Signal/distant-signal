@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testTemplateId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { DeleteJourneyTemplateButton } from './DeleteJourneyTemplateButton';
 
@@ -24,7 +25,7 @@ describe('DeleteJourneyTemplateButton', () => {
 
   it('does not call DELETE until the confirmation modal is confirmed', () => {
     const fetchMock = vi.mocked(fetch);
-    renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
+    renderWithMantine(<DeleteJourneyTemplateButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -33,13 +34,13 @@ describe('DeleteJourneyTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-    renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
+    renderWithMantine(<DeleteJourneyTemplateButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm delete regular journey' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete regular journey' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/JourneyTemplates/167', { method: 'DELETE' });
+      expect(fetchMock).toHaveBeenCalledWith(`/api/JourneyTemplates/${testTemplateId(167)}`, { method: 'DELETE' });
     });
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/journeys/regular'));
   });
@@ -48,7 +49,7 @@ describe('DeleteJourneyTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('no template with that id', { status: 404 }));
 
-    renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
+    renderWithMantine(<DeleteJourneyTemplateButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm delete regular journey' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete regular journey' }));
@@ -63,7 +64,7 @@ describe('DeleteJourneyTemplateButton', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('no session', { status: 401 }));
 
-    renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
+    renderWithMantine(<DeleteJourneyTemplateButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm delete regular journey' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete regular journey' }));
@@ -75,7 +76,7 @@ describe('DeleteJourneyTemplateButton', () => {
   });
 
   it('says the journeys already made from it are kept', async () => {
-    renderWithMantine(<DeleteJourneyTemplateButton templateId={167} />);
+    renderWithMantine(<DeleteJourneyTemplateButton templateId={testTemplateId(167)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete regular journey' }));
     await waitFor(() => expect(screen.getByText(/Journeys already made from it are kept\./)).toBeInTheDocument());
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testTemplateId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { PauseRegularJourneyButton } from './PauseRegularJourneyButton';
 
@@ -22,14 +23,14 @@ describe('PauseRegularJourneyButton', () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ templateIds: [5, 6], deletedJourneyIds: [] }), { status: 200 }),
     );
-    renderWithMantine(<PauseRegularJourneyButton templateId={5} active paired />);
+    renderWithMantine(<PauseRegularJourneyButton templateId={testTemplateId(5)} active paired />);
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     expect(await screen.findByText(/Pauses the return journey too\./)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Confirm pause regular journey' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/JourneyTemplates/5/active',
+        `/api/JourneyTemplates/${testTemplateId(5)}/active`,
         expect.objectContaining({ method: 'PUT', body: JSON.stringify({ active: false }) }),
       ),
     );
@@ -39,11 +40,11 @@ describe('PauseRegularJourneyButton', () => {
   it('resumes straight away', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ templateIds: [5], deletedJourneyIds: [] })));
-    renderWithMantine(<PauseRegularJourneyButton templateId={5} active={false} />);
+    renderWithMantine(<PauseRegularJourneyButton templateId={testTemplateId(5)} active={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/JourneyTemplates/5/active',
+        `/api/JourneyTemplates/${testTemplateId(5)}/active`,
         expect.objectContaining({ body: JSON.stringify({ active: true }) }),
       ),
     );
@@ -52,7 +53,7 @@ describe('PauseRegularJourneyButton', () => {
 
   it("says Couldn't pause this regular journey on a failure", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('', { status: 500 }));
-    renderWithMantine(<PauseRegularJourneyButton templateId={5} active />);
+    renderWithMantine(<PauseRegularJourneyButton templateId={testTemplateId(5)} active />);
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm pause regular journey' }));
     expect(await screen.findByText("Couldn't pause this regular journey. Try again.")).toBeInTheDocument();

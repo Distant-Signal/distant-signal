@@ -48,6 +48,7 @@ function revision(overrides: Partial<Revision> = {}): Revision {
     cause: null,
     fault: null,
     breakId: null,
+    breakPublicId: null,
     actor: 'owner',
     isCompensationBaseline: true,
     canRevert: false,

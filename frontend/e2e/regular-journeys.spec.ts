@@ -4,6 +4,7 @@ import type { JourneyTemplateListItem, TripPlanResponse } from '../lib/types';
 import {
   ITINERARY_DEFAULTS,
   testPublicId,
+  testTemplateId,
   SEGMENT_DEFAULTS,
   TRIP_PLAN_DEFAULTS,
   plannedTrainLeg,
@@ -47,7 +48,7 @@ async function deleteOwn(page: Page, keep: ReadonlySet<number> = SEEDED): Promis
   if (!mine.ok()) return;
   for (const template of (await mine.json()) as JourneyTemplateListItem[]) {
     if (!keep.has(template.id) && template.target !== null) {
-      await page.request.delete(`/api/JourneyTemplates/${template.id}`);
+      await page.request.delete(`/api/JourneyTemplates/${template.publicId}`);
     }
   }
 }
@@ -212,9 +213,9 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId, returnTemplateId } = (await created.json()) as {
-      templateId: number;
-      returnTemplateId: number;
+    const { templatePublicId: templateId, returnTemplatePublicId: returnTemplateId } = (await created.json()) as {
+      templatePublicId: string;
+      returnTemplatePublicId: string;
     };
 
     try {
@@ -264,7 +265,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
     const skipped = async () => {
       const detail = await page.request.get(`/api/JourneyTemplates/${templateId}`);
       return ((await detail.json()) as { skippedDates: string[] }).skippedDates;
@@ -325,7 +326,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
     const detail = async () =>
       (await (await page.request.get(`/api/JourneyTemplates/${templateId}`)).json()) as {
         pausedUntil: string | null;
@@ -401,7 +402,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
 
     try {
       await page.goto('/journeys/regular');
@@ -508,7 +509,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
 
     try {
       await page.goto('/journeys/regular');
@@ -530,13 +531,13 @@ test.describe('regular journeys', () => {
 
   test('a regular journey page passes axe', async ({ page, context }) => {
     await logIn(context);
-    await page.goto('/journeys/regular/900201');
+    await page.goto(`/journeys/regular/${testTemplateId(900201)}`);
     await expect(
       page.getByRole('heading', { level: 1, name: 'London Kings Cross to London Euston, leave after 09:00' }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'The return journey' })).toHaveAttribute(
       'href',
-      '/journeys/regular/900202',
+      `/journeys/regular/${testTemplateId(900202)}`,
     );
     const axe = await scanPageBothSchemes(page);
     expect(axe.violations).toEqual([]);

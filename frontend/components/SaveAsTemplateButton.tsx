@@ -8,6 +8,7 @@ import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
 import type { CreateJourneyTemplateRequest, CreateJourneyTemplateResponse } from '@/lib/types';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { publicRef } from '@/lib/publicId';
 import { regularJourneyHref } from '@/lib/regularJourneys';
 
 /** "Make this a regular journey" (was "Make this a template") — journey-detail-page header button
@@ -65,7 +66,7 @@ export function SaveAsTemplateButton({ journeyId }: { journeyId: string }) {
       const result = (await response.json()) as CreateJourneyTemplateResponse;
       setSubmitting(false);
       close();
-      router.push(regularJourneyHref(result.templateId));
+      router.push(regularJourneyHref(publicRef(result.templatePublicId, result.templateId)));
     } catch {
       setError(describeFailure('save', 'this regular journey'));
       setSubmitting(false);

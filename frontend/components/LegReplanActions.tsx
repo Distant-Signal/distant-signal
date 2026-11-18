@@ -12,7 +12,7 @@ import type { JourneyLegDetail } from '@/lib/types';
 /** What the journey page knows about a leg for these actions. */
 export interface LegReplanContext {
   /** The journey's open break, if any. */
-  openBreakId: number | null;
+  openBreakId: string | null;
   /** This leg is the open break's trigger. */
   isBreakTrigger: boolean;
   /** The owner muted suggestions for this journey. */

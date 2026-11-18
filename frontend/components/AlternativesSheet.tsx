@@ -1,6 +1,6 @@
 'use client';
 
-import { publicRef } from '@/lib/publicId';
+import { breakRef, publicRef } from '@/lib/publicId';
 import { TrainOperator } from './TrainOperator';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -79,7 +79,7 @@ import type {
  *   (`GET .../legs/{id}/alternatives?cause=`), taken with `POST
  *   .../legs/{id}/replace`. */
 export type AlternativesMode =
-  | { kind: 'break'; breakId: number; fromPush?: boolean }
+  | { kind: 'break'; breakId?: string; fromPush?: boolean }
   | { kind: 'missed'; legId: string; inboundLate?: boolean }
   | { kind: 'alternatives'; legId: string; cause: AlternativesCause };
 
@@ -172,7 +172,7 @@ function RefusalNotice({ refusal }: { refusal: Refusal }) {
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 /** Fresh suggestions for a break (`POST .../replan/preview`). */
-function previewBreak(journeyId: string, breakId: number): Promise<Fetched<BreakResponse>> {
+function previewBreak(journeyId: string, breakId: string): Promise<Fetched<BreakResponse>> {
   return fetchJson<BreakResponse>(
     `/api/Journeys/${journeyId}/replan/preview`,
     { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ breakId }) },
@@ -385,7 +385,9 @@ function AlternativesSheetBody({
       // planned (spec §8.3).
       if (!loaded.stale && loaded.suggestions !== null && !loaded.suggestions.stale) return;
       setUpdating(true);
-      const fresh = await previewBreak(journeyId, loaded.id);
+      const loadedRef = breakRef(loaded);
+      if (loadedRef === null) return;
+      const fresh = await previewBreak(journeyId, loadedRef);
       if (isCancelled()) return;
       setUpdating(false);
       if (!fresh.ok) {
@@ -427,13 +429,19 @@ function AlternativesSheetBody({
     setActionRefusal(null);
     setNotice(null);
     const headers = { ...JSON_HEADERS, 'Idempotency-Key': crypto.randomUUID() };
+    const breakInfoRef = breakInfo === null ? null : breakRef(breakInfo);
+    if (breakInfo !== null && breakInfoRef === null) {
+      setTakingId(null);
+      setActionError(describeFailure(...UPDATE_FAILURE));
+      return;
+    }
     const request =
-      breakInfo !== null
+      breakInfo !== null && breakInfoRef !== null
         ? fetch(`/api/Journeys/${journeyId}/replan/accept`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              breakId: breakInfo.id,
+              breakId: breakInfoRef,
               suggestionId: suggestion.id,
               fingerprint: set.fingerprint,
             } satisfies AcceptSuggestionRequest),

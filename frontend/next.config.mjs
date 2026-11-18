@@ -187,15 +187,15 @@ const nextConfig = {
       },
       // Journey templates became "Regular journeys" (regular journeys
       // design §4.4, 2026-11-06): the list and each template's page moved,
-      // and old links and bookmarks follow. The id takes digits only, as
-      // the page does.
+      // and old links and bookmarks follow. The id is digits or an `r_` id,
+      // as the page takes.
       {
         source: '/journeys/templates',
         destination: '/journeys/regular',
         permanent: true,
       },
       {
-        source: '/journeys/templates/:id(\\d+)',
+        source: '/journeys/templates/:id(\\d+|r_[0-9a-f]+)',
         destination: '/journeys/regular/:id',
         permanent: true,
       },

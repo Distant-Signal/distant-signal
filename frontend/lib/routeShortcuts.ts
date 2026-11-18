@@ -1,3 +1,4 @@
+import { templateRef } from './publicId';
 import type { JourneyListItem, JourneyTemplateListItem } from './types';
 
 /** A route to start from: two stations, and what to call it. */
@@ -39,7 +40,7 @@ export function savedRoutes(templates: readonly JourneyTemplateListItem[] | null
     if (!origin || !destination || origin === destination) continue;
     const name = template.customName?.trim();
     routes.push({
-      key: `saved-${template.id}`,
+      key: `saved-${templateRef(template)}`,
       label:
         name ||
         routeName(

@@ -18,6 +18,7 @@ import {
   regularJourneyHref,
   targetLabel,
 } from '@/lib/regularJourneys';
+import { optionalTemplateRef, templateRef } from '@/lib/publicId';
 import { patternSummary, runsByItself } from '@/lib/templateRecurrence';
 import type { JourneyTemplateListItem } from '@/lib/types';
 import { dueDates } from '@/lib/upcomingDates';
@@ -160,28 +161,29 @@ function PausedBadge() {
  * outbound and offer, or do, the return too. */
 function TemplateActions({ template, paired }: { template: JourneyTemplateListItem; paired: boolean }) {
   if (!runsByItself(template)) return null;
+  const ref = templateRef(template);
   return (
     <Stack gap="xs">
       {template.active && (
         <UpcomingDatesStrip
-          templateId={template.id}
-          pairedTemplateId={paired ? template.pairedTemplateId : null}
+          templateId={ref}
+          pairedTemplateId={
+            paired ? optionalTemplateRef(template.pairedTemplatePublicId, template.pairedTemplateId) : null
+          }
           upcoming={template.upcomingDates}
         />
       )}
       <Group gap="xs" wrap="wrap">
         {template.active && template.nextDate && (
           <SkipNextButton
-            templateId={template.id}
+            templateId={ref}
             date={template.nextDate}
             dates={dueDates(template.upcomingDates)}
             paired={paired}
           />
         )}
-        {template.active && (
-          <PauseUntilButton templateId={template.id} pausedUntil={template.pausedUntil} paired={paired} />
-        )}
-        <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
+        {template.active && <PauseUntilButton templateId={ref} pausedUntil={template.pausedUntil} paired={paired} />}
+        <PauseRegularJourneyButton templateId={ref} active={template.active} paired={paired} />
       </Group>
     </Stack>
   );
@@ -195,7 +197,9 @@ function SingleCard({ template }: { template: JourneyTemplateListItem }) {
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <Stack gap={2} miw={0}>
             <Text fw={600}>
-              <CardTitleLink href={regularJourneyHref(template.id)}>{regularJourneyTitle(template)}</CardTitleLink>
+              <CardTitleLink href={regularJourneyHref(templateRef(template))}>
+                {regularJourneyTitle(template)}
+              </CardTitleLink>
             </Text>
             <TemplateFacts template={template} />
           </Stack>
@@ -217,11 +221,11 @@ function PairCard({ outbound, back }: { outbound: JourneyTemplateListItem; back:
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <Stack gap="xs" miw={0}>
             {[outbound, back].map((template) => (
-              <Stack key={template.id} gap={2}>
+              <Stack key={templateRef(template)} gap={2}>
                 <Text fw={600}>
                   {/* Inline: a paragraph can't hold the link's own paragraph,
                       and the browser's repair of one broke hydration. */}
-                  <TextLink href={regularJourneyHref(template.id)} inline>
+                  <TextLink href={regularJourneyHref(templateRef(template))} inline>
                     {regularJourneyTitle(template)}
                   </TextLink>
                 </Text>
