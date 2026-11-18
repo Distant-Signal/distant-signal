@@ -12,6 +12,7 @@ import type {
   ReliabilityJourney,
 } from '@/lib/types';
 import { journeyDetail, journeyListItem } from '@/test/journeyFixtures';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 import { cardOf } from '@/test/clickableCard';
 import { byVisibleText, visibleText } from '@/test/routeText';
 import {
@@ -95,6 +96,7 @@ function sharedTrain(overrides: Partial<SharedGroupTrain> = {}): SharedGroupTrai
     addedByName: 'Sam',
     addedByTag: null,
     ...overrides,
+    trainSubscriptionPublicId: testTrackingId(overrides.trainSubscriptionId ?? 50),
   };
 }
 
@@ -1157,7 +1159,7 @@ describe('JourneysPage', () => {
         ): ReliabilityJourney => ({
           ...RELIABILITY_JOURNEY_DEFAULTS,
           journeyId,
-          journeyPublicId: `j_${journeyId}`,
+          journeyPublicId: testPublicId(journeyId),
           serviceDate,
           delayMinutes: 35,
           estimate: {
@@ -1194,6 +1196,34 @@ describe('JourneysPage', () => {
           const heading = past.getByRole('heading', { name: 'Past' });
           expect(heading.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         });
+
+        it.each(ID_SHAPES)(
+          'marks only the journey that may qualify when numeric ids are zeroed (%s)',
+          async (_n, shape) => {
+            vi.mocked(api.getMyJourneys).mockResolvedValue(
+              shape([
+                journey({ id: 305, serviceDate: '2026-09-20' }),
+                journey({ id: 306, serviceDate: '2026-09-25' }),
+                journey({ id: 307, serviceDate: '2026-09-26' }),
+              ]),
+            );
+            vi.mocked(api.getMyReliability).mockResolvedValue(
+              shape({
+                trains: [],
+                journeys: [
+                  claim(305, '2026-09-20'),
+                  claim(306, '2026-09-25', { estimate: null, delayMinutes: 1 }),
+                  claim(307, '2026-09-26', { estimate: null, delayMinutes: 1 }),
+                ],
+              }),
+            );
+
+            renderWithMantine(await JourneysPage());
+
+            expect(screen.getAllByText('May qualify for Delay Repay')).toHaveLength(1);
+            expect(screen.getByRole('note')).toHaveTextContent('1 recent journey may qualify');
+          },
+        );
 
         it('counts 28 days from the service date and stops at 29', async () => {
           vi.mocked(api.getMyJourneys).mockResolvedValue([

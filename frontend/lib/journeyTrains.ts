@@ -1,3 +1,4 @@
+import { journeyRef, refList, trackingRef } from '@/lib/publicId';
 import type { JourneyListItem, TrackedTrainListItem } from '@/lib/types';
 
 /** The caller's own tracked trains, split into the ones a listed journey
@@ -5,15 +6,16 @@ import type { JourneyListItem, TrackedTrainListItem } from '@/lib/types';
 export interface JourneyTrainSplit {
   /** Trains no listed journey owns, in the order given. */
   standalone: TrackedTrainListItem[];
-  /** Journey id to the ids of the trains folded into it. */
-  trainIdsByJourney: Map<number, number[]>;
+  /** Journey reference (`journeyRef`) to the references (`trackingRef`) of
+   * the trains folded into it. */
+  trainRefsByJourney: Map<string, string[]>;
 }
 
 /** The one rule for `/journeys`: a tracked train that belongs to ANY leg
  * of one of the caller's journeys is shown under that journey, never again
  * as a standalone tracked train.
  *
- * `journeyIds` (`GET /Train/mine`) names every journey a train belongs to,
+ * `journeyPublicIds` (`GET /Train/mine`) names every journey a train belongs to,
  * whichever leg it is. A train goes under the first of those that is
  * actually on the page: one whose journey fell outside `GET /Journeys/mine`'s
  * cap stays a standalone row rather than vanishing. `journeys` is `null`
@@ -23,18 +25,18 @@ export function splitJourneyTrains(
   journeys: JourneyListItem[] | null,
 ): JourneyTrainSplit {
   const standalone: TrackedTrainListItem[] = [];
-  const trainIdsByJourney = new Map<number, number[]>();
-  const listed = new Set((journeys ?? []).map((journey) => journey.id));
+  const trainRefsByJourney = new Map<string, string[]>();
+  const listed = new Set((journeys ?? []).map(journeyRef));
 
   for (const train of trains) {
-    const journeyId = train.journeyIds.find((id) => listed.has(id));
-    if (journeyId === undefined) {
+    const journey = refList(train.journeyPublicIds, train.journeyIds).find((ref) => listed.has(ref));
+    if (journey === undefined) {
       standalone.push(train);
       continue;
     }
-    const folded = trainIdsByJourney.get(journeyId) ?? [];
-    folded.push(train.id);
-    trainIdsByJourney.set(journeyId, folded);
+    const folded = trainRefsByJourney.get(journey) ?? [];
+    folded.push(trackingRef(train));
+    trainRefsByJourney.set(journey, folded);
   }
-  return { standalone, trainIdsByJourney };
+  return { standalone, trainRefsByJourney };
 }

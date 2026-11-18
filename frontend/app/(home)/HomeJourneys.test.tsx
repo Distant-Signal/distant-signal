@@ -30,6 +30,7 @@ import {
 } from './HomeJourneys';
 import { openBreakSummary } from '@/test/replanFixtures';
 import { testPublicId, testTemplateId, testTrackingId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 // The open-break banner's "See options" sheet is a client component.
 vi.mock('next/navigation', () => ({
@@ -456,6 +457,23 @@ describe('UpcomingJourneysSection', () => {
     );
     return { item: journeyListItem(detail), detail: null, departure };
   }
+
+  it.each(ID_SHAPES)('keys every row and shared row by its opaque id, never twice alike (%s)', (_name, shape) => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const entries: HomeJourney[] = [upcoming(1), upcoming(2)].map((entry) => shape(entry));
+      const trains: HomeLoneTrain[] = [5, 6].map((id) => {
+        const train = loneTrain(id);
+        return { train: shape(train), status: trackedTrainRowStatus(train, '2026-09-17'), departure: null, leg: null };
+      });
+      const sharedRows = [upcoming(3), upcoming(4)].map((entry) => shape(entry));
+      renderWithMantine(<UpcomingJourneysSection upcoming={[...entries, ...trains]} shared={sharedRows} />);
+      const duplicateKey = errors.mock.calls.filter((call) => String(call[0]).includes('same key'));
+      expect(duplicateKey).toEqual([]);
+    } finally {
+      errors.mockRestore();
+    }
+  });
 
   it('marks a journey made from a regular journey, with Skip until it sets off', () => {
     const planned = upcoming(1);

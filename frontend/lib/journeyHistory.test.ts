@@ -9,6 +9,7 @@ import {
   testPublicId,
   testTrackingId,
 } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 const TODAY = '2026-08-31';
 
@@ -187,23 +188,26 @@ describe('journeysPageSections', () => {
     ]);
   });
 
-  it('puts a journey before a train leaving at the same moment, and a newer shared train first on a tie', () => {
-    const sections = journeysPageSections(
-      {
-        journeys: [journey(1, '2026-08-30T08:00:00Z', true)],
-        trains: [train(2, '2026-08-30T08:00:00Z', true)],
-        sharedTrains: [
-          sharedTrain(40, '2026-08-30T08:00:00Z', '2026-08-30'),
-          sharedTrain(41, '2026-08-30T08:00:00Z', '2026-08-30'),
-        ],
-      },
-      TODAY,
-    );
-    expect(sections.past.map((entry) => entry.key)).toEqual([
-      `journey-${testPublicId(1)}`,
-      `train-${testTrackingId(2)}`,
-      `shared-train-${testTrackingId(41)}`,
-      `shared-train-${testTrackingId(40)}`,
-    ]);
-  });
+  it.each(ID_SHAPES)(
+    'puts a journey before a train leaving at the same moment, and keeps the api order (newest share first) on a tie (%s)',
+    (_name, shape) => {
+      const sections = journeysPageSections(
+        shape({
+          journeys: [journey(1, '2026-08-30T08:00:00Z', true)],
+          trains: [train(2, '2026-08-30T08:00:00Z', true)],
+          sharedTrains: [
+            sharedTrain(41, '2026-08-30T08:00:00Z', '2026-08-30'),
+            sharedTrain(40, '2026-08-30T08:00:00Z', '2026-08-30'),
+          ],
+        }),
+        TODAY,
+      );
+      expect(sections.past.map((entry) => entry.key)).toEqual([
+        `journey-${testPublicId(1)}`,
+        `train-${testTrackingId(2)}`,
+        `shared-train-${testTrackingId(41)}`,
+        `shared-train-${testTrackingId(40)}`,
+      ]);
+    },
+  );
 });

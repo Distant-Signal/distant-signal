@@ -43,6 +43,19 @@ export function legRef(leg: { id: number; publicId: string }): string {
   return publicRef(leg.publicId, leg.id);
 }
 
+/** The references of a list of objects given as parallel arrays: the opaque
+ * ids (`journeyPublicIds`) beside the deprecated numeric ones (`journeyIds`),
+ * which an api may serve as 0. Compare these, never the numbers. */
+export function refList(publicIds: readonly string[] | undefined, ids: readonly number[]): string[] {
+  return ids.map((id, index) => publicRef(publicIds?.[index], id));
+}
+
+/** A journey's reference, from its list row or detail: the key to join on and
+ * to send. Never its numeric id alone, which an api can serve as 0. */
+export function journeyRef(journey: { id: number; publicId: string }): string {
+  return publicRef(journey.publicId, journey.id);
+}
+
 /** A tracked train's reference, from its state or list row. */
 export function trackingRef(train: { id: number; publicId: string }): string {
   return publicRef(train.publicId, train.id);

@@ -385,15 +385,15 @@ async function SessionHome() {
   const reads = homeDetailReads(journeyItems, standaloneTrains, today);
   const sharedReads = homeDetailReads(sharedItems, [], today).journeys.slice(0, MAX_SHARED_JOURNEYS);
   const journeyDetailsPromise = Promise.all(
-    [...reads.journeys, ...sharedReads].map(async ({ id, ref }) => {
+    [...reads.journeys, ...sharedReads].map(async ({ ref }) => {
       const detail = await getJourney(ref).catch(() => null);
-      return detail === null ? null : ([id, detail] as const);
+      return detail === null ? null : ([ref, detail] as const);
     }),
   );
   const trainStatesPromise = Promise.all(
-    reads.trains.map(async ({ id, ref }) => {
+    reads.trains.map(async ({ ref }) => {
       const state = await getTrackedTrainById(ref).catch(() => null);
-      return state === null ? null : ([id, state] as const);
+      return state === null ? null : ([ref, state] as const);
     }),
   );
 
@@ -471,11 +471,11 @@ async function SessionHome() {
     }),
   );
 
-  const journeyDetails = new Map<number, JourneyDetail>(
-    (await journeyDetailsPromise).filter((entry): entry is readonly [number, JourneyDetail] => entry !== null),
+  const journeyDetails = new Map<string, JourneyDetail>(
+    (await journeyDetailsPromise).filter((entry): entry is readonly [string, JourneyDetail] => entry !== null),
   );
-  const trainStates = new Map<number, TrackedTrainState>(
-    (await trainStatesPromise).filter((entry): entry is readonly [number, TrackedTrainState] => entry !== null),
+  const trainStates = new Map<string, TrackedTrainState>(
+    (await trainStatesPromise).filter((entry): entry is readonly [string, TrackedTrainState] => entry !== null),
   );
   const { current, alsoInProgress, upcoming } = splitHomeJourneys(
     journeyItems,

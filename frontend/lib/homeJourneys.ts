@@ -9,7 +9,7 @@ import {
 import { viewerCanPickTrain, type TrackedRowStatus } from './trackedRowStatus';
 import { splitTrainRows } from './upcomingPast';
 import { isUntrackedLeg } from './untrackedLeg';
-import { trackingRef } from './publicId';
+import { journeyRef, trackingRef } from './publicId';
 import type {
   JourneyDetail,
   JourneyLegDetail,
@@ -114,20 +114,26 @@ export interface HomeDetailReads {
   trains: DetailRead[];
 }
 
-/** A row to read in full: its numeric `id` (the join key and the tie-break
- * order) and the `ref` the api is asked for (its opaque id). */
+/** A row to read in full: the `ref` the api is asked for, which is also the
+ * join key back to its row (its opaque id; numeric ids may all be 0). */
 export interface DetailRead {
-  id: number;
   ref: string;
 }
 
 /** One row `homeDetailReads` might read; `departure` in ms. */
 interface Candidate {
   kind: 'journey' | 'train';
-  id: number;
   ref: string;
+  /** When the row was created or tracked, in ms: the newest-first tie-break. */
+  created: number;
   day: string;
   departure: number;
+}
+
+/** A creation time in ms; a missing or unparseable one counts as oldest. */
+function createdMs(iso: string | null | undefined): number {
+  const ms = iso ? Date.parse(iso) : Number.NaN;
+  return Number.isNaN(ms) ? Number.NEGATIVE_INFINITY : ms;
 }
 
 /** The rows worth reading in full, under one cap
@@ -158,8 +164,8 @@ export function homeDetailReads(
     })
     .map((item) => ({
       kind: 'journey',
-      id: item.id,
-      ref: item.publicId,
+      ref: journeyRef(item),
+      created: createdMs(item.createdAt),
       day: item.serviceDate,
       departure: Number.NEGATIVE_INFINITY,
     }));
@@ -168,8 +174,8 @@ export function homeDetailReads(
     .filter((train) => train.serviceDate <= today && train.serviceDate >= yesterday)
     .map((train) => ({
       kind: 'train',
-      id: train.id,
       ref: trackingRef(train),
+      created: createdMs(train.trackedAt),
       day: train.serviceDate,
       departure: train.pinScheduledDeparture ? Date.parse(train.pinScheduledDeparture) : Number.POSITIVE_INFINITY,
     }));
@@ -179,12 +185,12 @@ export function homeDetailReads(
         b.day.localeCompare(a.day) ||
         (a.departure === b.departure ? 0 : a.departure < b.departure ? -1 : 1) ||
         (a.kind === b.kind ? 0 : a.kind === 'journey' ? -1 : 1) ||
-        b.id - a.id,
+        b.created - a.created,
     )
     .slice(0, MAX_HOME_JOURNEY_DETAILS);
   return {
-    journeys: kept.filter((read) => read.kind === 'journey').map(({ id, ref }) => ({ id, ref })),
-    trains: kept.filter((read) => read.kind === 'train').map(({ id, ref }) => ({ id, ref })),
+    journeys: kept.filter((read) => read.kind === 'journey').map(({ ref }) => ({ ref })),
+    trains: kept.filter((read) => read.kind === 'train').map(({ ref }) => ({ ref })),
   };
 }
 
@@ -385,8 +391,8 @@ function startDay(entry: HomeEntry): string {
 /** The last tie-break: journeys before lone trains, then newest first. */
 function byKindThenNewest(a: HomeEntry, b: HomeEntry): number {
   const kind = Number(isLoneTrain(a)) - Number(isLoneTrain(b));
-  const id = (entry: HomeEntry) => (isLoneTrain(entry) ? entry.train.id : entry.item.id);
-  return kind || id(b) - id(a);
+  const created = (entry: HomeEntry) => createdMs(isLoneTrain(entry) ? entry.train.trackedAt : entry.item.createdAt);
+  return kind || created(b) - created(a);
 }
 
 /** Splits the caller's journeys and lone trains for the home page.
@@ -405,7 +411,7 @@ function byKindThenNewest(a: HomeEntry, b: HomeEntry): number {
  * - Everything else (past, or not read when it should have been) is left
  *   to the Journeys page.
  *
- * `details` maps journey id to its detail; a missing entry is a journey
+ * `details` maps a journey's reference (`journeyRef`) to its detail; a missing entry is a journey
  * that wasn't read or whose read failed. One that starts today with no
  * detail is listed as upcoming rather than dropped: its date says no more,
  * and the Journeys page has the rest. `trains` are the caller's trains in
@@ -414,17 +420,17 @@ function byKindThenNewest(a: HomeEntry, b: HomeEntry): number {
  * from it goes by its list row. */
 export function splitHomeJourneys(
   items: readonly JourneyListItem[],
-  details: ReadonlyMap<number, JourneyDetail>,
+  details: ReadonlyMap<string, JourneyDetail>,
   trains: readonly TrackedTrainListItem[],
   now: Date,
-  trainStates: ReadonlyMap<number, TrackedTrainState> = new Map(),
+  trainStates: ReadonlyMap<string, TrackedTrainState> = new Map(),
 ): HomeJourneySplit {
   const today = londonCalendarDay(now.toISOString());
   const inProgress: HomeCurrent[] = [];
   const upcoming: HomeEntry[] = [];
 
   for (const item of items) {
-    const detail = details.get(item.id) ?? null;
+    const detail = details.get(journeyRef(item)) ?? null;
     if (detail === null) {
       if (firstServiceDate(item) >= today) upcoming.push({ item, detail: null, departure: null });
       continue;
@@ -438,7 +444,7 @@ export function splitHomeJourneys(
 
   // The Journeys page's own Upcoming half: `travelled`, or the fallback.
   for (const { train, status } of splitTrainRows(trains, today).upcoming) {
-    const state = trainStates.get(train.id);
+    const state = trainStates.get(trackingRef(train));
     const leg = state ? loneTrainLeg(train, state) : null;
     const entry: HomeLoneTrain = {
       train,
@@ -477,7 +483,7 @@ export function isSharedNotFollowed(item: JourneyListItem): boolean {
  * upcoming soonest first. `details` holds the ones read in full. */
 export function sharedHomeJourneys(
   items: readonly JourneyListItem[],
-  details: ReadonlyMap<number, JourneyDetail>,
+  details: ReadonlyMap<string, JourneyDetail>,
   now: Date,
 ): HomeJourney[] {
   const { current, alsoInProgress, upcoming } = splitHomeJourneys(items, details, [], now);

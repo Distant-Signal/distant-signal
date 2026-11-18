@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { splitJourneyTrains } from './journeyTrains';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
+import { testPublicId, testTrackingId } from '@/test/apiDefaults';
 import type { JourneyListItem, TrackedTrainListItem } from './types';
 import { JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_LIST_ITEM_DEFAULTS } from '@/test/apiDefaults';
 
@@ -20,7 +22,9 @@ function train(id: number, journeyIds: number[]): TrackedTrainListItem {
     trackedAt: '2026-09-21T12:00:00Z',
     customName: null,
     sharedGroupCount: 0,
+    publicId: testTrackingId(id),
     journeyIds,
+    journeyPublicIds: journeyIds.map(testPublicId),
   };
 }
 
@@ -28,10 +32,11 @@ function journey(id: number, trainSubscriptionId: number | null = null): Journey
   return {
     ...JOURNEY_LIST_ITEM_DEFAULTS,
     id,
-    publicId: `j_${id}`,
+    publicId: testPublicId(id),
     customName: null,
     createdAt: '2026-09-21T12:00:00Z',
     legId: id * 10,
+    legPublicId: `l_${id}`,
     originCrs: 'KGX',
     destinationCrs: 'EDB',
     serviceDate: '2026-09-22',
@@ -46,31 +51,32 @@ function journey(id: number, trainSubscriptionId: number | null = null): Journey
   };
 }
 
-describe('splitJourneyTrains', () => {
+describe.each(ID_SHAPES)('splitJourneyTrains (%s)', (_name, shape) => {
+  const ownedBy = (trains: TrackedTrainListItem[], journeys: JourneyListItem[] | null) =>
+    splitJourneyTrains(shape(trains), journeys === null ? null : shape(journeys));
+  const ref = (id: number) => testTrackingId(id);
+
   it("folds every leg's train into its journey, whichever leg is current", () => {
-    const split = splitJourneyTrains(
-      [train(1, [100]), train(2, [100]), train(3, [100]), train(4, [])],
-      [journey(100, 1)],
-    );
-    expect(split.standalone.map((t) => t.id)).toEqual([4]);
-    expect(split.trainIdsByJourney.get(100)).toEqual([1, 2, 3]);
+    const split = ownedBy([train(1, [100]), train(2, [100]), train(3, [100]), train(4, [])], [journey(100, 1)]);
+    expect(split.standalone.map((t) => t.publicId)).toEqual([ref(4)]);
+    expect(split.trainRefsByJourney.get(testPublicId(100))).toEqual([ref(1), ref(2), ref(3)]);
   });
 
   it('puts a train in two journeys under one of them only, the first listed in journeyIds', () => {
-    const split = splitJourneyTrains([train(1, [100, 200])], [journey(200), journey(100)]);
+    const split = ownedBy([train(1, [100, 200])], [journey(200), journey(100)]);
     expect(split.standalone).toEqual([]);
-    expect(split.trainIdsByJourney.get(100)).toEqual([1]);
-    expect(split.trainIdsByJourney.has(200)).toBe(false);
+    expect(split.trainRefsByJourney.get(testPublicId(100))).toEqual([ref(1)]);
+    expect(split.trainRefsByJourney.has(testPublicId(200))).toBe(false);
   });
 
   it('keeps a train standalone when its journey is not listed', () => {
-    const split = splitJourneyTrains([train(1, [300])], [journey(100)]);
-    expect(split.standalone.map((t) => t.id)).toEqual([1]);
+    const split = ownedBy([train(1, [300])], [journey(100)]);
+    expect(split.standalone.map((t) => t.publicId)).toEqual([ref(1)]);
   });
 
   it('folds nothing when the journeys fetch failed', () => {
-    const split = splitJourneyTrains([train(1, [100])], null);
-    expect(split.standalone.map((t) => t.id)).toEqual([1]);
-    expect(split.trainIdsByJourney.size).toBe(0);
+    const split = ownedBy([train(1, [100])], null);
+    expect(split.standalone.map((t) => t.publicId)).toEqual([ref(1)]);
+    expect(split.trainRefsByJourney.size).toBe(0);
   });
 });

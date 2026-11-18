@@ -1,4 +1,4 @@
-import { trackingRef } from '@/lib/publicId';
+import { journeyRef, publicRef, trackingRef } from '@/lib/publicId';
 import { Suspense } from 'react';
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
@@ -142,7 +142,7 @@ export default async function JourneysPage() {
   // De-duplicated per train, and filtered against the caller's own rows --
   // see `mergeSharedTrains`' own doc comment for why both halves of that
   // are the frontend's job rather than the query's.
-  const shared = mergeSharedTrains(sharedTrains ?? [], new Set(trains.map((t) => t.id)));
+  const shared = mergeSharedTrains(sharedTrains ?? [], new Set(trains.map(trackingRef)));
 
   // Split deliberately. `hasOwnContent` is the OLD `!nothingToShow`, and
   // still gates the reliability digest alone: that card is the caller's
@@ -193,7 +193,9 @@ export default async function JourneysPage() {
     { journeys: journeyRows, trains: standaloneTrains, sharedTrains: shared },
     today,
   );
-  const possibleClaims = new Set(recentPossibleClaims(reliability?.journeys ?? [], today).map((j) => j.journeyId));
+  const possibleClaims = new Set(
+    recentPossibleClaims(reliability?.journeys ?? [], today).map((j) => publicRef(j.journeyPublicId, j.journeyId)),
+  );
   const upcomingCount = sections.upcoming.length;
   const pastCount = sections.past.length;
   const renderEntry = (entry: JourneysPageEntry) => {
@@ -204,7 +206,7 @@ export default async function JourneysPage() {
             <JourneyListRow
               journey={entry.journey}
               status={entry.status}
-              mayQualify={possibleClaims.has(entry.journey.id)}
+              mayQualify={possibleClaims.has(journeyRef(entry.journey))}
             />
           </HideWhenDeleted>
         );

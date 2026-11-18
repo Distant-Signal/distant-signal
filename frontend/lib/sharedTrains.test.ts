@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { mergeSharedTrains } from './sharedTrains';
 import type { SharedGroupTrain } from './types';
-import { GROUP_TRAIN_DEFAULTS } from '@/test/apiDefaults';
+import { GROUP_TRAIN_DEFAULTS, testTrackingId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 function sharedTrain(overrides: Partial<SharedGroupTrain> = {}): SharedGroupTrain {
   return {
@@ -26,21 +27,23 @@ function sharedTrain(overrides: Partial<SharedGroupTrain> = {}): SharedGroupTrai
     addedByName: 'Sam',
     addedByTag: null,
     ...overrides,
+    trainSubscriptionPublicId: testTrackingId(overrides.trainSubscriptionId ?? 1),
   };
 }
 
-describe('mergeSharedTrains', () => {
+describe.each(ID_SHAPES)('mergeSharedTrains (%s)', (_name, shape) => {
+  const merge = (rows: SharedGroupTrain[], own: ReadonlySet<string> = new Set()) => mergeSharedTrains(shape(rows), own);
+  const refs = (merged: ReturnType<typeof mergeSharedTrains>) =>
+    merged.map((row) => row.train.trainSubscriptionPublicId);
+
   it('keeps one row per train, in the order the API returned them', () => {
-    const merged = mergeSharedTrains([
-      sharedTrain({ trainSubscriptionId: 7 }),
-      sharedTrain({ trainSubscriptionId: 3 }),
-    ]);
-    expect(merged.map((row) => row.train.trainSubscriptionId)).toEqual([7, 3]);
+    const merged = merge([sharedTrain({ trainSubscriptionId: 7 }), sharedTrain({ trainSubscriptionId: 3 })]);
+    expect(refs(merged)).toEqual([testTrackingId(7), testTrackingId(3)]);
     expect(merged.map((row) => row.groupNames)).toEqual([['Family'], ['Family']]);
   });
 
   it('a train shared into two of the caller’s groups collapses into one row carrying both group names', () => {
-    const merged = mergeSharedTrains([
+    const merged = merge([
       sharedTrain({ trainSubscriptionId: 7, groupId: 'g1', groupName: 'Family' }),
       sharedTrain({ trainSubscriptionId: 7, groupId: 'g2', groupName: 'Commuters' }),
     ]);
@@ -49,7 +52,7 @@ describe('mergeSharedTrains', () => {
   });
 
   it('two different groups that happen to share a name are tagged once, not twice', () => {
-    const merged = mergeSharedTrains([
+    const merged = merge([
       sharedTrain({ trainSubscriptionId: 7, groupId: 'g1', groupName: 'Family' }),
       sharedTrain({ trainSubscriptionId: 7, groupId: 'g2', groupName: 'Family' }),
     ]);
@@ -57,19 +60,19 @@ describe('mergeSharedTrains', () => {
   });
 
   it('drops any row for a train the caller already tracks themselves (belt-and-braces against the backend filter)', () => {
-    const merged = mergeSharedTrains(
+    const merged = merge(
       [sharedTrain({ trainSubscriptionId: 7 }), sharedTrain({ trainSubscriptionId: 8 })],
-      new Set([7]),
+      new Set([testTrackingId(7)]),
     );
-    expect(merged.map((row) => row.train.trainSubscriptionId)).toEqual([8]);
+    expect(refs(merged)).toEqual([testTrackingId(8)]);
   });
 
   it('no shared trains at all is an empty list, not a throw', () => {
-    expect(mergeSharedTrains([])).toEqual([]);
+    expect(merge([])).toEqual([]);
   });
 
   it('keeps the first row’s train fields verbatim (they describe the same subscription)', () => {
-    const merged = mergeSharedTrains([
+    const merged = merge([
       sharedTrain({ trainSubscriptionId: 7, customName: 'School run', groupName: 'Family' }),
       sharedTrain({ trainSubscriptionId: 7, customName: 'School run', groupName: 'Commuters' }),
     ]);

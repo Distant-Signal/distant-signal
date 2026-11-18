@@ -1,6 +1,6 @@
 import { trackingRef } from './publicId';
 import { londonDayStartIso } from './londonWallClock';
-import type { MergedSharedTrain } from './sharedTrains';
+import { sharedTrainRef, type MergedSharedTrain } from './sharedTrains';
 import { trackedTrainRowStatus } from './trackedRowStatus';
 import type { JourneyListItem, TrackedTrainListItem } from './types';
 import {
@@ -21,7 +21,7 @@ import {
  * departure for a train leg, else its pinned departure, else the London
  * start of its date; an untracked leg's planned departure), a lone train's
  * departure from the traveller's stop, else the start of its date. A tie
- * goes to the newest journey id; between kinds, a journey first.
+ * keeps the api's order; between kinds, a journey first.
  *
  * The caller's own journeys and every journey shared with them (followed,
  * or shared into one of their groups) are ONE list from the api, already
@@ -97,14 +97,12 @@ function entryDepartsAt(entry: JourneysPageEntry): number {
 }
 
 /** Shared bare trains come newest share first; this puts them in the
- * section's order first, newest subscription on a tie. */
+ * section's order first, keeping that order on a tie (the sort is stable;
+ * a numeric id can't break it, which an api may serve as 0). */
 function sortSharedTrains(entries: JourneysPageEntry[], order: 'soonest' | 'newest'): JourneysPageEntry[] {
   return [...entries].sort((a, b) => {
     const diff = entryDepartsAt(a) - entryDepartsAt(b);
-    if (diff !== 0) return order === 'soonest' ? diff : -diff;
-    const aId = a.kind === 'sharedTrain' ? a.row.train.trainSubscriptionId : 0;
-    const bId = b.kind === 'sharedTrain' ? b.row.train.trainSubscriptionId : 0;
-    return bId - aId;
+    return order === 'soonest' ? diff : -diff;
   });
 }
 
@@ -149,7 +147,7 @@ export function journeysPageSections(
       sortSharedTrains(
         sharedItems[half].map(({ row, status }) => ({
           kind: 'sharedTrain' as const,
-          key: `shared-train-${row.train.trainSubscriptionPublicId}`,
+          key: `shared-train-${sharedTrainRef(row.train)}`,
           row,
           status,
         })),

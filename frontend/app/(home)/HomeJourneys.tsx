@@ -41,7 +41,7 @@ import {
 import { legStatusGroup, type JourneySummaryGroup } from '@/lib/journeyStatus';
 import { routeLabel, stationLabel } from '@/lib/stationLabel';
 import { isInertWalkLeg, shownLegPosition } from '@/lib/legCollapse';
-import { optionalTemplateRef } from '@/lib/publicId';
+import { journeyRef, optionalTemplateRef, trackingRef } from '@/lib/publicId';
 import { memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/memberLabel';
 import { journeyListItemCancellation, viewerCanPickTrain } from '@/lib/trackedRowStatus';
 import { trackedTrainDisplayName, trackedTrainHref, trackedTrainRouteLabel } from '@/lib/trackingName';
@@ -397,7 +397,7 @@ function HomeEntryRow({ entry, now }: { entry: HomeEntry; now?: Date | undefined
 /** A React key unique across journeys and trains, whose ids are separate
  * spaces. */
 function entryKey(entry: HomeEntry): string {
-  return isLoneTrain(entry) ? `train-${entry.train.id}` : `journey-${entry.item.id}`;
+  return isLoneTrain(entry) ? `train-${trackingRef(entry.train)}` : `journey-${journeyRef(entry.item)}`;
 }
 
 /** "Current journey": the soonest-arriving journey (or lone train) under
@@ -511,7 +511,7 @@ export function UpcomingJourneysSection({
           <Stack gap="xs">
             <SectionTitle order={3}>Shared with you</SectionTitle>
             {sharedShown.map((journey) => (
-              <HomeJourneyRow key={`journey-${journey.item.id}`} journey={journey} />
+              <HomeJourneyRow key={`journey-${journeyRef(journey.item)}`} journey={journey} />
             ))}
             {sharedHidden > 0 && (
               <Text size="sm" c="dimmed">
