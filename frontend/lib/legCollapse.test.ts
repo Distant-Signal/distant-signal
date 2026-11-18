@@ -141,7 +141,7 @@ describe('isInertTransfer and transferRunLabel', () => {
 
   it('labels a run with its total and the station it reaches', () => {
     expect(transferRunLabel([change], names)).toBe('Transfer to London Euston, 4 min');
-    expect(transferRunLabel([WALK_TO_TRAM], names)).toBe('Walk, 6 min');
+    expect(transferRunLabel([WALK_TO_TRAM], names)).toBe('Walk to Piccadilly tram stop, 6 min');
     expect(transferRunLabel([{ ...WALK_TO_TRAM, destinationCrs: 'EUS' }, change], names)).toBe(
       'Walk and transfer to London Euston, 10 min',
     );

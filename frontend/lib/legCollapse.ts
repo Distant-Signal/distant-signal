@@ -131,7 +131,10 @@ export function transferRunLabel(allLegs: readonly TripPlanLeg[], stationNames: 
   const legs = allLegs.filter((leg): leg is TransferLeg => leg.kind === 'transfer');
   const last = legs.at(-1);
   const code = last?.destinationCrs ?? null;
-  const to = code ? (stationNames.get(code) ?? code) : (last?.destinationStop?.name ?? null);
+  const walk = last?.transitWalk;
+  // A walk to a tram or TfL stop has no station code at that end: its stop is the place.
+  const stopEnd = walk?.towardsStop ? (walk.network === 'tfl' ? walk.stop.name : `${walk.stop.name} tram stop`) : null;
+  const to = code ? (stationNames.get(code) ?? code) : (stopEnd ?? last?.destinationStop?.name ?? null);
   return collapsedLegsLabel({
     modes: legs.map((leg) => (transferLegMode(leg).toUpperCase() === 'WALK' ? 'walk' : 'transfer')),
     to,

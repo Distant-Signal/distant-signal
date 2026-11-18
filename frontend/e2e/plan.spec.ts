@@ -427,6 +427,8 @@ for (const { name, plan, label, saved: expected } of TRANSFER_CASES) {
     await openPlan(page, 'origin=ZEA&destination=ZEC&date=2026-09-17&departAfter=07:30');
     await findRoutes(page);
     const card = page.locator('[data-plan-entry]').first();
+    // A plain transfer folds into a row until it is opened (DS-590); a Tube ride does not.
+    if (label === 'Transfer') await card.getByRole('button', { name: 'Transfer to ZXC, 19 min' }).click();
     await expect(card.getByText(`${label} ZXB to ZXC, 19 min`, { exact: true })).toBeVisible();
     await card.getByRole('radio').check({ force: true });
     await page.getByRole('button', { name: 'Track this journey' }).click();
