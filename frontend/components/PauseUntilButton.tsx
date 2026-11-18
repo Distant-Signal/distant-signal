@@ -11,7 +11,7 @@ import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import { removedJourneysNote } from '@/lib/timeAway';
 import type { SetTemplateActiveResponse, SetTemplatePausedUntilRequest } from '@/lib/types';
 
-function setPausedUntil(templateId: number, pausedUntil: string | null): Promise<Response> {
+function setPausedUntil(templateId: string, pausedUntil: string | null): Promise<Response> {
   const body: SetTemplatePausedUntilRequest = { pausedUntil };
   return fetch(`/api/JourneyTemplates/${templateId}/paused-until`, {
     method: 'PUT',
@@ -31,7 +31,7 @@ export function PauseUntilButton({
   pausedUntil,
   paired = false,
 }: {
-  templateId: number;
+  templateId: string;
   /** The day it starts again on, when paused until one still to come. */
   pausedUntil: string | null;
   paired?: boolean;

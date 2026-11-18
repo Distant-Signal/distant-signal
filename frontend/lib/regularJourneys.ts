@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { LONDON_TZ, londonToday } from './londonWallClock';
+import { optionalTemplateRef, templateRef } from './publicId';
 import { weekdayPlural } from './templateRecurrence';
 import { operatorFilterParam, setListParams, trainLegsForTracking, type TripPlanQuery } from './tripPlan';
 import { itineraryLegsForSaving } from './tripPlanSave';
@@ -21,8 +22,10 @@ import type {
 export const REGULAR_JOURNEYS_HREF = '/journeys/regular';
 export const NEW_REGULAR_JOURNEY_HREF = '/journeys/regular/new';
 
-export function regularJourneyHref(id: number): string {
-  return `${REGULAR_JOURNEYS_HREF}/${id}`;
+/** A regular journey's page, by its `r_` id (or the numeric id an api
+ * with none yet returns: see `templateRef`). */
+export function regularJourneyHref(ref: string): string {
+  return `${REGULAR_JOURNEYS_HREF}/${ref}`;
 }
 
 /** A regular journey's different times on some days (R3), as its card and
@@ -283,15 +286,21 @@ export function takeRegularJourneyDraft(): RegularJourneyDraft | null {
 export function regularJourneyCards(
   templates: JourneyTemplateListItem[],
 ): ([JourneyTemplateListItem] | [JourneyTemplateListItem, JourneyTemplateListItem])[] {
-  const byId = new Map(templates.map((template) => [template.id, template]));
-  const placed = new Set<number>();
+  const byRef = new Map(templates.map((template) => [templateRef(template), template]));
+  const placed = new Set<string>();
   const cards: ([JourneyTemplateListItem] | [JourneyTemplateListItem, JourneyTemplateListItem])[] = [];
   for (const template of templates) {
-    if (placed.has(template.id)) continue;
-    const pair = template.pairedTemplateId === null ? undefined : byId.get(template.pairedTemplateId);
-    placed.add(template.id);
-    if (pair?.pairedTemplateId === template.id && !placed.has(pair.id)) {
-      placed.add(pair.id);
+    const ref = templateRef(template);
+    if (placed.has(ref)) continue;
+    const pairRef = optionalTemplateRef(template.pairedTemplatePublicId, template.pairedTemplateId);
+    const pair = pairRef === null ? undefined : byRef.get(pairRef);
+    placed.add(ref);
+    if (
+      pair &&
+      optionalTemplateRef(pair.pairedTemplatePublicId, pair.pairedTemplateId) === ref &&
+      !placed.has(templateRef(pair))
+    ) {
+      placed.add(templateRef(pair));
       cards.push(template.id < pair.id ? [template, pair] : [pair, template]);
     } else {
       cards.push([template]);

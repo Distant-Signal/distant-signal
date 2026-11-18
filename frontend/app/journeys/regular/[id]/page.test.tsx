@@ -4,7 +4,7 @@ import { renderWithMantine } from '@/test/render';
 import JourneyTemplateDetailPage from './page';
 import * as api from '@/lib/api';
 import type { JourneyTemplateDetail } from '@/lib/types';
-import { TEMPLATE_TARGET_DEFAULTS } from '@/test/apiDefaults';
+import { TEMPLATE_TARGET_DEFAULTS, testTemplateId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -18,14 +18,18 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
+  redirect: (url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  },
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => '/journeys/regular/167',
+  usePathname: () => `/journeys/regular/${testTemplateId(167)}`,
   useSearchParams: () => new URLSearchParams(''),
 }));
 
 function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTemplateDetail {
   return {
     id: 167,
+    publicId: testTemplateId(167),
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     updatedAt: '2026-09-22T00:00:00Z',
@@ -56,7 +60,7 @@ function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTempla
   };
 }
 
-async function renderPage(id = '167') {
+async function renderPage(id = testTemplateId(167)) {
   return renderWithMantine(await JourneyTemplateDetailPage({ params: Promise.resolve({ id }) }));
 }
 
@@ -65,6 +69,25 @@ describe('JourneyTemplateDetailPage', () => {
     vi.mocked(api.getJourneyTemplate).mockRejectedValue(new api.ApiUnauthorizedError('API request failed: 401'));
     await renderPage();
     expect(screen.getByRole('link', { name: 'Log in to view this regular journey' })).toBeInTheDocument();
+  });
+
+  it('asks the api for the id in the URL, the opaque one or an old numeric one', async () => {
+    vi.mocked(api.getJourneyTemplate).mockResolvedValue(template());
+    await renderPage();
+    expect(api.getJourneyTemplate).toHaveBeenLastCalledWith(testTemplateId(167));
+    await expect(renderPage('167')).rejects.toThrow(`NEXT_REDIRECT:/journeys/regular/${testTemplateId(167)}`);
+    expect(api.getJourneyTemplate).toHaveBeenLastCalledWith('167');
+  });
+
+  it('keeps an old numeric URL where the api returns no opaque id', async () => {
+    vi.mocked(api.getJourneyTemplate).mockResolvedValue(template({ publicId: '' }));
+    await renderPage('167');
+    expect(screen.getByRole('button', { name: 'Delete regular journey' })).toBeInTheDocument();
+  });
+
+  it('calls notFound() for an id that is neither numeric nor an r_ id', async () => {
+    await expect(renderPage('x_123')).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(renderPage('j_' + '0'.repeat(32))).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
   it('calls notFound() on a 404 (ApiNotFoundError)', async () => {
@@ -103,6 +126,7 @@ describe('JourneyTemplateDetailPage', () => {
         destinationName: 'London Waterloo',
         target: { kind: 'arrive_by', time: '08:30:00', dayOffset: 0 },
         pairedTemplateId: 168,
+        pairedTemplatePublicId: testTemplateId(168),
         nextDate: '2099-01-05',
         usualItinerary: {
           legs: [
@@ -125,7 +149,10 @@ describe('JourneyTemplateDetailPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Next: 5 Jan 2099')).toBeInTheDocument();
     expect(screen.getByText('Your usual train: 07:48 Woking to London Waterloo')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'The return journey' })).toHaveAttribute('href', '/journeys/regular/168');
+    expect(screen.getByRole('link', { name: 'The return journey' })).toHaveAttribute(
+      'href',
+      `/journeys/regular/${testTemplateId(168)}`,
+    );
     expect(screen.getByRole('button', { name: 'Skip next' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
   });

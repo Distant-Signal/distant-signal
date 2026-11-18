@@ -5,7 +5,7 @@ import RegularJourneysPage from './page';
 import * as api from '@/lib/api';
 import type { JourneyTemplateListItem } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
-import { TEMPLATE_TARGET_DEFAULTS } from '@/test/apiDefaults';
+import { TEMPLATE_TARGET_DEFAULTS, testTemplateId } from '@/test/apiDefaults';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -24,6 +24,7 @@ vi.mock('next/navigation', () => ({
 function template(overrides: Partial<JourneyTemplateListItem> = {}): JourneyTemplateListItem {
   return {
     id: 1,
+    publicId: testTemplateId(overrides.id ?? 1),
     customName: null,
     createdAt: '2026-09-22T00:00:00Z',
     legCount: 1,
@@ -37,6 +38,7 @@ function template(overrides: Partial<JourneyTemplateListItem> = {}): JourneyTemp
     nextRunOn: null,
     hasOpenLegs: false,
     ...TEMPLATE_TARGET_DEFAULTS,
+    pairedTemplatePublicId: overrides.pairedTemplateId ? testTemplateId(overrides.pairedTemplateId) : null,
     startsOn: null,
     endsOn: null,
     ...overrides,
@@ -67,7 +69,7 @@ describe('RegularJourneysPage', () => {
     await renderPage();
     const link = screen.getByRole('link', { name: 'My commute' });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/journeys/regular/1');
+    expect(link).toHaveAttribute('href', `/journeys/regular/${testTemplateId(1)}`);
     // The computed route is still shown as a secondary line under a custom name.
     expect(screen.getByText(byVisibleText('London Kings Cross (KGX) to Edinburgh (EDB)'))).toBeInTheDocument();
   });
@@ -170,7 +172,7 @@ describe('RegularJourneysPage', () => {
     await renderPage();
     expect(screen.getByRole('link', { name: 'Woking to London Waterloo, leave after 07:45' })).toHaveAttribute(
       'href',
-      '/journeys/regular/5',
+      `/journeys/regular/${testTemplateId(5)}`,
     );
     expect(screen.queryByText(/1 leg ·/)).not.toBeInTheDocument();
   });

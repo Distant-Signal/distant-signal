@@ -14,7 +14,7 @@ import {
   usualTrainSummary,
 } from './regularJourneys';
 import type { JourneyTemplateListItem, TripPlanItinerary } from './types';
-import { ITINERARY_DEFAULTS, plannedTrainLeg, TEMPLATE_TARGET_DEFAULTS } from '@/test/apiDefaults';
+import { ITINERARY_DEFAULTS, plannedTrainLeg, TEMPLATE_TARGET_DEFAULTS, testTemplateId } from '@/test/apiDefaults';
 
 describe('targetLabel', () => {
   it('says leave after or arrive by, with the next day when it is', () => {
@@ -101,6 +101,7 @@ describe('plan options', () => {
 describe('regularJourneyCards', () => {
   const item = (id: number, pairedTemplateId: number | null): JourneyTemplateListItem => ({
     id,
+    publicId: testTemplateId(id),
     customName: null,
     createdAt: '2026-11-06T00:00:00Z',
     legCount: 1,
@@ -117,11 +118,22 @@ describe('regularJourneyCards', () => {
     startsOn: null,
     endsOn: null,
     pairedTemplateId,
+    pairedTemplatePublicId: pairedTemplateId === null ? null : testTemplateId(pairedTemplateId),
   });
 
   it('puts a pair on one card, outbound first, where the first of them comes', () => {
     const cards = regularJourneyCards([item(9, null), item(8, 7), item(7, 8), item(6, 99)]);
     expect(cards.map((card) => card.map((t) => t.id))).toEqual([[9], [7, 8], [6]]);
+  });
+
+  it('pairs by the numeric ids where the api returns no opaque ones', () => {
+    const bare = (template: JourneyTemplateListItem): JourneyTemplateListItem => ({
+      ...template,
+      publicId: '',
+      pairedTemplatePublicId: null,
+    });
+    const cards = regularJourneyCards([item(9, null), item(8, 7), item(7, 8)].map(bare));
+    expect(cards.map((card) => card.map((t) => t.id))).toEqual([[9], [7, 8]]);
   });
 });
 

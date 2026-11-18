@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testTemplateId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { UpcomingDatesStrip } from './UpcomingDatesStrip';
 import type { UpcomingDate } from '@/lib/types';
@@ -27,7 +28,9 @@ describe('UpcomingDatesStrip', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('shows each date on or off, with why a date is skipped', () => {
-    renderWithMantine(<UpcomingDatesStrip templateId={5} pairedTemplateId={null} upcoming={UPCOMING} />);
+    renderWithMantine(
+      <UpcomingDatesStrip templateId={testTemplateId(5)} pairedTemplateId={null} upcoming={UPCOMING} />,
+    );
     expect(screen.getByRole('group', { name: 'Next dates' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Mon 9 Nov' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Tue 10 Nov' })).not.toBeChecked();
@@ -43,12 +46,14 @@ describe('UpcomingDatesStrip', () => {
   it('skips a date for the pair, and puts a skipped one back on both', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(new Response('{}', { status: 200 }));
-    renderWithMantine(<UpcomingDatesStrip templateId={5} pairedTemplateId={6} upcoming={UPCOMING} />);
+    renderWithMantine(
+      <UpcomingDatesStrip templateId={testTemplateId(5)} pairedTemplateId={testTemplateId(6)} upcoming={UPCOMING} />,
+    );
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mon 9 Nov' }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/JourneyTemplates/5/skip',
+      `/api/JourneyTemplates/${testTemplateId(5)}/skip`,
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ serviceDates: ['2026-11-09'], pair: true }),
@@ -57,13 +62,19 @@ describe('UpcomingDatesStrip', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Tue 10 Nov' }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(2));
-    expect(fetchMock).toHaveBeenCalledWith('/api/JourneyTemplates/5/skip/2026-11-10', { method: 'DELETE' });
-    expect(fetchMock).toHaveBeenCalledWith('/api/JourneyTemplates/6/skip/2026-11-10', { method: 'DELETE' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/JourneyTemplates/${testTemplateId(5)}/skip/2026-11-10`, {
+      method: 'DELETE',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/JourneyTemplates/${testTemplateId(6)}/skip/2026-11-10`, {
+      method: 'DELETE',
+    });
   });
 
   it("says Couldn't skip this date when the api refuses", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('That journey has already started.', { status: 409 }));
-    renderWithMantine(<UpcomingDatesStrip templateId={5} pairedTemplateId={null} upcoming={UPCOMING} />);
+    renderWithMantine(
+      <UpcomingDatesStrip templateId={testTemplateId(5)} pairedTemplateId={null} upcoming={UPCOMING} />,
+    );
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mon 9 Nov' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('That journey has already started.');
     expect(refreshMock).not.toHaveBeenCalled();
@@ -71,7 +82,7 @@ describe('UpcomingDatesStrip', () => {
 
   it('shows nothing without dates', () => {
     const { container } = renderWithMantine(
-      <UpcomingDatesStrip templateId={5} pairedTemplateId={null} upcoming={[]} />,
+      <UpcomingDatesStrip templateId={testTemplateId(5)} pairedTemplateId={null} upcoming={[]} />,
     );
     expect(container.querySelector('[data-upcoming-date]')).toBeNull();
   });

@@ -17,7 +17,7 @@ import { REGULAR_JOURNEYS_HREF } from '@/lib/regularJourneys';
  * than a bare `router.refresh()`, since this component is used both on
  * the list (Task 7) and the detail page (Task 8) and the detail page
  * itself is gone after a successful delete. */
-export function DeleteJourneyTemplateButton({ templateId }: { templateId: number }) {
+export function DeleteJourneyTemplateButton({ templateId }: { templateId: string }) {
   return (
     <ConfirmActionButton
       label="Delete regular journey"

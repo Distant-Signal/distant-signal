@@ -3,7 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { EditJourneyTemplateForm } from './EditJourneyTemplateForm';
 import type { JourneyTemplateDetail } from '@/lib/types';
-import { TEMPLATE_TARGET_DEFAULTS } from '@/test/apiDefaults';
+import { TEMPLATE_TARGET_DEFAULTS, testTemplateId } from '@/test/apiDefaults';
 
 /** Forces `input.validity.badInput`, which is how a real browser reports a
  * half-entered time ("09:--"). jsdom models neither segment state nor
@@ -57,6 +57,7 @@ function putCalls() {
 function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTemplateDetail {
   return {
     id: 167,
+    publicId: testTemplateId(167),
     customName: 'My commute',
     createdAt: '2026-09-22T00:00:00Z',
     updatedAt: '2026-09-22T00:00:00Z',
@@ -239,7 +240,7 @@ describe('EditJourneyTemplateForm', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/JourneyTemplates/167',
+        `/api/JourneyTemplates/${testTemplateId(167)}`,
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify({
@@ -305,7 +306,7 @@ describe('EditJourneyTemplateForm', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/JourneyTemplates/167',
+        `/api/JourneyTemplates/${testTemplateId(167)}`,
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify({

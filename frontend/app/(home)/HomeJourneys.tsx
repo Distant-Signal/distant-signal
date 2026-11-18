@@ -41,6 +41,7 @@ import {
 import { legStatusGroup, type JourneySummaryGroup } from '@/lib/journeyStatus';
 import { routeLabel, stationLabel } from '@/lib/stationLabel';
 import { isInertWalkLeg, shownLegPosition } from '@/lib/legCollapse';
+import { optionalTemplateRef } from '@/lib/publicId';
 import { memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/memberLabel';
 import { journeyListItemCancellation, viewerCanPickTrain } from '@/lib/trackedRowStatus';
 import { trackedTrainDisplayName, trackedTrainHref, trackedTrainRouteLabel } from '@/lib/trackingName';
@@ -139,6 +140,7 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
   const preview = journeyPreviewLine(name);
   const headline = homeJourneyStatusGroup(journey);
   const leg = currentLeg(detail, now);
+  const sourceTemplate = optionalTemplateRef(journey.item.sourceTemplatePublicId, journey.item.sourceTemplateId);
   const legIndex = leg === null ? -1 : detail.legs.indexOf(leg);
   // Numbered as the journey page numbers it: only the legs it shows as rows.
   const legNumber =
@@ -189,12 +191,8 @@ export function CurrentJourneyCard({ journey, now }: { journey: HomeJourney & { 
             />
           )}
           {/* Made from a regular journey: under way, so no "Skip". */}
-          {journey.item.sourceTemplateId !== null && (
-            <RegularJourneyLine
-              templateId={journey.item.sourceTemplateId}
-              date={journey.item.firstServiceDate}
-              canSkip={false}
-            />
+          {sourceTemplate !== null && (
+            <RegularJourneyLine templateId={sourceTemplate} date={journey.item.firstServiceDate} canSkip={false} />
           )}
         </Stack>
         {leg !== null && (
@@ -238,7 +236,7 @@ export function HomeJourneyRow({ journey, now }: { journey: HomeJourney; now?: D
   ]
     .filter((part): part is string => part !== null)
     .join(' · ');
-  const templateId = journey.item.sourceTemplateId;
+  const templateId = optionalTemplateRef(journey.item.sourceTemplatePublicId, journey.item.sourceTemplateId);
   return (
     <ClickableCard>
       <Stack gap="xs">

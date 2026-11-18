@@ -62,7 +62,7 @@ export function deletionSummary(deletion: ConnectedAppDeletion): { title: string
             })),
           ),
         )
-      : deletion.summary.customName?.trim() || `Journey ${deletion.journeyId}`;
+      : deletion.summary.customName?.trim() || 'Deleted journey';
   const legs = snapshotLegs.map((leg) => {
     if (leg.kind === 'untracked') {
       // A Tube ride, bus or walk: its mode and line, then its places.

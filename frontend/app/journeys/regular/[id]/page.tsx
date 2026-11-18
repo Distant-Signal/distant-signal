@@ -1,5 +1,5 @@
 import { Group, Stack, Text, Title } from '@mantine/core';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getJourneyTemplate, getSessionOrLoggedOut, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import { DeleteJourneyTemplateButton } from '@/components/DeleteJourneyTemplateButton';
 import { EditJourneyTemplateForm } from '@/components/EditJourneyTemplateForm';
@@ -13,6 +13,7 @@ import { UpcomingDatesStrip } from '@/components/UpcomingDatesStrip';
 import { formatDate } from '@/lib/dateFormat';
 import { journeyDisplayName, journeyNameInputFromLegs } from '@/lib/journeyName';
 import { REGULAR_JOURNEYS_HREF, regularJourneyHref, targetLabel, usualTrainSummary } from '@/lib/regularJourneys';
+import { isLegacyId, isPublicTemplateId, optionalTemplateRef, templateRef } from '@/lib/publicId';
 import { weekdayPlural } from '@/lib/templateRecurrence';
 import { runsByItself } from '@/lib/templateRecurrence';
 import type { JourneyTemplateDetail } from '@/lib/types';
@@ -40,13 +41,13 @@ function title(template: JourneyTemplateDetail): string {
  * journey" and the editor. */
 export default async function RegularJourneyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!/^\d+$/.test(id)) {
+  if (!isLegacyId(id) && !isPublicTemplateId(id)) {
     notFound();
   }
 
   let template;
   try {
-    template = await getJourneyTemplate(Number(id));
+    template = await getJourneyTemplate(id);
   } catch (err) {
     if (err instanceof ApiNotFoundError) {
       notFound();
@@ -62,10 +63,17 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
     throw err;
   }
 
+  // An old numeric link follows to the opaque one, as a journey's does.
+  if (isLegacyId(id) && template.publicId) {
+    redirect(regularJourneyHref(template.publicId));
+  }
+  const ref = templateRef(template);
+  const pairedRef = optionalTemplateRef(template.pairedTemplatePublicId, template.pairedTemplateId);
+
   // Whether "Add a date" can keep a later date for the evening before
   // (R2's extra dates, `regularJourneyRecurrenceEnabled`).
   const session = await getSessionOrLoggedOut();
-  const paired = template.pairedTemplateId !== null;
+  const paired = pairedRef !== null;
   const recurring = runsByItself(template);
   const names = new Map<string, string>();
   if (template.originCrs && template.originName) names.set(template.originCrs, template.originName);
@@ -85,8 +93,8 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
       <Group justify="space-between" align="baseline">
         <Title order={1}>{title(template)}</Title>
         <Group gap="xs">
-          <RunTemplateNowButton templateId={template.id} keepLaterDates={session.regularJourneyRecurrenceEnabled} />
-          <DeleteJourneyTemplateButton templateId={template.id} />
+          <RunTemplateNowButton templateId={ref} keepLaterDates={session.regularJourneyRecurrenceEnabled} />
+          <DeleteJourneyTemplateButton templateId={ref} />
         </Group>
       </Group>
       {(recurring || usual || paired || otherTimes.length > 0) && (
@@ -107,30 +115,24 @@ export default async function RegularJourneyPage({ params }: { params: Promise<{
               {item.usual && `. Your usual train: ${item.usual}`}
             </Text>
           ))}
-          {template.pairedTemplateId !== null && (
-            <TextLink href={regularJourneyHref(template.pairedTemplateId)}>The return journey</TextLink>
-          )}
+          {pairedRef !== null && <TextLink href={regularJourneyHref(pairedRef)}>The return journey</TextLink>}
           {recurring && template.active && (
-            <UpcomingDatesStrip
-              templateId={template.id}
-              pairedTemplateId={template.pairedTemplateId}
-              upcoming={template.upcomingDates}
-            />
+            <UpcomingDatesStrip templateId={ref} pairedTemplateId={pairedRef} upcoming={template.upcomingDates} />
           )}
           {recurring && (
             <Group gap="xs" mt={4}>
               {template.active && template.nextDate && (
                 <SkipNextButton
-                  templateId={template.id}
+                  templateId={ref}
                   date={template.nextDate}
                   dates={dueDates(template.upcomingDates)}
                   paired={paired}
                 />
               )}
               {template.active && (
-                <PauseUntilButton templateId={template.id} pausedUntil={template.pausedUntil} paired={paired} />
+                <PauseUntilButton templateId={ref} pausedUntil={template.pausedUntil} paired={paired} />
               )}
-              <PauseRegularJourneyButton templateId={template.id} active={template.active} paired={paired} />
+              <PauseRegularJourneyButton templateId={ref} active={template.active} paired={paired} />
             </Group>
           )}
         </Stack>

@@ -7,7 +7,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import type { SetTemplateActiveRequest } from '@/lib/types';
 
-function setActive(templateId: number, active: boolean): Promise<Response> {
+function setActive(templateId: string, active: boolean): Promise<Response> {
   const body: SetTemplateActiveRequest = { active };
   return fetch(`/api/JourneyTemplates/${templateId}/active`, {
     method: 'PUT',
@@ -25,7 +25,7 @@ export function PauseRegularJourneyButton({
   active,
   paired = false,
 }: {
-  templateId: number;
+  templateId: string;
   active: boolean;
   paired?: boolean;
 }) {

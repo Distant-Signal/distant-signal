@@ -34,7 +34,7 @@ export function RunTemplateNowButton({
   templateId,
   keepLaterDates = false,
 }: {
-  templateId: number;
+  templateId: string;
   keepLaterDates?: boolean;
 }) {
   const router = useRouter();

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { testTemplateId } from '@/test/apiDefaults';
 import { renderWithMantine } from '@/test/render';
 import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import { formatDate } from '@/lib/dateFormat';
@@ -27,7 +28,7 @@ describe('PauseUntilButton', () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ templateIds: [5, 6], deletedJourneyIds: [7] }), { status: 200 }),
     );
-    renderWithMantine(<PauseUntilButton templateId={5} pausedUntil={null} paired />);
+    renderWithMantine(<PauseUntilButton templateId={testTemplateId(5)} pausedUntil={null} paired />);
     fireEvent.click(screen.getByRole('button', { name: 'Pause until' }));
     expect(await screen.findByRole('dialog', { name: 'Pause until a date?' })).toBeInTheDocument();
     expect(screen.getByText(/Pauses the return journey too\./)).toBeInTheDocument();
@@ -39,7 +40,7 @@ describe('PauseUntilButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/JourneyTemplates/5/paused-until',
+      `/api/JourneyTemplates/${testTemplateId(5)}/paused-until`,
       expect.objectContaining({ method: 'PUT', body: JSON.stringify({ pausedUntil: later }) }),
     );
   });
@@ -49,24 +50,24 @@ describe('PauseUntilButton', () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ templateIds: [5], deletedJourneyIds: [] }), { status: 200 }),
     );
-    renderWithMantine(<PauseUntilButton templateId={5} pausedUntil={later} />);
+    renderWithMantine(<PauseUntilButton templateId={testTemplateId(5)} pausedUntil={later} />);
     expect(screen.getByText(`Paused until ${shown}.`)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Start again now' }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/JourneyTemplates/5/paused-until',
+      `/api/JourneyTemplates/${testTemplateId(5)}/paused-until`,
       expect.objectContaining({ body: JSON.stringify({ pausedUntil: null }) }),
     );
   });
 
   it('offers a pause again once the date has passed', () => {
-    renderWithMantine(<PauseUntilButton templateId={5} pausedUntil={londonToday()} />);
+    renderWithMantine(<PauseUntilButton templateId={testTemplateId(5)} pausedUntil={londonToday()} />);
     expect(screen.getByRole('button', { name: 'Pause until' })).toBeInTheDocument();
   });
 
   it("says Couldn't start this regular journey again when that fails", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('', { status: 500 }));
-    renderWithMantine(<PauseUntilButton templateId={5} pausedUntil={later} />);
+    renderWithMantine(<PauseUntilButton templateId={testTemplateId(5)} pausedUntil={later} />);
     fireEvent.click(screen.getByRole('button', { name: 'Start again now' }));
     expect(await screen.findByText("Couldn't start this regular journey again. Try again.")).toBeInTheDocument();
   });

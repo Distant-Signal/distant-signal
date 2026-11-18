@@ -45,7 +45,7 @@ test.describe('edit a journey template', () => {
       },
     });
     expect(created.ok()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
 
     try {
       await page.goto(`/journeys/regular/${templateId}`);
@@ -91,7 +91,7 @@ test.describe('edit a journey template', () => {
       data: { mode: 'manual', customName: 'Open leg e2e', legs: [{ originCrs: 'KGX', destinationCrs: 'EDB' }] },
     });
     expect(created.ok()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
 
     try {
       const weekdays = await page.request.put(`/api/JourneyTemplates/${templateId}`, {

@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { isLegacyId, isPublicTrackingId, isTriggerLeg, legRef, publicRef, trackingRef } from './publicId';
-import { testDeviceId, testLegId, testTrackingId } from '@/test/apiDefaults';
+import {
+  breakRef,
+  isLegacyId,
+  isPublicBreakId,
+  isPublicTemplateId,
+  isPublicTrackingId,
+  isTriggerLeg,
+  legRef,
+  matchesBreakParam,
+  optionalTemplateRef,
+  publicRef,
+  templateRef,
+  trackingRef,
+} from './publicId';
+import { testBreakId, testDeviceId, testLegId, testTemplateId, testTrackingId } from '@/test/apiDefaults';
 
 describe('isPublicTrackingId', () => {
   it('takes t_ and 32 lowercase hex digits only', () => {
@@ -52,5 +65,62 @@ describe('isTriggerLeg', () => {
     expect(isTriggerLeg(leg, { triggerLegId: 3, triggerLegPublicId: null })).toBe(true);
     expect(isTriggerLeg(leg, { triggerLegId: 4, triggerLegPublicId: null })).toBe(false);
     expect(isTriggerLeg(leg, { triggerLegId: null, triggerLegPublicId: null })).toBe(false);
+  });
+});
+
+describe('isPublicTemplateId and isPublicBreakId', () => {
+  it('take their own prefix and 32 lowercase hex digits only', () => {
+    expect(isPublicTemplateId(testTemplateId(42))).toBe(true);
+    expect(isPublicTemplateId(testBreakId(42))).toBe(false);
+    expect(isPublicTemplateId('r_' + 'A'.repeat(32))).toBe(false);
+    expect(isPublicTemplateId('42')).toBe(false);
+    expect(isPublicBreakId(testBreakId(42))).toBe(true);
+    expect(isPublicBreakId(testTemplateId(42))).toBe(false);
+    expect(isPublicBreakId('b_' + 'a'.repeat(31))).toBe(false);
+    expect(isPublicBreakId('')).toBe(false);
+  });
+});
+
+describe('templateRef and optionalTemplateRef', () => {
+  it('prefers the r_ id and falls back to the numeric one, never "undefined"', () => {
+    expect(templateRef({ id: 7, publicId: testTemplateId(7) })).toBe(testTemplateId(7));
+    expect(templateRef({ id: 7, publicId: '' })).toBe('7');
+    expect(templateRef({ id: 7 })).toBe('7');
+    expect(optionalTemplateRef(testTemplateId(7), 7)).toBe(testTemplateId(7));
+    expect(optionalTemplateRef(undefined, 7)).toBe('7');
+    expect(optionalTemplateRef(null, 7)).toBe('7');
+    expect(optionalTemplateRef(null, null)).toBeNull();
+    expect(optionalTemplateRef(testTemplateId(7), null)).toBe(testTemplateId(7));
+  });
+});
+
+describe('breakRef', () => {
+  it('prefers the b_ id, then a real numeric id, never 0', () => {
+    expect(breakRef({ id: 5, publicId: testBreakId(5) })).toBe(testBreakId(5));
+    expect(breakRef({ id: 0, publicId: testBreakId(5) })).toBe(testBreakId(5));
+    expect(breakRef({ id: 5, publicId: '' })).toBe('5');
+    expect(breakRef({ id: 5 })).toBe('5');
+    expect(breakRef({ id: 0, publicId: '' })).toBeNull();
+    expect(breakRef({ id: 0 })).toBeNull();
+  });
+});
+
+describe('matchesBreakParam', () => {
+  const open = { id: 5, publicId: testBreakId(5) };
+  it('matches the b_ id and the numeric id of a push queued earlier', () => {
+    expect(matchesBreakParam(testBreakId(5), open)).toBe(true);
+    expect(matchesBreakParam('5', open)).toBe(true);
+    expect(matchesBreakParam('6', open)).toBe(false);
+    expect(matchesBreakParam(testBreakId(6), open)).toBe(false);
+  });
+  it('matches a numeric id when the api has no b_ id', () => {
+    expect(matchesBreakParam('5', { id: 5, publicId: '' })).toBe(true);
+  });
+  it('never matches 0, an absent or an empty param', () => {
+    expect(matchesBreakParam('0', { id: 0, publicId: '' })).toBe(false);
+    expect(matchesBreakParam('0', { id: 0, publicId: testBreakId(5) })).toBe(false);
+    expect(matchesBreakParam(undefined, open)).toBe(false);
+    expect(matchesBreakParam('', { id: 0, publicId: '' })).toBe(false);
+    expect(matchesBreakParam(['5'], open)).toBe(false);
   });
 });

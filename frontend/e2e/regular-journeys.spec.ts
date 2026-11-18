@@ -47,7 +47,7 @@ async function deleteOwn(page: Page, keep: ReadonlySet<number> = SEEDED): Promis
   if (!mine.ok()) return;
   for (const template of (await mine.json()) as JourneyTemplateListItem[]) {
     if (!keep.has(template.id) && template.target !== null) {
-      await page.request.delete(`/api/JourneyTemplates/${template.id}`);
+      await page.request.delete(`/api/JourneyTemplates/${template.publicId}`);
     }
   }
 }
@@ -212,9 +212,9 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId, returnTemplateId } = (await created.json()) as {
-      templateId: number;
-      returnTemplateId: number;
+    const { templatePublicId: templateId, returnTemplatePublicId: returnTemplateId } = (await created.json()) as {
+      templatePublicId: string;
+      returnTemplatePublicId: string;
     };
 
     try {
@@ -264,7 +264,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
     const skipped = async () => {
       const detail = await page.request.get(`/api/JourneyTemplates/${templateId}`);
       return ((await detail.json()) as { skippedDates: string[] }).skippedDates;
@@ -325,7 +325,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
     const detail = async () =>
       (await (await page.request.get(`/api/JourneyTemplates/${templateId}`)).json()) as {
         pausedUntil: string | null;
@@ -401,7 +401,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
 
     try {
       await page.goto('/journeys/regular');
@@ -508,7 +508,7 @@ test.describe('regular journeys', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { templateId } = (await created.json()) as { templateId: number };
+    const { templatePublicId: templateId } = (await created.json()) as { templatePublicId: string };
 
     try {
       await page.goto('/journeys/regular');

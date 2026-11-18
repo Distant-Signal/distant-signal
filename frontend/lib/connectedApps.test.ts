@@ -30,9 +30,9 @@ describe('connected apps helpers', () => {
     ).toEqual({ title: 'Weekend away', legs: ['EUS to MKC, on 20 Oct 2026, train C11052'] });
     expect(
       deletionSummary({ id: 2, client: 'ds-mcp', journeyId: 7, deletedAt: '2026-10-14T10:00:00Z', summary: {} }),
-    ).toEqual({ title: 'Journey 7', legs: [] });
+    ).toEqual({ title: 'Deleted journey', legs: [] });
     // No custom name: the journey's whole route and first day, as every
-    // other journey surface names it, not "Journey 9".
+    // other journey surface names it, not "Journey 9" or an id.
     expect(
       deletionSummary({
         id: 3,

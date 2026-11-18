@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Button, Stack, Text } from '@mantine/core';
 import { AlternativesSheet } from './AlternativesSheet';
 import { breakBody, breakTitle, openBreakTitleFacts } from '@/lib/journeyBreak';
+import { breakRef } from '@/lib/publicId';
 import type { JourneyLegDetail, OpenBreakSummary } from '@/lib/types';
 
 /** A journey's open break (spec §8.1, §8.2): a grape "you need to act"
@@ -30,6 +31,7 @@ export function JourneyBreakBanner({
   initialOpen?: boolean;
   fromPush?: boolean;
 }) {
+  const ref = breakRef(openBreak);
   const [opened, setOpened] = useState(isOwner && initialOpen);
   // Only the opening the push led to counts as opened from the push.
   const [viaPush, setViaPush] = useState(isOwner && initialOpen && fromPush);
@@ -51,7 +53,7 @@ export function JourneyBreakBanner({
             </Button>
             <AlternativesSheet
               journeyId={journeyId}
-              mode={{ kind: 'break', breakId: openBreak.id, fromPush: viaPush }}
+              mode={{ kind: 'break', fromPush: viaPush, ...(ref !== null && { breakId: ref }) }}
               opened={opened}
               onClose={() => {
                 setOpened(false);

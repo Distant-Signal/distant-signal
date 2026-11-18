@@ -21,9 +21,9 @@ export function UpcomingDatesStrip({
   pairedTemplateId,
   upcoming,
 }: {
-  templateId: number;
+  templateId: string;
   /** The return journey's template, whose dates go with this one's. */
-  pairedTemplateId: number | null;
+  pairedTemplateId: string | null;
   upcoming: readonly UpcomingDate[];
 }) {
   const router = useRouter();
