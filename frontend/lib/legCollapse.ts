@@ -34,6 +34,27 @@ export function groupCollapsibleLegs<T>(
   return groups;
 }
 
+/** The legs a leg list shows as rows: every `leg` group, in order. */
+export function shownLegs<T>(groups: readonly LegGroup<T>[]): T[] {
+  return groups.flatMap((group) => (group.kind === 'leg' ? [group.leg] : []));
+}
+
+/** Where `leg` sits among the legs shown as rows: `position` counts from 1
+ * and `total` is the number of rows, so "Leg 2 of 3" means the same on the
+ * journey page and on the home card. Folded legs are not counted, as the
+ * page does not show them. `null` when there is nothing to number: one row
+ * or none, or `leg` is itself folded away. */
+export function shownLegPosition<T>(
+  legs: readonly T[],
+  leg: T,
+  isCollapsible: (leg: T, index: number) => boolean,
+): { position: number; total: number } | null {
+  const shown = shownLegs(groupCollapsibleLegs(legs, isCollapsible));
+  const index = shown.indexOf(leg);
+  if (shown.length < 2 || index === -1) return null;
+  return { position: index + 1, total: shown.length };
+}
+
 /** The open break's trigger leg ids, as `isTriggerLeg` reads them. */
 interface BreakTrigger {
   triggerLegId: number | null;
