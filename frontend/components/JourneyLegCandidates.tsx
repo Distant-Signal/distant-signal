@@ -2,6 +2,7 @@
 
 import { useOperatorNames } from './OperatorNamesContext';
 import { operatorNameAndCode } from '@/lib/displayLabels';
+import { fetchCandidates } from '@/lib/candidatesEarlier';
 import { ownValue } from '@/lib/ownValue';
 import { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Stack, Text, VisuallyHidden } from '@mantine/core';
@@ -186,10 +187,8 @@ export function JourneyLegCandidates({
     setResults('loading');
     needsLoginState.reset();
     const params = new URLSearchParams(searchQuery);
-    if (earlier > 0) params.set('earlier', String(earlier));
     if (committedOperator) params.set('operator', committedOperator);
-    const query = params.toString();
-    fetch(`/api/Journeys/${journeyId}/legs/${legId}/candidates${query ? `?${query}` : ''}`)
+    fetchCandidates(`/api/Journeys/${journeyId}/legs/${legId}/candidates`, params, earlier)
       // The catch below tells a 401 apart by rejecting with the Response itself.
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- see above
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))

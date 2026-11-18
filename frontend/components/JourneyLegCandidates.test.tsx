@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { renderWithMantine } from '@/test/render';
 import { JourneyLegCandidates } from './JourneyLegCandidates';
 import { UsualTrainProvider } from './UsualTrainContext';
+import { resetEarlierSupport } from '@/lib/candidatesEarlier';
 
 // `LoginPromptModal`'s own `LoginButtonLink` calls `useLoginHref()`, which
 // calls `usePathname()`/`useSearchParams()` -- same stub `PinToggle.test.tsx`/
@@ -902,10 +903,64 @@ describe('JourneyLegCandidates: earlier trains and the current one', () => {
 
   beforeEach(() => {
     onPicked.mockClear();
+    resetEarlierSupport();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  const UNKNOWN_FIELD =
+    'Failed to deserialize query string: unknown field `earlier`, expected one of `limit`, `after`, `operator`';
+
+  /** An api from before `?earlier=`: it 400s a request that carries it. */
+  function stubOldApi(body: object, refusal = UNKNOWN_FIELD, status = 400) {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (!/\/candidates(\?.*)?$/.test(url)) throw new Error(`unexpected fetch for ${url}`);
+      if (url.includes('earlier=')) return Promise.resolve(new Response(refusal, { status }));
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  it('retries without earlier against an api that does not know it, with no error and no earlier group', async () => {
+    const fetchMock = stubOldApi({ results: WINDOW, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    expect(await screen.findByRole('button', { name: /^Track this train: 10:30/ })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+      '/api/Journeys/1/legs/2/candidates?earlier=3',
+      '/api/Journeys/1/legs/2/candidates',
+    ]);
+    expect(screen.queryByRole('list', { name: 'Earlier trains' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('remembers that earlier is unsupported and skips it on later requests', async () => {
+    stubOldApi({ results: WINDOW, nextCursor: null });
+    const first = renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    await screen.findByRole('button', { name: /^Track this train: 10:30/ });
+    first.unmount();
+    const again = stubOldApi({ results: WINDOW, nextCursor: null });
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="3" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    await screen.findByRole('button', { name: /^Track this train: 10:30/ });
+    expect(again.mock.calls.map((call) => String(call[0]))).toEqual(['/api/Journeys/1/legs/3/candidates']);
+  });
+
+  it('still shows a 400 that is not about earlier as an error, without retrying', async () => {
+    const fetchMock = stubOldApi({ results: WINDOW, nextCursor: null }, 'operator must be an ATOC code');
+    renderWithMantine(
+      <JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" earlier={3} onPicked={onPicked} />,
+    );
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('asks for the earlier trains only when told to', async () => {
