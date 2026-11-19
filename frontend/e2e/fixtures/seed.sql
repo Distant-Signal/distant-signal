@@ -1508,6 +1508,13 @@ VALUES
   ('E2EMSB', 'station', 'Fixture Wharf', 'Fixture Wharf', 1)
 ON CONFLICT DO NOTHING;
 
+-- The clock this section reads: the database's, unless the session sets
+-- `e2e.now` (PGOPTIONS='-c e2e.now=2026-11-18T23:40:00Z'), which
+-- scripts/check-e2e-seed-clock.py does to seed as if at any hour.
+CREATE FUNCTION pg_temp.e2e_now() RETURNS timestamptz LANGUAGE sql STABLE AS $$
+  SELECT COALESCE(NULLIF(current_setting('e2e.now', TRUE), '')::timestamptz, NOW())
+$$;
+
 -- One ZXA to ZXB train leaving at `dep` and arriving at `arr`: its timetable
 -- on the London date of `dep` (an arrival after midnight is day offset 1),
 -- its `trains` row, and the TRUST reports once `dep` / `arr` have passed.
@@ -1545,22 +1552,22 @@ BEGIN
         'publicDeparture', dep_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', 0),
       jsonb_build_object('tiploc', 'E2EMSB', 'kind', 'Terminate', 'bookedArrival', arr_time, 'bookedDeparture', NULL,
         'publicArrival', arr_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', arr_offset)),
-    'TRUST-' || uid, NOW(), NOW())
+    'TRUST-' || uid, pg_temp.e2e_now(), pg_temp.e2e_now())
   ON CONFLICT (train_uid, service_date) DO UPDATE SET resolved_at = EXCLUDED.resolved_at
   RETURNING id INTO train;
-  IF dep <= NOW() THEN
+  IF dep <= pg_temp.e2e_now() THEN
     INSERT INTO train_movement_events (dedup_key, msg_type, event_type, loc_stanox, loc_crs, planned_timestamp,
                                        actual_timestamp, variation_status, raw_body, received_at, trains_id)
-    VALUES ('FIXTURE-' || uid || '-DEP', '0003', 'DEPARTURE', 'E2EMS-ZXA', 'ZXA', dep, dep, 'ON TIME', '{}'::jsonb, NOW(), train)
+    VALUES ('FIXTURE-' || uid || '-DEP', '0003', 'DEPARTURE', 'E2EMS-ZXA', 'ZXA', dep, dep, 'ON TIME', '{}'::jsonb, pg_temp.e2e_now(), train)
     ON CONFLICT DO NOTHING;
   END IF;
-  IF arr <= NOW() THEN
+  IF arr <= pg_temp.e2e_now() THEN
     INSERT INTO train_movement_events (dedup_key, msg_type, event_type, loc_stanox, loc_crs, planned_timestamp,
                                        actual_timestamp, variation_status, raw_body, received_at, trains_id)
-    VALUES ('FIXTURE-' || uid || '-ARR', '0003', 'ARRIVAL', 'E2EMS-ZXB', 'ZXB', arr, arr, 'ON TIME', '{}'::jsonb, NOW(), train)
+    VALUES ('FIXTURE-' || uid || '-ARR', '0003', 'ARRIVAL', 'E2EMS-ZXB', 'ZXB', arr, arr, 'ON TIME', '{}'::jsonb, pg_temp.e2e_now(), train)
     ON CONFLICT DO NOTHING;
     INSERT INTO train_current_state (status, last_reported_location, last_event_type, delay_minutes, updated_at, trains_id, event_time)
-    VALUES ('completed', 'ZXB', 'ARRIVAL', 0, NOW(), train, arr)
+    VALUES ('completed', 'ZXB', 'ARRIVAL', 0, pg_temp.e2e_now(), train, arr)
     ON CONFLICT (trains_id) WHERE trains_id IS NOT NULL DO UPDATE SET
       status = EXCLUDED.status, last_reported_location = EXCLUDED.last_reported_location,
       last_event_type = EXCLUDED.last_event_type, updated_at = EXCLUDED.updated_at;
@@ -1569,10 +1576,10 @@ BEGIN
 END
 $fn$;
 
-SELECT pg_temp.seed_miss_train('E2EMS1', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '5 minutes');
-SELECT pg_temp.seed_miss_train('E2EMS2', NOW() + INTERVAL '4 hours', NOW() + INTERVAL '4 hours 15 minutes');
-SELECT pg_temp.seed_miss_train('E2EMS3', NOW() + INTERVAL '5 hours', NOW() + INTERVAL '5 hours 15 minutes');
-SELECT pg_temp.seed_miss_train('E2EMS0', NOW() - INTERVAL '2 days 20 minutes', NOW() - INTERVAL '2 days 5 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS1', pg_temp.e2e_now() - INTERVAL '20 minutes', pg_temp.e2e_now() - INTERVAL '5 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS2', pg_temp.e2e_now() + INTERVAL '4 hours', pg_temp.e2e_now() + INTERVAL '4 hours 15 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS3', pg_temp.e2e_now() + INTERVAL '5 hours', pg_temp.e2e_now() + INTERVAL '5 hours 15 minutes');
+SELECT pg_temp.seed_miss_train('E2EMS0', pg_temp.e2e_now() - INTERVAL '2 days 20 minutes', pg_temp.e2e_now() - INTERVAL '2 days 5 minutes');
 
 -- Each leg's tracking, and the two journeys.
 INSERT INTO train_subscriptions (user_id, service_date, pin_origin_crs, pin_destination_crs, resolution_status, tracked_at, trains_id, notifications_enabled)
