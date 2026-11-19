@@ -76,7 +76,7 @@ uv run --no-sync python -m unittest discover -s scripts/tests -v
 uv run scripts/sync-core.py --check          # frontend/lib/site-credits.json = the pinned ds-core release's signed asset (rewrite without --check)
 uv run scripts/sync-api-types.py check       # frontend's api types and OpenAPI copy = the pinned api image's
 uv run scripts/check-sftp-entrypoint.py      # docker/schedule-sftp-entrypoint.sh = ds-deploy's pinned chart copy (--write to update)
-PGHOST=... uv run scripts/check-e2e-seed-clock.py --template <migrated db>   # seeds the e2e fixtures at several clocks (before and after London midnight, winter and summer) and checks the missed-train ones against the api's search dates; needs Postgres, not in CI
+PGHOST=... uv run scripts/check-e2e-seed-clock.py --template <migrated db>   # seeds the e2e fixtures at several clocks (before and after London midnight, winter and summer) and checks the missed-train ones against the api's search dates; needs Postgres; CI's `e2e-seed-clock` job runs it
 uv run scripts/check-edge-cache.py          # read-only GETs to production: cf-cache-status/Age per route class (docs/edge-caching.md)
 ```
 

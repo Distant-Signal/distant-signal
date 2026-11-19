@@ -387,6 +387,81 @@ jobs:
             frontend/test-results/
           retention-days: 7
 
+  # DS-534: frontend/e2e/fixtures/seed.sql seeds the missed-train fixtures
+  # relative to the clock, and a seeding hour that put them on the wrong
+  # London service date failed journey-missed-train.spec.ts only at some
+  # hours. scripts/check-e2e-seed-clock.py runs the seed at nine clocks (UTC
+  # and BST, 19:10 to 03:30 London) in databases cloned from a migrated
+  # template and applies the api's missed-train rules to each. It needs only
+  # Postgres and the migrations, so it runs on every PR and push rather than
+  # behind a path filter: the clone-and-seed loop is seconds. The database is
+  # migrated as frontend-e2e does (ds-migrate at the pinned api's
+  # core-version). Its unit tests run in scripts-lint.
+  e2e-seed-clock:
+    name: e2e seed clock check (DS-534)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+
+    # The same Postgres image and health-check options as frontend-e2e.
+    services:
+      postgres:
+        image: postgres:18@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # libpq's environment, which the script's psql calls read.
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Only the image's core-version label is wanted, as in frontend-e2e.
+      - name: Read the pinned api image's core-version
+        id: api
+        run: |
+          set -euo pipefail
+          ref="$(grep -v '^[[:space:]]*#' frontend/api-image.txt | grep -v '^[[:space:]]*$')"
+          docker pull --quiet "${ref}"
+          core="$(docker inspect --format '{{ index .Config.Labels "org.distant-signal.core-version" }}' "${ref}")"
+          [[ "${core}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "the api image has no core-version label"; exit 1; }
+          echo "core=${core}" >> "${GITHUB_OUTPUT}"
+
+      - name: Migrate a template database (ds-migrate at the api's core-version)
+        env:
+          CORE: ${{ steps.api.outputs.core }}
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ds_tpl'
+          docker run --rm --network host \
+            -e MIGRATION_DATABASE_URL="postgres://postgres:postgres@localhost:5432/ds_tpl" \
+            "ghcr.io/distant-signal/images/ds-migrate:${CORE}" run
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          # renovate: datasource=pypi depName=uv
+          version: "0.13.6"
+          # Nothing to cache: no dependencies are installed.
+          enable-cache: false
+
+      - name: Seed the e2e fixtures at each clock and check the missed-train rules
+        run: uv run --locked --no-default-groups scripts/check-e2e-seed-clock.py --template ds_tpl
+
   # Commit identity (repo split spec §5.10), Distant-Signal/ci's
   # identity.yml: no commit in the PR or push may use a retired
   # author/committer address or carry AI attribution (a Co-authored-by
