@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SAME_ORIGIN_HEADERS } from './sameOrigin';
+import { testPublicId } from '../test/apiDefaults';
 
 test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 
@@ -38,17 +39,22 @@ test.describe('reliability from journey legs', () => {
     const response = await page.request.get('/api/Journeys/reliability');
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      trains: { journeyId: number; trainUid: string | null; cancelled: boolean; replacedBecause: string | null }[];
-      journeys: { journeyId: number; delayMinutes: number | null; againstBookedPlan: boolean }[];
+      trains: {
+        journeyPublicId: string;
+        trainUid: string | null;
+        cancelled: boolean;
+        replacedBecause: string | null;
+      }[];
+      journeys: { journeyPublicId: string; delayMinutes: number | null; againstBookedPlan: boolean }[];
     };
-    const trains = body.trains.filter((t) => t.journeyId === Number(JOURNEY_ID));
+    const trains = body.trains.filter((t) => t.journeyPublicId === testPublicId(Number(JOURNEY_ID)));
     expect(trains).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ trainUid: 'W93001', cancelled: true, replacedBecause: 'cancelled' }),
         expect.objectContaining({ trainUid: 'W93002', cancelled: false }),
       ]),
     );
-    expect(body.journeys.find((j) => j.journeyId === Number(JOURNEY_ID))).toMatchObject({
+    expect(body.journeys.find((j) => j.journeyPublicId === testPublicId(Number(JOURNEY_ID)))).toMatchObject({
       delayMinutes: 42,
       againstBookedPlan: true,
     });

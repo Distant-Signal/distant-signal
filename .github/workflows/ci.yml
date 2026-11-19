@@ -82,9 +82,28 @@ jobs:
   # ds-api's `crates/api/src/data/config.rs` doc comments on `sso_issuer_url`),
   # never actually contacting it unless a real OAuth redirect happens,
   # which no spec here drives.
+  #
+  # It runs twice, as a matrix of two jobs (DS-534). The first is the job
+  # above: the api as the chart runs it, numeric ids served. The second is
+  # the same suite against an api started with API_SERVE_NUMERIC_IDS=false,
+  # which serves every numeric id that has an opaque sibling as 0: a page
+  # or spec that reads a numeric id as a value (a key, a join, a path, an
+  # ordering) fails there. It is its own check, "Playwright e2e with numeric
+  # ids off", and not one of the required ones; it skips the visual
+  # screenshots, which render the same pages the first job compares. The
+  # first entry keeps this job's original check name.
   frontend-e2e:
-    name: Playwright e2e + accessibility
+    name: ${{ matrix.job-name }}
     runs-on: ubuntu-26.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - job-name: Playwright e2e + accessibility
+            serve-numeric-ids: ""
+          - job-name: Playwright e2e with numeric ids off (DS-534)
+            serve-numeric-ids: "false"
 
     # The same two images and health-check options as Distant-Signal/ds-api's
     # DB test passes (its ci.yml passes them to Distant-Signal/ci's
@@ -196,6 +215,10 @@ jobs:
       E2E_GROUP_INVITE_TOKEN: fixture-invite-token-123456789
       E2E_SESSION_COOKIE: qhE59Tg8RipXqulYsgOav1p46-YsflwgjQxMa1K5lKY
       E2E_BASE_URL: http://127.0.0.1:3000
+      # The matrix's second job: "false" makes the api serve numeric ids as
+      # 0 where an opaque id exists (ds-api's API_SERVE_NUMERIC_IDS, off by
+      # default there). Empty in the first job, where the api is not given it.
+      API_SERVE_NUMERIC_IDS: ${{ matrix.serve-numeric-ids }}
 
     steps:
       - name: Checkout repository
@@ -257,6 +280,8 @@ jobs:
             API_TRANSIT_NETWORKS API_TRIP_PLAN_TRANSIT_NETWORKS TFL_BASE_URL
             REGULAR_JOURNEY_RECURRENCE_ENABLED REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED
             CALENDAR_FEED_ENABLED RECENTLY_DELETED_ENABLED)
+          # Passed only when the matrix sets it: an empty value is not "unset".
+          if [[ -n "${API_SERVE_NUMERIC_IDS}" ]]; then names+=(API_SERVE_NUMERIC_IDS); fi
           args=()
           for name in "${names[@]}"; do args+=(-e "${name}"); done
           docker run -d --name api --network host "${args[@]}" "${REF}"
@@ -305,6 +330,17 @@ jobs:
           cat frontend.log
           exit 1
 
+      # The second job proves its api really serves zeroed ids, so a flag
+      # the api stopped reading fails here rather than passing the suite
+      # against real ids. Through the frontend, as the specs reach it.
+      - name: Check the api serves numeric ids as 0
+        if: matrix.serve-numeric-ids == 'false'
+        run: |
+          set -euo pipefail
+          curl -sf -H "cookie: distant_signal_session=${E2E_SESSION_COOKIE}" \
+            http://127.0.0.1:3000/api/Journeys/mine > journeys-mine.json
+          jq -e 'length > 0 and all(.[]; .id == 0 and (.publicId | startswith("j_")))' journeys-mine.json
+
       - name: npx playwright test
         working-directory: frontend
         run: npx playwright test
@@ -330,6 +366,7 @@ jobs:
       # Answers "changed" whenever it can't tell (a new branch's first
       # push, an unfetchable base), so the check is never skipped wrongly.
       - name: Did this change touch frontend/?
+        if: matrix.serve-numeric-ids == ''
         id: frontend-paths
         uses: Distant-Signal/ci/actions/paths-changed@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
         with:
@@ -337,14 +374,14 @@ jobs:
           paths: frontend/
 
       - name: Visual regression screenshots
-        if: steps.frontend-paths.outputs.changed == 'true'
+        if: matrix.serve-numeric-ids == '' && steps.frontend-paths.outputs.changed == 'true'
         run: uv run --locked --no-default-groups scripts/visual-tests.py
 
       - name: Upload Playwright report + traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ strategy.job-index }}
           path: |
             frontend/e2e-report/
             frontend/test-results/

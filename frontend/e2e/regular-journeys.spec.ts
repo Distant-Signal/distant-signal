@@ -25,7 +25,7 @@ test.use({ extraHTTPHeaders: SAME_ORIGIN_HEADERS });
 // that budget on real plans).
 
 const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE;
-const SEEDED = new Set([900201, 900202]);
+const SEEDED = new Set([testTemplateId(900201), testTemplateId(900202)]);
 
 async function logIn(context: BrowserContext): Promise<void> {
   const base = new URL(process.env.E2E_BASE_URL ?? 'http://localhost:3000');
@@ -43,11 +43,11 @@ async function logIn(context: BrowserContext): Promise<void> {
 }
 
 /** Deletes every regular journey of the seed user's that this spec made. */
-async function deleteOwn(page: Page, keep: ReadonlySet<number> = SEEDED): Promise<void> {
+async function deleteOwn(page: Page, keep: ReadonlySet<string> = SEEDED): Promise<void> {
   const mine = await page.request.get('/api/JourneyTemplates/mine');
   if (!mine.ok()) return;
   for (const template of (await mine.json()) as JourneyTemplateListItem[]) {
-    if (!keep.has(template.id) && template.target !== null) {
+    if (!keep.has(template.publicId) && template.target !== null) {
       await page.request.delete(`/api/JourneyTemplates/${template.publicId}`);
     }
   }

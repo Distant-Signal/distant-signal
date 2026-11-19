@@ -86,7 +86,7 @@ async function api(page: Page, method: string, path: string, body?: unknown) {
 test.describe('timetabled legs', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to the seed session');
 
-  let journeyId: number | null = null;
+  let journeyId: string | null = null;
 
   test.afterAll(async ({ browser }) => {
     if (journeyId === null) return;
@@ -103,7 +103,7 @@ test.describe('timetabled legs', () => {
     await page.goto('/journeys');
     const created = await api(page, 'POST', '/Journeys', { leg: tramLeg(0) });
     expect(created.status, JSON.stringify(created.body)).toBe(200);
-    journeyId = created.body.journeyId as number;
+    journeyId = created.body.journeyPublicId as string;
     const added = await api(page, 'POST', `/Journeys/${journeyId}/legs`, tramLeg(3));
     expect(added.status, JSON.stringify(added.body)).toBe(200);
 
@@ -166,7 +166,7 @@ test.describe('timetabled legs', () => {
       },
     });
     expect(created.status, JSON.stringify(created.body)).toBe(200);
-    const tubeJourney = created.body.journeyId as number;
+    const tubeJourney = created.body.journeyPublicId as string;
     try {
       await page.goto(`/journeys/${tubeJourney}`);
       const panel = page.locator('[data-live-arrivals]');

@@ -43,7 +43,7 @@ test.describe('mid-journey changes', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const { journeyId, journeyPublicId } = (await created.json()) as { journeyId: number; journeyPublicId: string };
+    const { journeyPublicId } = (await created.json()) as { journeyPublicId: string };
 
     await page.goto(`/journeys/${journeyPublicId}`);
     const main = page.locator('#main-content');
@@ -66,7 +66,7 @@ test.describe('mid-journey changes', () => {
     await page.goto(`/journeys/${journeyPublicId}`);
     await expect(main.getByText(/Earlier plans/)).toBeVisible();
 
-    await request.delete(`/api/Journeys/${journeyId}`, {
+    await request.delete(`/api/Journeys/${journeyPublicId}`, {
       headers: { cookie: `distant_signal_session=${SESSION_COOKIE}`, origin: base.origin },
     });
   });

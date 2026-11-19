@@ -55,7 +55,7 @@ test.describe.configure({ mode: 'serial' });
 test.describe('journeys shared with you', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to the seed session');
 
-  let ownJourneyId: number | null = null;
+  let ownJourneyId: string | null = null;
   let ownJourneyPublicId: string | null = null;
 
   test.beforeEach(async ({ context }) => {
@@ -170,8 +170,8 @@ test.describe('journeys shared with you', () => {
       },
     });
     expect(created.ok(), await created.text()).toBe(true);
-    const body = (await created.json()) as { journeyId: number; journeyPublicId: string };
-    ownJourneyId = body.journeyId;
+    const body = (await created.json()) as { journeyPublicId: string };
+    ownJourneyId = body.journeyPublicId;
     ownJourneyPublicId = body.journeyPublicId;
 
     await page.goto('/journeys');
