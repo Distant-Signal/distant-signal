@@ -1,5 +1,9 @@
 import { computeBuildId } from './scripts/build-id.mjs';
 
+// Computed once: both the Next build id and the id the browser sends on its
+// api calls (`NEXT_PUBLIC_BUILD_ID`, lib/buildId.ts).
+const buildId = computeBuildId(import.meta.dirname);
+
 // Origins `next dev` accepts cross-origin dev requests (HMR, the dev
 // overlay, /_next/* assets) from. Supplied by docker-compose.dev.yml from
 // NEXT_ALLOWED_DEV_ORIGINS in `dev.env` — comma-separated — rather than
@@ -152,7 +156,10 @@ const nextConfig = {
   // one made every deploy install a new service worker and drop its
   // caches, and made every image build differ. Now both change only when
   // frontend/ does.
-  generateBuildId: () => computeBuildId(import.meta.dirname),
+  generateBuildId: () => buildId,
+  // Inlined into the browser bundle: the build id, sent as `X-DS-Build` on
+  // api calls so the proxy can count requests per build (lib/buildMix.ts).
+  env: { NEXT_PUBLIC_BUILD_ID: buildId },
   ...(devOrigins.length ? { allowedDevOrigins: devOrigins } : {}),
   // The Journeys page (`app/journeys/page.tsx`) was the Track page at
   // `/track/mine` until DS-115 (21 Oct 2026), and before that

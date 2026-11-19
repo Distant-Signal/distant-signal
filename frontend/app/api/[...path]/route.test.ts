@@ -16,6 +16,8 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
+vi.mock('@/lib/buildMix', () => ({ recordApiBuild: vi.fn() }));
+import { recordApiBuild } from '@/lib/buildMix';
 import { GET, HEAD, POST, PUT, DELETE, MAX_PROXY_BODY_BYTES, originOfReferer } from './route';
 
 describe('/api/[...path] proxy', () => {
@@ -53,6 +55,16 @@ describe('/api/[...path] proxy', () => {
     await GET(req, { params: Promise.resolve({ path: ['preferences'] }) });
     const [calledUrl] = vi.mocked(fetch).mock.calls[0]!;
     expect(calledUrl.toString()).toBe('http://test-api:8080/public/preferences');
+  });
+
+  it('counts the X-DS-Build header against its build and never forwards it to the api', async () => {
+    const id = 'd'.repeat(24);
+    const req = makeRequest('/api/preferences', { headers: { 'x-ds-build': id } });
+    await GET(req, { params: Promise.resolve({ path: ['preferences'] }) });
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    const sent = Object.keys((init as { headers: Record<string, string> }).headers).map((h) => h.toLowerCase());
+    expect(sent).not.toContain('x-ds-build');
+    expect(recordApiBuild).toHaveBeenCalledWith(id);
   });
 
   it('forwards a Train/track POST to the bare-root backend path, with cookies attached', async () => {

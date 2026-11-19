@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { clientIpFromHeaders, REAL_IP_HEADER } from '@/lib/clientIp';
 import { getSiteOrigin } from '@/lib/siteOrigin';
+import { BUILD_ID_HEADER } from '@/lib/buildId';
+import { recordApiBuild } from '@/lib/buildMix';
 import { createLogger } from '@/lib/logger';
 import { isPublicCacheCandidate, lockDown, publicCacheEnabled, publicCacheHeadersFor } from '@/lib/proxyPublicCache';
 
@@ -269,6 +271,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // that mentions it runs: the proxy is byte-for-byte what it was. On, every
   // response is `private, no-store` unless the request is an anonymous GET
   // or HEAD of an allowlisted path and the api itself answered `public`.
+  // Which frontend build the call came from (counts only, lib/buildMix.ts).
+  // The header is not among those relayed below, so it never reaches the api.
+  recordApiBuild(req.headers.get(BUILD_ID_HEADER));
   const cachePolicyOn = publicCacheEnabled();
   const cacheCandidate = cachePolicyOn && isPublicCacheCandidate(req.method, path, req.headers);
   // Every response the proxy generates itself is private, flag or no flag.
