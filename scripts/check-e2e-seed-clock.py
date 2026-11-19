@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # ruff: noqa: T201  # a CLI whose output is stdout
-"""Seed frontend/e2e/fixtures/seed.sql as if run at several clocks and check
-that the missed-train fixtures (DS-534) hold whatever the hour.
+"""Check that the e2e seed's missed-train fixtures (DS-534) hold at any hour.
+
+Seeds frontend/e2e/fixtures/seed.sql as if run at several clocks.
 
   PGHOST=... uv run scripts/check-e2e-seed-clock.py --template ds_tpl
 
@@ -32,7 +33,17 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-SEED = Path(__file__).resolve().parent.parent / "frontend" / "e2e" / "fixtures" / "seed.sql"
+# Past this many minutes on a service date is the next date's midnight: when the
+# api's alternatives search starts to look at the next date too.
+DAY_MINUTES = 1440
+
+SEED = (
+    Path(__file__).resolve().parent.parent
+    / "frontend"
+    / "e2e"
+    / "fixtures"
+    / "seed.sql"
+)
 
 # Instants the seed is run at. London is UTC in winter and an hour ahead in
 # summer; the set covers the hours before midnight (four hours on is the next
@@ -64,16 +75,19 @@ SELECT json_build_object(
                                 - leg.service_date::timestamp)) / 60)::int FROM leg),
   'window_open', (
     SELECT '{at}'::timestamptz
-           < ((leg.service_date + 1)::timestamp + interval '4 hours') AT TIME ZONE 'Europe/London'
+           < ((leg.service_date + 1)::timestamp + interval '4 hours')
+             AT TIME ZONE 'Europe/London'
     FROM leg),
   'leg_arrived', EXISTS (
     SELECT 1 FROM train_movement_events e
-    WHERE e.dedup_key = 'FIXTURE-E2EMS1-ARR' AND e.actual_timestamp <= '{at}'::timestamptz),
+    WHERE e.dedup_key = 'FIXTURE-E2EMS1-ARR'
+      AND e.actual_timestamp <= '{at}'::timestamptz),
   'leg_date', (SELECT service_date FROM leg),
   'trains', (
     SELECT COALESCE(json_object_agg(uid, json_build_object(
       'date', service_date,
-      'minute', EXTRACT(EPOCH FROM booked_departure) / 60 + day_offset * 1440)), '{{}}'::json)
+      'minute', EXTRACT(EPOCH FROM booked_departure) / 60
+                + day_offset * 1440)), '{{}}'::json)
     FROM schedule_calling_points_full
     WHERE uid IN ('E2EMS2', 'E2EMS3') AND seq = 0)
 )
@@ -82,6 +96,8 @@ SELECT json_build_object(
 
 @dataclass(frozen=True)
 class Facts:
+    """What the api reads of the fixture at one instant."""
+
     minute_of_leg_date: int
     window_open: bool
     leg_arrived: bool
@@ -90,8 +106,11 @@ class Facts:
 
 
 def parse_facts(raw: str) -> Facts:
+    """Read the facts query's JSON."""
     data = json.loads(raw)
-    trains = {uid: (str(t["date"]), float(t["minute"])) for uid, t in data["trains"].items()}
+    trains = {
+        uid: (str(t["date"]), float(t["minute"])) for uid, t in data["trains"].items()
+    }
     return Facts(
         minute_of_leg_date=int(data["minute_of_leg_date"]),
         window_open=bool(data["window_open"]),
@@ -102,20 +121,23 @@ def parse_facts(raw: str) -> Facts:
 
 
 def next_date(date: str) -> str:
+    """Return the ISO date after `date`."""
     return (datetime.fromisoformat(date) + timedelta(days=1)).date().isoformat()
 
 
 def problems(facts: Facts) -> list[str]:
-    """What stops the spec passing at the instant `facts` describes, by the
-    api's rules: the miss window, the leg having arrived, and the dates a
-    journey's alternatives search covers."""
+    """List what stops the spec passing at the instant `facts` describes.
+
+    By the api's rules: the miss window, the leg having arrived, and the dates
+    a journey's alternatives search covers.
+    """
     found: list[str] = []
     if not facts.window_open:
         found.append("the miss window is closed")
     if not facts.leg_arrived:
         found.append("the leg has not arrived")
     searched = [facts.leg_date]
-    if facts.minute_of_leg_date >= 1440:
+    if facts.minute_of_leg_date >= DAY_MINUTES:
         searched.append(next_date(facts.leg_date))
     for uid in ("E2EMS2", "E2EMS3"):
         train = facts.trains.get(uid)
@@ -124,31 +146,45 @@ def problems(facts: Facts) -> list[str]:
             continue
         date, minute = train
         if date not in searched:
-            found.append(f"{uid} is timetabled on {date}, not on a searched date ({', '.join(searched)})")
-        elif (0 if date == facts.leg_date else 1440) + minute < facts.minute_of_leg_date:
+            found.append(
+                f"{uid} is timetabled on {date}, not on a searched date "
+                f"({', '.join(searched)})"
+            )
+        elif (
+            0 if date == facts.leg_date else DAY_MINUTES
+        ) + minute < facts.minute_of_leg_date:
             found.append(f"{uid} has already left")
     return found
 
 
-def psql(args: Sequence[str], *, database: str, env: dict[str, str] | None = None) -> str:
-    result = subprocess.run(
-        ["psql", "-X", "-v", "ON_ERROR_STOP=1", "-q", "-At", "-d", database, *args],
+def psql(
+    args: Sequence[str], *, database: str, env: dict[str, str] | None = None
+) -> str:
+    """Run psql against `database` and return its output; exit on failure."""
+    result = subprocess.run(  # noqa: S603  # fixed arguments, no shell
+        ["psql", "-X", "-v", "ON_ERROR_STOP=1", "-q", "-At", "-d", database, *args],  # noqa: S607
         capture_output=True,
         text=True,
         check=False,
         env={**os.environ, **(env or {})},
     )
     if result.returncode != 0:
-        raise SystemExit(f"psql failed: {result.stderr.strip()}")
+        msg = f"psql failed: {result.stderr.strip()}"
+        raise SystemExit(msg)
     return result.stdout.strip()
 
 
 def check_clock(template: str, clock: str) -> list[str]:
+    """Seed a clone of `template` at `clock` and list what the spec would trip on."""
     name = "seedclock_" + "".join(ch for ch in clock if ch.isdigit())
     psql(["-c", f'DROP DATABASE IF EXISTS "{name}"'], database="postgres")
     psql(["-c", f'CREATE DATABASE "{name}" TEMPLATE "{template}"'], database="postgres")
     try:
-        psql(["-o", os.devnull, "-f", str(SEED)], database=name, env={"PGOPTIONS": f"-c e2e.now={clock}"})
+        psql(
+            ["-o", os.devnull, "-f", str(SEED)],
+            database=name,
+            env={"PGOPTIONS": f"-c e2e.now={clock}"},
+        )
         seeded = datetime.fromisoformat(clock)
         failures: list[str] = []
         for minutes in RUN_AFTER_MINUTES:
@@ -161,9 +197,18 @@ def check_clock(template: str, clock: str) -> list[str]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--template", required=True, help="a migrated database to clone per clock")
-    parser.add_argument("--clock", action="append", help="seed at this UTC instant (repeatable); default: a set")
+    """Check every clock; 1 when any leaves the spec unable to pass."""
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--template", required=True, help="a migrated database to clone per clock"
+    )
+    parser.add_argument(
+        "--clock",
+        action="append",
+        help="seed at this UTC instant (repeatable); default: a set",
+    )
     args = parser.parse_args(argv)
     failures: list[str] = []
     for clock in args.clock or CLOCKS:

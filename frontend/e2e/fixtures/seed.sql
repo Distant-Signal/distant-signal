@@ -1477,7 +1477,7 @@ ON CONFLICT (revision_id, position) DO NOTHING;
 --                   finished leg inside its window: "I missed this one", the
 --                   soft confirm, then the other ways). E2EMS2 and E2EMS3
 --                   leave ZXA four and five hours from now, the trains it
---                   can take.
+--                   can take, on E2EMS1's service date (see below).
 --   journey 900402  the same leg two days ago: its window has closed.
 -- The Fixture Solo group has its owner alone (leaving it is deleting it);
 -- the Fixture Pair group has the owner and a second member.
@@ -1515,14 +1515,14 @@ CREATE FUNCTION pg_temp.e2e_now() RETURNS timestamptz LANGUAGE sql STABLE AS $$
   SELECT COALESCE(NULLIF(current_setting('e2e.now', TRUE), '')::timestamptz, NOW())
 $$;
 
--- One ZXA to ZXB train leaving at `dep` and arriving at `arr`: its timetable
--- on the London date of `dep` (an arrival after midnight is day offset 1),
--- its `trains` row, and the TRUST reports once `dep` / `arr` have passed.
--- Returns the `trains.id`.
-CREATE FUNCTION pg_temp.seed_miss_train(uid text, dep timestamptz, arr timestamptz)
+-- One ZXA to ZXB train leaving at `dep` and arriving at `arr`, run on service
+-- date `sdate`: its timetable (a call after `sdate`'s midnight is day offset
+-- 1, as a real overnight train's is), its `trains` row, and the TRUST reports
+-- once `dep` / `arr` have passed. Returns the `trains.id`.
+CREATE FUNCTION pg_temp.seed_miss_train(uid text, sdate date, dep timestamptz, arr timestamptz)
 RETURNS bigint LANGUAGE plpgsql AS $fn$
 DECLARE
-  sdate date := (dep AT TIME ZONE 'Europe/London')::date;
+  dep_offset integer := (dep AT TIME ZONE 'Europe/London')::date - sdate;
   arr_offset integer := (arr AT TIME ZONE 'Europe/London')::date - sdate;
   dep_time time := (dep AT TIME ZONE 'Europe/London')::time(0);
   arr_time time := (arr AT TIME ZONE 'Europe/London')::time(0);
@@ -1532,7 +1532,7 @@ BEGIN
     (service_date, uid, seq, tiploc, kind, booked_arrival, booked_departure,
      public_arrival, public_departure, day_offset, can_board, can_alight)
   VALUES
-    (sdate, uid, 0, 'E2EMSA', 'origin', NULL, dep_time, NULL, dep_time, 0, TRUE, TRUE),
+    (sdate, uid, 0, 'E2EMSA', 'origin', NULL, dep_time, NULL, dep_time, dep_offset, TRUE, TRUE),
     (sdate, uid, 1, 'E2EMSB', 'terminate', arr_time, NULL, arr_time, NULL, arr_offset, TRUE, TRUE)
   ON CONFLICT DO NOTHING;
   INSERT INTO schedule_services (service_date, uid, mode, operator_atoc, stp)
@@ -1540,8 +1540,9 @@ BEGIN
   ON CONFLICT DO NOTHING;
   INSERT INTO schedule_destination_departures
     (service_date, destination_crs, scheduled, train_uid, origin_crs, true_origin_crs,
-     day_offset, public_departure, destination_arrival, public_destination_arrival, operator_atoc)
-  VALUES (sdate, 'ZXB', dep_time, uid, 'ZXA', 'ZXA', 0, dep_time, arr_time, arr_time, 'SW')
+     day_offset, destination_arrival_day_offset, public_departure, destination_arrival,
+     public_destination_arrival, operator_atoc)
+  VALUES (sdate, 'ZXB', dep_time, uid, 'ZXA', 'ZXA', dep_offset, arr_offset, dep_time, arr_time, arr_time, 'SW')
   ON CONFLICT DO NOTHING;
   INSERT INTO trains (train_uid, service_date, origin_crs, scheduled_departure, destination_crs, calling_points,
                       train_id, resolved_at, created_at)
@@ -1549,7 +1550,7 @@ BEGIN
     uid, sdate, 'ZXA', dep, 'ZXB',
     jsonb_build_array(
       jsonb_build_object('tiploc', 'E2EMSA', 'kind', 'Origin', 'bookedArrival', NULL, 'bookedDeparture', dep_time,
-        'publicDeparture', dep_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', 0),
+        'publicDeparture', dep_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', dep_offset),
       jsonb_build_object('tiploc', 'E2EMSB', 'kind', 'Terminate', 'bookedArrival', arr_time, 'bookedDeparture', NULL,
         'publicArrival', arr_time, 'isHalfMinuteArrival', false, 'isHalfMinuteDeparture', false, 'dayOffset', arr_offset)),
     'TRUST-' || uid, pg_temp.e2e_now(), pg_temp.e2e_now())
@@ -1576,10 +1577,19 @@ BEGIN
 END
 $fn$;
 
-SELECT pg_temp.seed_miss_train('E2EMS1', pg_temp.e2e_now() - INTERVAL '20 minutes', pg_temp.e2e_now() - INTERVAL '5 minutes');
-SELECT pg_temp.seed_miss_train('E2EMS2', pg_temp.e2e_now() + INTERVAL '4 hours', pg_temp.e2e_now() + INTERVAL '4 hours 15 minutes');
-SELECT pg_temp.seed_miss_train('E2EMS3', pg_temp.e2e_now() + INTERVAL '5 hours', pg_temp.e2e_now() + INTERVAL '5 hours 15 minutes');
-SELECT pg_temp.seed_miss_train('E2EMS0', pg_temp.e2e_now() - INTERVAL '2 days 20 minutes', pg_temp.e2e_now() - INTERVAL '2 days 5 minutes');
+-- E2EMS2 and E2EMS3 run on E2EMS1's service date, whatever the hour: the api
+-- searches a leg's own date, and the next one only once the clock is past
+-- that date's midnight, so between 20:00 and midnight a date of their own
+-- (the next) would be one it never looked at. Past midnight they are an
+-- overnight train's calls, day offset 1.
+SELECT pg_temp.seed_miss_train('E2EMS1', d, pg_temp.e2e_now() - INTERVAL '20 minutes', pg_temp.e2e_now() - INTERVAL '5 minutes')
+FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
+SELECT pg_temp.seed_miss_train('E2EMS2', d, pg_temp.e2e_now() + INTERVAL '4 hours', pg_temp.e2e_now() + INTERVAL '4 hours 15 minutes')
+FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
+SELECT pg_temp.seed_miss_train('E2EMS3', d, pg_temp.e2e_now() + INTERVAL '5 hours', pg_temp.e2e_now() + INTERVAL '5 hours 15 minutes')
+FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
+SELECT pg_temp.seed_miss_train('E2EMS0', d, pg_temp.e2e_now() - INTERVAL '2 days 20 minutes', pg_temp.e2e_now() - INTERVAL '2 days 5 minutes')
+FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '2 days 20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
 
 -- Each leg's tracking, and the two journeys.
 INSERT INTO train_subscriptions (user_id, service_date, pin_origin_crs, pin_destination_crs, resolution_status, tracked_at, trains_id, notifications_enabled)
