@@ -1,4 +1,13 @@
+import { publicRef } from './publicId';
 import type { SharedGroupTrain } from './types';
+
+/** A shared train's reference: the tracked train's opaque id, which the
+ * numeric `trainSubscriptionId` (0 from an api that hides numbers) can't be. */
+export function sharedTrainRef(
+  row: Pick<SharedGroupTrain, 'trainSubscriptionId' | 'trainSubscriptionPublicId'>,
+): string {
+  return publicRef(row.trainSubscriptionPublicId, row.trainSubscriptionId);
+}
 
 /** One row of the Journeys page's shared-train half: the shared train itself,
  * plus EVERY group the caller can see it through. */
@@ -26,7 +35,7 @@ export interface MergedSharedTrain {
  * which is why keeping the first row's copy of them is lossless rather than
  * an arbitrary pick.
  *
- * `ownTrainIds` is belt-and-braces, not the primary defence: the backend's
+ * `ownTrainRefs` (`trackingRef`s) is belt-and-braces, not the primary defence: the backend's
  * `ts.user_id <> $1` already excludes the caller's own subscriptions, so
  * this only matters if that ever regresses. Rendering a train BOTH as the
  * caller's own row (with rename/ticket controls) and again as a shared one
@@ -34,14 +43,15 @@ export interface MergedSharedTrain {
  * trusting one end alone. */
 export function mergeSharedTrains(
   rows: SharedGroupTrain[],
-  ownTrainIds: ReadonlySet<number> = new Set(),
+  ownTrainRefs: ReadonlySet<string> = new Set(),
 ): MergedSharedTrain[] {
-  const merged = new Map<number, MergedSharedTrain>();
+  const merged = new Map<string, MergedSharedTrain>();
   for (const row of rows) {
-    if (ownTrainIds.has(row.trainSubscriptionId)) continue;
-    const existing = merged.get(row.trainSubscriptionId);
+    const ref = sharedTrainRef(row);
+    if (ownTrainRefs.has(ref)) continue;
+    const existing = merged.get(ref);
     if (!existing) {
-      merged.set(row.trainSubscriptionId, { train: row, groupNames: [row.groupName] });
+      merged.set(ref, { train: row, groupNames: [row.groupName] });
       continue;
     }
     if (!existing.groupNames.includes(row.groupName)) {

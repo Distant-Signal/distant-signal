@@ -8,6 +8,7 @@ import {
   type PunctualitySummary,
 } from '@/lib/reliabilityDigest';
 import { formatDate } from '@/lib/dateFormat';
+import { publicRef } from '@/lib/publicId';
 import type { ReliabilityJourney, ReliabilityResponse } from '@/lib/types';
 
 /** The retrospective summary card on `/journeys`, from
@@ -155,7 +156,7 @@ function DelayRepaySection({ rollup }: { rollup: DelayRepayRollup }) {
       {rollup.qualifying.length > 0 && (
         <Stack gap={2}>
           {rollup.qualifying.map((journey) => (
-            <Group key={journey.journeyId} gap="xs">
+            <Group key={publicRef(journey.journeyPublicId, journey.journeyId)} gap="xs">
               <TextLink href={`/journeys/${journey.journeyPublicId}`} underline="always" inline>
                 {journey.customName ?? formatDate(journey.serviceDate)}
               </TextLink>

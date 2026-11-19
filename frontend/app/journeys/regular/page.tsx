@@ -64,9 +64,9 @@ export default async function RegularJourneysPage() {
       )}
       {regularJourneyCards(templates).map((card) =>
         card.length === 2 ? (
-          <PairCard key={card[0].id} outbound={card[0]} back={card[1]} />
+          <PairCard key={templateRef(card[0])} outbound={card[0]} back={card[1]} />
         ) : (
-          <SingleCard key={card[0].id} template={card[0]} />
+          <SingleCard key={templateRef(card[0])} template={card[0]} />
         ),
       )}
     </Stack>

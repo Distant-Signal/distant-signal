@@ -6,6 +6,7 @@ import * as api from '@/lib/api';
 import type { JourneyTemplateListItem } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
 import { TEMPLATE_TARGET_DEFAULTS, testTemplateId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -101,6 +102,29 @@ describe('RegularJourneysPage', () => {
     expect(screen.getByRole('link', { name: 'Commute' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Weekend trip' })).toBeInTheDocument();
   });
+
+  it.each(ID_SHAPES)(
+    'keys cards by opaque id, never twice alike, with ids zeroed or not (%s)',
+    async (_name, shape) => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        vi.mocked(api.getMyJourneyTemplates).mockResolvedValue(
+          shape([
+            template({ id: 1, customName: 'Commute' }),
+            template({ id: 2, customName: 'Weekend trip' }),
+            template({ id: 4, pairedTemplateId: 3, customName: 'Back' }),
+            template({ id: 3, pairedTemplateId: 4, customName: 'Out' }),
+          ]),
+        );
+        await renderPage();
+        expect(screen.getByRole('link', { name: 'Commute' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Weekend trip' })).toBeInTheDocument();
+        expect(errors.mock.calls.filter((call) => String(call[0]).includes('same key'))).toEqual([]);
+      } finally {
+        errors.mockRestore();
+      }
+    },
+  );
 
   it('says a template with no days does not recur', async () => {
     vi.mocked(api.getMyJourneyTemplates).mockResolvedValue([template()]);

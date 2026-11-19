@@ -1,4 +1,4 @@
-import { isTriggerLeg } from './publicId';
+import { isTriggerLeg, legRef } from './publicId';
 import { formatTime } from './dateFormat';
 import { addCalendarDays, londonWallClockToUtc } from './londonWallClock';
 import { legIsOver } from './homeJourneys';
@@ -428,15 +428,16 @@ export function legMissWindowOpen(leg: JourneyLegDetail, now: Date): boolean {
 
 /** The leg "I missed this train" is the main button on: the first train
  * leg with a train that is not yet over (`legIsOver`), if its window is
- * open; `null` with none. */
-export function missableLegId(legs: readonly JourneyLegDetail[], now: Date): number | null {
+ * open; `null` with none. By its reference (`legRef`), not its numeric id,
+ * which an api may serve as 0. */
+export function missableLegRef(legs: readonly JourneyLegDetail[], now: Date): string | null {
   const leg = legs.find(
     (candidate, index) =>
       !isUntrackedLeg(candidate) &&
       candidate.trackedTrainState !== null &&
       !legIsOver(candidate, now, index === legs.length - 1),
   );
-  return leg !== undefined && legMissWindowOpen(leg, now) ? leg.id : null;
+  return leg !== undefined && legMissWindowOpen(leg, now) ? legRef(leg) : null;
 }
 
 /** How a leg offers "I missed this train": `main` on the first train not
@@ -447,5 +448,5 @@ export type MissedOffer = 'main' | 'small' | null;
 
 export function missedOffer(legs: readonly JourneyLegDetail[], leg: JourneyLegDetail, now: Date): MissedOffer {
   if (!legMissWindowOpen(leg, now)) return null;
-  return missableLegId(legs, now) === leg.id ? 'main' : 'small';
+  return missableLegRef(legs, now) === legRef(leg) ? 'main' : 'small';
 }

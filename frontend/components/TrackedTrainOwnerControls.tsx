@@ -1,4 +1,4 @@
-import { trackingRef } from '@/lib/publicId';
+import { refList, trackingRef } from '@/lib/publicId';
 import { RenameTrainButton } from './RenameTrainButton';
 import { DeleteTrainButton } from './DeleteTrainButton';
 import { AddToGroupButton } from './AddToGroupButton';
@@ -74,10 +74,15 @@ export function TrackedTrainOwnerControls({
   };
   afterDelete?: 'redirect' | 'refresh' | undefined;
 }) {
-  const journeyIds = train.journeyIds ?? [];
-  const ownJourneyIds = train.singleLegJourneyIds;
-  const keptBy = ownJourneyIds === undefined ? journeyIds : journeyIds.filter((id) => !ownJourneyIds.includes(id));
-  // The opaque ids run parallel to the numeric ones (DS-534).
+  // The opaque ids run parallel to the numeric ones, which an api may serve
+  // as 0: compare references, never the numbers (DS-534).
+  const journeyRefs = refList(train.journeyPublicIds, train.journeyIds ?? []);
+  const ownJourneyRefs =
+    train.singleLegJourneyIds === undefined
+      ? undefined
+      : refList(train.singleLegJourneyPublicIds, train.singleLegJourneyIds);
+  const keptBy =
+    ownJourneyRefs === undefined ? journeyRefs : journeyRefs.filter((ref) => !ownJourneyRefs.includes(ref));
   const journeyPublicId = train.singleLegJourneyPublicIds?.[0] ?? train.journeyPublicIds?.[0];
   return (
     <>
@@ -97,7 +102,7 @@ export function TrackedTrainOwnerControls({
         sharedGroupCount={train.sharedGroupCount}
         afterDelete={afterDelete}
         inJourney={keptBy.length > 0}
-        deletesJourney={(ownJourneyIds?.length ?? 0) > 0}
+        deletesJourney={(ownJourneyRefs?.length ?? 0) > 0}
       />
     </>
   );

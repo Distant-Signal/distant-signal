@@ -1,4 +1,5 @@
 import { testPublicId, testTrackingId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 import { describe, it, expect } from 'vitest';
 import {
   currentLeg,
@@ -215,10 +216,7 @@ describe('homeDetailReads', () => {
       serviceDate: '2026-09-10',
     });
     expect(homeDetailReads([lastWeek, tomorrow, overnight, today], [], '2026-09-17')).toEqual({
-      journeys: [
-        { id: 3, ref: testPublicId(3) },
-        { id: 1, ref: testPublicId(1) },
-      ],
+      journeys: [{ ref: testPublicId(3) }, { ref: testPublicId(1) }],
       trains: [],
     });
   });
@@ -233,10 +231,7 @@ describe('homeDetailReads', () => {
     ];
     expect(homeDetailReads([], trains, '2026-09-17')).toEqual({
       journeys: [],
-      trains: [
-        { id: 5, ref: testTrackingId(5) },
-        { id: 6, ref: testTrackingId(6) },
-      ],
+      trains: [{ ref: testTrackingId(5) }, { ref: testTrackingId(6) }],
     });
   });
 
@@ -252,7 +247,6 @@ describe('homeDetailReads', () => {
     ];
     const reads = homeDetailReads(journeys, trains, '2026-09-17');
     expect(reads.journeys).toHaveLength(MAX_HOME_JOURNEY_DETAILS - 2);
-    expect(reads.trains.map((read) => read.id)).toEqual([51, 52]);
     expect(reads.trains.map((read) => read.ref)).toEqual([testTrackingId(51), testTrackingId(52)]);
   });
 
@@ -269,7 +263,7 @@ describe('a lone train read in full', () => {
   function state(overrides: Parameters<typeof trainState>[4] = {}) {
     return trainState('KGX', 'YRK', '2026-09-17T09:00:00Z', '2026-09-17T11:00:00Z', { id: 5, ...overrides });
   }
-  const split = (states: Map<number, ReturnType<typeof state>>, now: Date, train = loneTrain(5)) =>
+  const split = (states: Map<string, ReturnType<typeof state>>, now: Date, train = loneTrain(5)) =>
     splitHomeJourneys([], new Map(), [train], now, states);
   const lateLeaving = state({
     journeyStops: [
@@ -283,23 +277,23 @@ describe('a lone train read in full', () => {
   });
 
   it('is not current while it is late leaving, though its timetabled departure has passed', () => {
-    const result = split(new Map([[5, lateLeaving]]), at('2026-09-17T09:10:00Z'));
+    const result = split(new Map([[testTrackingId(5), lateLeaving]]), at('2026-09-17T09:10:00Z'));
     expect(result.current).toBeNull();
     expect(result.upcoming[0]?.departure).toBe('2026-09-17T09:20:00Z');
     // Once it has gone, it is.
-    expect(split(new Map([[5, lateLeaving]]), at('2026-09-17T09:21:00Z')).current).not.toBeNull();
+    expect(split(new Map([[testTrackingId(5), lateLeaving]]), at('2026-09-17T09:21:00Z')).current).not.toBeNull();
   });
 
   it('ends as a journey leg does: the actual arrival, else timetable plus delay, else plus the grace', () => {
-    const quiet = new Map([[5, state()]]);
+    const quiet = new Map([[testTrackingId(5), state()]]);
     expect(split(quiet, at('2026-09-17T11:29:00Z')).current).not.toBeNull();
     expect(split(quiet, at('2026-09-17T11:31:00Z')).current).toBeNull();
-    const late = new Map([[5, state({ status: 'en_route', delayMinutes: 40 })]]);
+    const late = new Map([[testTrackingId(5), state({ status: 'en_route', delayMinutes: 40 })]]);
     expect(split(late, at('2026-09-17T11:39:00Z')).current).not.toBeNull();
     expect(split(late, at('2026-09-17T11:41:00Z')).current).toBeNull();
     const arrived = new Map([
       [
-        5,
+        testTrackingId(5),
         state({
           status: 'en_route',
           delayMinutes: 40,
@@ -323,7 +317,7 @@ describe('a lone train read in full', () => {
       new Map(),
       [loneTrain(5), loneTrain(6, { status: 'en_route', pinScheduledDeparture: '2026-09-17T09:30:00Z' })],
       at('2026-09-17T10:00:00Z'),
-      new Map([[5, state()]]),
+      new Map([[testTrackingId(5), state()]]),
     );
     expect(ids(result.current ? [result.current] : [])).toEqual(['t5']);
     expect(ids(result.alsoInProgress)).toEqual(['t6']);
@@ -346,8 +340,8 @@ describe('splitHomeJourneys', () => {
       untrackedLeg(1, 'Home', 'Euston', '2026-09-17T09:50:00Z', '2026-09-17T10:15:00Z'),
     ]);
     const details = new Map([
-      [1, later],
-      [2, sooner],
+      [testPublicId(1), later],
+      [testPublicId(2), sooner],
     ]);
     const split = splitHomeJourneys([journeyListItem(later), journeyListItem(sooner)], details, [], now);
     expect(ids(split.current ? [split.current] : [])).toEqual(['j2']);
@@ -369,9 +363,9 @@ describe('splitHomeJourneys', () => {
       serviceDate: '2026-09-24',
     });
     const details = new Map([
-      [1, past],
-      [2, laterToday],
-      [3, soonToday],
+      [testPublicId(1), past],
+      [testPublicId(2), laterToday],
+      [testPublicId(3), soonToday],
     ]);
     const split = splitHomeJourneys(
       [nextWeekItem, journeyListItem(past), journeyListItem(laterToday), journeyListItem(soonToday)],
@@ -476,8 +470,8 @@ describe('splitHomeJourneys', () => {
       const split = splitHomeJourneys(
         [nextWeekItem, journeyListItem(laterToday), journeyListItem(soonToday)],
         new Map([
-          [2, laterToday],
-          [3, soonToday],
+          [testPublicId(2), laterToday],
+          [testPublicId(3), soonToday],
         ]),
         trains,
         now,
@@ -491,7 +485,7 @@ describe('splitHomeJourneys', () => {
       ]);
       const split = splitHomeJourneys(
         [journeyListItem(underWay)],
-        new Map([[1, underWay]]),
+        new Map([[testPublicId(1), underWay]]),
         [loneTrain(5, { status: 'en_route' })],
         now,
       );
@@ -569,9 +563,9 @@ describe('shared journeys (DS-199)', () => {
       serviceDate: '2026-09-24',
     });
     const details = new Map([
-      [1, underWay],
-      [2, past],
-      [3, later],
+      [testPublicId(1), underWay],
+      [testPublicId(2), past],
+      [testPublicId(3), later],
     ]);
     const items = [nextWeek, journeyListItem(later), journeyListItem(past), journeyListItem(underWay)].map((item) => ({
       ...item,
@@ -580,5 +574,75 @@ describe('shared journeys (DS-199)', () => {
     const listed = sharedHomeJourneys(items, details, now);
     expect(ids(listed)).toEqual(['j1', 'j3', 'j4']);
     expect(listed[1]?.departure).toBe('2026-09-17T17:00:00Z');
+  });
+});
+
+/* With the api's numeric ids off (`API_SERVE_NUMERIC_IDS=false`) every `id`
+ * is 0: rows join, key and order by their opaque references alone. */
+describe.each(ID_SHAPES)('home journeys keyed by opaque ids (%s)', (_name, shape) => {
+  const now = at('2026-09-17T08:00:00Z');
+  const journeysAt = (...ns: number[]) =>
+    ns.map((n) => {
+      const detail = twoLegs(n);
+      return { detail, item: journeyListItem(detail, undefined, { createdAt: `2026-09-0${n}T00:00:00Z` }) };
+    });
+
+  it('reads each journey and train once, by reference, newest first on a tie', () => {
+    const journeys = journeysAt(1, 2, 3).map(({ item }) => item);
+    const trains = [
+      loneTrain(5, { trackedAt: '2026-09-02T00:00:00Z' }),
+      loneTrain(6, { trackedAt: '2026-09-03T00:00:00Z' }),
+    ];
+    const reads = homeDetailReads(shape(journeys), shape(trains), '2026-09-17');
+    expect(reads.journeys.map((read) => read.ref)).toEqual([testPublicId(3), testPublicId(2), testPublicId(1)]);
+    expect(reads.trains.map((read) => read.ref)).toEqual([testTrackingId(6), testTrackingId(5)]);
+  });
+
+  it('joins details to their journeys by reference, never mixing two with the same numeric id', () => {
+    const [a, b] = journeysAt(1, 2);
+    if (a === undefined || b === undefined) throw new Error('fixture');
+    const underWay = journeyDetail(1, [
+      untrackedLeg(1, 'Home', 'Euston', '2026-09-17T07:30:00Z', '2026-09-17T09:30:00Z'),
+    ]);
+    const details = new Map([[testPublicId(1), shape(underWay)]]);
+    const split = splitHomeJourneys(shape([a.item, b.item]), details, [], now);
+    expect(split.current !== null && !isLoneTrain(split.current)).toBe(true);
+    expect(split.current !== null && 'item' in split.current ? split.current.item.publicId : null).toBe(
+      testPublicId(1),
+    );
+    // Journey 2 has no detail: listed upcoming from its date, not given journey 1's.
+    expect(split.upcoming.map((entry) => (isLoneTrain(entry) ? entry.train.publicId : entry.item.publicId))).toEqual([
+      testPublicId(2),
+    ]);
+    const only = split.upcoming[0];
+    expect(only !== undefined && 'detail' in only ? only.detail : 'lone train').toBeNull();
+  });
+
+  it('joins a lone train to its own state by reference', () => {
+    const trains = [loneTrain(5), loneTrain(6)];
+    const states = new Map([
+      [
+        testTrackingId(6),
+        shape(trainState('KGX', 'YRK', '2026-09-17T07:00:00Z', '2026-09-17T09:00:00Z', { id: 6, status: 'en_route' })),
+      ],
+    ]);
+    const split = splitHomeJourneys([], new Map(), shape(trains), now, states);
+    const legs = [split.current, ...split.alsoInProgress, ...split.upcoming].map((entry) =>
+      entry !== null && isLoneTrain(entry) ? [entry.train.publicId, entry.leg !== null] : null,
+    );
+    expect(legs).toContainEqual([testTrackingId(6), true]);
+    expect(legs).toContainEqual([testTrackingId(5), false]);
+  });
+
+  it('orders journeys before trains, then newest created first, whatever the numeric ids', () => {
+    const items = journeysAt(1, 2).map(({ item }) => item);
+    const trains = [
+      loneTrain(5, { trackedAt: '2026-09-01T00:00:00Z' }),
+      loneTrain(6, { trackedAt: '2026-09-05T00:00:00Z' }),
+    ];
+    const details = new Map(journeysAt(1, 2).map(({ detail }) => [testPublicId(detail.id), shape(detail)] as const));
+    const split = splitHomeJourneys(shape(items), details, shape(trains), at('2026-09-17T08:00:00Z'));
+    const order = split.upcoming.map((entry) => (isLoneTrain(entry) ? entry.train.publicId : entry.item.publicId));
+    expect(order).toEqual([testPublicId(2), testPublicId(1), testTrackingId(6), testTrackingId(5)]);
   });
 });

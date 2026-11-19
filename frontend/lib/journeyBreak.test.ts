@@ -7,7 +7,7 @@ import {
   MISSED_UNDO_CAP_MS,
   UNDO_WINDOW_MS,
   legMissWindowOpen,
-  missableLegId,
+  missableLegRef,
   missedOffer,
   missWindowClosesMs,
   undoWindowMs,
@@ -23,6 +23,8 @@ import {
   suggestionSummary,
   type BreakTitleFacts,
 } from './journeyBreak';
+import { legRef } from './publicId';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 import { trainLeg, untrackedLeg } from '@/test/journeyFixtures';
 import { replanSuggestion, suggestionSet, trainSuggestionLeg, openBreakSummary } from '@/test/replanFixtures';
 import type { RevisionLeg } from './types';
@@ -357,7 +359,7 @@ describe('history', () => {
   });
 });
 
-describe('missableLegId', () => {
+describe('missableLegRef', () => {
   const now = new Date('2026-09-17T09:30:00Z');
   it('is the first train leg not yet over', () => {
     const first = trainLeg(1, ['KGX', 'Kings Cross'], ['YRK', 'York'], '2026-09-17T07:00:00Z', '2026-09-17T09:00:00Z', {
@@ -365,14 +367,14 @@ describe('missableLegId', () => {
     });
     const walk = untrackedLeg(2, 'York', 'York', '2026-09-17T09:05:00Z', '2026-09-17T09:10:00Z');
     const second = trainLeg(3, ['YRK', 'York'], ['EDB', 'Edinburgh'], '2026-09-17T10:00:00Z', '2026-09-17T12:00:00Z');
-    expect(missableLegId([first, walk, second], now)).toBe(3);
+    expect(missableLegRef([first, walk, second], now)).toBe(legRef(second));
   });
 
   it('is null when every train leg is over: those offer the small button instead', () => {
     const done = trainLeg(1, ['KGX', 'Kings Cross'], ['YRK', 'York'], '2026-09-17T07:00:00Z', '2026-09-17T09:00:00Z', {
       status: 'completed',
     });
-    expect(missableLegId([done], now)).toBeNull();
+    expect(missableLegRef([done], now)).toBeNull();
     expect(missedOffer([done], done, now)).toBe('small');
   });
 });
@@ -437,6 +439,14 @@ describe('missedOffer', () => {
 
   it('is none once the window has closed', () => {
     expect(missedOffer([first, second], first, new Date('2026-09-18T03:30:00Z'))).toBeNull();
+  });
+
+  it.each(ID_SHAPES)('offers main on one leg only, whatever the numeric ids (%s)', (_name, shape) => {
+    const legs = shape([first, second]);
+    const [a, b] = legs;
+    if (a === undefined || b === undefined) throw new Error('fixture');
+    expect(missedOffer(legs, a, now)).toBe('small');
+    expect(missedOffer(legs, b, now)).toBe('main');
   });
 });
 

@@ -301,7 +301,10 @@ export function regularJourneyCards(
       !placed.has(templateRef(pair))
     ) {
       placed.add(templateRef(pair));
-      cards.push(template.id < pair.id ? [template, pair] : [pair, template]);
+      // The outbound is the one made first: by `createdAt`, and on a tie
+      // (a pair is made together) by the list's order, newest first, so the
+      // later of the two. A numeric id can't say, which an api may serve as 0.
+      cards.push(Date.parse(template.createdAt) < Date.parse(pair.createdAt) ? [template, pair] : [pair, template]);
     } else {
       cards.push([template]);
     }
