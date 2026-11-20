@@ -174,7 +174,7 @@ test.describe('/chat, mocked network', () => {
     await input.press('Enter');
     await expect(page.getByText(/next train is at 10:15/i)).toBeVisible();
     // Announced once, as a status; the log itself is not live.
-    await expect(page.getByRole('status')).toHaveText('Answer ready');
+    await expect(page.getByRole('status').filter({ hasText: 'Answer ready' })).toHaveCount(1);
     const log = page.getByRole('log', { name: 'Conversation' });
     await expect(log).toHaveAttribute('aria-live', 'off');
     await expect(log).toHaveAttribute('aria-busy', 'false');
@@ -200,7 +200,7 @@ test.describe('/chat, mocked network', () => {
     await page.goto('/chat');
     await page.getByPlaceholder(/ask about/i).fill('hi');
     await page.getByRole('button', { name: /send/i }).click();
-    await expect(page.getByRole('alert')).toContainText(/claude api key was rejected/i);
+    await expect(page.getByRole('alert').filter({ hasText: /claude api key was rejected/i })).toHaveCount(1);
     await expect(page.getByRole('textbox', { name: 'Your question' })).toBeFocused();
   });
 
