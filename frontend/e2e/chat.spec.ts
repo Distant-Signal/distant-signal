@@ -168,9 +168,20 @@ test.describe('/chat, mocked network', () => {
     });
 
     await page.goto('/chat');
-    await page.getByPlaceholder(/ask about/i).fill('when is the next train');
-    await page.getByRole('button', { name: /send/i }).click();
+    // The question box has a real label, and the conversation is a named log.
+    const input = page.getByRole('textbox', { name: 'Your question' });
+    await input.fill('when is the next train');
+    await input.press('Enter');
     await expect(page.getByText(/next train is at 10:15/i)).toBeVisible();
+    // Announced once, as a status; the log itself is not live.
+    await expect(page.getByRole('status')).toHaveText('Answer ready');
+    const log = page.getByRole('log', { name: 'Conversation' });
+    await expect(log).toHaveAttribute('aria-live', 'off');
+    await expect(log).toHaveAttribute('aria-busy', 'false');
+    await expect(log).toContainText('You said:');
+    await expect(log).toContainText('Assistant said:');
+    // Focus is back in the question box for the next question.
+    await expect(input).toBeFocused();
   });
 
   test('surfaces a distinct error when Anthropic rejects the key with a 401', async ({ page }) => {
@@ -189,7 +200,8 @@ test.describe('/chat, mocked network', () => {
     await page.goto('/chat');
     await page.getByPlaceholder(/ask about/i).fill('hi');
     await page.getByRole('button', { name: /send/i }).click();
-    await expect(page.getByText(/claude api key was rejected/i)).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText(/claude api key was rejected/i);
+    await expect(page.getByRole('textbox', { name: 'Your question' })).toBeFocused();
   });
 
   test('surfaces a distinct "reconnect" error on a 401/403 from /mcp', async ({ page }) => {

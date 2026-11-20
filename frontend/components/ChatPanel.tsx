@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore, type SubmitEvent } from 'react';
-import { Alert, Button, Card, Code, Group, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type SubmitEvent } from 'react';
+import { Alert, Button, Card, Code, Group, ScrollArea, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { LoadingText } from '@/components/LoadingText';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { RenderedTrainLeg } from '@/lib/types';
@@ -96,6 +96,12 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<ChatError | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const inputId = useId();
+  // Polite status for screen readers: one line when the reply starts and one
+  // when it is complete, instead of reading every streamed token.
+  const [status, setStatus] = useState('');
   const historyRef = useRef<Anthropic.Beta.Messages.BetaMessageParam[]>([]);
   const nextMessageId = useRef(0);
   // DQ12 (FE-6): a tool call waiting on the passenger's Allow/Don't allow.
@@ -140,9 +146,23 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
     });
 
   function answerToolCall(allowed: boolean) {
+    const hadPending = confirmResolver.current !== null;
     confirmResolver.current?.(allowed);
     confirmResolver.current = null;
     setPendingTool(null);
+    // The confirmation takes focus when it appears and unmounts when
+    // answered, which would drop focus to the page start.
+    if (hadPending) inputRef.current?.focus();
+  }
+
+  /** Put focus back on the question box after a send, unless the person has
+   * moved on to something else on purpose. Sending from the button leaves
+   * focus on a button that goes busy, so that case counts as "still here". */
+  function restoreInputFocus() {
+    const active = document.activeElement;
+    if (!active || active === document.body || formRef.current?.contains(active)) {
+      inputRef.current?.focus();
+    }
   }
 
   // Opt-in usage counts (DS-190): the chat was opened.
@@ -194,6 +214,7 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
     setError(null);
     setInput('');
     setSending(true);
+    setStatus('Assistant is replying');
     // FE-11: the assistant turn is addressed by an id allocated here, not
     // by an index read back out of a no-op state updater (which only worked
     // because React happened to flush it before the first await).
@@ -232,6 +253,7 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
         { role: 'user', content: trimmed },
         { role: 'assistant', content: assistantText },
       ];
+      setStatus('Answer ready');
     } catch (err) {
       // Drop only the empty pending assistant turn -- the user's own
       // message stays visible, with the error shown alongside it, rather
@@ -245,10 +267,13 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
       // stored tokens are dead: drop them so the next Send offers Connect
       // rather than replaying them into the same failure.
       if (chatError.kind === 'mcp-reconnect') provider.invalidateCredentials('tokens');
+      setStatus('');
       setError(chatError);
     } finally {
       answerToolCall(false);
       setSending(false);
+      // After React has re-enabled the Send button's neighbours.
+      setTimeout(restoreInputFocus, 0);
     }
   }
 
@@ -262,7 +287,10 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
         />
       )}
       <ScrollArea viewportRef={viewport} flex={1} offsetScrollbars>
-        <Stack gap="md" p="xs">
+        {/* A log, but not live: announcing every streamed token is unreadable,
+            so the status line below speaks at the start and end of a reply
+            and the finished text is read by moving through the log. */}
+        <Stack gap="md" p="xs" role="log" aria-label="Conversation" aria-live="off" aria-busy={sending}>
           {messages.length === 0 && (
             <Text c="dimmed" ta="center" mt="xl">
               Ask about live departures, disruptions, or plan a journey.
@@ -273,6 +301,9 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
           ))}
         </Stack>
       </ScrollArea>
+      <VisuallyHidden role="status" aria-live="polite">
+        {status}
+      </VisuallyHidden>
       {pendingTool && (
         <ToolConfirmation toolName={pendingTool.toolName} args={pendingTool.args} onAnswer={answerToolCall} />
       )}
@@ -280,16 +311,24 @@ export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
       <Text size="xs" c="dimmed" data-ai-note>
         {CHAT_AI_NOTE}
       </Text>
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
+        <VisuallyHidden>
+          <label htmlFor={inputId}>Your question</label>
+        </VisuallyHidden>
         <Group gap="xs" align="flex-end">
           <TextInput
+            id={inputId}
+            ref={inputRef}
             flex={1}
             placeholder="Ask about the next train or delays, or plan a journey"
             value={input}
             onChange={(event) => setInput(event.currentTarget.value)}
             // Fetch the SDK chunk while the question is typed, not on Send.
             onFocus={preloadChatRuntime}
-            disabled={sending}
+            // Not `disabled`: that would drop focus from the box mid-reply.
+            // Submit is already ignored while sending.
+            readOnly={sending}
+            aria-disabled={sending || undefined}
           />
           <Button type="submit" loading={sending} disabled={!input.trim()}>
             Send
@@ -402,10 +441,26 @@ function ToolConfirmation({
   args: Record<string, unknown>;
   onAnswer: (allowed: boolean) => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const descriptionId = useId();
+  // Inline and not modal: the conversation behind it stays readable. It
+  // blocks the reply until answered, so it takes focus when it appears.
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
   return (
-    <Alert color="orange" variant="light" title="Allow this action?" role="alertdialog" aria-label="Allow this action?">
+    <Alert
+      ref={ref}
+      color="orange"
+      variant="light"
+      title="Allow this action?"
+      role="group"
+      aria-label="Allow this action?"
+      aria-describedby={descriptionId}
+      tabIndex={-1}
+    >
       <Stack gap="xs">
-        <Text size="sm">
+        <Text size="sm" id={descriptionId}>
           The assistant wants to use <Code>{toolName}</Code>. It isn&apos;t marked as read-only, so it might change
           something for you. Only allow it if you asked for this.
         </Text>
@@ -438,6 +493,7 @@ function ChatMessageRow({ message }: { message: ChatMessage }) {
             <AiGeneratedBadge note={CHAT_AI_NOTE} />
           </Group>
         )}
+        <VisuallyHidden>{isUser ? 'You said:' : 'Assistant said:'}</VisuallyHidden>
         {message.content || isUser ? (
           <Text className="ds-pre-wrap">{message.content}</Text>
         ) : (

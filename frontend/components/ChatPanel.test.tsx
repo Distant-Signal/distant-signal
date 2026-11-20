@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { renderWithMantine } from '@/test/render';
 import { ChatPanel } from './ChatPanel';
@@ -340,7 +340,7 @@ describe('ChatPanel', () => {
       renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
       fireEvent.change(screen.getByPlaceholderText(/ask about/i), { target: { value: 'track it' } });
       fireEvent.click(screen.getByRole('button', { name: /send/i }));
-      return screen.findByRole('alertdialog', { name: 'Allow this action?' });
+      return screen.findByRole('group', { name: 'Allow this action?' });
     }
 
     it('shows the tool name and arguments and runs it only once allowed', async () => {
@@ -353,7 +353,7 @@ describe('ChatPanel', () => {
       expect(screen.queryByText('Tool was allowed.')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Allow' }));
       expect(await screen.findByText('Tool was allowed.')).toBeInTheDocument();
-      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: 'Allow this action?' })).not.toBeInTheDocument();
     });
 
     it('declines it on "Don\'t allow"', async () => {
@@ -462,6 +462,119 @@ describe('ChatPanel', () => {
       mockStartMcpSignIn.mockReturnValue(new Promise(() => {}));
       fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
       expect(mockStartMcpSignIn).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('screen reader semantics', () => {
+    function ready() {
+      setAnthropicApiKey('sk-ant-test');
+      seedMcpTokens();
+    }
+    function ask(text = 'next train') {
+      const input = screen.getByRole('textbox', { name: 'Your question' });
+      fireEvent.change(input, { target: { value: text } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+      return input;
+    }
+
+    it('names the question box and the conversation log', () => {
+      ready();
+      renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
+      expect(screen.getByRole('textbox', { name: 'Your question' })).toBeInTheDocument();
+      const log = screen.getByRole('log', { name: 'Conversation' });
+      // Tokens are not read out as they stream.
+      expect(log).toHaveAttribute('aria-live', 'off');
+      expect(log).toHaveAttribute('aria-busy', 'false');
+    });
+
+    it('announces the start and end of a reply, not each token, and restores focus', async () => {
+      ready();
+      let release: () => void = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      mockRunChatTurn.mockReturnValue(
+        (async function* () {
+          yield { type: 'text-delta', text: 'Next ' };
+          await gate;
+          yield { type: 'text-delta', text: 'train at 10:15.' };
+          yield { type: 'done' };
+        })(),
+      );
+      renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
+      const input = ask();
+      input.focus();
+      const log = screen.getByRole('log', { name: 'Conversation' });
+      const status = screen.getByRole('status');
+      await waitFor(() => expect(status).toHaveTextContent('Assistant is replying'));
+      expect(log).toHaveAttribute('aria-busy', 'true');
+      // Still focusable and focused while the reply streams.
+      expect(input).not.toBeDisabled();
+      expect(input).toHaveAttribute('readonly');
+      expect(input).toHaveFocus();
+      // Streamed text lands in the log, not in the status line.
+      expect(await within(log).findByText(/Next/)).toBeInTheDocument();
+      expect(status).not.toHaveTextContent('Next');
+      await act(async () => {
+        release();
+      });
+      await waitFor(() => expect(status).toHaveTextContent('Answer ready'));
+      expect(log).toHaveAttribute('aria-busy', 'false');
+      expect(within(log).getByText('Next train at 10:15.')).toBeInTheDocument();
+      expect(within(log).getByText('You said:')).toBeInTheDocument();
+      expect(within(log).getByText('Assistant said:')).toBeInTheDocument();
+      expect(input).not.toHaveAttribute('readonly');
+      await waitFor(() => expect(input).toHaveFocus());
+    });
+
+    it('moves focus back to the question box after Send was clicked', async () => {
+      ready();
+      mockRunChatTurn.mockReturnValue(
+        (async function* () {
+          yield { type: 'text-delta', text: 'Hello.' };
+          yield { type: 'done' };
+        })(),
+      );
+      renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
+      const input = ask();
+      screen.getByRole('button', { name: /send/i }).focus();
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Answer ready'));
+      await waitFor(() => expect(input).toHaveFocus());
+    });
+
+    it('reports a failed reply with an alert, clears the status and restores focus', async () => {
+      ready();
+      mockRunChatTurn.mockReturnValue(
+        (async function* () {
+          throw new Error('boom');
+        })(),
+      );
+      renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
+      const input = ask();
+      input.focus();
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(/couldn.t answer that/i);
+      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      await waitFor(() => expect(input).toHaveFocus());
+    });
+
+    it('moves focus into the tool confirmation and back to the question box', async () => {
+      ready();
+      mockRunChatTurn.mockImplementation(
+        (opts: { confirmToolCall: (r: { toolName: string; args: Record<string, unknown> }) => Promise<boolean> }) =>
+          (async function* () {
+            await opts.confirmToolCall({ toolName: 'track_train', args: { uid: 'C12345' } });
+            yield { type: 'text-delta', text: 'Done.' };
+            yield { type: 'done' };
+          })(),
+      );
+      renderWithMantine(<ChatPanel mcpServerUrl="https://mcp.example.com" />);
+      const input = ask();
+      const group = await screen.findByRole('group', { name: 'Allow this action?' });
+      await waitFor(() => expect(group).toHaveFocus());
+      expect(group).toHaveAccessibleDescription(/wants to use track_train/);
+      fireEvent.click(screen.getByRole('button', { name: "Don't allow" }));
+      await waitFor(() => expect(input).toHaveFocus());
     });
   });
 });
