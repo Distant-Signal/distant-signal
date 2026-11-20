@@ -64,7 +64,16 @@ describe('/api/[...path] proxy', () => {
     const [, init] = vi.mocked(fetch).mock.calls[0]!;
     const sent = Object.keys((init as { headers: Record<string, string> }).headers).map((h) => h.toLowerCase());
     expect(sent).not.toContain('x-ds-build');
-    expect(recordApiBuild).toHaveBeenCalledWith(id);
+    expect(recordApiBuild).toHaveBeenCalledWith(id, null);
+  });
+
+  it('passes Sec-Fetch-Site to the counter for the no-header split and never forwards it', async () => {
+    const req = makeRequest('/api/preferences', { headers: { 'sec-fetch-site': 'same-origin' } });
+    await GET(req, { params: Promise.resolve({ path: ['preferences'] }) });
+    expect(recordApiBuild).toHaveBeenCalledWith(null, 'same-origin');
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    const sent = Object.keys((init as { headers: Record<string, string> }).headers).map((h) => h.toLowerCase());
+    expect(sent.some((h) => h.startsWith('sec-fetch-'))).toBe(false);
   });
 
   it('forwards a Train/track POST to the bare-root backend path, with cookies attached', async () => {
