@@ -1123,6 +1123,20 @@ describe('status pill contrast', () => {
     expect(contrast(RED_6, dropdown)).toBeLessThan(AA_BODY_TEXT);
   });
 
+  // The rule under the nav bar and over the footer is what marks the bar as
+  // a region (its fill is the page colour), so it needs the 3:1 non-text
+  // minimum (WCAG 1.4.11) against the page. The old border, gray 3 in light
+  // and dark 4 in dark, was 1.40:1 and 1.47:1.
+  it.each([
+    ['light', WHITE],
+    ['dark', DARK_7],
+  ] as const)('the nav and footer rule (%s scheme) clears 3:1 on the page', (scheme, page) => {
+    expect(resolveColor(scheme, 'var(--ds-chrome-border)')).toBe(scheme === 'light' ? GRAY_6 : DARK_2);
+    expect(contrast(resolveColor(scheme, 'var(--ds-chrome-border)'), page)).toBeGreaterThanOrEqual(3);
+    expect(css).toMatch(/\.siteNav\s*\{\s*border-bottom:\s*1px solid var\(--ds-chrome-border\);/);
+    expect(css).toMatch(/\.siteFooter\s*\{\s*border-top:\s*1px solid var\(--ds-chrome-border\);/);
+  });
+
   // The dark focus ring (WCAG 1.4.11, 3:1 for a focus indicator). Mantine
   // paints it in `--mantine-primary-color-filled`, grape 8 in dark: 2.3:1 to
   // 2.6:1 on the page, the header wash, a card and a filled field. The
