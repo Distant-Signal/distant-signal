@@ -27,7 +27,7 @@ FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00
 # env var is what actually holds across a container rebuild). This is one
 # of three places that need it, not one: ENV set in a stage is only
 # inherited by stages built `FROM` it, and runtime-prod/runtime-dev below
-# both start fresh `FROM node:22-bookworm-slim`, so each of the three
+# both start fresh `FROM node:24-bookworm-slim`, so each of the three
 # stages that actually invoke Next's telemetry-checking code (this one, via
 # builder-prod's `npm run build`; runtime-prod's standalone `server.js`,
 # which still boots next-server internals directly; runtime-dev's
@@ -45,7 +45,7 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 # BuildKit cache mount for npm's download cache, so a package-lock change
 # re-resolves without re-fetching every tarball. This stage runs as root and
-# node:22-bookworm-slim leaves npm's cache at its default $HOME/.npm, i.e.
+# node:24-bookworm-slim leaves npm's cache at its default $HOME/.npm, i.e.
 # /root/.npm (verified with `npm config get cache` in the image) — mounting
 # the wrong path would silently cache nothing. The installed node_modules
 # itself is a normal layer, not a cache mount: runtime-dev's anonymous
@@ -92,8 +92,17 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && tini --version
 
+# The app runs `node server.js` (the ENTRYPOINT below), never npm, npx,
+# corepack or yarn, so none of them ships in this image: the base image's
+# bundled copies (npm's own dependencies, which no `npm ci` here ever
+# updates) only add findings to the dependency scan. builder-base and
+# runtime-dev keep them; they run npm.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+    && node --version
+
 # NOT a `useradd`-created `frontend` user (this stage's previous
-# approach): node:22-bookworm-slim already ships a built-in `node` user at
+# approach): node:24-bookworm-slim already ships a built-in `node` user at
 # a fixed uid/gid 1000 -- confirmed 2026-09-03 against nodejs/docker-node's
 # own Dockerfile source for the exact revision this base image tag's
 # manifest was built from (22/bookworm-slim/Dockerfile:
@@ -181,7 +190,7 @@ FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # No custom user here (unlike runtime-prod above): this stage deliberately
-# runs as the `node` user that node:22-bookworm-slim already ships, which
+# runs as the `node` user that node:24-bookworm-slim already ships, which
 # is uid/gid 1000 — the same as the developer's host account. That matters
 # because docker-compose.dev.yml bind-mounts the host's ./frontend over
 # /app: files the dev server writes into the mount (next-env.d.ts, tsconfig
