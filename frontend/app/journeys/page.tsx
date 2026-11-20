@@ -202,7 +202,7 @@ export default async function JourneysPage() {
     switch (entry.kind) {
       case 'journey':
         return (
-          <HideWhenDeleted key={entry.key} kind="journey" id={entry.journey.publicId}>
+          <HideWhenDeleted key={entry.key} kind="journey" id={entry.journey.publicId} listItem>
             <JourneyListRow
               journey={entry.journey}
               status={entry.status}
@@ -212,12 +212,16 @@ export default async function JourneysPage() {
         );
       case 'train':
         return (
-          <HideWhenDeleted key={entry.key} kind="train" id={trackingRef(entry.train)}>
+          <HideWhenDeleted key={entry.key} kind="train" id={trackingRef(entry.train)} listItem>
             <TrackedTrainListRow train={entry.train} status={entry.status} />
           </HideWhenDeleted>
         );
       case 'sharedTrain':
-        return <SharedTrainListRow key={entry.key} row={entry.row} status={entry.status} />;
+        return (
+          <li key={entry.key}>
+            <SharedTrainListRow row={entry.row} status={entry.status} />
+          </li>
+        );
     }
   };
 
@@ -237,7 +241,11 @@ export default async function JourneysPage() {
             <Stack component="section" aria-labelledby="upcoming-heading" gap="xs">
               <SectionTitle id="upcoming-heading">Upcoming</SectionTitle>
               {upcomingCount === 0 && <Text c="dimmed">No upcoming journeys.</Text>}
-              {sections.upcoming.map(renderEntry)}
+              {upcomingCount > 0 && (
+                <Stack component="ul" className="ds-plain-list" gap="xs" aria-label="Upcoming journeys">
+                  {sections.upcoming.map(renderEntry)}
+                </Stack>
+              )}
             </Stack>
           )}
           {pastCount > 0 && (
@@ -246,7 +254,9 @@ export default async function JourneysPage() {
             <Stack component="section" aria-labelledby="past-heading" gap="xs">
               <SectionTitle id="past-heading">Past</SectionTitle>
               <DelayRepayNotice count={possibleClaims.size} />
-              {sections.past.map(renderEntry)}
+              <Stack component="ul" className="ds-plain-list" gap="xs" aria-label="Past journeys">
+                {sections.past.map(renderEntry)}
+              </Stack>
             </Stack>
           )}
           {/* Below Past: the caller's own record is a summary of the list
@@ -363,7 +373,12 @@ function JourneyListRow({
                 Shared by {memberLabel(firstShare.addedByName, firstShare.addedByTag, MEMBER_PLACEHOLDER_INLINE)}
               </Text>
             </Group>
-            <FollowJourneyButton journeyId={journey.publicId} following={false} groupId={firstShare.groupId} />
+            <FollowJourneyButton
+              journeyId={journey.publicId}
+              following={false}
+              groupId={firstShare.groupId}
+              subject={journeyDisplayName(name)}
+            />
           </>
         )}
         {/* A journey the caller follows (DS-146): whose it is, and the way
@@ -373,7 +388,7 @@ function JourneyListRow({
             <Text size="sm" c="dimmed">
               {followedFromLabel(journey.followedFrom)}
             </Text>
-            <FollowJourneyButton journeyId={journey.publicId} following />
+            <FollowJourneyButton journeyId={journey.publicId} following subject={journeyDisplayName(name)} />
           </Group>
         )}
       </Stack>

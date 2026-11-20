@@ -236,8 +236,8 @@ describe('JourneyLegCard', () => {
         isOnlyLeg={false}
       />,
     );
-    expect(screen.getByRole('button', { name: 'Change train' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Remove leg' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Change train/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Remove leg/ })).toBeInTheDocument();
   });
 
   // Regression test for the 19-pass security/bug review's journeys-area
@@ -253,7 +253,7 @@ describe('JourneyLegCard', () => {
     renderWithMantine(
       <JourneyLegCard journeyId="167" leg={baseLeg({ windowSearched: true })} isOwner isOnlyLeg={false} />,
     );
-    expect(screen.getByRole('button', { name: 'Change train' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Change train/ })).toBeInTheDocument();
   });
 
   // Mid-journey phase 0: a no-window leg (a pin, "I know the train" or a
@@ -261,8 +261,8 @@ describe('JourneyLegCard', () => {
   // leg knows (see the Edit search tests below).
   it('shows both "Change train" and "Remove leg" for a matched, no-window, owner-viewed leg', () => {
     renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
-    expect(screen.getByRole('button', { name: 'Remove leg' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Change train' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Remove leg/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Change train/ })).toBeInTheDocument();
   });
 
   it("shows the owner the leg's Delay Repay and ticket details, with no ticket needed", () => {
@@ -275,7 +275,7 @@ describe('JourneyLegCard', () => {
     renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg({ delayRepay })} isOwner isOnlyLeg={false} />);
     expect(screen.getByText('Delay Repay')).toBeInTheDocument();
     expect(screen.getByText('6 minutes late')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add ticket details' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Add ticket details/ })).toBeInTheDocument();
   });
 
   it('shows neither to a non-owner', () => {
@@ -286,8 +286,8 @@ describe('JourneyLegCard', () => {
 
   it('offers neither action to a non-owner (shared-group viewer)', () => {
     renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner={false} isOnlyLeg={false} />);
-    expect(screen.queryByRole('button', { name: 'Remove leg' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Change train' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Remove leg/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Change train/ })).not.toBeInTheDocument();
   });
 
   it('removing the leg calls DELETE and refreshes when a sibling leg remains', async () => {
@@ -295,7 +295,7 @@ describe('JourneyLegCard', () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg({ id: 5 })} isOwner isOnlyLeg={false} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Remove leg/ }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
 
@@ -314,8 +314,8 @@ describe('JourneyLegCard', () => {
         isOnlyLeg={false}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Change train' }));
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Change train/ }));
+    expect(screen.getByRole('button', { name: /^Cancel/ })).toBeInTheDocument();
   });
 
   // The traveller's own alighting station, distinct from the underlying
@@ -524,8 +524,8 @@ describe('JourneyLegCard (open leg)', () => {
 
     expect(screen.getByText('Departing at or after 08:00 · arriving at or before 12:30')).toBeInTheDocument();
     // A button on this page, not a link to /track (which starts a new journey).
-    expect(screen.getByRole('button', { name: 'Edit search' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Edit search' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Edit search/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Edit search/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Search manually' })).not.toBeInTheDocument();
   });
 
@@ -536,8 +536,8 @@ describe('JourneyLegCard (open leg)', () => {
       <JourneyLegCard journeyId="1" isOwner={false} isOnlyLeg={false} leg={openLeg({ departAfter: '08:00:00' })} />,
     );
 
-    expect(screen.queryByRole('link', { name: 'Edit search' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit search' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Edit search/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Edit search/ })).not.toBeInTheDocument();
     // Still shows the criteria, just without the edit affordance.
     expect(screen.getByText(/Departing at or after 08:00/)).toBeInTheDocument();
   });
@@ -593,13 +593,13 @@ describe('JourneyLegCard (open leg)', () => {
     renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg()} />);
     await settleCandidates();
 
-    expect(screen.getByRole('button', { name: 'Remove leg' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Remove leg/ })).toBeInTheDocument();
   });
 
   it('does not offer "Remove leg" to a non-owning group member on an open leg', () => {
     renderWithMantine(<JourneyLegCard journeyId="1" isOwner={false} isOnlyLeg={false} leg={openLeg()} />);
 
-    expect(screen.queryByRole('button', { name: 'Remove leg' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Remove leg/ })).not.toBeInTheDocument();
   });
 
   it('removing an open leg calls DELETE, same as a matched leg', async () => {
@@ -611,7 +611,7 @@ describe('JourneyLegCard (open leg)', () => {
     renderWithMantine(<JourneyLegCard journeyId="1" isOwner isOnlyLeg={false} leg={openLeg({ id: 9 })} />);
     await settleCandidates();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove leg' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Remove leg/ }));
     await waitFor(() => screen.getByRole('button', { name: 'Confirm remove leg' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm remove leg' }));
 
@@ -721,7 +721,7 @@ describe('JourneyLegCard: Edit search', () => {
         })}
       />,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit search' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Edit search/ }));
 
     expect(screen.getByRole('combobox', { name: 'From station' })).toHaveValue('KGX');
     expect(screen.getByRole('combobox', { name: 'To station' })).toHaveValue('EDB');
@@ -757,7 +757,7 @@ describe('JourneyLegCard: Edit search', () => {
     );
     expect(await screen.findByText(/^Search filters: Operator GR · Call at /)).toBeInTheDocument();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit search' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Edit search/ }));
     expect(screen.getByRole('button', { name: /^Advanced options \(1 set\)/ })).toHaveAttribute(
       'aria-expanded',
       'false',
@@ -786,7 +786,7 @@ describe('JourneyLegCard: Edit search', () => {
         leg={openLeg({ id: 3, departAfter: '08:00:00', windowSearched: true })}
       />,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit search' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Edit search/ }));
     fireEvent.change(screen.getByRole('combobox', { name: 'To station' }), { target: { value: 'YRK' } });
     fireEvent.change(screen.getByLabelText('Latest departure (optional)'), { target: { value: '10:45' } });
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -833,8 +833,8 @@ describe('JourneyLegCard: Edit search', () => {
         leg={baseLeg({ id: 4, departAfter: '15:00:00', windowSearched: true })}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Change train' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit search' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Change train/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Edit search/ }));
     expect(screen.getByRole('combobox', { name: 'To station' })).toHaveValue('YRK');
     expect(screen.getByLabelText('Earliest departure (optional)')).toHaveValue('15:00');
 
@@ -878,7 +878,7 @@ describe('JourneyLegCard: Edit search', () => {
         leg={baseLeg({ id: 6, trackedTrainState: trackedState({ trainUid: 'C11052' }) })}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Change train' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Change train/ }));
 
     expect(await screen.findByText(/Current train/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Track this train: 10:32/ })).not.toBeInTheDocument();
@@ -887,7 +887,7 @@ describe('JourneyLegCard: Edit search', () => {
   it('changes the train on a leg never window-searched, from its stations, date and departure', async () => {
     const fetchMock = mockApi();
     renderWithMantine(<JourneyLegCard journeyId="7" isOwner isOnlyLeg={false} leg={baseLeg({ id: 5 })} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Change train' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Change train/ }));
 
     // 16:00Z is 17:00 in London: trains from the booked one on.
     await waitFor(() =>
@@ -920,9 +920,9 @@ describe('JourneyLegCard: Edit search', () => {
         leg={openLeg({ id: 3, departAfter: '08:00:00', windowSearched: true })}
       />,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit search' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Edit search/ }));
     fireEvent.change(screen.getByRole('combobox', { name: 'To station' }), { target: { value: 'YRK' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel/ }));
 
     fireEvent.click(await screen.findByRole('button', { name: /^Track this train: 10:32/ }));
     await waitFor(() => expect(refreshMock).toHaveBeenCalled());

@@ -20,7 +20,16 @@ import type { JourneyLegDetail } from '@/lib/types';
  * fields as adding one, seeded from the leg, saved in place with `PUT
  * /Journeys/{id}/legs/{legId}` so the leg keeps its place in the journey.
  * Owner only, like every other leg action. */
-export function EditUntrackedLegButton({ journeyId, leg }: { journeyId: string; leg: JourneyLegDetail }) {
+export function EditUntrackedLegButton({
+  journeyId,
+  leg,
+  ariaLabel,
+}: {
+  journeyId: string;
+  leg: JourneyLegDetail;
+  /** The accessible name, naming the leg (`legActionLabel`). */
+  ariaLabel?: string | undefined;
+}) {
   const router = useRouter();
   const [opened, { open, close }] = useDisclosure(false);
   const [draft, setDraft] = useState<UntrackedLegDraft>(() => untrackedDraftFromLeg(leg));
@@ -68,7 +77,7 @@ export function EditUntrackedLegButton({ journeyId, leg }: { journeyId: string; 
 
   return (
     <>
-      <Button variant="default" size="xs" onClick={handleOpen}>
+      <Button variant="default" size="xs" onClick={handleOpen} {...(ariaLabel && { 'aria-label': ariaLabel })}>
         Edit leg
       </Button>
       <Modal opened={opened} onClose={close} title="Edit this leg">

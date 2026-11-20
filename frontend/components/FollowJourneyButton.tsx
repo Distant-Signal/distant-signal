@@ -26,6 +26,7 @@ export function FollowJourneyButton({
   afterFollowHref,
   afterUnfollowHref,
   size = 'xs',
+  subject,
 }: {
   journeyId: string;
   following: boolean;
@@ -34,12 +35,16 @@ export function FollowJourneyButton({
   afterFollowHref?: string;
   afterUnfollowHref?: string | undefined;
   size?: 'xs' | 'sm';
+  /** The journey's name, for a list of them: it names the button "Follow this
+   * journey: Kings Cross to Edinburgh" so each row's differs. */
+  subject?: string | undefined;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const needsLoginState = useNeedsLogin();
   const action = following ? 'unfollow' : 'follow';
+  const label = following ? 'Unfollow' : 'Follow this journey';
 
   async function handleClick() {
     setSubmitting(true);
@@ -75,8 +80,14 @@ export function FollowJourneyButton({
 
   return (
     <Stack gap="xs" align="flex-start">
-      <Button variant={following ? 'default' : 'light'} size={size} onClick={handleClick} loading={submitting}>
-        {following ? 'Unfollow' : 'Follow this journey'}
+      <Button
+        variant={following ? 'default' : 'light'}
+        size={size}
+        onClick={handleClick}
+        loading={submitting}
+        {...(subject && { 'aria-label': `${label}: ${subject}` })}
+      >
+        {label}
       </Button>
       {error && <Alert color="red">{error}</Alert>}
       {needsLoginState.needsLogin && <LoginControl underline="always">Log in to follow this journey</LoginControl>}

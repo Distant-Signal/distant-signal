@@ -234,8 +234,16 @@ export function JourneyDetailView({
   // Mid-journey changes (spec 2026-10-22 §8.2): which leg can be missed,
   // and the open break, for the owner's leg actions.
 
+  // The position "Leg N of M" shows, for naming a leg's buttons; none for a
+  // folded leg or a lone one.
+  const legPlace = (leg: JourneyLegDetail) => {
+    const position = shown.indexOf(leg);
+    return multiLeg && position !== -1 ? { position: position + 1, total: shown.length } : null;
+  };
+
   const renderLegCard = (leg: JourneyLegDetail, index: number) => (
     <JourneyLegCard
+      place={legPlace(leg)}
       journeyId={journey.publicId}
       leg={leg}
       isOwner={journey.isOwner}

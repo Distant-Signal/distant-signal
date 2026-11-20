@@ -43,14 +43,18 @@ export function RemoveJourneyLegButton({
   journeyId,
   legId,
   isOnlyLeg,
+  ariaLabel,
 }: {
   journeyId: string;
   legId: string;
   isOnlyLeg: boolean;
+  /** The accessible name, naming the leg (`removeLegLabel`). */
+  ariaLabel?: string | undefined;
 }) {
   return (
     <ConfirmActionButton
       label="Remove leg"
+      triggerAriaLabel={ariaLabel}
       actionName="remove leg"
       title="Remove this leg?"
       request={() => fetch(`/api/Journeys/${journeyId}/legs/${legId}`, { method: 'DELETE' })}

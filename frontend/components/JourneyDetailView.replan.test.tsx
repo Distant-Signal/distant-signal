@@ -59,7 +59,20 @@ describe('JourneyDetailView mid-journey changes', () => {
     expect(within(legCard(1)).getByRole('button', { name: 'I missed this one' })).toBeInTheDocument();
     expect(within(legCard(3)).getByRole('button', { name: 'Find another way' })).toBeInTheDocument();
     // Phase 0's "Change train" stays on every train leg.
-    expect(screen.getAllByRole('button', { name: 'Change train' })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /^Change train/ })).toHaveLength(3);
+  });
+
+  it("names each leg's buttons with its shown position, so no two share a name", () => {
+    renderView(journey());
+    for (const action of [/^Remove leg/, /^Change train/]) {
+      const names = screen.getAllByRole('button', { name: action }).map((button) => button.getAttribute('aria-label'));
+      expect(new Set(names).size).toBe(names.length);
+    }
+    const removeNames = screen
+      .getAllByRole('button', { name: /^Remove leg/ })
+      .map((button) => button.getAttribute('aria-label') ?? '');
+    expect(removeNames[0]).toMatch(/^Remove leg 1: /);
+    expect(removeNames[2]).toMatch(/^Remove leg 3: /);
   });
 
   it('offers none of them to someone who is not the owner', () => {

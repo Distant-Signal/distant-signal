@@ -21,6 +21,9 @@ export interface ConfirmActionButtonHandle {
 export interface ConfirmActionButtonProps {
   /** The trigger's visible text: "Delete", "Remove leg", "Leave group". */
   label: string;
+  /** The trigger's accessible name when it needs more than `label`, to tell
+   * apart one of several (a leg of a journey). Starts with `label`. */
+  triggerAriaLabel?: string | undefined;
   /** The modal's confirm button text. Defaults to `label`. */
   confirmLabel?: string | undefined;
   /** The action in lower case, starting with the confirm button's visible
@@ -91,6 +94,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
   function ConfirmActionButton(
     {
       label,
+      triggerAriaLabel,
       confirmLabel = label,
       actionName,
       title,
@@ -197,6 +201,7 @@ export const ConfirmActionButton = forwardRef<ConfirmActionButtonHandle, Confirm
             {...(danger && { color: 'red' })}
             size="xs"
             onClick={open}
+            {...(triggerAriaLabel && { 'aria-label': triggerAriaLabel })}
             data-confirm-trigger
           >
             {label}
