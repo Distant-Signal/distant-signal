@@ -402,6 +402,43 @@ html:root[data-mantine-color-scheme='dark'] {
   /* The destructive menu item on the #2e2e2e dark dropdown: red 3, 7.38:1
      at rest and 5.70:1 on its hover tint (red 4 would be 4.74:1 there). */
   --ds-menu-danger-text: var(--mantine-color-red-3);
+  /* The keyboard focus ring: see the rules after this block. */
+  --ds-focus-ring: var(--mantine-color-grape-4);
+}
+
+/* Mantine paints every focus ring (and a focused input's border) in
+   `--mantine-primary-color-filled`, which is grape 8 in the dark scheme:
+   2.3:1 to 2.6:1 against the page, the header, a card and a field, short of
+   the 3:1 non-text minimum (WCAG 1.4.11). That variable also fills default
+   coloured checkboxes, switches, badges and the like, so it cannot be
+   lightened without repainting them. These rules recolour only the ring.
+   Grape 4 is the colour a focused clickable card and the skip link already
+   use, 5.0:1 to 5.8:1 on the same surfaces. The light scheme's ring (grape
+   7, 4.5:1) is fine and is left alone.
+
+   Mantine puts the ring on the focused element (`.mantine-focus-auto`),
+   on a child of it, or on the label or indicator next to a hidden input
+   (checkbox, radio, switch, segmented control), so the colour is set on
+   the focused element and everything around it that could carry one. Only
+   the colour changes: `outline-color` does nothing on an element with no
+   outline, and focus-visible (or Mantine's `data-focus-ring='always'`)
+   still decides when a ring shows, and its width and offset are Mantine's.
+   The `:focus-visible` rules lose to a more specific outline of ours
+   (e.g. `[data-clickable-card]`), which already uses grape 4. */
+html:root[data-mantine-color-scheme='dark'] :focus-visible,
+html:root[data-mantine-color-scheme='dark'] :focus-visible *,
+html:root[data-mantine-color-scheme='dark'] :focus-visible + *,
+html:root[data-mantine-color-scheme='dark'] [data-focus-ring='always']:focus,
+html:root[data-mantine-color-scheme='dark'] [data-focus-ring='always']:focus *,
+html:root[data-mantine-color-scheme='dark'] [data-focus-ring='always']:focus + *,
+html:root[data-mantine-color-scheme='dark'] .mantine-focus-always:focus {
+  outline-color: var(--ds-focus-ring);
+}
+
+/* A focused text field shows a border colour rather than a ring: the same
+   variable, the same fix. */
+html:root[data-mantine-color-scheme='dark'] .mantine-Input-input:not([data-variant='unstyled']) {
+  --input-bd-focus: var(--ds-focus-ring);
 }
 
 /* Exactly the same defect as `--mantine-color-dimmed` above, in a place
