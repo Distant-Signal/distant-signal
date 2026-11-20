@@ -1105,14 +1105,25 @@ export async function getIncident(incidentId: string): Promise<IncidentDetail> {
  * `lib/previewRateLimit.ts`). Only 200s are stored. Same endpoints the
  * pages read: no new api routes.
  *
+ * The train read (`/Train/by-uid`, the one limited route here) also carries
+ * the constant `X-DS-Preview: 1`, which the api (`rate_limit.rs`, "Link-preview
+ * reads") charges to a bucket of its own instead of the frontend pod's
+ * shared per-peer one, so a crawler walking train URLs cannot starve other
+ * reads of that bucket. A constant header gives every requester the same
+ * cache key, unlike a per-visitor IP; an api without the feature ignores it.
+ *
  * The capability-token reads (`getPreviewSharedJourney`,
  * `getPreviewGroupJoin`) are the exception: uncached, so a revoked link's
  * card goes with the next fetch and no token's answer is kept on disk, and
  * so they carry the visitor's `X-Real-IP` like any page read.
  * ------------------------------------------------------------------------- */
 
-async function previewJson<T>(url: string, revalidate: number): Promise<T> {
-  const response = await fetch(url, withTimeout({ next: { revalidate } }, API_FETCH_TIMEOUT_MS));
+/** Marks a preview read for the api's own rate-limit bucket (see above). */
+const PREVIEW_HEADER = 'X-DS-Preview';
+
+async function previewJson<T>(url: string, revalidate: number, headers?: Record<string, string>): Promise<T> {
+  const init: RequestInit = { next: { revalidate }, ...(headers ? { headers } : {}) };
+  const response = await fetch(url, withTimeout(init, API_FETCH_TIMEOUT_MS));
   if (!response.ok) {
     throw errorForResponse(url, response);
   }
@@ -1165,6 +1176,7 @@ export async function getPreviewTrain(uid: string, date: string): Promise<Public
   return previewJson(
     `${baseUrl()}/Train/by-uid/${encodeURIComponent(uid)}/${encodeURIComponent(date)}`,
     LIVE_PREVIEW_REVALIDATE_SECONDS,
+    { [PREVIEW_HEADER]: '1' },
   );
 }
 

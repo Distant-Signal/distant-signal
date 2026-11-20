@@ -57,6 +57,7 @@ import {
   getPreviewStationName,
   getPreviewStopPointDisruption,
   getPreviewTocs,
+  getPreviewTrain,
 } from './api';
 
 // `getPreferences` (and every other cookie-forwarding helper in lib/api.ts)
@@ -1801,6 +1802,17 @@ describe('api client preview reads', () => {
     expect(init.cache).toBe('no-store');
     expect(init.next).toBeUndefined();
     expect(init.headers).toEqual({ 'X-Real-IP': '203.0.113.5' });
+  });
+
+  // The train read is the one limited route among them: it is marked for
+  // the api's own bucket, with a constant (so one cache entry, not one per
+  // visitor), and still carries no client IP or cookie.
+  it('getPreviewTrain is marked for the api preview bucket, cached, with no client IP', async () => {
+    await getPreviewTrain('C12345', '2026-10-01').catch(() => undefined);
+    const [calledUrl, init] = vi.mocked(fetch).mock.calls[0]! as [string, RequestInit & { next?: unknown }];
+    expect(calledUrl).toBe('http://test-api:8080/Train/by-uid/C12345/2026-10-01');
+    expect(init.headers).toEqual({ 'X-DS-Preview': '1' });
+    expect(init.next).toEqual({ revalidate: 60 });
   });
 
   it('getPreviewStationName matches the code exactly', async () => {
