@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { openNavDrawer, waitForSessionNav } from './navDrawer';
+import { logInAs, MISS_SESSION_COOKIE, MISSED_JOURNEY } from './missFixtures';
 
 // A keyboard sweep, which axe cannot do: it reads one DOM snapshot, never
 // presses a key. Two contracts, in light and dark:
@@ -239,6 +240,43 @@ for (const colorScheme of ['light', 'dark'] as const) {
         const trigger = page.getByRole('button', { name: /Add one of my trains/i });
         await expectDialogContract(page, trigger, page.getByRole('dialog'));
       });
+    });
+  });
+}
+
+// The journey page's "I missed this one" sheet (DS-534): the sheet used to
+// unmount with its state, so Mantine's focus return never ran and focus fell
+// to the body. A modal on desktop, a drawer on a phone; closed with Escape
+// and with its Close button. "Find another way" opens the same sheet from
+// the same component (components/LegReplanActions.test.tsx covers it: the
+// seed has no cancelled leg to open it on). Nothing is taken, so the seeded
+// journey stays as it was.
+for (const [label, viewport] of [
+  ['desktop', DESKTOP],
+  ['phone', PHONE],
+] as const) {
+  test.describe(`journey sheets, ${label}`, () => {
+    test.use({ viewport });
+
+    test.beforeEach(async ({ context }) => {
+      await logInAs(context, MISS_SESSION_COOKIE);
+    });
+
+    test('"I missed this one" gives focus back on Escape', async ({ page }) => {
+      await page.goto(`/journeys/${MISSED_JOURNEY}`);
+      const trigger = page.locator('#main-content').getByRole('button', { name: 'I missed this one' });
+      await expectDialogContract(page, trigger, page.getByRole('dialog'));
+    });
+
+    test('"I missed this one" gives focus back on the Close button', async ({ page }) => {
+      await page.goto(`/journeys/${MISSED_JOURNEY}`);
+      const trigger = page.locator('#main-content').getByRole('button', { name: 'I missed this one' });
+      const sheet = page.getByRole('dialog');
+      await openWithKeyboard(trigger, sheet, page);
+      await expect.poll(() => focusIsInside(sheet), { message: 'focus to move into the sheet' }).toBe(true);
+      await sheet.getByRole('button', { name: 'Close' }).click();
+      await expect(sheet).toBeHidden();
+      await expect(trigger, 'focus to return to the control that opened the sheet').toBeFocused();
     });
   });
 }

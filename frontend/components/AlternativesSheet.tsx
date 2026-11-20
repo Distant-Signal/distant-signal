@@ -246,6 +246,13 @@ export function AlternativesSheet({
   const theme = useMantineTheme();
   const isPhone = useMediaQuery(`(max-width: calc(${theme.breakpoints.sm} - 0.0625em))`);
   const [title, setTitle] = useState(fallbackTitle);
+  // A sheet that stays mounted between openings starts each from its
+  // fallback title, not the last one's.
+  const [wasOpened, setWasOpened] = useState(opened);
+  if (wasOpened !== opened) {
+    setWasOpened(opened);
+    if (opened) setTitle(fallbackTitle);
+  }
   // Whether the journey changed while the sheet was open, so closing it
   // shows the new plan.
   const changed = useRef(false);
