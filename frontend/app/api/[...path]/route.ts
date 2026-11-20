@@ -272,8 +272,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // response is `private, no-store` unless the request is an anonymous GET
   // or HEAD of an allowlisted path and the api itself answered `public`.
   // Which frontend build the call came from (counts only, lib/buildMix.ts).
-  // The header is not among those relayed below, so it never reaches the api.
-  recordApiBuild(req.headers.get(BUILD_ID_HEADER));
+  // `Sec-Fetch-Site` only splits the no-header count; it is not logged. Neither
+  // header is among those relayed below, so neither reaches the api.
+  recordApiBuild(req.headers.get(BUILD_ID_HEADER), req.headers.get('sec-fetch-site'));
   const cachePolicyOn = publicCacheEnabled();
   const cacheCandidate = cachePolicyOn && isPublicCacheCandidate(req.method, path, req.headers);
   // Every response the proxy generates itself is private, flag or no flag.
