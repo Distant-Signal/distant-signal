@@ -575,16 +575,45 @@ describe('AllLinesTable responsive columns', () => {
     expect(hidden.map((el) => el.textContent).some((t) => t.includes('Pin'))).toBe(false);
   });
 
+  it('names the line in each pin button, so a list of them is not identical entries', () => {
+    renderWithMantine(
+      <AllLinesTable
+        lines={[
+          ...mobileLines,
+          { id: 'avanti', name: 'Avanti West Coast', category: 'operator', operators: ['VT'], source: 'catalogue' },
+        ]}
+        reports={mobileReports}
+        pinnedLineIds={['avanti']}
+        tocs={[]}
+        viewerIsAnonymous
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Pin Northern, needs an account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unpin Avanti West Coast, currently pinned' })).toBeInTheDocument();
+    const names = screen
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label') ?? button.textContent);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('names the table and scopes its column headers', () => {
+    renderMobileTable();
+    const table = screen.getByRole('table', { name: 'Lines' });
+    const headers = within(table).getAllByRole('columnheader');
+    expect(headers.length).toBeGreaterThan(0);
+    for (const header of headers) expect(header).toHaveAttribute('scope', 'col');
+  });
+
   it('renders a usable pin control in every row at mobile width', () => {
     renderMobileTable();
-    expect(screen.getByRole('button', { name: 'Pin (currently not pinned)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pin Northern, currently not pinned' })).toBeInTheDocument();
   });
 
   it('shows the pinned state at mobile width too, not just above sm', () => {
     // Covers the second half of F4: at mobile width an already-pinned row
     // was indistinguishable from an unpinned one.
     renderMobileTable(['northern']);
-    expect(screen.getByRole('button', { name: 'Unpin (currently pinned)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unpin Northern, currently pinned' })).toBeInTheDocument();
   });
 
   it('re-surfaces the numbers under the line name for the widths that lose the columns', () => {

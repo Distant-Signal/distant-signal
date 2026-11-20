@@ -361,6 +361,7 @@ export function IssueList({
         sticky={false}
         trailing={
           <SegmentedControl
+            aria-label="Show issues"
             value={activeFilter}
             onChange={(value) => setActiveFilter(value as ActiveFilter)}
             data={[

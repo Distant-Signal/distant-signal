@@ -105,7 +105,12 @@ export default async function TransitLinePage({ params, searchParams }: Params &
         <Group gap="sm" wrap="nowrap">
           <ColorSwatch color={lineColour(lineDetail)} size={18} withShadow={false} aria-hidden="true" />
           <Title order={1}>{lineDetail.name}</Title>
-          <PinToggle kind="line" id={pinId} initiallyPinned={preferences.pinnedLines.includes(pinId)} />
+          <PinToggle
+            kind="line"
+            id={pinId}
+            name={lineDetail.name}
+            initiallyPinned={preferences.pinnedLines.includes(pinId)}
+          />
         </Group>
         <TextLink href={`/transit/${network}`}>{detail.name}</TextLink>
       </Stack>

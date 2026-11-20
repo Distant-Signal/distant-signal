@@ -33,7 +33,13 @@ export function TflStopTimetable({
           <SectionTitle order={3}>
             {dated ? `First and last on ${formatDate(board.date)}` : 'First and last today'}
           </SectionTitle>
-          <Table fz="sm" withRowBorders={false} verticalSpacing={4} maw={560}>
+          <Table
+            aria-label={dated ? `First and last on ${formatDate(board.date)}` : 'First and last today'}
+            fz="sm"
+            withRowBorders={false}
+            verticalSpacing={4}
+            maw={560}
+          >
             <TableTbody>
               {firstLast.map((row) => (
                 <TableTr key={`${row.line.id}.${row.direction}`}>

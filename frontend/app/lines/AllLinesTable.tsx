@@ -361,7 +361,13 @@ const LineRow = memo(function LineRow({
         )}
       </td>
       <td className={TD}>
-        <PinToggle kind="line" id={line.id} initiallyPinned={pinned} needsAccountHint={viewerIsAnonymous} />
+        <PinToggle
+          kind="line"
+          id={line.id}
+          name={line.name}
+          initiallyPinned={pinned}
+          needsAccountHint={viewerIsAnonymous}
+        />
       </td>
     </tr>
   );
@@ -681,7 +687,7 @@ export function AllLinesTable({
           bar, offset by the bar's own height (`--list-filter-bar-height`,
           which also sizes the bar, so the two can't drift apart). */}
       <Box className="linesTableWrap">
-        <Table stickyHeader stickyHeaderOffset="var(--list-filter-bar-height)">
+        <Table aria-label="Lines" stickyHeader stickyHeaderOffset="var(--list-filter-bar-height)">
           {/* Flat `TableThead`/`TableTr`/... named exports, not the
               `Table.Thead` dot-notation compound API -- kept consistent with
               the rest of this codebase's Table usage even though this is a
@@ -697,25 +703,25 @@ export function AllLinesTable({
                 longest of the four labels) can't wrap its own sort glyph
                 onto a second line, orphaning it away from the label it
                 belongs to. */}
-              <TableTh aria-sort={ariaSort('name', sort)} className="sortHeader">
+              <TableTh scope="col" aria-sort={ariaSort('name', sort)} className="sortHeader">
                 <UnstyledButton onClick={() => toggleSort('name')} className="sortHeader__button">
                   Name
                   <SortGlyph field="name" sort={sort} />
                 </UnstyledButton>
               </TableTh>
-              <TableTh aria-sort={ariaSort('status', sort)} className="sortHeader">
+              <TableTh scope="col" aria-sort={ariaSort('status', sort)} className="sortHeader">
                 <UnstyledButton onClick={() => toggleSort('status')} className="sortHeader__button">
                   Status
                   <SortGlyph field="status" sort={sort} />
                 </UnstyledButton>
               </TableTh>
-              <TableTh aria-sort={ariaSort('avgDelay', sort)} visibleFrom="sm" className="sortHeader">
+              <TableTh scope="col" aria-sort={ariaSort('avgDelay', sort)} visibleFrom="sm" className="sortHeader">
                 <UnstyledButton onClick={() => toggleSort('avgDelay')} className="sortHeader__button">
                   Avg delay
                   <SortGlyph field="avgDelay" sort={sort} />
                 </UnstyledButton>
               </TableTh>
-              <TableTh aria-sort={ariaSort('cancelled', sort)} visibleFrom="sm" className="sortHeader">
+              <TableTh scope="col" aria-sort={ariaSort('cancelled', sort)} visibleFrom="sm" className="sortHeader">
                 <UnstyledButton onClick={() => toggleSort('cancelled')} className="sortHeader__button">
                   Cancelled
                   <SortGlyph field="cancelled" sort={sort} />
@@ -732,7 +738,7 @@ export function AllLinesTable({
                 the application, and a pinned row was visually identical to an
                 unpinned one. See
                 docs/superpowers/specs/2026-09-02-frontend-ui-ux-review.md §F4. */}
-              <TableTh>Pin</TableTh>
+              <TableTh scope="col">Pin</TableTh>
             </TableTr>
           </TableThead>
           <TableTbody>

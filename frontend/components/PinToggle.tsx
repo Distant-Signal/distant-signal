@@ -57,11 +57,16 @@ function StarIcon({ filled }: { filled: boolean }) {
 export function PinToggle({
   kind,
   id,
+  name,
   initiallyPinned,
   needsAccountHint = false,
 }: {
   kind: PinKind;
   id: string;
+  /** What the star pins, said in its accessible name ("Pin Victoria line,
+   * currently not pinned"): a page of them (245 stars on /lines) is
+   * otherwise a list of identical buttons to a screen reader. */
+  name: string;
   initiallyPinned: boolean;
   // Review §3.4 (Task 3.4.13): an anonymous visitor gets no hint that
   // pinning needs an account until they click and hit the `401` prompt
@@ -209,10 +214,10 @@ export function PinToggle({
   // an account already exists, so the account hint only ever applies to
   // the unpinned wording.
   const label = pinned
-    ? 'Unpin (currently pinned)'
+    ? `Unpin ${name}, currently pinned`
     : needsAccountHint
-      ? 'Pin (needs an account)'
-      : 'Pin (currently not pinned)';
+      ? `Pin ${name}, needs an account`
+      : `Pin ${name}, currently not pinned`;
 
   return (
     <Group gap={4} wrap="nowrap">
