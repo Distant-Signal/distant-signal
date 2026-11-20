@@ -1123,6 +1123,44 @@ describe('status pill contrast', () => {
     expect(contrast(RED_6, dropdown)).toBeLessThan(AA_BODY_TEXT);
   });
 
+  // The dark focus ring (WCAG 1.4.11, 3:1 for a focus indicator). Mantine
+  // paints it in `--mantine-primary-color-filled`, grape 8 in dark: 2.3:1 to
+  // 2.6:1 on the page, the header wash, a card and a filled field. The
+  // surfaces are the dark body, the header wash (body plus the grape
+  // tint), a Card/Paper, and the filled input.
+  const GRAPE_8 = '#9c36b5';
+  const darkSurfaces: [string, string][] = [
+    ['page', DARK_7],
+    ['header wash', '#2e272f'],
+    ['card', DARK_6],
+    ['filled field', '#3b3b3b'],
+  ];
+  it.each(darkSurfaces)('the dark focus ring clears 3:1 on the %s', (_name, surface) => {
+    const ring = resolveColor('dark', 'var(--ds-focus-ring)');
+    expect(ring).toBe(GRAPE_4);
+    expect(contrast(ring, surface)).toBeGreaterThanOrEqual(3);
+    // What Mantine's own ring gave.
+    expect(contrast(GRAPE_8, surface)).toBeLessThan(3);
+  });
+
+  it('recolours the dark ring and the focused field border, and only in the dark scheme', () => {
+    const rule =
+      /html:root\[data-mantine-color-scheme='dark'\] :focus-visible,[^{]*\{\s*outline-color:\s*var\(--ds-focus-ring\);\s*\}/.exec(
+        css,
+      );
+    expect(rule, 'the dark outline-color rule').not.toBeNull();
+    for (const selector of [':focus-visible *', ':focus-visible + *', '.mantine-focus-always:focus']) {
+      expect(rule![0]).toContain(selector);
+    }
+    // Only the colour: the ring's width, offset and focus-visible gating stay Mantine's.
+    expect(rule![0]).not.toMatch(/outline(-width|-offset|-style)?:/);
+    expect(css).toMatch(
+      /\.mantine-Input-input:not\(\[data-variant='unstyled'\]\)\s*\{\s*--input-bd-focus:\s*var\(--ds-focus-ring\);/,
+    );
+    // Not declared in the light scheme block.
+    expect(schemeBlock('light')).not.toContain('--ds-focus-ring');
+  });
+
   const statusCases = SCHEMES.flatMap((scheme) =>
     SEVERITY_GROUPS_BY_RANK.map((group): [SeverityGroup, Scheme] => [group, scheme]),
   );
