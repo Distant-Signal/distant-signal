@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { deletionSummary, preselectedScopes, scopeSentence } from './connectedApps';
 
+import { testDeletionId } from '@/test/apiDefaults';
 describe('connected apps helpers', () => {
   it('words each scope as a sentence', () => {
     expect(scopeSentence('journeys:write')).toBe('Save journeys to your account');
@@ -20,7 +21,7 @@ describe('connected apps helpers', () => {
       deletionSummary({
         id: 1,
         client: 'ds-mcp',
-        journeyId: 42,
+        publicId: testDeletionId(42),
         deletedAt: '2026-10-14T10:00:00Z',
         summary: {
           customName: 'Weekend away',
@@ -29,7 +30,13 @@ describe('connected apps helpers', () => {
       }),
     ).toEqual({ title: 'Weekend away', legs: ['EUS to MKC, on 20 Oct 2026, train C11052'] });
     expect(
-      deletionSummary({ id: 2, client: 'ds-mcp', journeyId: 7, deletedAt: '2026-10-14T10:00:00Z', summary: {} }),
+      deletionSummary({
+        id: 2,
+        client: 'ds-mcp',
+        publicId: testDeletionId(7),
+        deletedAt: '2026-10-14T10:00:00Z',
+        summary: {},
+      }),
     ).toEqual({ title: 'Deleted journey', legs: [] });
     // No custom name: the journey's whole route and first day, as every
     // other journey surface names it, not "Journey 9" or an id.
@@ -37,7 +44,7 @@ describe('connected apps helpers', () => {
       deletionSummary({
         id: 3,
         client: 'ds-mcp',
-        journeyId: 9,
+        publicId: testDeletionId(9),
         deletedAt: '2026-10-14T10:00:00Z',
         summary: {
           customName: null,
@@ -55,7 +62,7 @@ describe('connected apps helpers', () => {
       deletionSummary({
         id: 3,
         client: 'ds-mcp',
-        journeyId: 8,
+        publicId: testDeletionId(8),
         deletedAt: '2026-10-20T10:00:00Z',
         summary: {
           legs: [

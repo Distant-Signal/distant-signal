@@ -23,6 +23,7 @@ import { API_REFERENCE_PATH, DEVELOPERS_PATH } from '@/lib/developerDocs';
 import { formatDate, formatDateTime } from '@/lib/dateFormat';
 import { describeFailure } from '@/lib/failure';
 import { lifetimeLabel, personalScopeSentence } from '@/lib/personalTokens';
+import { tokenRef } from '@/lib/publicId';
 import type { CreatedPersonalTokenResponse, PersonalTokensResponse } from '@/lib/api-types';
 
 /** The JSON `{error, message}` the token routes answer with. */
@@ -137,7 +138,7 @@ export function PersonalTokens({
 
       {data.tokens.length === 0 && <Text c="dimmed">You have no tokens.</Text>}
       {data.tokens.map((token) => (
-        <Card key={token.id} withBorder>
+        <Card key={tokenRef(token)} withBorder>
           <Stack gap="xs" align="flex-start">
             <Text fw={600}>{token.name}</Text>
             <Text size="sm" c="dimmed">
@@ -159,7 +160,7 @@ export function PersonalTokens({
               label="Revoke"
               actionName={`revoke ${token.name}`}
               title={`Revoke "${token.name}"?`}
-              request={() => fetch(`/api/account/personal-tokens/${token.id}`, { method: 'DELETE' })}
+              request={() => fetch(`/api/account/personal-tokens/${tokenRef(token)}`, { method: 'DELETE' })}
               failure={['revoke', 'the token']}
               loginPrompt="Log in to revoke it"
             >

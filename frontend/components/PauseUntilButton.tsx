@@ -9,6 +9,7 @@ import { PICKER_DATE_FORMAT, formatDate } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import { removedJourneysNote } from '@/lib/timeAway';
+import { deletedCount } from '@/lib/publicId';
 import type { SetTemplateActiveResponse, SetTemplatePausedUntilRequest } from '@/lib/types';
 
 function setPausedUntil(templateId: string, pausedUntil: string | null): Promise<Response> {
@@ -62,7 +63,7 @@ export function PauseUntilButton({
       }
       const result = (await response.json()) as SetTemplateActiveResponse;
       close();
-      setNote(value ? removedJourneysNote(result.deletedJourneyIds.length) : null);
+      setNote(value ? removedJourneysNote(deletedCount(result)) : null);
       router.refresh();
     } catch {
       setError(

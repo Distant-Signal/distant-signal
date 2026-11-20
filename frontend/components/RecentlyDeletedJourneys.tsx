@@ -12,6 +12,7 @@ import { deletionSummary } from '@/lib/connectedApps';
 import { formatDate } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { deletedLine, OWN_DELETE_CLIENT, restoreNotes } from '@/lib/recentlyDeleted';
+import { deletionRef } from '@/lib/publicId';
 import type { RecentlyDeletedData, RecentlyDeletedJourney, RestoreDeletedJourneyResponse } from '@/lib/types';
 
 /** A journey saved again: the new journey, and what needs the visitor. */
@@ -103,7 +104,7 @@ export function RecentlyDeletedJourneys({ data, now }: { data: RecentlyDeletedDa
           </Group>
           {data.items.map((item) => (
             <DeletedJourneyCard
-              key={item.id}
+              key={deletionRef(item)}
               item={item}
               now={reference}
               onSaved={(next) => {
@@ -131,14 +132,14 @@ function DeletedJourneyCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const needsLoginState = useNeedsLogin();
-  const headingId = `deleted-journey-${item.id}`;
+  const headingId = `deleted-journey-${deletionRef(item)}`;
 
   async function saveAgain() {
     setBusy(true);
     setError(null);
     needsLoginState.reset();
     try {
-      const response = await fetch(`/api/Journeys/recently-deleted/${item.id}/restore`, { method: 'POST' });
+      const response = await fetch(`/api/Journeys/recently-deleted/${deletionRef(item)}/restore`, { method: 'POST' });
       if (!response.ok) {
         if (response.status === 401) {
           needsLoginState.markNeedsLogin();
@@ -181,7 +182,7 @@ function DeletedJourneyCard({
             label="Delete permanently"
             actionName={`delete permanently ${title}`}
             title="Delete this journey for good?"
-            request={() => fetch(`/api/Journeys/recently-deleted/${item.id}`, { method: 'DELETE' })}
+            request={() => fetch(`/api/Journeys/recently-deleted/${deletionRef(item)}`, { method: 'DELETE' })}
             failure={['delete', 'this journey']}
             loginPrompt="Log in to delete this journey"
           >

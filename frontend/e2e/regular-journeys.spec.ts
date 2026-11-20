@@ -332,7 +332,7 @@ test.describe('regular journeys', () => {
         pausedUntil: string | null;
         upcomingDates: { date: string; skipReason: string | null }[];
       };
-    const awayIds: number[] = [];
+    const awayIds: string[] = [];
 
     try {
       // Pause until the third upcoming date: the first two show "Paused".
@@ -365,7 +365,7 @@ test.describe('regular journeys', () => {
         data: { startsOn: upcomingDates[1]!.date, endsOn: upcomingDates[1]!.date, label: 'E2E away' },
       });
       expect(away.ok(), await away.text()).toBe(true);
-      awayIds.push(((await away.json()) as { period: { id: number } }).period.id);
+      awayIds.push(((await away.json()) as { period: { publicId: string } }).period.publicId);
       await page.goto('/account/preferences');
       const section = page.getByRole('region', { name: 'Time away' });
       await expect(section.getByText(/^E2E away: /)).toBeVisible();

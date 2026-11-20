@@ -8,6 +8,7 @@ import { PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import { removedJourneysNote, timeAwayLabel } from '@/lib/timeAway';
+import { deletedCount, timeAwayRef } from '@/lib/publicId';
 import type { TimeAwayPeriod, TimeAwayRequest, TimeAwayResponse } from '@/lib/types';
 
 /** The longest name, as the api allows. */
@@ -47,12 +48,14 @@ export function TimeAwaySection({ initial }: { initial: TimeAwayPeriod[] }) {
       }
       const result = (await response.json()) as TimeAwayResponse;
       setPeriods((current) =>
-        [...current, result.period].sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.id - b.id),
+        [...current, result.period].sort(
+          (a, b) => a.startsOn.localeCompare(b.startsOn) || timeAwayRef(a).localeCompare(timeAwayRef(b)),
+        ),
       );
       setStartsOn(null);
       setEndsOn(null);
       setLabel('');
-      setStatus(['Added.', removedJourneysNote(result.deletedJourneyIds.length)].filter(Boolean).join(' '));
+      setStatus(['Added.', removedJourneysNote(deletedCount(result))].filter(Boolean).join(' '));
     } catch {
       setError(describeFailure('add', 'your time away'));
     } finally {
@@ -65,12 +68,12 @@ export function TimeAwaySection({ initial }: { initial: TimeAwayPeriod[] }) {
     setStatus(null);
     setError(null);
     try {
-      const response = await fetch(`/api/preferences/time-away/${period.id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/preferences/time-away/${timeAwayRef(period)}`, { method: 'DELETE' });
       if (!response.ok && response.status !== 404) {
         setError(await failureFromResponse('delete', 'that time away', response));
         return;
       }
-      setPeriods((current) => current.filter((other) => other.id !== period.id));
+      setPeriods((current) => current.filter((other) => timeAwayRef(other) !== timeAwayRef(period)));
       setStatus('Deleted. Journeys for those dates are added again as usual.');
     } catch {
       setError(describeFailure('delete', 'that time away'));
@@ -90,7 +93,7 @@ export function TimeAwaySection({ initial }: { initial: TimeAwayPeriod[] }) {
       ) : (
         <Stack gap="xs" component="ul" className="ds-plain-list">
           {periods.map((period) => (
-            <Group key={period.id} component="li" justify="space-between" wrap="nowrap" gap="sm">
+            <Group key={timeAwayRef(period)} component="li" justify="space-between" wrap="nowrap" gap="sm">
               <Text size="sm">{timeAwayLabel(period)}</Text>
               <Button
                 size="compact-sm"

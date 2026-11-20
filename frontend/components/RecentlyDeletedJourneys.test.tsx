@@ -3,7 +3,8 @@ import { screen, fireEvent, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { RecentlyDeletedJourneys } from './RecentlyDeletedJourneys';
 import type { RecentlyDeletedData } from '@/lib/types';
-import { testPublicId } from '@/test/apiDefaults';
+import { testDeletionId, testPublicId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -20,7 +21,7 @@ const data: RecentlyDeletedData = {
   items: [
     {
       id: 7,
-      journeyId: 42,
+      publicId: testDeletionId(7),
       client: 'web',
       deletedAt: '2026-11-09T09:00:00Z',
       expiresAt: '2026-11-16T09:00:00Z',
@@ -33,7 +34,7 @@ const data: RecentlyDeletedData = {
     },
     {
       id: 8,
-      journeyId: 43,
+      publicId: testDeletionId(8),
       client: 'ds-mcp',
       deletedAt: '2026-11-01T09:00:00Z',
       expiresAt: '2026-12-01T09:00:00Z',
@@ -51,7 +52,7 @@ function card(name: string | RegExp): HTMLElement {
   return screen.getByRole('article', { name });
 }
 
-describe('RecentlyDeletedJourneys', () => {
+describe.each(ID_SHAPES)('RecentlyDeletedJourneys (%s)', (_name, shape) => {
   beforeEach(() => {
     refreshMock.mockClear();
   });
@@ -61,7 +62,7 @@ describe('RecentlyDeletedJourneys', () => {
   });
 
   it('lists each deleted journey with its route, when it was deleted and how long it is kept', () => {
-    renderWithMantine(<RecentlyDeletedJourneys data={data} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
     expect(screen.getByText(/you deleted in the last 7 days/)).toBeInTheDocument();
     expect(screen.getByText(/journeys a connected app deleted after 30 days/)).toBeInTheDocument();
     const own = card('Weekend away');
@@ -75,7 +76,7 @@ describe('RecentlyDeletedJourneys', () => {
   });
 
   it('shows an empty state with a way back', () => {
-    renderWithMantine(<RecentlyDeletedJourneys data={{ ...data, items: [] }} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape({ ...data, items: [] })} now={NOW} />);
     expect(screen.getByText(/Nothing deleted in the last 7 days\./)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to journeys' })).toHaveAttribute('href', '/journeys');
     expect(screen.queryByRole('button', { name: 'Empty now' })).toBeNull();
@@ -93,10 +94,12 @@ describe('RecentlyDeletedJourneys', () => {
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<RecentlyDeletedJourneys data={data} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
     fireEvent.click(within(card('Weekend away')).getByRole('button', { name: 'Save again' }));
     const status = await screen.findByRole('status');
-    expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/recently-deleted/7/restore', { method: 'POST' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/recently-deleted/${testDeletionId(7)}/restore`, {
+      method: 'POST',
+    });
     expect(within(status).getByText('Saved Weekend away again.')).toBeInTheDocument();
     expect(
       within(status).getByText("Leg 1's train is no longer available, so pick a train for it."),
@@ -110,7 +113,7 @@ describe('RecentlyDeletedJourneys', () => {
 
   it('says why a save again failed', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 500 })));
-    renderWithMantine(<RecentlyDeletedJourneys data={data} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
     fireEvent.click(within(card('Weekend away')).getByRole('button', { name: 'Save again' }));
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save this journey again. Try again.");
     expect(refreshMock).not.toHaveBeenCalled();
@@ -121,7 +124,7 @@ describe('RecentlyDeletedJourneys', () => {
       'fetch',
       vi.fn().mockResolvedValue(new Response("None of this journey's legs can be saved again.", { status: 422 })),
     );
-    renderWithMantine(<RecentlyDeletedJourneys data={data} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
     fireEvent.click(within(card('Weekend away')).getByRole('button', { name: 'Save again' }));
     expect(await screen.findByRole('alert')).toHaveTextContent("None of this journey's legs can be saved again.");
   });
@@ -129,20 +132,38 @@ describe('RecentlyDeletedJourneys', () => {
   it('deletes one for good after a confirmation', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<RecentlyDeletedJourneys data={data} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
     fireEvent.click(within(card('Weekend away')).getByRole('button', { name: 'Delete permanently' }));
     expect(fetchMock).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm delete permanently Weekend away' }));
     await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('/api/Journeys/recently-deleted/7', { method: 'DELETE' }),
+      expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/recently-deleted/${testDeletionId(7)}`, {
+        method: 'DELETE',
+      }),
     );
     await vi.waitFor(() => expect(refreshMock).toHaveBeenCalled());
+  });
+
+  it('acts on the second journey by its own id, with no duplicate keys', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
+    fireEvent.click(within(card(/KGX to YRK/)).getByRole('button', { name: 'Delete permanently' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Confirm delete permanently/ }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/recently-deleted/${testDeletionId(8)}`, {
+        method: 'DELETE',
+      }),
+    );
+    expect(errors.mock.calls.filter((call) => String(call[0]).includes('same key'))).toEqual([]);
+    errors.mockRestore();
   });
 
   it('empties the list after a confirmation', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<RecentlyDeletedJourneys data={data} now={NOW} />);
+    renderWithMantine(<RecentlyDeletedJourneys data={shape(data)} now={NOW} />);
     fireEvent.click(screen.getByRole('button', { name: 'Empty now' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm empty now' }));
     await vi.waitFor(() =>

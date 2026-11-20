@@ -7,6 +7,7 @@ import { SectionTitle } from './SectionTitle';
 import { deletionSummary, scopeSentence } from '@/lib/connectedApps';
 import { formatDate, formatDateTime } from '@/lib/dateFormat';
 import { trackFeature } from '@/lib/usageAnalytics';
+import { deletionRef } from '@/lib/publicId';
 import type { ConnectedAppsData } from '@/lib/types';
 
 /** The Connected apps list (docs/connected-apps.md): each app the visitor
@@ -123,7 +124,7 @@ export function ConnectedApps({
             {data.recentDeletions.map((deletion) => {
               const { title, legs } = deletionSummary(deletion);
               return (
-                <ListItem key={deletion.id}>
+                <ListItem key={deletionRef(deletion)}>
                   <Text size="sm" fw={600} span>
                     {title}
                   </Text>

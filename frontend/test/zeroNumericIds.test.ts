@@ -28,14 +28,14 @@ describe('zeroNumericIds', () => {
       id: 5,
       sourceTemplateId: null,
       sourceTemplatePublicId: null,
-      ticketIds: [8, 9],
+      deletedJourneyIds: [8, 9],
       legCount: 3,
     });
     expect(shaped).toEqual({
       id: 5,
       sourceTemplateId: null,
       sourceTemplatePublicId: null,
-      ticketIds: [8, 9],
+      deletedJourneyIds: [8, 9],
       legCount: 3,
     });
   });

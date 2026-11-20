@@ -1,13 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { testTimeAwayId } from '@/test/apiDefaults';
 import { removedJourneysNote, timeAwayDates, timeAwayLabel } from './timeAway';
 
 describe('time away', () => {
   it('names the dates, one day or several, with the name first', () => {
     expect(timeAwayDates({ startsOn: '2026-12-21', endsOn: '2026-12-21' })).toBe('21 Dec 2026');
-    expect(timeAwayLabel({ id: 1, startsOn: '2026-12-21', endsOn: '2027-01-02', label: 'Christmas' })).toBe(
-      'Christmas: 21 Dec 2026 to 2 Jan 2027',
-    );
-    expect(timeAwayLabel({ id: 1, startsOn: '2026-10-25', endsOn: '2026-10-25', label: null })).toBe('25 Oct 2026');
+    expect(
+      timeAwayLabel({
+        id: 1,
+        publicId: testTimeAwayId(1),
+        startsOn: '2026-12-21',
+        endsOn: '2027-01-02',
+        label: 'Christmas',
+      }),
+    ).toBe('Christmas: 21 Dec 2026 to 2 Jan 2027');
+    expect(
+      timeAwayLabel({ id: 1, publicId: testTimeAwayId(1), startsOn: '2026-10-25', endsOn: '2026-10-25', label: null }),
+    ).toBe('25 Oct 2026');
   });
 
   it('counts the journeys removed', () => {

@@ -338,7 +338,6 @@ describe('history', () => {
       lineName: null,
       plannedDeparture: null,
       plannedArrival: null,
-      ticketIds: [],
       fate: 'cancelled',
     };
     expect(revisionLegLine(leg)).toBe('09:52 York to Edinburgh, GR');

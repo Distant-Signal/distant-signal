@@ -309,7 +309,7 @@ export type ConnectableApp = { name: string, displayName: string, scopes: Array<
 /**
  * A delegated delete, as the Connected apps page lists it.
  */
-export type ConnectedAppDeletion = { id: number, client: string, journeyId: number, deletedAt: string, 
+export type ConnectedAppDeletion = { id: number, publicId: string, client: string, deletedAt: string, 
 /**
  * What the journey was, as [`delete_journey_delegated`] stored it.
  */
@@ -493,7 +493,7 @@ export type CreatedPersonalTokenResponse = {
 /**
  * The token. Shown once; Distant Signal keeps only its hash.
  */
-token: string, id: number, name: string, 
+token: string, id: number, publicId: string, name: string, 
 /**
  * The token's last 4 characters, shown as `dsp_...hint`.
  */
@@ -2114,7 +2114,7 @@ recurrenceKind: RecurrenceKind, intervalWeeks: number, anchorWeek: string | null
  */
 dayOverrides: Array<DayOverride>, };
 
-export type JourneyTemplateLegDetailResponse = { id: number, originCrs: string | null, originName: string | null, destinationCrs: string | null, destinationName: string | null, departAfter: string | null, departBefore: string | null, arriveAfter: string | null, arriveBefore: string | null, };
+export type JourneyTemplateLegDetailResponse = { originCrs: string | null, originName: string | null, destinationCrs: string | null, destinationName: string | null, departAfter: string | null, departBefore: string | null, arriveAfter: string | null, arriveBefore: string | null, };
 
 /**
  * One row of `GET /JourneyTemplates/mine` -- deliberately lighter than the
@@ -3060,7 +3060,7 @@ name: string, };
  * A token as the Connected apps page and the account export show it.
  * Never carries the hash.
  */
-export type PersonalTokenRow = { id: number, name: string, 
+export type PersonalTokenRow = { id: number, publicId: string, name: string, 
 /**
  * The token's last 4 characters, shown as `dsp_...hint`.
  */
@@ -3710,12 +3710,7 @@ export type RecentlyClearedResponse = { results: Array<RecentlyClearedIncident>,
 /**
  * One recently deleted journey, as the list shows it.
  */
-export type RecentlyDeletedJourney = { id: number, 
-/**
- * The deleted journey's id. It no longer exists; a journey saved again
- * gets a new one.
- */
-journeyId: number, 
+export type RecentlyDeletedJourney = { id: number, publicId: string, 
 /**
  * `web` for the user's own delete, else the connected app's name.
  */
@@ -4091,7 +4086,7 @@ export type RevisionFault = "operator" | "user" | "none" | "unknown";
 /**
  * One revision leg as served by `GET /Journeys/{id}/revisions`.
  */
-export type RevisionLeg = { position: number, sourceLegId: number | null, sourceLegPublicId: string | null, kind: JourneyLegKind, trainUid: string | null, serviceDate: string, atocCode: string | null, originCrs: string | null, originName: string | null, destinationCrs: string | null, destinationName: string | null, bookedDeparture: string | null, bookedArrival: string | null, transitMode: TransitMode | null, originPlace: string | null, destinationPlace: string | null, lineName: string | null, plannedDeparture: string | null, plannedArrival: string | null, ticketIds: Array<number>, fate: RevisionLegFate, 
+export type RevisionLeg = { position: number, sourceLegId: number | null, sourceLegPublicId: string | null, kind: JourneyLegKind, trainUid: string | null, serviceDate: string, atocCode: string | null, originCrs: string | null, originName: string | null, destinationCrs: string | null, destinationName: string | null, bookedDeparture: string | null, bookedArrival: string | null, transitMode: TransitMode | null, originPlace: string | null, destinationPlace: string | null, lineName: string | null, plannedDeparture: string | null, plannedArrival: string | null, fate: RevisionLegFate, 
 /**
  * An untracked leg's stops and network ride (DS-237, additive), so
  * going back to this plan keeps them; `null` otherwise and on a
@@ -4259,7 +4254,7 @@ templateIds: Array<number>, templatePublicIds: Array<string>,
 /**
  * Untouched journeys a pause deleted.
  */
-deletedJourneyIds: Array<number>, };
+deletedJourneyIds: Array<number>, deletedJourneyCount: number, };
 
 /**
  * `PUT /JourneyTemplates/{id}/paused-until`'s body.
@@ -4541,7 +4536,7 @@ serviceDates: Array<string>, templateIds: Array<number>, templatePublicIds: Arra
 /**
  * Journeys already added for that date, now deleted.
  */
-deletedJourneyIds: Array<number>, };
+deletedJourneyIds: Array<number>, deletedJourneyCount: number, };
 
 /**
  * `GET /public/stations/{crs}/accessibility`: the station's RDM
@@ -4946,7 +4941,7 @@ export type TicketKind = "single" | "return" | "unknown";
 /**
  * One period, as `GET /preferences/time-away` serves it.
  */
-export type TimeAwayPeriod = { id: number, 
+export type TimeAwayPeriod = { id: number, publicId: string, 
 /**
  * The first date away (a London date).
  */
@@ -4985,7 +4980,7 @@ export type TimeAwayResponse = { period: TimeAwayPeriod,
  * Journeys already added for those dates that nobody had touched, now
  * deleted.
  */
-deletedJourneyIds: Array<number>, };
+deletedJourneyIds: Array<number>, deletedJourneyCount: number, };
 
 /**
  * A reusable, named "after/before" bound pair on a `NaiveTime` --
@@ -6579,7 +6574,7 @@ how: WaypointHow, };
  * A destination as the settings page shows it. Never carries the secret,
  * only whether one is set.
  */
-export type WebhookDestination = { id: number, 
+export type WebhookDestination = { id: number, publicId: string, 
 /**
  * `generic`, `ntfy` or `gotify`.
  */

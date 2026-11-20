@@ -175,7 +175,13 @@ describe('PreferencesPage', () => {
   it('lists time away for a logged-in account, and drops only that card when it cannot load', async () => {
     vi.mocked(getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(getTimeAway).mockResolvedValueOnce([
-      { id: 1, startsOn: '2026-12-21', endsOn: '2026-12-24', label: 'Christmas' },
+      {
+        id: 1,
+        publicId: 'a_00000000000000000000000000000001',
+        startsOn: '2026-12-21',
+        endsOn: '2026-12-24',
+        label: 'Christmas',
+      },
     ]);
     const { unmount } = renderWithMantine(await PreferencesPage());
     expect(screen.getByRole('region', { name: 'Time away' })).toBeInTheDocument();

@@ -73,7 +73,6 @@ function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTempla
     usualItinerary: null,
     legs: [
       {
-        id: 1,
         originCrs: 'KGX',
         originName: 'London Kings Cross',
         destinationCrs: 'EDB',
@@ -282,7 +281,6 @@ describe('EditJourneyTemplateForm', () => {
         template={template({
           legs: [
             {
-              id: 1,
               originCrs: 'KGX',
               originName: 'London Kings Cross',
               destinationCrs: 'EDB',
@@ -394,7 +392,6 @@ describe('EditJourneyTemplateForm', () => {
         template={template({
           legs: [
             {
-              id: 1,
               originCrs: 'KGX',
               originName: 'London Kings Cross',
               destinationCrs: 'EDB',
@@ -405,7 +402,6 @@ describe('EditJourneyTemplateForm', () => {
               arriveBefore: null,
             },
             {
-              id: 2,
               originCrs: 'EDB',
               originName: 'Edinburgh',
               destinationCrs: 'INV',

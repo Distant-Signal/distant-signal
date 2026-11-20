@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { ConnectedApps } from './ConnectedApps';
+import { testDeletionId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 import type { ConnectedAppsData } from '@/lib/types';
 
 const refreshMock = vi.fn();
@@ -30,7 +32,7 @@ const data: ConnectedAppsData = {
     {
       id: 1,
       client: 'ds-mcp',
-      journeyId: 42,
+      publicId: testDeletionId(42),
       deletedAt: '2026-10-13T09:00:00Z',
       summary: {
         customName: 'Weekend away',
@@ -40,7 +42,7 @@ const data: ConnectedAppsData = {
   ],
 };
 
-describe('ConnectedApps', () => {
+describe.each(ID_SHAPES)('ConnectedApps (%s)', (_name, shape) => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
     refreshMock.mockClear();
@@ -51,7 +53,7 @@ describe('ConnectedApps', () => {
   });
 
   it('lists each connected app with what it may do and when it was used', () => {
-    renderWithMantine(<ConnectedApps data={data} />);
+    renderWithMantine(<ConnectedApps data={shape(data)} />);
     expect(screen.getByRole('heading', { name: 'Connected apps' })).toBeInTheDocument();
     expect(screen.getByText('Distant Signal assistant')).toBeInTheDocument();
     expect(screen.getByText('See your saved journeys')).toBeInTheDocument();
@@ -66,15 +68,35 @@ describe('ConnectedApps', () => {
   });
 
   it('lists what an app deleted, so it can be saved again', () => {
-    renderWithMantine(<ConnectedApps data={data} />);
+    renderWithMantine(<ConnectedApps data={shape(data)} />);
     expect(screen.getByRole('heading', { name: 'Recently deleted by the assistant' })).toBeInTheDocument();
     expect(screen.getByText('Weekend away')).toBeInTheDocument();
     expect(screen.getByText('EUS to MKC, on 20 Oct 2026, train C11052')).toBeInTheDocument();
     expect(screen.getByText(/Deleted by Distant Signal assistant on 13 Oct 2026\./)).toBeInTheDocument();
   });
 
+  it('keeps two deleted journeys apart, even when their numeric ids are zero', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const [first] = data.recentDeletions;
+    renderWithMantine(
+      <ConnectedApps
+        data={shape({
+          ...data,
+          recentDeletions: [
+            first!,
+            { ...first!, id: 2, publicId: testDeletionId(2), summary: { customName: 'Other' } },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('Weekend away')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(errors.mock.calls.filter((call) => String(call[0]).includes('same key'))).toEqual([]);
+    errors.mockRestore();
+  });
+
   it('disconnects after a confirmation', async () => {
-    renderWithMantine(<ConnectedApps data={data} />);
+    renderWithMantine(<ConnectedApps data={shape(data)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
     expect(fetch).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm disconnect Distant Signal assistant' }));
