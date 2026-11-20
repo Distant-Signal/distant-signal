@@ -56,7 +56,7 @@ import { CollapsedLegs } from './CollapsedLegs';
  * `originName`/`destinationName` the list uses too, so the two never
  * disagree; `legEndpointName` (the calling-point table's own name) only
  * fills in where the server had none. */
-function journeyNameInput(journey: JourneyDetail): JourneyNameInput {
+export function journeyNameInput(journey: JourneyDetail): JourneyNameInput {
   return journeyNameInputFromLegs(
     journey.customName,
     journey.legs.map((leg) => ({

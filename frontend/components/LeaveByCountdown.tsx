@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Group, Text, VisuallyHidden } from '@mantine/core';
-import { leaveByLabel, leaveByPhase, minutesUntilLabel } from '@/lib/leaveBy';
+import { leaveByLabel, leaveByPhase, minutesUntilLabel, minutesUntilSpoken } from '@/lib/leaveBy';
 import type { LeaveBy } from '@/lib/types';
 
 /** How often the countdown moves on. */
@@ -60,7 +60,10 @@ export function LeaveByCountdown({
       </Text>
       {phase.kind === 'before' ? (
         <Text size="sm" c="dimmed">
-          {minutesUntilLabel(phase.minutes)}
+          {/* "h" and "min" are read as letters: the compact text is for
+              the eye, the full words for a screen reader. */}
+          <span aria-hidden="true">{minutesUntilLabel(phase.minutes)}</span>
+          <VisuallyHidden>{minutesUntilSpoken(phase.minutes)}</VisuallyHidden>
         </Text>
       ) : (
         <Text size="sm" fw={700}>

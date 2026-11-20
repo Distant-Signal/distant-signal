@@ -1086,7 +1086,21 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
   the header; no ▲▼↕ glyphs.
 - Email addresses render through `EmailLink`, which server-renders no
   address so Cloudflare's Email Obfuscation leaves it alone.
-- Checked by `e2e/accessibility.spec.ts`.
+- A control repeated down a list names what it acts on ("Pin Victoria
+  line, currently not pinned", not "Pin"): a screen reader's list of
+  buttons is otherwise identical entries. Tables and radio groups have an
+  accessible name (`aria-label`), and hand-built `th` cells say
+  `scope="col"` or `scope="row"`.
+- Abbreviations a screen reader would spell or mangle ("est.", "h",
+  "min") keep the short form for the eye (`aria-hidden`) and add the full
+  words in `VisuallyHidden`.
+- A page's `<title>` names what its h1 does; where the h1 is the viewer's
+  own data (a journey, a group) the title comes from `generateMetadata`
+  with the viewer's session, and anything the viewer may not see keeps the
+  generic title.
+- Checked by `e2e/accessibility.spec.ts`. For a UI change, also do a manual
+  screen reader check of the changed flow when practical (the script is
+  `manual-test-script.md` in `docs/`).
 
 ## Writing
 

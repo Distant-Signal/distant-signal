@@ -13,7 +13,7 @@ import { UsualTrainProvider } from '@/components/UsualTrainContext';
 import { usualTrainLegs } from '@/lib/regularJourneys';
 import { legRef, matchesBreakParam, optionalTemplateRef } from '@/lib/publicId';
 import type { JourneyDetail, JourneyTemplateDetail } from '@/lib/types';
-import { JourneyDetailView } from '@/components/JourneyDetailView';
+import { JourneyDetailView, journeyNameInput } from '@/components/JourneyDetailView';
 import { LoginControl } from '@/components/LoginControl';
 import { TextLink } from '@/components/TextLink';
 import { FollowJourneyButton } from '@/components/FollowJourneyButton';
@@ -22,10 +22,31 @@ import { isLegacyJourneyId, isPublicJourneyId, journeyUrlWithQuery } from '@/lib
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import type { Metadata } from 'next';
 import { DataCredits, journeyCredits } from '@/components/DataCredits';
+import { journeyDisplayName } from '@/lib/journeyName';
+import { boundedTitle } from '@/lib/livePreview';
 
 export const revalidate = 0;
 
-export const metadata: Metadata = { title: 'Journey', robots: { index: false } };
+const GENERIC_METADATA: Metadata = { title: 'Journey', robots: { index: false } };
+
+/** The tab's title is the journey's own name, the page's h1 (DS-534: a
+ * screen reader user hears the title first, and "Journey" for every
+ * journey tells them nothing). Read with the viewer's own session, so it
+ * only ever holds what this viewer may see: a signed-out visitor, a
+ * journey that is not theirs (the api's 404) and any failure keep the
+ * generic title, and nothing here reaches a link preview (no `openGraph`).
+ * The page's own `getJourney` call below is the same request, so Next
+ * serves one of them from its request memo. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  if (!isLegacyJourneyId(id) && !isPublicJourneyId(id)) return GENERIC_METADATA;
+  try {
+    const journey = await getJourney(id);
+    return { ...GENERIC_METADATA, title: boundedTitle(journeyDisplayName(journeyNameInput(journey)), 'Journey') };
+  } catch {
+    return GENERIC_METADATA;
+  }
+}
 
 /** `/journeys/[id]` -- design doc §4. One card per leg. No editable
  * header, no skip badge, no platform column -- all explicitly deferred,

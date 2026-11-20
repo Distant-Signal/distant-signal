@@ -40,6 +40,7 @@ import { groupRoleLabel, memberLabel, MEMBER_PLACEHOLDER_INLINE } from '@/lib/me
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import type { GroupCustomLine, GroupJourney, GroupMember, GroupTrain, LineStatusReport } from '@/lib/types';
 import type { Metadata } from 'next';
+import { boundedTitle } from '@/lib/livePreview';
 import { DataCredits, lineCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 export const revalidate = 0;
@@ -75,7 +76,22 @@ function isValidGroupId(id: string): boolean {
   return /^[A-Za-z0-9_-]+$/.test(id);
 }
 
-export const metadata: Metadata = { title: 'Group', robots: { index: false } };
+const GENERIC_METADATA: Metadata = { title: 'Group', robots: { index: false } };
+
+/** The tab's title is the group's name, the page's h1 (DS-534). Read with
+ * the viewer's own session, so a signed-out visitor, a non-member (the
+ * api's 404), a malformed id and any failure keep the generic title; no
+ * `openGraph`, so it never reaches a link preview. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  if (!isValidGroupId(id)) return GENERIC_METADATA;
+  try {
+    const group = await getGroup(id);
+    return { ...GENERIC_METADATA, title: boundedTitle(group.name, 'Group') };
+  } catch {
+    return GENERIC_METADATA;
+  }
+}
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

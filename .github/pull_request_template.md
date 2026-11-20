@@ -10,6 +10,7 @@ For changes a visitor can see:
 - [ ] Copy follows [docs/style-guide.md](../docs/style-guide.md), "Writing": sentence case, "Couldn't …" failures, no jargon, `describeFailure` for errors
 - [ ] Every new page has a title and a meta description (`pageMetadata`, 20 words or fewer)
 - [ ] Every icon-only button has an `aria-label`
+- [ ] For a UI change, when practical, a manual screen reader check of the changed flow (the script is `manual-test-script.md` in `docs/`), and what you heard in the description
 
 For everything:
 

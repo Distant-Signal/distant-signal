@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { expectShrinkGuarded } from '@/test/shrinkGuard';
-import GroupDetailPage from './page';
+import GroupDetailPage, { generateMetadata } from './page';
 import {
   getGroup,
   getGroupCustomLines,
@@ -61,6 +61,43 @@ vi.mock('next/navigation', () => ({
 vi.mock('next/headers', () => ({
   headers: async () => ({ get: () => null }),
 }));
+
+describe('GroupDetailPage generateMetadata (DS-534)', () => {
+  const meta = (id: string) => generateMetadata({ params: Promise.resolve({ id }) });
+
+  it("titles the tab with the group's name, with no link-preview cards", async () => {
+    vi.mocked(getGroup).mockResolvedValue({
+      id: 'grp-1',
+      name: 'Family',
+      ownerId: null,
+      ownerMemberId: 'member-1',
+      memberId: 'member-1',
+      ownerName: 'Alex',
+      ownerTag: null,
+      memberCount: 2,
+      role: 'owner',
+      inviteLink: null,
+    });
+    const result = await meta('grp-1');
+    expect(result).toMatchObject({ title: 'Family', robots: { index: false } });
+    expect(result.openGraph).toBeUndefined();
+  });
+
+  it.each([
+    ['signed out', new ApiUnauthorizedError('401')],
+    ['not a member', new ApiNotFoundError('404')],
+    ['an outage', new Error('boom')],
+  ])('keeps the generic title when the read fails (%s)', async (_why, error) => {
+    vi.mocked(getGroup).mockRejectedValue(error);
+    expect(await meta('grp-1')).toEqual({ title: 'Group', robots: { index: false } });
+  });
+
+  it('keeps the generic title for a malformed id without calling getGroup', async () => {
+    vi.mocked(getGroup).mockClear();
+    expect(await meta('../secret')).toEqual({ title: 'Group', robots: { index: false } });
+    expect(getGroup).not.toHaveBeenCalled();
+  });
+});
 
 describe('GroupDetailPage', () => {
   it('shows a not-found message on ApiNotFoundError', async () => {

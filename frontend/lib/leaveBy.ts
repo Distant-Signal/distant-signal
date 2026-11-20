@@ -27,6 +27,19 @@ export function minutesUntilLabel(minutes: number): string {
   return rest === 0 ? `in ${hours} h` : `in ${hours} h ${rest} min`;
 }
 
+function plural(count: number, unit: string): string {
+  return `${count} ${unit}${count === 1 ? '' : 's'}`;
+}
+
+/** `minutesUntilLabel` said in full, for a screen reader, which reads the
+ * compact "h" and "min" as letters: "in 1 hour 5 minutes". */
+export function minutesUntilSpoken(minutes: number): string {
+  if (minutes < 60) return `in ${plural(minutes, 'minute')}`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `in ${plural(hours, 'hour')}` : `in ${plural(hours, 'hour')} ${plural(rest, 'minute')}`;
+}
+
 /** The leave-by's line: "Leave by 08:20", with the first train's expected
  * lateness ("Leave by 08:20 · train expected 6 min late"; the leave-by
  * stays put, decision 5), the suggestion it is for ("Leave by 08:35

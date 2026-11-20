@@ -19,6 +19,9 @@ describe('LeaveByCountdown', () => {
     renderWithMantine(<LeaveByCountdown leaveBy={LEAVE_BY} initialNow="2026-11-09T08:19:00Z" />);
     expect(screen.getByText('Leave by 08:20')).toBeInTheDocument();
     expect(screen.getByText('in 1 min')).toBeInTheDocument();
+    // A screen reader gets the words, not "min" as a letter.
+    expect(screen.getByText('in 1 min')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('in 1 minute')).toBeInTheDocument();
     expect(screen.queryByText('Leave now')).not.toBeInTheDocument();
 
     act(() => {

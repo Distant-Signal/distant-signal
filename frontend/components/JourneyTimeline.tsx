@@ -509,7 +509,10 @@ function JourneyStopRow({
                 'data-estimate-source': 'previous-working',
               })}
             >
-              est. {formatTime(estimated)}
+              {/* "est." is read as a word, or letter by letter: the full
+                word is for a screen reader. */}
+              <span aria-hidden="true">est.</span>
+              <VisuallyHidden>estimated</VisuallyHidden> {formatTime(estimated)}
               {stop.estimateSource === 'previous-working' && (
                 <VisuallyHidden>, predicted from the incoming train</VisuallyHidden>
               )}
