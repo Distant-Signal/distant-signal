@@ -16,7 +16,7 @@
 #                            `dev.env` pulls in via COMPOSE_FILE.
 # builder-base is shared so the prod-only `npm run build` step never runs
 # when only the dev target is requested.
-FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS builder-base
+FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS builder-base
 
 # Next.js (^16.2.10 here) collects anonymous telemetry on `next dev`/
 # `next build`/`next start`/`next lint` by default and prints a notice on
@@ -64,7 +64,7 @@ FROM builder-base AS builder-prod
 # resulting layer.
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache npm run build
 
-FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS runtime-prod
+FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS runtime-prod
 LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 # See builder-base's identical ENV above for why this is repeated per stage
@@ -173,7 +173,7 @@ USER 1000:1000
 EXPOSE 3000
 ENTRYPOINT ["/usr/bin/tini", "--", "node", "server.js"]
 
-FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS runtime-dev
+FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS runtime-dev
 
 # See builder-base's identical ENV above for why this is repeated per stage
 # rather than set once: `next dev` runs the `next` CLI too, and this stage
