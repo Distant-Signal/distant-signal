@@ -165,7 +165,10 @@ used, rather than as a literal in a component.
   `main { flex: 1 }`.
 - Nav and main share `Container size="lg" px={0}` (1140px max) so content
   edges line up with the bar. The bar is 60px minimum, `px="lg" py="md"`,
-  with a bottom border and a dashed "sleeper" rule (20px dash, 16px gap,
+  with a bottom border (`--ds-chrome-border`: gray 6 in light, dark 2 in
+  dark, 3:1 or better against the page, since the bar's fill is the page
+  colour and this rule is what marks it as a region; the footer's top rule
+  uses the same token) and a dashed "sleeper" rule (20px dash, 16px gap,
   text colour at 20%).
 - The bar starts with the wordmark (`Wordmark`: the favicon's signal arm on
   its grape tile, 24px, then "Distant Signal" in 16px bold). Its links are

@@ -320,6 +320,14 @@ html:root[data-mantine-color-scheme='light'] {
      background a 12% tint of it, so both states are measured here:
      #ad2424 6.87:1 at rest, 5.64:1 on its hover tint. */
   --ds-menu-danger-text: #ad2424;
+
+  /* The rule under the nav bar and over the footer (`.siteNav`,
+     `.siteFooter` near the end of this file). The header fill is the page
+     colour, so this line is all that marks the bar as a region:
+     `--mantine-color-default-border` (gray 3) was 1.40:1 against the page.
+     Gray 6 is about 3.1:1 against the page wash, the 3:1 non-text minimum
+     (WCAG 1.4.11). Dark block: dark 2. */
+  --ds-chrome-border: var(--mantine-color-gray-6);
 }
 
 /* The dark scheme is NOT the "already fine" case the light-scheme comments
@@ -402,6 +410,8 @@ html:root[data-mantine-color-scheme='dark'] {
   /* The destructive menu item on the #2e2e2e dark dropdown: red 3, 7.38:1
      at rest and 5.70:1 on its hover tint (red 4 would be 4.74:1 there). */
   --ds-menu-danger-text: var(--mantine-color-red-3);
+  /* Dark 2, about 3.8:1 against the page; see the light block. */
+  --ds-chrome-border: var(--mantine-color-dark-2);
   /* The keyboard focus ring: see the rules after this block. */
   --ds-focus-ring: var(--mantine-color-grape-4);
 }
@@ -2331,13 +2341,13 @@ a[data-text-link-tone='inherit'] {
 }
 
 /* The nav bar's bottom rule and the footer's top rule
-   (`AppNavBar`, `OpenDataAttribution`). */
+   (`AppNavBar`, `OpenDataAttribution`), at `--ds-chrome-border`'s 3:1. */
 .siteNav {
-  border-bottom: 1px solid var(--mantine-color-default-border);
+  border-bottom: 1px solid var(--ds-chrome-border);
 }
 
 .siteFooter {
-  border-top: 1px solid var(--mantine-color-default-border);
+  border-top: 1px solid var(--ds-chrome-border);
 }
 
 /* `ExternalLinkIcon` sits on the text baseline's x-height. */
