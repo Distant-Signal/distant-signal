@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { deletedLine, restoreNotes } from './recentlyDeleted';
+import { testDeletionId } from '@/test/apiDefaults';
 import type { RecentlyDeletedJourney } from './types';
 
 const item: RecentlyDeletedJourney = {
   id: 1,
-  journeyId: 42,
+  publicId: testDeletionId(42),
   client: 'web',
   deletedAt: '2026-11-09T09:00:00Z',
   expiresAt: '2026-11-16T09:00:00Z',

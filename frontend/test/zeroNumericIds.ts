@@ -7,8 +7,8 @@
  *
  * The siblings are found by name, as the api's own rule does: `publicId`
  * beside `id`, `<x>PublicId` beside `<x>Id`, `<x>PublicIds` beside `<x>Ids`.
- * A numeric id with no opaque sibling (a template leg's `id`, `ticketIds`,
- * `deletedJourneyIds`) is left alone, and so is every opaque id. An id
+ * A numeric id with no opaque sibling (`deletedJourneyIds`, which sits
+ * beside `deletedJourneyCount`) is left alone, and so is every opaque id. An id
  * already `null` stays `null`; an array of ids keeps its length and order,
  * each entry 0. */
 export function zeroNumericIds<T>(value: T): T {
@@ -20,7 +20,10 @@ export function keepNumericIds<T>(value: T): T {
   return value;
 }
 
-/** Both shapes, for `describe.each`. */
+/** Both shapes, for `describe.each`. The opaque families it covers: `j_`
+ * journeys, `l_` legs, `t_` tracked trains, `d_` devices, `r_` regular
+ * journeys, `b_` breaks, `x_` deleted-journey records, `k_` personal tokens,
+ * `w_` webhook destinations and `a_` time-away periods. */
 export const ID_SHAPES: readonly (readonly [string, <T>(value: T) => T])[] = [
   ['numeric ids', keepNumericIds],
   ['numeric ids zeroed', zeroNumericIds],

@@ -40,6 +40,27 @@ export function testBreakId(n: number): string {
   return `b_${n.toString(16).padStart(32, '0')}`;
 }
 
+/** A deleted-journey record's `publicId` for a fixture: `x_` and 32 hex
+ * digits. */
+export function testDeletionId(n: number): string {
+  return `x_${n.toString(16).padStart(32, '0')}`;
+}
+
+/** A personal token's `publicId` for a fixture: `k_` and 32 hex digits. */
+export function testTokenId(n: number): string {
+  return `k_${n.toString(16).padStart(32, '0')}`;
+}
+
+/** A webhook destination's `publicId` for a fixture: `w_` and 32 hex digits. */
+export function testWebhookId(n: number): string {
+  return `w_${n.toString(16).padStart(32, '0')}`;
+}
+
+/** A time-away period's `publicId` for a fixture: `a_` and 32 hex digits. */
+export function testTimeAwayId(n: number): string {
+  return `a_${n.toString(16).padStart(32, '0')}`;
+}
+
 /** A `JourneyStop`, less what places it: `crs`, `name`, `kind` and times. */
 export const JOURNEY_STOP_DEFAULTS = {
   locationType: null,

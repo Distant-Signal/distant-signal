@@ -1,19 +1,38 @@
 import { describe, expect, it } from 'vitest';
 import {
   breakRef,
+  deletedCount,
+  deletionRef,
   isLegacyId,
   isPublicBreakId,
+  isPublicDeletionId,
   isPublicTemplateId,
+  isPublicTimeAwayId,
+  isPublicTokenId,
   isPublicTrackingId,
+  isPublicWebhookId,
   isTriggerLeg,
   legRef,
   matchesBreakParam,
   optionalTemplateRef,
   publicRef,
   templateRef,
+  timeAwayRef,
+  tokenRef,
   trackingRef,
+  webhookRef,
 } from './publicId';
-import { testBreakId, testDeviceId, testLegId, testTemplateId, testTrackingId } from '@/test/apiDefaults';
+import {
+  testBreakId,
+  testDeletionId,
+  testDeviceId,
+  testLegId,
+  testTemplateId,
+  testTimeAwayId,
+  testTokenId,
+  testTrackingId,
+  testWebhookId,
+} from '@/test/apiDefaults';
 
 describe('isPublicTrackingId', () => {
   it('takes t_ and 32 lowercase hex digits only', () => {
@@ -102,6 +121,53 @@ describe('breakRef', () => {
     expect(breakRef({ id: 5 })).toBe('5');
     expect(breakRef({ id: 0, publicId: '' })).toBeNull();
     expect(breakRef({ id: 0 })).toBeNull();
+  });
+});
+
+describe('the x_, k_, w_ and a_ guards', () => {
+  const guards = [
+    ['x_', isPublicDeletionId, testDeletionId],
+    ['k_', isPublicTokenId, testTokenId],
+    ['w_', isPublicWebhookId, testWebhookId],
+    ['a_', isPublicTimeAwayId, testTimeAwayId],
+  ] as const;
+
+  it.each(guards)('%s accepts its own shape only', (prefix, guard, make) => {
+    expect(guard(make(42))).toBe(true);
+    expect(guard('7')).toBe(false);
+    expect(guard('')).toBe(false);
+    expect(guard(`${prefix}${'a'.repeat(31)}`)).toBe(false);
+    expect(guard(`${prefix}${'A'.repeat(32)}`)).toBe(false);
+    for (const [other, , makeOther] of guards) {
+      if (other !== prefix) expect(guard(makeOther(42))).toBe(false);
+    }
+  });
+});
+
+describe('deletionRef, tokenRef, webhookRef and timeAwayRef', () => {
+  it.each([
+    ['deletionRef', deletionRef, testDeletionId],
+    ['tokenRef', tokenRef, testTokenId],
+    ['webhookRef', webhookRef, testWebhookId],
+    ['timeAwayRef', timeAwayRef, testTimeAwayId],
+  ] as const)('%s is the opaque id, the numeric one only where there is none', (_name, ref, make) => {
+    expect(ref({ id: 7, publicId: make(7) })).toBe(make(7));
+    expect(ref({ id: 0, publicId: make(7) })).toBe(make(7));
+    expect(ref({ id: 7, publicId: '' })).toBe('7');
+    expect(ref({ id: 7, publicId: null })).toBe('7');
+    expect(ref({ id: 7 })).toBe('7');
+  });
+});
+
+describe('deletedCount', () => {
+  it('reads the count, even a zero beside ids', () => {
+    expect(deletedCount({ deletedJourneyCount: 3, deletedJourneyIds: [1] })).toBe(3);
+    expect(deletedCount({ deletedJourneyCount: 0, deletedJourneyIds: [1, 2] })).toBe(0);
+  });
+  it('falls back to the ids of an older api, and to none', () => {
+    expect(deletedCount({ deletedJourneyIds: [0, 0] })).toBe(2);
+    expect(deletedCount({ deletedJourneyCount: null, deletedJourneyIds: [4] })).toBe(1);
+    expect(deletedCount({})).toBe(0);
   });
 });
 

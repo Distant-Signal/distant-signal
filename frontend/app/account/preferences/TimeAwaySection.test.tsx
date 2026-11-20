@@ -4,6 +4,8 @@ import { renderWithMantine } from '@/test/render';
 import { addCalendarDays, londonToday } from '@/lib/londonWallClock';
 import { formatDate } from '@/lib/dateFormat';
 import { TimeAwaySection } from './TimeAwaySection';
+import { testTimeAwayId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 const first = addCalendarDays(londonToday(), 10);
 const last = addCalendarDays(londonToday(), 14);
@@ -16,17 +18,21 @@ function typeDate(label: string, date: string) {
   fireEvent.blur(input);
 }
 
-describe('TimeAwaySection', () => {
+describe.each(ID_SHAPES)('TimeAwaySection (%s)', (_name, shape) => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('lists the time away, and says when there is none', () => {
-    const { unmount } = renderWithMantine(<TimeAwaySection initial={[]} />);
+    const { unmount } = renderWithMantine(<TimeAwaySection initial={shape([])} />);
     expect(screen.getByRole('region', { name: 'Time away' })).toBeInTheDocument();
     expect(screen.getByText('No time away.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add time away' })).toBeDisabled();
     unmount();
     renderWithMantine(
-      <TimeAwaySection initial={[{ id: 3, startsOn: '2026-12-21', endsOn: '2026-12-24', label: 'Christmas' }]} />,
+      <TimeAwaySection
+        initial={shape([
+          { id: 3, publicId: testTimeAwayId(3), startsOn: '2026-12-21', endsOn: '2026-12-24', label: 'Christmas' },
+        ])}
+      />,
     );
     expect(screen.getByText('Christmas: 21 Dec 2026 to 24 Dec 2026')).toBeInTheDocument();
   });
@@ -36,14 +42,15 @@ describe('TimeAwaySection', () => {
       async (_input: RequestInfo | URL, _init?: RequestInit) =>
         new Response(
           JSON.stringify({
-            period: { id: 9, startsOn: first, endsOn: last, label: 'Holiday' },
+            period: shape({ id: 9, publicId: testTimeAwayId(9), startsOn: first, endsOn: last, label: 'Holiday' }),
             deletedJourneyIds: [4, 5],
+            deletedJourneyCount: 2,
           }),
           { status: 200 },
         ),
     );
     vi.stubGlobal('fetch', fetchMock);
-    renderWithMantine(<TimeAwaySection initial={[]} />);
+    renderWithMantine(<TimeAwaySection initial={shape([])} />);
     typeDate('First day away', first);
     typeDate('Last day away', last);
     fireEvent.change(screen.getByLabelText('Name (optional)'), { target: { value: ' Holiday ' } });
@@ -64,16 +71,58 @@ describe('TimeAwaySection', () => {
       .mockResolvedValueOnce(new Response('', { status: 500 }));
     vi.stubGlobal('fetch', fetchMock);
     renderWithMantine(
-      <TimeAwaySection initial={[{ id: 3, startsOn: '2026-12-21', endsOn: '2026-12-21', label: null }]} />,
+      <TimeAwaySection
+        initial={shape([
+          { id: 3, publicId: testTimeAwayId(3), startsOn: '2026-12-21', endsOn: '2026-12-21', label: null },
+        ])}
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete time away, 21 Dec 2026' }));
     expect(await screen.findByText('No time away.')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/preferences/time-away/3', { method: 'DELETE' });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/preferences/time-away/${testTimeAwayId(3)}`, { method: 'DELETE' });
 
     typeDate('First day away', first);
     typeDate('Last day away', first);
     fireEvent.click(screen.getByRole('button', { name: 'Add time away' }));
     expect(await screen.findByText("Couldn't add your time away. Try again.")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('No time away.')).toBeInTheDocument());
+  });
+
+  it('keeps two periods apart and deletes the second by its own id', async () => {
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => new Response(null, { status: 204 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithMantine(
+      <TimeAwaySection
+        initial={shape([
+          { id: 3, publicId: testTimeAwayId(3), startsOn: '2026-12-21', endsOn: '2026-12-21', label: null },
+          { id: 4, publicId: testTimeAwayId(4), startsOn: '2026-12-22', endsOn: '2026-12-22', label: null },
+        ])}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete time away, 22 Dec 2026' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Delete time away, 22 Dec 2026' })).toBeNull());
+    expect(fetchMock).toHaveBeenCalledWith(`/api/preferences/time-away/${testTimeAwayId(4)}`, { method: 'DELETE' });
+    expect(screen.getByRole('button', { name: 'Delete time away, 21 Dec 2026' })).toBeInTheDocument();
+  });
+
+  it('counts removed journeys from the count, falling back to the ids of an older api', async () => {
+    const fetchMock = vi
+      .fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            period: { id: 9, publicId: testTimeAwayId(9), startsOn: first, endsOn: last, label: null },
+            deletedJourneyCount: 3,
+          }),
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithMantine(<TimeAwaySection initial={[]} />);
+    typeDate('First day away', first);
+    typeDate('Last day away', last);
+    fireEvent.click(screen.getByRole('button', { name: 'Add time away' }));
+    expect(await screen.findByText('Added. Removed 3 journeys already added for those dates.')).toBeInTheDocument();
   });
 });

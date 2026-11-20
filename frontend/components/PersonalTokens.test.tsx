@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { PersonalTokens } from './PersonalTokens';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
+import { testTokenId } from '@/test/apiDefaults';
 import type { PersonalTokensResponse } from '@/lib/api-types';
 
 const refreshMock = vi.fn();
@@ -13,6 +15,7 @@ vi.mock('next/navigation', () => ({
 
 const token = {
   id: 7,
+  publicId: testTokenId(7),
   name: 'Kitchen display',
   hint: 'AbC1',
   scopes: ['lines:read', 'trains:read'],
@@ -30,7 +33,7 @@ const data: PersonalTokensResponse = {
   tokens: [token],
 };
 
-describe('PersonalTokens', () => {
+describe.each(ID_SHAPES)('PersonalTokens (%s)', (_name, shape) => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
     refreshMock.mockClear();
@@ -41,7 +44,7 @@ describe('PersonalTokens', () => {
   });
 
   it('lists each token with what it can read, never the token itself', () => {
-    renderWithMantine(<PersonalTokens data={data} />);
+    renderWithMantine(<PersonalTokens data={shape(data)} />);
     expect(screen.getByRole('heading', { name: 'Personal API tokens' })).toBeInTheDocument();
     expect(screen.getByText('Kitchen display')).toBeInTheDocument();
     expect(screen.getByText('AbC1')).toBeInTheDocument();
@@ -56,15 +59,22 @@ describe('PersonalTokens', () => {
   });
 
   it('links to the guide and the API reference', () => {
-    renderWithMantine(<PersonalTokens data={data} />);
+    renderWithMantine(<PersonalTokens data={shape(data)} />);
     expect(screen.getByRole('link', { name: 'How to use a token' })).toHaveAttribute('href', '/developers');
     expect(screen.getByRole('link', { name: 'API reference' })).toHaveAttribute('href', '/developers/api');
   });
 
   it('creates a token with the ticked scopes and shows it once', async () => {
-    const created = { ...token, id: 8, name: 'Shortcut', scopes: ['journeys:read'], token: 'dsp_' + 'a'.repeat(38) };
+    const created = {
+      ...token,
+      id: 8,
+      publicId: testTokenId(8),
+      name: 'Shortcut',
+      scopes: ['journeys:read'],
+      token: 'dsp_' + 'a'.repeat(38),
+    };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(created), { status: 201 }));
-    renderWithMantine(<PersonalTokens data={data} />);
+    renderWithMantine(<PersonalTokens data={shape(data)} />);
     const create = screen.getByRole('button', { name: 'Create token' });
     // Nothing to create until it has a name and a scope.
     expect(create).toBeDisabled();
@@ -89,7 +99,7 @@ describe('PersonalTokens', () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ error: 'token_limit', message: 'too many' }), { status: 409 }),
     );
-    renderWithMantine(<PersonalTokens data={data} />);
+    renderWithMantine(<PersonalTokens data={shape(data)} />);
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'One more' } });
     fireEvent.click(screen.getByRole('checkbox', { name: 'See your saved journeys' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create token' }));
@@ -97,24 +107,46 @@ describe('PersonalTokens', () => {
   });
 
   it('offers no form at the limit', () => {
-    renderWithMantine(<PersonalTokens data={{ ...data, maxActive: 1 }} />);
+    renderWithMantine(<PersonalTokens data={shape({ ...data, maxActive: 1 })} />);
     expect(screen.queryByRole('button', { name: 'Create token' })).not.toBeInTheDocument();
     expect(screen.getByText(/the most you can have/)).toBeInTheDocument();
   });
 
   it('revokes one token, and all of them, after a confirmation', async () => {
-    renderWithMantine(<PersonalTokens data={{ ...data, tokens: [token, { ...token, id: 9, name: 'Board' }] }} />);
+    renderWithMantine(
+      <PersonalTokens
+        data={shape({ ...data, tokens: [token, { ...token, id: 9, publicId: testTokenId(9), name: 'Board' }] })}
+      />,
+    );
     fireEvent.click(screen.getAllByRole('button', { name: 'Revoke' })[0]!);
     expect(fetch).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm revoke Kitchen display' }));
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/account/personal-tokens/7', { method: 'DELETE' }));
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(`/api/account/personal-tokens/${testTokenId(7)}`, { method: 'DELETE' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Revoke all tokens' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm revoke all tokens' }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/account/personal-tokens', { method: 'DELETE' }));
   });
 
+  it('revokes the second token by its own opaque id, with no duplicate keys', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    renderWithMantine(
+      <PersonalTokens
+        data={shape({ ...data, tokens: [token, { ...token, id: 9, publicId: testTokenId(9), name: 'Board' }] })}
+      />,
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: 'Revoke' })[1]!);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm revoke Board' }));
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(`/api/account/personal-tokens/${testTokenId(9)}`, { method: 'DELETE' }),
+    );
+    expect(errors.mock.calls.filter((call) => String(call[0]).includes('same key'))).toEqual([]);
+    errors.mockRestore();
+  });
+
   it('says when there are no tokens', () => {
-    renderWithMantine(<PersonalTokens data={{ ...data, tokens: [] }} />);
+    renderWithMantine(<PersonalTokens data={shape({ ...data, tokens: [] })} />);
     expect(screen.getByText('You have no tokens.')).toBeInTheDocument();
   });
 });

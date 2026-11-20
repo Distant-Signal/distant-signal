@@ -1,13 +1,19 @@
 /** Opaque ids for legs, tracked trains and push devices (DS-534). Each has a
  * `publicId` (a one-letter prefix, `_` and 32 lowercase hex digits: `l_` a
  * leg, `t_` a tracked train, `d_` a device, `r_` a regular journey (a
- * journey template), `b_` a journey break; never all digits) beside the
+ * journey template), `b_` a journey break, `x_` a deleted-journey record, `k_`
+ * a personal token, `w_` a webhook destination, `a_` a time-away period; never
+ * all digits) beside the
  * deprecated numeric `id`. Every route takes either; the app sends the opaque
  * one. Journeys' `j_` ids are in `journeyId.ts`. */
 
 const PUBLIC_TRACKING_ID = /^t_[0-9a-f]{32}$/;
 const PUBLIC_TEMPLATE_ID = /^r_[0-9a-f]{32}$/;
 const PUBLIC_BREAK_ID = /^b_[0-9a-f]{32}$/;
+const PUBLIC_DELETION_ID = /^x_[0-9a-f]{32}$/;
+const PUBLIC_TOKEN_ID = /^k_[0-9a-f]{32}$/;
+const PUBLIC_WEBHOOK_ID = /^w_[0-9a-f]{32}$/;
+const PUBLIC_TIME_AWAY_ID = /^a_[0-9a-f]{32}$/;
 const LEGACY_ID = /^\d+$/;
 
 /** Whether `id` has the shape of a tracked train's `publicId`. */
@@ -23,6 +29,26 @@ export function isPublicTemplateId(id: string): boolean {
 /** Whether `id` has the shape of a journey break's `publicId`. */
 export function isPublicBreakId(id: string): boolean {
   return PUBLIC_BREAK_ID.test(id);
+}
+
+/** Whether `id` has the shape of a deleted-journey record's `publicId`. */
+export function isPublicDeletionId(id: string): boolean {
+  return PUBLIC_DELETION_ID.test(id);
+}
+
+/** Whether `id` has the shape of a personal token's `publicId`. */
+export function isPublicTokenId(id: string): boolean {
+  return PUBLIC_TOKEN_ID.test(id);
+}
+
+/** Whether `id` has the shape of a webhook destination's `publicId`. */
+export function isPublicWebhookId(id: string): boolean {
+  return PUBLIC_WEBHOOK_ID.test(id);
+}
+
+/** Whether `id` has the shape of a time-away period's `publicId`. */
+export function isPublicTimeAwayId(id: string): boolean {
+  return PUBLIC_TIME_AWAY_ID.test(id);
 }
 
 /** Whether `id` is a deprecated numeric id. */
@@ -101,4 +127,35 @@ export function matchesBreakParam(
   if (typeof param !== 'string' || param === '') return false;
   if (openBreak.publicId && param === openBreak.publicId) return true;
   return openBreak.id > 0 && param === String(openBreak.id);
+}
+
+/** A deleted-journey record's reference (one `x_` id serves the Recently
+ * deleted list and the Connected apps list) for a path or key. */
+export function deletionRef(deletion: { id: number; publicId?: string | null }): string {
+  return publicRef(deletion.publicId, deletion.id);
+}
+
+/** A personal token's reference for a path, key or storage key. */
+export function tokenRef(token: { id: number; publicId?: string | null }): string {
+  return publicRef(token.publicId, token.id);
+}
+
+/** A webhook destination's reference for a path or key. */
+export function webhookRef(destination: { id: number; publicId?: string | null }): string {
+  return publicRef(destination.publicId, destination.id);
+}
+
+/** A time-away period's reference for a path or key. */
+export function timeAwayRef(period: { id: number; publicId?: string | null }): string {
+  return publicRef(period.publicId, period.id);
+}
+
+/** How many journeys a change removed: the response's `deletedJourneyCount`,
+ * or the length of `deletedJourneyIds` from an api that has no count yet. */
+export function deletedCount(response: {
+  deletedJourneyCount?: number | null;
+  deletedJourneyIds?: readonly number[];
+}): number {
+  if (typeof response.deletedJourneyCount === 'number') return response.deletedJourneyCount;
+  return response.deletedJourneyIds?.length ?? 0;
 }

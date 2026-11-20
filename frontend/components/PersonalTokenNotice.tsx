@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { Alert, Text } from '@mantine/core';
 import { TextLink } from './TextLink';
 import { formatDateTime } from '@/lib/dateFormat';
+import { tokenRef } from '@/lib/publicId';
 import type { PersonalTokenRow } from '@/lib/api-types';
 
 const STORAGE_PREFIX = 'personal-token-notice-dismissed:';
 
 function storageKey(notice: PersonalTokenRow): string {
-  return `${STORAGE_PREFIX}${notice.id}`;
+  return `${STORAGE_PREFIX}${tokenRef(notice)}`;
 }
 
 /** The banner every page shows for 7 days after a personal API token is

@@ -3,6 +3,8 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { Webhooks } from './Webhooks';
 import type { WebhookDestination, WebhooksResponse } from '@/lib/api-types';
+import { testWebhookId } from '@/test/apiDefaults';
+import { ID_SHAPES } from '@/test/zeroNumericIds';
 
 const refreshMock = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -13,6 +15,7 @@ vi.mock('next/navigation', () => ({
 
 const destination: WebhookDestination = {
   id: 3,
+  publicId: testWebhookId(3),
   kind: 'ntfy',
   name: 'My phone',
   url: 'https://ntfy.example.org/trains',
@@ -35,7 +38,7 @@ const data: WebhooksResponse = {
   destinations: [destination],
 };
 
-describe('Webhooks', () => {
+describe.each(ID_SHAPES)('Webhooks (%s)', (_name, shape) => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
     refreshMock.mockClear();
@@ -46,7 +49,7 @@ describe('Webhooks', () => {
   });
 
   it('lists each address with its state', () => {
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     expect(screen.getByRole('heading', { name: 'Send notifications elsewhere' })).toBeInTheDocument();
     expect(screen.getByText('My phone')).toBeInTheDocument();
     expect(screen.getByText('https://ntfy.example.org/trains')).toBeInTheDocument();
@@ -56,12 +59,12 @@ describe('Webhooks', () => {
 
   it('shows why the notifier turned an address off, and turns it back on', async () => {
     const off = { ...destination, enabled: false, disabledReason: 'Turned off after repeated failures.' };
-    renderWithMantine(<Webhooks data={{ ...data, destinations: [off] }} />);
+    renderWithMantine(<Webhooks data={shape({ ...data, destinations: [off] })} />);
     expect(screen.getByText('Off')).toBeInTheDocument();
     expect(screen.getByText('Turned off after repeated failures.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Turn on My phone' }));
     await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith('/api/account/webhooks/3', {
+      expect(fetch).toHaveBeenCalledWith(`/api/account/webhooks/${testWebhookId(3)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: true }),
@@ -71,9 +74,12 @@ describe('Webhooks', () => {
   });
 
   it('adds an address of your own and shows its secret once', async () => {
-    const created = { secret: 'whsec_' + 'a'.repeat(40), destination: { ...destination, id: 4, kind: 'generic' } };
+    const created = {
+      secret: 'whsec_' + 'a'.repeat(40),
+      destination: { ...destination, id: 4, publicId: testWebhookId(4), kind: 'generic' },
+    };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(created), { status: 201 }));
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     const add = screen.getByRole('button', { name: 'Add address' });
     expect(add).toBeDisabled();
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: ' Home ' } });
@@ -95,7 +101,7 @@ describe('Webhooks', () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ secret: null, destination: { ...destination, kind: 'gotify' } }), { status: 201 }),
     );
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), { target: { value: 'gotify' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Server' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://g.example.org' } });
@@ -118,7 +124,7 @@ describe('Webhooks', () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ error: 'invalid_request', message: 'x' }), { status: 400 }),
     );
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Local' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://10.0.0.1/x' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add address' }));
@@ -127,7 +133,7 @@ describe('Webhooks', () => {
 
   it('words a logged-out add the usual way, once', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 401 }));
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Local' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://example.org/x' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add address' }));
@@ -142,7 +148,7 @@ describe('Webhooks', () => {
       lastFailureAt: '2026-11-09T09:00:00Z',
       lastError: 'The address did not accept it',
     };
-    const { unmount } = renderWithMantine(<Webhooks data={{ ...data, destinations: [failing] }} />);
+    const { unmount } = renderWithMantine(<Webhooks data={shape({ ...data, destinations: [failing] })} />);
     expect(screen.getByText(/Last accepted .*Last problem .*: The address did not accept it\.$/)).toBeInTheDocument();
     unmount();
     const off = {
@@ -150,28 +156,30 @@ describe('Webhooks', () => {
       enabled: false,
       disabledReason: 'Turned off after repeated failures. Last problem: x',
     };
-    renderWithMantine(<Webhooks data={{ ...data, destinations: [off] }} />);
+    renderWithMantine(<Webhooks data={shape({ ...data, destinations: [off] })} />);
     expect(screen.getByText('Turned off after repeated failures. Last problem: x.')).toBeInTheDocument();
   });
 
   it('says what a notification sent elsewhere carries, not that it carries no journey details', () => {
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     expect(screen.getByText(/which includes your route, times and delays/)).toBeInTheDocument();
     expect(screen.getByText(/We never send your name, email or account ID/)).toBeInTheDocument();
     expect(screen.queryByText(/never your account or journey details/)).not.toBeInTheDocument();
   });
 
   it('offers no form at the limit', () => {
-    renderWithMantine(<Webhooks data={{ ...data, maxDestinations: 1 }} />);
+    renderWithMantine(<Webhooks data={shape({ ...data, maxDestinations: 1 })} />);
     expect(screen.queryByRole('button', { name: 'Add address' })).not.toBeInTheDocument();
     expect(screen.getByText(/the most you can have/)).toBeInTheDocument();
   });
 
   it('deletes after a confirmation', async () => {
-    renderWithMantine(<Webhooks data={data} />);
+    renderWithMantine(<Webhooks data={shape(data)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(fetch).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm delete My phone' }));
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/account/webhooks/3', { method: 'DELETE' }));
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(`/api/account/webhooks/${testWebhookId(3)}`, { method: 'DELETE' }),
+    );
   });
 });

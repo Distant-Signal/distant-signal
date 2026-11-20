@@ -34,7 +34,6 @@ function revisionLeg(overrides: Partial<RevisionLeg> = {}): RevisionLeg {
     lineName: null,
     plannedDeparture: null,
     plannedArrival: null,
-    ticketIds: [],
     fate: 'planned',
     ...overrides,
   };

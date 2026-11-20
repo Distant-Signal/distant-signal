@@ -45,7 +45,6 @@ function template(overrides: Partial<JourneyTemplateDetail> = {}): JourneyTempla
     usualItinerary: null,
     legs: [
       {
-        id: 1,
         originCrs: 'KGX',
         originName: 'London Kings Cross',
         destinationCrs: 'EDB',

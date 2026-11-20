@@ -8,6 +8,7 @@ import { CopyableLink } from './CopyableLink';
 import { SectionTitle } from './SectionTitle';
 import { formatDateTime } from '@/lib/dateFormat';
 import { asSentence, describeFailure } from '@/lib/failure';
+import { webhookRef } from '@/lib/publicId';
 import type { CreatedWebhookResponse, WebhookDestination, WebhooksResponse } from '@/lib/api-types';
 
 /** What the visitor sees for each type. A new type is a row here. */
@@ -137,7 +138,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
   async function setEnabled(destination: WebhookDestination, enabled: boolean) {
     setRowError(null);
     try {
-      const response = await fetch(`/api/account/webhooks/${destination.id}`, {
+      const response = await fetch(`/api/account/webhooks/${webhookRef(destination)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
@@ -188,7 +189,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
       )}
       {rowError && <Alert color="red">{rowError}</Alert>}
       {data.destinations.map((destination) => (
-        <Card key={destination.id} withBorder>
+        <Card key={webhookRef(destination)} withBorder>
           <Stack gap="xs" align="flex-start">
             <Text fw={600}>{destination.name}</Text>
             <Text size="sm" c="dimmed">
@@ -212,7 +213,7 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
                 label="Delete"
                 actionName={`delete ${destination.name}`}
                 title={`Delete "${destination.name}"?`}
-                request={() => fetch(`/api/account/webhooks/${destination.id}`, { method: 'DELETE' })}
+                request={() => fetch(`/api/account/webhooks/${webhookRef(destination)}`, { method: 'DELETE' })}
                 failure={['delete', 'the address']}
                 loginPrompt="Log in to delete it"
               >

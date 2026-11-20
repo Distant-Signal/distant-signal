@@ -26,7 +26,9 @@ describe('PauseUntilButton', () => {
   it('asks for the day it starts again on, then pauses the pair until it', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ templateIds: [5, 6], deletedJourneyIds: [7] }), { status: 200 }),
+      new Response(JSON.stringify({ templateIds: [5, 6], deletedJourneyIds: [7], deletedJourneyCount: 1 }), {
+        status: 200,
+      }),
     );
     renderWithMantine(<PauseUntilButton templateId={testTemplateId(5)} pausedUntil={null} paired />);
     fireEvent.click(screen.getByRole('button', { name: 'Pause until' }));

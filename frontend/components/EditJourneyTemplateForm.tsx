@@ -22,8 +22,9 @@ interface EditableLeg {
   // lets a leg be removed from the middle of the list (`removeLeg`), and an
   // index-keyed identity would silently re-point a later leg's still-open
   // `TimeFilterInput` incomplete-state onto whatever leg slides into its old
-  // slot. A pre-existing leg keeps its real backend id (`server-{id}`,
-  // stable across the whole edit session); a leg added client-side via
+  // slot. A pre-existing leg is keyed by its position when the form
+  // loads (`server-{index}`, stable across the whole edit session; a template
+  // leg has no id of its own); a leg added client-side via
   // `addLeg` gets a monotonic counter value instead, since it has no
   // backend id yet.
   key: string;
