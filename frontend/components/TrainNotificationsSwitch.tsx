@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Stack, Switch, Text } from '@mantine/core';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
+import { legActionLabel, type LegPlace } from '@/lib/legActionLabel';
 
 /** "Notify me about this train": the owner's per-train push switch
  * (`PATCH /Train/{trackingId}` `{notificationsEnabled}`), on the train page
@@ -14,9 +15,15 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
 export function TrainNotificationsSwitch({
   trackingId,
   initiallyEnabled,
+  legName,
+  place = null,
 }: {
   trackingId: string;
   initiallyEnabled: boolean;
+  /** On a journey's leg: the leg's name and shown position, which name the
+   * switch ("Notify me about this train for leg 2: ...") so each leg's differs. */
+  legName?: string | undefined;
+  place?: LegPlace | null;
 }) {
   const [enabled, setEnabled] = useState(initiallyEnabled);
   const [saving, setSaving] = useState(false);
@@ -48,6 +55,7 @@ export function TrainNotificationsSwitch({
     <Stack gap={4}>
       <Switch
         label="Notify me about this train"
+        {...(legName && { 'aria-label': legActionLabel('Notify me about this train', legName, place) })}
         description="Delays, cancellations, skipped stops and suggested trains, on every device with notifications on. Off stays off if you add this train again."
         checked={enabled}
         disabled={saving}

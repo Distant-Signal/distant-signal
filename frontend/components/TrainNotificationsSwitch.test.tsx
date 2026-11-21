@@ -16,6 +16,20 @@ describe('TrainNotificationsSwitch', () => {
     expect(screen.getByRole('switch', { name: LABEL })).not.toBeChecked();
   });
 
+  it('on a journey leg, is named for its leg so each leg has its own', () => {
+    renderWithMantine(
+      <TrainNotificationsSwitch
+        trackingId="7"
+        initiallyEnabled
+        legName="ZMA to ZMB · 10:00"
+        place={{ position: 2, total: 3 }}
+      />,
+    );
+    expect(
+      screen.getByRole('switch', { name: 'Notify me about this train for leg 2: ZMA to ZMB · 10:00' }),
+    ).toBeChecked();
+  });
+
   it('turns the train off with a PATCH', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ notificationsEnabled: false }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
