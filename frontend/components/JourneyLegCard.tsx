@@ -405,7 +405,12 @@ export function JourneyLegCard({
           suppressTrainUidHeading
         />
         {isOwner && state.notificationsEnabled !== undefined && (
-          <TrainNotificationsSwitch trackingId={trackingRef(state)} initiallyEnabled={state.notificationsEnabled} />
+          <TrainNotificationsSwitch
+            trackingId={trackingRef(state)}
+            initiallyEnabled={state.notificationsEnabled}
+            legName={title}
+            place={place}
+          />
         )}
         {/* The owner's Delay Repay estimate (no ticket needed) and ticket
             details (2026-11-06). Delay Repay is a GB scheme: an Irish
