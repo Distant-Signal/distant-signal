@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { createMultiLegJourney, deleteJourney, logIn, SESSION_COOKIE } from './screenReaderFixtures';
 
 // A screen reader user lists a page's buttons and links by name, so two
 // controls with the same name are indistinguishable in that list: 245 stars
@@ -10,13 +11,44 @@ import { test, expect, type Page } from '@playwright/test';
 // goes in ALLOWED, with a reason. Two links with the same name and the same
 // address are one destination and are fine.
 //
-// Not yet listed: /journeys and a journey page, whose repeated "Remove
-// leg", "Edit search" and "Follow this journey" are fixed separately; add
-// them here when that lands.
+// /journeys and a multi-leg journey page are signed in (the seed's owner);
+// the journey is made through the api for the test (screenReaderFixtures.ts)
+// and `mustInclude` proves the read saw the per-row and per-leg controls
+// (a parse that finds none would pass).
 
-const SURFACES: [name: string, path: string][] = [
-  ['/lines', '/lines'],
-  ['a Metrolink line', '/transit/metrolink/lines/blue'],
+interface Surface {
+  name: string;
+  /** Opens the page and returns what to run afterwards to clean up. */
+  open: (page: Page, request: APIRequestContext) => Promise<() => Promise<void>>;
+  signedIn?: boolean;
+  /** A control, as `role "name"`, that must be on the page, so an empty read fails. */
+  mustInclude?: RegExp;
+}
+
+const visit = (path: string) => async (page: Page) => {
+  await page.goto(path);
+  return async () => {};
+};
+
+const SURFACES: Surface[] = [
+  { name: '/lines', open: visit('/lines') },
+  { name: 'a Metrolink line', open: visit('/transit/metrolink/lines/blue') },
+  {
+    name: '/journeys',
+    signedIn: true,
+    open: visit('/journeys'),
+    mustInclude: /^button "Follow this journey: /,
+  },
+  {
+    name: 'a journey with several legs',
+    signedIn: true,
+    mustInclude: /^button "Remove leg 3: /,
+    open: async (page, request) => {
+      const id = await createMultiLegJourney(request, 'E2E unique names');
+      await page.goto(`/journeys/${id}`);
+      return () => deleteJourney(request, id);
+    },
+  },
 ];
 
 /** Names that legitimately repeat in `main`, with why. */
@@ -45,15 +77,21 @@ interface Control {
 }
 
 /** The interactive controls of an aria snapshot. A link's address is its
- * `/url:` child line. */
+ * `/url:` child line. A name with a colon in it is quoted whole in the
+ * snapshot (`- 'button "Remove leg 2: A to B"': Remove leg`), with a single
+ * quote written twice, so both shapes are read. */
 function interactiveControls(snapshot: string): Control[] {
   const lines = snapshot.split('\n');
-  const pattern = new RegExp(`^\\s*- (${INTERACTIVE.join('|')}) "((?:[^"\\\\]|\\\\.)*)"`);
+  const roles = INTERACTIVE.join('|');
+  const plain = new RegExp(`^\\s*- (${roles}) "((?:[^"\\\\]|\\\\.)*)"`);
+  const quoted = new RegExp(`^\\s*- '(${roles}) "((?:[^"\\\\]|\\\\.|'')*)"'`);
   const controls: Control[] = [];
   lines.forEach((line, index) => {
-    const match = pattern.exec(line);
+    const quotedMatch = quoted.exec(line);
+    const match = quotedMatch ?? plain.exec(line);
     if (!match) return;
-    const [, role = '', name = ''] = match;
+    const [, role = '', rawName = ''] = match;
+    const name = quotedMatch ? rawName.replaceAll("''", "'") : rawName;
     const next = lines[index + 1]?.trim() ?? '';
     const url = role === 'link' && next.startsWith('- /url:') ? next.slice('- /url:'.length).trim() : '';
     controls.push({ role, name, url });
@@ -79,19 +117,30 @@ function duplicateNames(controls: Control[]): string[] {
   return [...counts].filter(([, count]) => count > 1).map(([key, count]) => `${key} x${count}`);
 }
 
-async function mainDuplicates(page: Page): Promise<string[]> {
-  const snapshot = await page.locator('#main-content').ariaSnapshot();
-  return duplicateNames(interactiveControls(snapshot));
+async function mainControls(page: Page): Promise<Control[]> {
+  return interactiveControls(await page.locator('#main-content').ariaSnapshot());
 }
 
 test.describe('no two controls in main share an accessible name', () => {
   test.use({ viewport: { width: 1366, height: 900 } });
 
-  for (const [name, path] of SURFACES) {
-    test(name, async ({ page }) => {
-      await page.goto(path);
-      await expect(page.locator('#main-content').getByRole('heading', { level: 1 })).toBeVisible();
-      expect(await mainDuplicates(page)).toEqual([]);
+  for (const surface of SURFACES) {
+    test(surface.name, async ({ page, context, request }) => {
+      test.skip(surface.signedIn === true && !SESSION_COOKIE, 'set E2E_SESSION_COOKIE to the seed session');
+      if (surface.signedIn) await logIn(context);
+      const cleanup = await surface.open(page, request);
+      try {
+        await expect(page.locator('#main-content').getByRole('heading', { level: 1 })).toBeVisible();
+        const include = surface.mustInclude;
+        if (include) {
+          await expect
+            .poll(async () => (await mainControls(page)).some((c) => include.test(`${c.role} "${c.name}"`)))
+            .toBe(true);
+        }
+        expect(duplicateNames(await mainControls(page))).toEqual([]);
+      } finally {
+        await cleanup();
+      }
     });
   }
 });

@@ -1098,9 +1098,25 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
   own data (a journey, a group) the title comes from `generateMetadata`
   with the viewer's session, and anything the viewer may not see keeps the
   generic title.
-- Checked by `e2e/accessibility.spec.ts`. For a UI change, also do a manual
-  screen reader check of the changed flow when practical (the script is
-  `manual-test-script.md` in `docs/`).
+- A control repeated down a page (a leg's "Remove leg", "Edit search" and
+  "Change train", a journey row's "Follow this journey") carries its leg or
+  journey in its accessible name: `aria-label` "Remove leg 2: London Kings
+  Cross to Edinburgh", starting with the visible words (WCAG 2.5.3). The leg
+  number is the one "Leg N of M" shows (`lib/legActionLabel.ts`, from
+  `shownLegs`, so folded walks are not counted). A list of rows is a real
+  `ul` with `className="ds-plain-list"` and an `aria-label`, one `li` per row.
+- The 30-second auto-refresh is silent by design: it updates text in place,
+  keeps focus and scroll, and mutates no live region. Announce a change only
+  from a deliberate live region, not from the refresh.
+- Checked by `e2e/accessibility.spec.ts` (axe), `e2e/screen-reader-tree.spec.ts`
+  (accessibility-tree snapshots: names, roles and lists of the train timeline,
+  journey legs, the Journeys list, "Change train" and the plan form),
+  `e2e/unique-names.spec.ts` (no two controls in `main` share a name; add a
+  page to its `SURFACES`), `e2e/screen-reader-dynamic.spec.ts` (the
+  silent refresh) and `e2e/keyboard-journey.spec.ts` (focus at each step of a
+  keyboard-only journey). None of these is a screen reader:
+  `manual-test-script.md` in `docs/` is the script for a person with
+  NVDA, VoiceOver or TalkBack, to run for a UI change when practical.
 
 ## Writing
 
