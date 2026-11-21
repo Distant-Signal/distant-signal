@@ -76,368 +76,115 @@ jobs:
   # rather than `docker-compose.yml`, which needs dummy values for ~20+
   # unrelated service credentials just to resolve config.
   #
-  # The `INTERNAL_OAUTH_*`/`SSO_*` values below are dummy-but-syntactically-
+  # The `INTERNAL_OAUTH_*`/`SSO_*` values in e2e.yml are dummy-but-syntactically-
   # valid, matching local dev's own `.devdata/api.env` pattern: `api` only
   # syntax-checks an issuer URL at startup (OIDC discovery is lazy -- see
   # ds-api's `crates/api/src/data/config.rs` doc comments on `sso_issuer_url`),
   # never actually contacting it unless a real OAuth redirect happens,
   # which no spec here drives.
   #
-  # It runs twice, as a matrix of two jobs (DS-534). The first is the job
-  # above: the api as the chart runs it, numeric ids served. The second is
-  # the same suite against an api started with API_SERVE_NUMERIC_IDS=false,
-  # which serves every numeric id that has an opaque sibling as 0: a page
-  # or spec that reads a numeric id as a value (a key, a join, a path, an
-  # ordering) fails there. It is its own check, "Playwright e2e with numeric
-  # ids off", and not one of the required ones; it skips the visual
-  # screenshots, which render the same pages the first job compares. The
-  # first entry keeps this job's original check name.
-  frontend-e2e:
-    name: ${{ matrix.job-name }}
+  # It runs three ways (DS-534), each its own stack in the reusable
+  # .github/workflows/e2e.yml: the suite as the chart runs the api (numeric
+  # ids served); the same suite against an api started with
+  # API_SERVE_NUMERIC_IDS=false, which serves every numeric id that has an
+  # opaque sibling as 0, so a page or spec that reads a numeric id as a value
+  # (a key, a join, a path, an ordering) fails there; and the visual
+  # screenshots, in the pinned Playwright container. The suite runs are each
+  # split into three Playwright shards (`--shard=i/N`), one job and one
+  # seeded stack apiece, so the wall time is one shard's. The visual project
+  # is a single file on a single worker, so it is its own job rather than a
+  # shard. "Playwright e2e + accessibility" and "Playwright e2e with numeric
+  # ids off (DS-534)" stay the check names: each is a gate job that needs its
+  # shards and fails when any of them did not succeed. The numeric-ids-off
+  # one is not a required check.
+  #
+  # Did this change touch frontend/? The visual job runs only when it did.
+  # Answers "changed" whenever it can't tell (a new branch's first push, an
+  # unfetchable base), so the check is never skipped wrongly.
+  frontend-paths:
+    name: Did this change touch frontend/?
     runs-on: ubuntu-26.04
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - job-name: Playwright e2e + accessibility
-            serve-numeric-ids: ""
-          - job-name: Playwright e2e with numeric ids off (DS-534)
-            serve-numeric-ids: "false"
-
-    # The same two images and health-check options as Distant-Signal/ds-api's
-    # DB test passes (its ci.yml passes them to Distant-Signal/ci's
-    # rust-db-tests.yml): keep the two in step.
-    services:
-      postgres:
-        image: postgres:18@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      redis:
-        image: valkey/valkey:8.1.10-trixie@sha256:640c5e62cea04b6d6f2084232651d0cc70362d31f4f805e7be94dbed6855e8f2
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-      REDIS_URL: redis://localhost:6379
-      BIND_URL: 127.0.0.1:8080
-      API_BASE_URL: http://127.0.0.1:8080
-      RUST_LOG: info
-      # See this job's own top comment for why these are safe dummies.
-      INTERNAL_OAUTH_ISSUER_URL: http://internal-oauth.example.invalid
-      INTERNAL_OAUTH_CLIENT_ID: distant-signal-internal-dummy
-      SSO_ISSUER_URL: http://sso.example.invalid
-      SSO_CLIENT_ID: distant-signal-dummy
-      SSO_CLIENT_SECRET: distant-signal-dummy-secret
-      # 127.0.0.1, not localhost: the api takes the browser origin it
-      # accepts cookie-authenticated mutations from out of SSO_REDIRECT_URL
-      # (ds-api's crates/api/src/auth.rs, reject_cross_origin_cookie_mutation), and
-      # the specs drive the browser at E2E_BASE_URL below. With localhost
-      # here, every logged-in PUT/POST/DELETE a page sends was a 403
-      # "cross-origin request rejected".
-      SSO_REDIRECT_URL: http://127.0.0.1:3000/api/auth/callback
-      SSO_POST_LOGIN_REDIRECT_URL: http://127.0.0.1:3000/
-      VAPID_PUBLIC_KEY: BDummyVapidPublicKeyForLocalDevOnlyNotARealKeyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-      # The railMcp public URL, read by the frontend server at REQUEST time
-      # (FE-2: frontend/lib/csp.ts's runtimeRailMcpPublicUrl, passed to the
-      # chat page as a prop), not inlined at `npm run build`; it only has
-      # to be in `next start`'s environment. chat.spec.ts's `**/mcp` mocks
-      # intercept every request this fixture host resolves to, matching by
-      # path glob rather than by host -- see that file's own comments.
-      NEXT_PUBLIC_RAILMCP_PUBLIC_URL: http://mcp.example.invalid
-      # Renders the draft legal pages (/privacy, /terms, /cookies, /contact)
-      # so accessibility.spec.ts can sweep them. Read at request time by
-      # `next start`; see frontend/lib/legal.ts. Production leaves it unset.
-      LEGAL_PAGES_PREVIEW: "true"
-      # Example operator details (never real ones) so the sweep sees the
-      # pages as a configured deployment renders them, not `[[PLACEHOLDER]]`
-      # text. Read at request time like the flags; see docs/legal-pages.md.
-      LEGAL_OPERATOR_NAME: Example Operator
-      LEGAL_CONTACT_EMAIL: legal@example.com
-      LEGAL_SSO_LOG_RETENTION: 30 days
-      LEGAL_LAST_UPDATED: 1 November 2026
-      # The seed's transit networks (frontend/e2e/fixtures/seed.sql), for
-      # the /transit pages' specs and screenshots: Metrolink and a small
-      # TfL network. Off in every other setting.
-      API_TRANSIT_NETWORKS: metrolink,tfl
-      # Metrolink trams in /Trips/plan (DS-164): plan.spec.ts's rail, tram,
-      # rail route and the transit stop page's "Plan a journey from here".
-      API_TRIP_PLAN_TRANSIT_NETWORKS: metrolink
-      # The api's live TfL arrivals (/tfl/stops/{id}) come from
-      # scripts/tfl-arrivals-stub.py, started below, never from TfL: a fixed
-      # board for the seed's King's Cross St. Pancras and a 503 for every
-      # other stop (tfl-stop.spec.ts, the tfl-stop screenshot).
-      TFL_BASE_URL: http://127.0.0.1:8099
-      # Regular journeys' every-few-weeks and chosen-dates options (R2),
-      # off by default in the chart: on here so the form's options and
-      # regular-journeys.spec.ts's pattern test run against the api.
-      REGULAR_JOURNEY_RECURRENCE_ENABLED: "true"
-      # A different time on some days (R3), off by default in the chart:
-      # on here so the form offers it and regular-journeys.spec.ts's
-      # override test runs against the api.
-      REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED: "true"
-      # The opt-in journey calendar feed (ds-api's docs/calendar-feed.md),
-      # off by default in the chart: on here so Preferences offers it and
-      # calendar-feed.spec.ts runs against the api.
-      CALENDAR_FEED_ENABLED: "true"
-      # Recently deleted journeys (ds-api's routes::recently_deleted), off
-      # by default in the chart: on here so the Journeys page links to the
-      # list and recently-deleted.spec.ts runs against the api (it skips
-      # against an api without the feature).
-      RECENTLY_DELETED_ENABLED: "true"
-      # frontend/e2e/fixtures/seed.sql's own fixture ids -- see that file's
-      # header comment for what each backs and why the dates are fixed.
-      E2E_REAL_LINE_ID: lner-ecml
-      E2E_CUSTOM_LINE_ID: custom-fixture-commute
-      E2E_REAL_STATION_CRS: KGX
-      E2E_REAL_INCIDENT_ID: FIXTURE-INCIDENT-1
-      E2E_TRAIN_UID: W12345
-      E2E_TRAIN_DATE: 2026-09-17
-      E2E_TRACKING_ID: "1"
-      E2E_PLANNED_TRACKING_ID: "3"
-      E2E_JOURNEY_ID: "1"
-      E2E_GROUP_ID: fixture-group-1
-      E2E_GROUP_INVITE_TOKEN: fixture-invite-token-123456789
-      E2E_SESSION_COOKIE: qhE59Tg8RipXqulYsgOav1p46-YsflwgjQxMa1K5lKY
-      E2E_BASE_URL: http://127.0.0.1:3000
-      # The matrix's second job: "false" makes the api serve numeric ids as
-      # 0 where an opaque id exists (ds-api's API_SERVE_NUMERIC_IDS, off by
-      # default there). Empty in the first job, where the api is not given it.
-      API_SERVE_NUMERIC_IDS: ${{ matrix.serve-numeric-ids }}
-
+    outputs:
+      changed: ${{ steps.frontend-paths.outputs.changed }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The api the frontend is tested against is the image
-      # frontend/api-image.txt pins (repo split spec §5.3), the same pin
-      # the types and the OpenAPI copy come from: Distant-Signal/ds-api builds
-      # it. Its org.distant-signal.core-version label names the ds-core
-      # release it expects, so the database is migrated with that release's
-      # ds-migrate image.
-      - name: Pull the pinned api image
-        id: api
-        run: |
-          set -euo pipefail
-          ref="$(grep -v '^[[:space:]]*#' frontend/api-image.txt | grep -v '^[[:space:]]*$')"
-          docker pull --quiet "${ref}"
-          core="$(docker inspect --format '{{ index .Config.Labels "org.distant-signal.core-version" }}' "${ref}")"
-          [[ "${core}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "the api image has no core-version label"; exit 1; }
-          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
-          echo "core=${core}" >> "${GITHUB_OUTPUT}"
-
-      - name: Run the migrations (ds-migrate at the api's core-version)
-        env:
-          CORE: ${{ steps.api.outputs.core }}
-        run: |
-          docker run --rm --network host -e MIGRATION_DATABASE_URL="${DATABASE_URL}" \
-            "ghcr.io/distant-signal/images/ds-migrate:${CORE}" run
-
-      - name: Seed e2e fixtures
-        # ON_ERROR_STOP: plain psql reports a failing statement and carries on
-        # with exit 0, which hid a broken group_invite_links insert for days.
-        run: psql -v ON_ERROR_STOP=1 "${DATABASE_URL}" -f frontend/e2e/fixtures/seed.sql
-
-      - name: Start the TfL arrivals stub in the background
-        run: |
-          nohup python3 scripts/tfl-arrivals-stub.py --port 8099 > tfl-stub.log 2>&1 &
-          for _ in $(seq 1 10); do
-            if curl -s -o /dev/null http://127.0.0.1:8099/; then
-              echo "TfL stub is up"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "TfL stub did not start"
-          cat tfl-stub.log
-          exit 1
-
-      # The job's env, passed through by name (docker run -e NAME): the
-      # container shares the runner's network, so 127.0.0.1 is the services'.
-      - name: Start api in the background
-        env:
-          REF: ${{ steps.api.outputs.ref }}
-        run: |
-          set -euo pipefail
-          names=(DATABASE_URL REDIS_URL BIND_URL RUST_LOG INTERNAL_OAUTH_ISSUER_URL
-            INTERNAL_OAUTH_CLIENT_ID SSO_ISSUER_URL SSO_CLIENT_ID SSO_CLIENT_SECRET
-            SSO_REDIRECT_URL SSO_POST_LOGIN_REDIRECT_URL VAPID_PUBLIC_KEY
-            API_TRANSIT_NETWORKS API_TRIP_PLAN_TRANSIT_NETWORKS TFL_BASE_URL
-            REGULAR_JOURNEY_RECURRENCE_ENABLED REGULAR_JOURNEY_DAY_OVERRIDES_ENABLED
-            CALENDAR_FEED_ENABLED RECENTLY_DELETED_ENABLED)
-          # Passed only when the matrix sets it: an empty value is not "unset".
-          if [[ -n "${API_SERVE_NUMERIC_IDS}" ]]; then names+=(API_SERVE_NUMERIC_IDS); fi
-          args=()
-          for name in "${names[@]}"; do args+=(-e "${name}"); done
-          docker run -d --name api --network host "${args[@]}" "${REF}"
-          for _ in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:8080/public/health > /dev/null; then
-              echo "api is up"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "api did not become healthy in time"
-          docker logs api
-          exit 1
-
-      - name: Install Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: npm ci
-        working-directory: frontend
-        run: npm ci
-
-      # The browsers (~/.cache/ms-playwright) are cached per locked
-      # @playwright/test version. The cache is saved only by runs on main
-      # (the restore/save split), so a pull request reads it but can never
-      # write an entry other runs trust. The system libraries are not part of
-      # it: they are installed on every run, from apt.
-      - name: Read the locked Playwright version
-        id: playwright-version
-        run: |
-          set -euo pipefail
-          version="$(jq -er '.packages["node_modules/@playwright/test"].version' frontend/package-lock.json)"
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-
-      - name: Restore the Playwright browsers cache
-        id: playwright-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}-chromium-firefox
-
-      - name: Install Playwright browsers (chromium, firefox)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium firefox
-
-      - name: Install Playwright system dependencies (browsers restored from cache)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        working-directory: frontend
-        run: npx playwright install-deps chromium firefox
-
-      - name: Save the Playwright browsers cache (main only)
-        if: github.ref == 'refs/heads/main' && matrix.serve-numeric-ids == '' && steps.playwright-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
-
-      # Next's build cache (frontend/.next/cache), keyed on the lockfile and
-      # the sources, as Next's CI guidance has it; a miss falls back to the
-      # newest entry for the same lockfile, which Next reuses for the files
-      # that didn't change. Saved by the first matrix job on main only.
-      - name: Restore the Next.js build cache
-        id: next-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: frontend/.next/cache
-          key: next-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/**/*.js', 'frontend/**/*.jsx', 'frontend/**/*.ts', 'frontend/**/*.tsx', 'frontend/**/*.css', 'frontend/**/*.mjs', '!frontend/node_modules/**', '!frontend/.next/**', '!frontend/e2e/**') }}
-          restore-keys: |
-            next-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('frontend/package-lock.json') }}-
-
-      - name: npm run build (next build)
-        working-directory: frontend
-        run: npm run build
-
-      - name: Save the Next.js build cache (main only)
-        if: github.ref == 'refs/heads/main' && matrix.serve-numeric-ids == '' && steps.next-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: frontend/.next/cache
-          key: ${{ steps.next-cache.outputs.cache-primary-key }}
-
-      - name: Start frontend in the background
-        working-directory: frontend
-        run: |
-          nohup npm run start -- -p 3000 > frontend.log 2>&1 &
-          for _ in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:3000/ > /dev/null; then
-              echo "frontend is up"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "frontend did not become ready in time"
-          cat frontend.log
-          exit 1
-
-      # The second job proves its api really serves zeroed ids, so a flag
-      # the api stopped reading fails here rather than passing the suite
-      # against real ids. Through the frontend, as the specs reach it.
-      - name: Check the api serves numeric ids as 0
-        if: matrix.serve-numeric-ids == 'false'
-        run: |
-          set -euo pipefail
-          curl -sf -H "cookie: distant_signal_session=${E2E_SESSION_COOKIE}" \
-            http://127.0.0.1:3000/api/Journeys/mine > journeys-mine.json
-          jq -e 'length > 0 and all(.[]; .id == 0 and (.publicId | startswith("j_")))' journeys-mine.json
-
-      - name: npx playwright test
-        working-directory: frontend
-        run: npx playwright test
-
-      # Visual regression screenshots (frontend/e2e/visual.spec.ts, the
-      # `visual` Playwright project, which the step above skips): the main
-      # pages at 390 and 1366px, light and dark, compared against the
-      # committed baselines in frontend/e2e/visual-baselines/. Only when
-      # this PR or push touches frontend/**: the pages render nothing else
-      # the repo changes, apart from the api, whose own tests cover it.
-      # The comparison runs inside the pinned Playwright container
-      # (scripts/visual-tests.py), the same one used to make the baselines
-      # locally, so fonts and rendering match. docs/style-guide.md,
-      # "Visual regression", says how to update the baselines.
-      - name: Set up uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          # renovate: datasource=pypi depName=uv
-          version: "0.13.6"
-          # Nothing to cache: no dependencies are installed.
-          enable-cache: false
-
-      # Answers "changed" whenever it can't tell (a new branch's first
-      # push, an unfetchable base), so the check is never skipped wrongly.
       - name: Did this change touch frontend/?
-        if: matrix.serve-numeric-ids == ''
         id: frontend-paths
         uses: Distant-Signal/ci/actions/paths-changed@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
         with:
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           paths: frontend/
 
-      - name: Visual regression screenshots
-        if: matrix.serve-numeric-ids == '' && steps.frontend-paths.outputs.changed == 'true'
-        run: uv run --locked --no-default-groups scripts/visual-tests.py
+  # The shards of the suite as the chart runs the api. The first shard saves
+  # the Playwright browsers and Next.js build caches on main.
+  e2e-default:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    uses: ./.github/workflows/e2e.yml
+    with:
+      mode: tests
+      label: default-${{ matrix.shard }}
+      shard: ${{ matrix.shard }}
+      shard-total: 3
+      save-caches: ${{ matrix.shard == 1 }}
 
-      - name: Upload Playwright report + traces
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: playwright-report-${{ strategy.job-index }}
-          path: |
-            frontend/e2e-report/
-            frontend/test-results/
-          retention-days: 7
+  # The shards of the suite against an api that serves numeric ids as 0.
+  e2e-numeric-ids-off:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    uses: ./.github/workflows/e2e.yml
+    with:
+      mode: tests
+      label: numeric-ids-off-${{ matrix.shard }}
+      numeric-ids-off: true
+      shard: ${{ matrix.shard }}
+      shard-total: 3
+
+  e2e-visual:
+    needs: frontend-paths
+    if: needs.frontend-paths.outputs.changed == 'true'
+    uses: ./.github/workflows/e2e.yml
+    with:
+      mode: visual
+      label: visual
+
+  # The gates: the checks' original names, green only when every job they
+  # need succeeded (the visual job may be skipped: nothing under frontend/
+  # changed). `always()` so a failed or cancelled shard fails the gate
+  # instead of skipping it.
+  frontend-e2e:
+    name: Playwright e2e + accessibility
+    if: always()
+    needs: [e2e-default, e2e-visual]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Every shard succeeded
+        env:
+          DEFAULT: ${{ needs.e2e-default.result }}
+          VISUAL: ${{ needs.e2e-visual.result }}
+        run: |
+          echo "e2e-default: ${DEFAULT}"
+          echo "e2e-visual: ${VISUAL}"
+          [[ "${DEFAULT}" == "success" ]] && [[ "${VISUAL}" == "success" || "${VISUAL}" == "skipped" ]]
+
+  frontend-e2e-numeric-ids-off:
+    name: Playwright e2e with numeric ids off (DS-534)
+    if: always()
+    needs: e2e-numeric-ids-off
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Every shard succeeded
+        env:
+          RESULT: ${{ needs.e2e-numeric-ids-off.result }}
+        run: |
+          echo "e2e-numeric-ids-off: ${RESULT}"
+          [[ "${RESULT}" == "success" ]]
 
   # DS-534: frontend/e2e/fixtures/seed.sql seeds the missed-train fixtures
   # relative to the clock, and a seeding hour that put them on the wrong
