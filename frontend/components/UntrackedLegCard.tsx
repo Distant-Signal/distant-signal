@@ -2,6 +2,7 @@ import { Card, Group, Stack, Text } from '@mantine/core';
 import { useOperatorNames } from './OperatorNamesContext';
 import { EditUntrackedLegButton } from './EditUntrackedLegButton';
 import { RemoveJourneyLegButton } from './RemoveJourneyLegButton';
+import { legActionLabel, removeLegLabel, type LegPlace } from '@/lib/legActionLabel';
 import { StateBadge } from './StateBadge';
 import { TextLink } from './TextLink';
 import { TimetabledLegDetails } from './TimetabledLegDetails';
@@ -36,6 +37,7 @@ export function UntrackedLegCard({
   isOwner,
   isOnlyLeg,
   neighbours,
+  place = null,
 }: {
   journeyId: string;
   leg: JourneyLegDetail;
@@ -44,6 +46,8 @@ export function UntrackedLegCard({
   /** The legs either side, which can say what kind of station each end
    * is when its names read alike (DS-239). */
   neighbours?: UntrackedLegNeighbours | undefined;
+  /** The leg's shown position, to name its buttons. */
+  place?: LegPlace | null;
 }) {
   const times = untrackedLegTimes(leg);
   const operatorNames = useOperatorNames();
@@ -62,8 +66,21 @@ export function UntrackedLegCard({
           <Group gap="xs">
             {leg.timetable && <StateBadge tone="neutral">Scheduled</StateBadge>}
             <StateBadge tone="neutral">{UNTRACKED_STATUS_LABEL[status]}</StateBadge>
-            {isOwner && <EditUntrackedLegButton journeyId={journeyId} leg={leg} />}
-            {isOwner && <RemoveJourneyLegButton journeyId={journeyId} legId={legRef(leg)} isOnlyLeg={isOnlyLeg} />}
+            {isOwner && (
+              <EditUntrackedLegButton
+                journeyId={journeyId}
+                leg={leg}
+                ariaLabel={legActionLabel('Edit leg', untrackedLegTitle(leg), place)}
+              />
+            )}
+            {isOwner && (
+              <RemoveJourneyLegButton
+                journeyId={journeyId}
+                legId={legRef(leg)}
+                isOnlyLeg={isOnlyLeg}
+                ariaLabel={removeLegLabel(untrackedLegTitle(leg), place)}
+              />
+            )}
           </Group>
         </Group>
         <Text size="sm">

@@ -12,6 +12,7 @@ import { TextLink } from './TextLink';
 import { RemoveJourneyLegButton } from './RemoveJourneyLegButton';
 import { LegReplanActions, type LegReplanContext } from './LegReplanActions';
 import { UntrackedLegCard } from './UntrackedLegCard';
+import { legActionLabel, removeLegLabel, type LegPlace } from '@/lib/legActionLabel';
 import { LegDelayRepay } from './LegDelayRepay';
 import { LegTicketDetails } from './LegTicketDetails';
 import { useRemindPick } from './UsualTrainContext';
@@ -162,6 +163,7 @@ export function JourneyLegCard({
   isOnlyLeg,
   replan,
   neighbours,
+  place = null,
 }: {
   journeyId: string;
   leg: JourneyLegDetail;
@@ -176,6 +178,8 @@ export function JourneyLegCard({
   replan?: LegReplanContext | undefined;
   /** The legs either side, for an untracked leg's place names (DS-239). */
   neighbours?: UntrackedLegNeighbours | undefined;
+  /** The leg's shown position ("Leg 2 of 3"), to name its buttons. */
+  place?: LegPlace | null;
 }) {
   const router = useRouter();
   // A Remind-me regular day (DS-398): the pick looks around the usual train.
@@ -205,6 +209,7 @@ export function JourneyLegCard({
         isOwner={isOwner}
         isOnlyLeg={isOnlyLeg}
         neighbours={neighbours}
+        place={place}
       />
     );
   }
@@ -261,7 +266,14 @@ export function JourneyLegCard({
                 previously offered only on the matched branch, leaving an
                 open (never-yet-matched) leg with no delete affordance at
                 all. */}
-            {isOwner && <RemoveJourneyLegButton journeyId={journeyId} legId={legRef(leg)} isOnlyLeg={isOnlyLeg} />}
+            {isOwner && (
+              <RemoveJourneyLegButton
+                journeyId={journeyId}
+                legId={legRef(leg)}
+                isOnlyLeg={isOnlyLeg}
+                ariaLabel={removeLegLabel(header, place)}
+              />
+            )}
           </Group>
           {isOwner ? (
             // "Edit search" re-searches THIS leg in place (`LegTrainPicker`).
@@ -271,6 +283,7 @@ export function JourneyLegCard({
               journeyId={journeyId}
               leg={leg}
               criteria={criteria}
+              editSearchLabel={legActionLabel('Edit search', header, place)}
               initialSearch={remindPick ? remindPickSearch(leg) : null}
               onPicked={() => router.refresh()}
             />
@@ -367,10 +380,20 @@ export function JourneyLegCard({
           {isOwner && (
             <Group gap="xs">
               {replan && <LegReplanActions journeyId={journeyId} leg={leg} context={replan} />}
-              <Button size="xs" variant="default" onClick={() => setChangingTrain((c) => !c)}>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={() => setChangingTrain((c) => !c)}
+                aria-label={legActionLabel(changingTrain ? 'Cancel changing train' : 'Change train', title, place)}
+              >
                 {changingTrain ? 'Cancel' : 'Change train'}
               </Button>
-              <RemoveJourneyLegButton journeyId={journeyId} legId={legRef(leg)} isOnlyLeg={isOnlyLeg} />
+              <RemoveJourneyLegButton
+                journeyId={journeyId}
+                legId={legRef(leg)}
+                isOnlyLeg={isOnlyLeg}
+                ariaLabel={removeLegLabel(title, place)}
+              />
             </Group>
           )}
         </Group>
@@ -394,6 +417,8 @@ export function JourneyLegCard({
             legId={legRef(leg)}
             ticket={leg.ticket}
             operatorName={state.operatorName}
+            place={place}
+            legName={title}
           />
         )}
         {isOwner && changingTrain && (
@@ -404,6 +429,7 @@ export function JourneyLegCard({
             // made from what it knows (`legSearchPrefill`).
             initialSearch={hasWindow ? (remindPick ? remindPickSearch(leg) : null) : legSearchPrefill(leg)}
             criteria={hasWindow ? windowSummary(leg) : null}
+            editSearchLabel={legActionLabel('Edit search', title, place)}
             onPicked={() => {
               setChangingTrain(false);
               router.refresh();
@@ -430,12 +456,15 @@ function LegTrainPicker({
   journeyId,
   leg,
   criteria,
+  editSearchLabel,
   initialSearch = null,
   onPicked,
 }: {
   journeyId: string;
   leg: JourneyLegDetail;
   criteria: string | null;
+  /** The accessible name of "Edit search", naming the leg. */
+  editSearchLabel: string;
   /** A search to start from instead of the leg's stored one: "Change
    * train" on a leg that was never window-searched (`legSearchPrefill`).
    * Like an edited search, it is saved to the leg with the pick. */
@@ -481,7 +510,7 @@ function LegTrainPicker({
             </Text>
           )}
         </Stack>
-        <Button size="xs" variant="default" onClick={() => setEditing(true)}>
+        <Button size="xs" variant="default" onClick={() => setEditing(true)} aria-label={editSearchLabel}>
           Edit search
         </Button>
       </Group>

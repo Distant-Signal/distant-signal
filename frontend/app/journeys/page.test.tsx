@@ -480,7 +480,20 @@ describe('JourneysPage', () => {
 
       renderWithMantine(await JourneysPage());
 
-      expect(screen.getByRole('button', { name: 'Follow this journey' })).toBeInTheDocument();
+      const follow = screen.getByRole('button', { name: /^Follow this journey/ });
+      // Named for its journey, so a list of them is not a row of identical buttons.
+      expect(follow.getAttribute('aria-label')).toMatch(/^Follow this journey: .+/);
+    });
+
+    it("lists each section's rows as a named list, one item per row", async () => {
+      vi.mocked(api.getMyTrackedTrains).mockResolvedValue([]);
+      vi.mocked(api.getMyJourneys).mockResolvedValue([sharedJourney(501, [via()])]);
+
+      renderWithMantine(await JourneysPage());
+
+      const list = screen.getByRole('list', { name: 'Upcoming journeys' });
+      expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+      expect(within(list).getByRole('button', { name: /^Follow this journey/ })).toBeInTheDocument();
     });
 
     it('credits a sharer with no name as "a member", never a raw id', async () => {
@@ -551,9 +564,9 @@ describe('JourneysPage', () => {
         .map((link) => link.getAttribute('href'));
       expect(links).toEqual([`/journeys/${testPublicId(501)}`, `/journeys/${testPublicId(502)}`]);
       expect(within(upcoming).getByText('Shared by Sam')).toBeInTheDocument();
-      expect(within(upcoming).getAllByRole('button', { name: 'Unfollow' })).toHaveLength(1);
+      expect(within(upcoming).getAllByRole('button', { name: /^Unfollow/ })).toHaveLength(1);
       expect(screen.queryByText('From Family')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Follow this journey' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Follow this journey/ })).not.toBeInTheDocument();
       const past = screen.getByRole('region', { name: 'Past' });
       expect(within(past).getByRole('link', { name: /Old outing/ })).toHaveAttribute(
         'href',
@@ -581,8 +594,8 @@ describe('JourneysPage', () => {
 
       expect(screen.queryByText('From Family')).not.toBeInTheDocument();
       expect(screen.getAllByText('Shared by Sam')).toHaveLength(1);
-      expect(screen.getByRole('button', { name: 'Unfollow' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Follow this journey' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Unfollow/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Follow this journey/ })).not.toBeInTheDocument();
     });
   });
 

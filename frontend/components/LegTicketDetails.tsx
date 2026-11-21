@@ -6,6 +6,7 @@ import { Alert, Button, Checkbox, FileButton, Group, Select, Stack, Text, TextIn
 import { ButtonSpinner } from './LoadingText';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
 import { formatDate } from '@/lib/dateFormat';
+import { legActionLabel, type LegPlace } from '@/lib/legActionLabel';
 import { LEG_TICKET_TYPE_LABELS, legTicketSummary } from '@/lib/legTicket';
 import type { LegTicket, LegTicketPrefill, LegTicketRequest, LegTicketType } from '@/lib/types';
 
@@ -47,12 +48,18 @@ export function LegTicketDetails({
   legId,
   ticket,
   operatorName,
+  place = null,
+  legName,
 }: {
   journeyId: string;
   legId: string;
   ticket: LegTicket | null;
   /** The train's company, to name in the one-company option. */
   operatorName: string | null;
+  /** The leg's shown position and its name, to tell this button from the
+   * next leg's ("Add ticket details for leg 2: ..."). */
+  place?: LegPlace | null;
+  legName?: string | undefined;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -167,7 +174,14 @@ export function LegTicketDetails({
             No ticket details. None needed for Delay Repay.
           </Text>
         )}
-        <Button size="xs" variant="default" onClick={open}>
+        <Button
+          size="xs"
+          variant="default"
+          onClick={open}
+          {...(legName && {
+            'aria-label': legActionLabel(ticket ? 'Edit ticket details' : 'Add ticket details', legName, place),
+          })}
+        >
           {ticket ? 'Edit ticket details' : 'Add ticket details'}
         </Button>
       </Group>

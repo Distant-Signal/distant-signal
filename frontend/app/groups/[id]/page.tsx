@@ -517,7 +517,12 @@ function SharedJourneyRow({
         <TrackedRowStatusBadge status={groupJourneyRowStatus(journey, londonDayKey(new Date()))} />
         <Group gap="xs" wrap="wrap">
           {canFollow && (
-            <FollowJourneyButton journeyId={journey.journeyPublicId} following={journey.following} groupId={groupId} />
+            <FollowJourneyButton
+              journeyId={journey.journeyPublicId}
+              following={journey.following}
+              groupId={groupId}
+              subject={journeyDisplayName(name)}
+            />
           )}
           {canRemove && <RemoveGroupJourneyButton groupId={groupId} journeyId={journey.journeyPublicId} />}
         </Group>
