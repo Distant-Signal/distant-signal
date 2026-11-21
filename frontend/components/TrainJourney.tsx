@@ -8,6 +8,7 @@ import { trackedTrainDisplayName } from '@/lib/trackingName';
 import { ServiceModeBadge } from './ServiceModeBadge';
 import { isTimetableOnly, serviceNoun, TIMETABLE_ONLY_MESSAGE } from '@/lib/serviceMode';
 import type { TrainJourneyState } from '@/lib/types';
+import type { TrainDetail } from '@/lib/api-types';
 import { StateBadge } from './StateBadge';
 import { PredictedStartNotice } from './PredictedStartNotice';
 import { CancellationNotice } from './CancellationNotice';
@@ -47,12 +48,19 @@ import { trainPosition } from '@/lib/trainPosition';
  * repeat) rendering exactly as before. */
 export function TrainJourney({
   state,
+  trainDetail,
   suppressTrainUidHeading = false,
   skippedCrs,
   legOriginCrs,
   legDestinationCrs,
 }: {
   state: TrainJourneyState;
+  /** Where the journey leg's train detail comes from (`trainDetail` on a
+   * leg of `GET /Journeys/{id}`). `snapshot` and `unavailable` mean the
+   * train has been pruned, so nothing about it is live and the waiting
+   * copy must never show. `undefined` everywhere else (train pages), which
+   * only ever hold a live train. */
+  trainDetail?: TrainDetail | null | undefined;
   suppressTrainUidHeading?: boolean | undefined;
   /** CRS codes of stops on the journey-view leg this train is bound to
    * that a live Darwin sample reports as skipped today (§5.2) --
@@ -107,6 +115,30 @@ export function TrainJourney({
     legRange && visibleJourneyStops
       ? trainPosition(visibleJourneyStops, state.lastReportedLocation, endpointNames).index
       : -1;
+
+  // A pruned train (DS-643): its live detail is gone, so none of the
+  // waiting, planned or running states below can be true of it.
+  if (state.resolutionStatus === 'resolved' && (trainDetail === 'snapshot' || trainDetail === 'unavailable')) {
+    return (
+      <Stack gap="sm" data-train-detail={trainDetail}>
+        <KeptOutcome state={state} suppressTrainUidHeading={suppressTrainUidHeading} />
+        <Text size="sm" c="dimmed" role="note">
+          {KEPT_DETAIL_NOTE}
+          {trainDetail === 'snapshot' ? ' The booked timetable is shown.' : ''}
+        </Text>
+        {visibleJourneyStops && (
+          <JourneyTimeline
+            stops={visibleJourneyStops}
+            endpointNames={endpointNames}
+            skippedCrs={skippedCrs}
+            legDestinationCrs={legDestinationCrs}
+            legRange={legRange}
+            trainPositionIndex={-1}
+          />
+        )}
+      </Stack>
+    );
+  }
 
   // A bus or ferry is never reported live: no waiting/pending states, no
   // live summary or progress bar -- only what it is and its timetable.
@@ -432,6 +464,48 @@ function StatusMessage({
           This journey may have arrived at its destination, but this is an inference, not a confirmed status from
           Network Rail.
         </Alert>
+      )}
+    </Stack>
+  );
+}
+
+const KEPT_DETAIL_NOTE = 'Live details for this train are no longer kept.';
+
+/** What a pruned leg still records about how its train's run ended:
+ * cancelled, arrived, and the final delay. Nothing at all when the leg
+ * has no outcome, so no state is invented. */
+function KeptOutcome({
+  state,
+  suppressTrainUidHeading,
+}: {
+  state: TrainJourneyState;
+  suppressTrainUidHeading: boolean;
+}) {
+  const cancellation = trainCancellation(state);
+  const destination = state.scheduleDestinationName ?? state.scheduleDestinationCrs;
+  return (
+    <Stack gap="xs">
+      {showPinSummary(state, suppressTrainUidHeading) && (
+        <Text size="sm" c="dimmed">
+          {trackedTrainDisplayName(state)}
+        </Text>
+      )}
+      {state.status === 'cancelled' &&
+        (cancellation ? (
+          <CancellationNotice cancellation={cancellation} />
+        ) : (
+          <Text fw={500} c="var(--ds-color-error-text)">
+            This train was cancelled.
+          </Text>
+        ))}
+      {state.status === 'completed' && (
+        <Text fw={500}>{destination ? `This train arrived at ${destination}.` : 'This train arrived.'}</Text>
+      )}
+      {state.status !== 'cancelled' && state.delayMinutes !== null && (
+        <Group gap={6}>
+          <Text size="sm">Final delay:</Text>
+          <DelayBadge delayMinutes={state.delayMinutes} />
+        </Group>
       )}
     </Stack>
   );

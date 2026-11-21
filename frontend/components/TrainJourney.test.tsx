@@ -1287,3 +1287,75 @@ describe('TrainJourney on a journey leg', () => {
     expect(within(screen.getByRole('table', { name: 'Journey timeline' })).getByText('Newcastle')).toBeInTheDocument();
   });
 });
+
+describe('TrainJourney: a leg whose train detail is no longer live', () => {
+  const stops = [
+    journeyStop({ crs: 'WAT', name: 'Waterloo', kind: 'Origin', scheduledDeparture: '2026-08-28T08:00:00Z' }),
+    journeyStop({ crs: 'WOK', name: 'Woking', kind: 'Terminate', scheduledArrival: '2026-08-28T08:25:00Z' }),
+  ];
+  const resolved = (overrides: Partial<TrackedTrainState> = {}) =>
+    baseState({ resolutionStatus: 'resolved', trainUid: 'C21373', status: null, ...overrides });
+
+  it('snapshot with no outcome: shows the booked timetable and the note, never the waiting copy', () => {
+    renderWithMantine(<TrainJourney state={resolved({ journeyStops: stops })} trainDetail="snapshot" />);
+    expect(screen.getByText(/Live details for this train are no longer kept\./)).toBeInTheDocument();
+    expect(screen.getByText(/The booked timetable is shown\./)).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Journey timeline' })).toBeInTheDocument();
+    expect(screen.getByText('Woking')).toBeInTheDocument();
+    expect(screen.queryByText(/first movement report/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Matched to a timetabled train')).not.toBeInTheDocument();
+    expect(screen.queryByText(/No movement data/)).not.toBeInTheDocument();
+  });
+
+  it('snapshot with a recorded outcome: shows the final delay and that it arrived', () => {
+    renderWithMantine(
+      <TrainJourney
+        state={resolved({
+          status: 'completed',
+          delayMinutes: 7,
+          scheduleDestinationName: 'Woking',
+          journeyStops: stops,
+        })}
+        trainDetail="snapshot"
+      />,
+    );
+    expect(screen.getByText('This train arrived at Woking.')).toBeInTheDocument();
+    expect(screen.getByText('Final delay:')).toBeInTheDocument();
+    expect(screen.getByText(/Live details for this train are no longer kept\./)).toBeInTheDocument();
+    expect(screen.queryByText(/first movement report/i)).not.toBeInTheDocument();
+  });
+
+  it('snapshot overrides a stale planned phase: it is never called planned', () => {
+    renderWithMantine(
+      <TrainJourney
+        state={resolved({ trackingPhase: 'planned', firstReportExpectedAt: '2026-08-28T07:50:00Z' })}
+        trainDetail="snapshot"
+      />,
+    );
+    expect(screen.queryByText('Planned')).not.toBeInTheDocument();
+  });
+
+  it('unavailable: says the detail is no longer kept, with no timetable and no waiting copy', () => {
+    renderWithMantine(<TrainJourney state={resolved()} trainDetail="unavailable" />);
+    expect(screen.getByText('Live details for this train are no longer kept.')).toBeInTheDocument();
+    expect(screen.queryByText(/The booked timetable is shown/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Journey timeline' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/first movement report/i)).not.toBeInTheDocument();
+  });
+
+  it('unavailable with a recorded cancellation: still says it was cancelled', () => {
+    renderWithMantine(<TrainJourney state={resolved({ status: 'cancelled' })} trainDetail="unavailable" />);
+    expect(screen.getAllByText(/cancelled/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('Live details for this train are no longer kept.')).toBeInTheDocument();
+  });
+
+  it.each([null, 'live', undefined] as const)(
+    'trainDetail %s on a genuinely waiting leg: keeps the waiting copy',
+    (d) => {
+      renderWithMantine(<TrainJourney state={resolved()} trainDetail={d} />);
+      expect(screen.getByText('Matched to a timetabled train')).toBeInTheDocument();
+      expect(screen.getByText('Waiting for its first movement report.')).toBeInTheDocument();
+      expect(screen.queryByText(/no longer kept/)).not.toBeInTheDocument();
+    },
+  );
+});

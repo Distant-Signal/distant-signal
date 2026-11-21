@@ -201,6 +201,8 @@ export const JOURNEY_LEG_DEFAULTS = {
   windowSearched: false,
   trackedTrainState: null,
   legSkip: null,
+  trainDetail: null,
+  snapshotAt: null,
   transitMode: null,
   lineName: null,
   plannedDeparture: null,

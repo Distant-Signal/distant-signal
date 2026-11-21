@@ -169,6 +169,23 @@ describe('JourneyLegCard', () => {
     expect(screen.getByText(byVisibleText('London Kings Cross (KGX) to York (YRK) · 17:00'))).toBeInTheDocument();
   });
 
+  it('says live details are no longer kept for a pruned leg, not that it is waiting', () => {
+    renderWithMantine(
+      <JourneyLegCard
+        journeyId="167"
+        leg={baseLeg({
+          trainDetail: 'snapshot',
+          snapshotAt: '2026-10-30T03:00:00Z',
+          trackedTrainState: trackedState({ resolutionStatus: 'resolved', trainUid: 'C12345', status: null }),
+        })}
+        isOwner
+        isOnlyLeg={false}
+      />,
+    );
+    expect(screen.getByText(/Live details for this train are no longer kept\./)).toBeInTheDocument();
+    expect(screen.queryByText(/first movement report/i)).not.toBeInTheDocument();
+  });
+
   it("names the leg's operator with its code", () => {
     renderWithMantine(
       <JourneyLegCard
