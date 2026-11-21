@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
+import { LoginConsentProvider } from './LoginConsentNote';
 import { LoginControl } from './LoginControl';
 
 const mockUsePathname = vi.fn();
@@ -119,5 +120,27 @@ describe('LoginControl (button)', () => {
       'Log in (needs a Distant Signal account)',
     );
     expect(screen.getByRole('link', { name: 'Log in again' })).not.toHaveAttribute('title');
+  });
+
+  it('keeps the button at its natural width: the wrapper is start-aligned, so a plain parent does not stretch it', () => {
+    mockUsePathname.mockReturnValue('/groups');
+    mockUseSearchParams.mockReturnValue(new URLSearchParams(''));
+    renderWithMantine(<LoginControl variant="button">Log in</LoginControl>);
+    const wrapper = screen.getByRole('link', { name: 'Log in' }).parentElement;
+    expect(wrapper).toHaveClass('mantine-Stack-root');
+    expect(wrapper).toHaveStyle({ '--stack-align': 'flex-start' });
+  });
+
+  it('keeps the button start-aligned above the consent note when the legal pages are published', () => {
+    mockUsePathname.mockReturnValue('/groups');
+    mockUseSearchParams.mockReturnValue(new URLSearchParams(''));
+    renderWithMantine(
+      <LoginConsentProvider published>
+        <LoginControl variant="button">Log in</LoginControl>
+      </LoginConsentProvider>,
+    );
+    const wrapper = screen.getByRole('link', { name: 'Log in' }).parentElement;
+    expect(wrapper).toHaveStyle({ '--stack-align': 'flex-start' });
+    expect(wrapper).toContainElement(document.querySelector('[data-login-consent]'));
   });
 });

@@ -194,7 +194,9 @@ used, rather than as a literal in a component.
   "Upcoming journeys" is a teaser in the same
   frame: one flat card saying what tracking a journey gives you, a "Log
   in or sign up" `LoginControl` button and a "Plan a journey" link
-  (`UpcomingJourneysTeaser`). No settings live in the bar: the theme and pride flag are
+  (`UpcomingJourneysTeaser`). From `sm` up the card is one row: the text
+  (at a readable measure) on the left, the button on the right, vertically
+  centred; on a phone they stack, start-aligned. No settings live in the bar: the theme and pride flag are
   on `/account/preferences`, reached from the account menu, the drawer and
   the footer.
 - One exception: a logged-out visitor at `md` and up gets a gear
@@ -285,7 +287,8 @@ used, rather than as a literal in a component.
   for "Log in to …" under a failed action or in the nav;
   `variant="button"` for a page whose one anonymous action is logging in
   (`/groups/join`, `/groups`, `/account`), followed by the LEG-1 consent
-  note.
+  note. The button keeps its natural width in any parent (its wrapper is
+  `align="flex-start"`), never a full-column bar.
 - **ClickableCard**: every box the whole of which is clickable. See
   [Clickable cards](#clickable-cards).
 - **ButtonLink** (`components/ButtonLink.tsx`): an in-app link drawn as a

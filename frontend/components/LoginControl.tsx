@@ -19,7 +19,8 @@ type TextSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
  * - `variant="button"` is a filled `Button` rendered as the same link, for
  *   a page whose one anonymous action is logging in (`/groups/join`,
  *   `/groups`, `/account`), so it carries the weight the logged-in
- *   equivalent's button does. It is followed by the LEG-1 consent note
+ *   equivalent's button does. It keeps its natural width in any parent
+ *   (`align="flex-start"`, not a full-column bar). It is followed by the LEG-1 consent note
  *   unless `consentNote={false}` (`LoginPromptModal` places its own).
  *
  * `prefetch={false}` is required, not decorative: the href is not a page
@@ -73,7 +74,7 @@ export function LoginControl({
   );
   if (!consentNote) return button;
   return (
-    <Stack gap={4}>
+    <Stack gap={4} align="flex-start">
       {button}
       {/* LEG-1: renders nothing until the legal pages are published. */}
       <LoginConsentNote />
