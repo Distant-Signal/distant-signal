@@ -186,7 +186,9 @@ describe('JourneyTimeline', () => {
     );
     const cell = document.querySelector('[data-estimate-source="previous-working"]');
     expect(cell).toHaveAttribute('title', 'Predicted from the incoming train');
-    expect(cell).toHaveTextContent(/est\. \d\d:\d\d, predicted from the incoming train/);
+    expect(cell).toHaveTextContent(/estimated \d\d:\d\d, predicted from the incoming train/);
+    // The visible "est." is aria-hidden: a screen reader hears "estimated".
+    expect(cell?.querySelector('[aria-hidden="true"]')).toHaveTextContent('est.');
   });
 
   // 2026-09-22 UX review finding I21/M21/2.10: a column that is empty on
@@ -350,7 +352,10 @@ describe('JourneyTimeline', () => {
         ]}
       />,
     );
-    const estimate = screen.getByText(/est\. 09:05/);
+    const estimate = screen.getByText(/09:05/);
+    expect(estimate).toHaveTextContent(/^est\.estimated 09:05$/);
+    expect(screen.getByText('est.')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('estimated')).toBeInTheDocument();
     expect(estimate).toBeInTheDocument();
     // Italicised/muted -- visually distinct from a confirmed actual time,
     // not just distinguishable by its "est." prefix.

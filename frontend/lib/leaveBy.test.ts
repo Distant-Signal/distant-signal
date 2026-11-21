@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { leaveByLabel, leaveByPhase, minutesUntilLabel } from './leaveBy';
+import { leaveByLabel, leaveByPhase, minutesUntilLabel, minutesUntilSpoken } from './leaveBy';
 import type { LeaveBy } from './types';
 
 const LEAVE_BY: LeaveBy = { at: '2026-11-09T08:20:00Z', departure: '2026-11-09T08:42:00Z', basis: 'booked' };
@@ -19,6 +19,16 @@ describe('minutesUntilLabel', () => {
     expect(minutesUntilLabel(12)).toBe('in 12 min');
     expect(minutesUntilLabel(60)).toBe('in 1 h');
     expect(minutesUntilLabel(65)).toBe('in 1 h 5 min');
+  });
+});
+
+describe('minutesUntilSpoken', () => {
+  it('says the words a screen reader should speak, never "h" or "min"', () => {
+    expect(minutesUntilSpoken(1)).toBe('in 1 minute');
+    expect(minutesUntilSpoken(12)).toBe('in 12 minutes');
+    expect(minutesUntilSpoken(60)).toBe('in 1 hour');
+    expect(minutesUntilSpoken(121)).toBe('in 2 hours 1 minute');
+    expect(minutesUntilSpoken(135)).toBe('in 2 hours 15 minutes');
   });
 });
 

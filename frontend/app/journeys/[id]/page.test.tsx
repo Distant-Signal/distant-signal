@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
-import JourneyDetailPage from './page';
+import JourneyDetailPage, { generateMetadata } from './page';
 import * as api from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import {
@@ -190,6 +190,46 @@ describe('JourneyDetailPage ids in the URL', () => {
 
   it('answers 404 for an id of neither form without asking the api', async () => {
     await expect(JourneyDetailPage({ params: Promise.resolve({ id: 'j_nope' }) })).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(api.getJourney).not.toHaveBeenCalled();
+  });
+});
+
+describe('JourneyDetailPage generateMetadata (DS-534)', () => {
+  beforeEach(() => {
+    vi.mocked(api.getJourney).mockReset();
+  });
+
+  const meta = (id = testPublicId(167)) => generateMetadata({ params: Promise.resolve({ id }) });
+
+  it("titles the tab with the journey's own name, the same as its h1", async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(
+      openSuiteJourney({ legs: [openLeg({ originName: 'London Kings Cross', destinationName: 'Edinburgh' })] }),
+    );
+    expect(await meta()).toMatchObject({
+      title: 'London Kings Cross (KGX) to Edinburgh (EDB), 22 Sep 2026',
+      robots: { index: false },
+    });
+  });
+
+  it('prefers a custom name, and never adds link-preview cards', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(openSuiteJourney({ customName: 'Work trip' }));
+    const result = await meta();
+    expect(result.title).toBe('Work trip');
+    expect(result.openGraph).toBeUndefined();
+    expect(result.twitter).toBeUndefined();
+  });
+
+  it.each([
+    ['signed out', new api.ApiUnauthorizedError('http://api/Journeys/167')],
+    ['not theirs or missing', new api.ApiNotFoundError('http://api/Journeys/167')],
+    ['an outage', new Error('boom')],
+  ])('keeps the generic title when the read fails (%s)', async (_why, error) => {
+    vi.mocked(api.getJourney).mockRejectedValue(error);
+    expect(await meta()).toEqual({ title: 'Journey', robots: { index: false } });
+  });
+
+  it('keeps the generic title for a malformed id without asking the api', async () => {
+    expect(await meta('j_nope')).toEqual({ title: 'Journey', robots: { index: false } });
     expect(api.getJourney).not.toHaveBeenCalled();
   });
 });
