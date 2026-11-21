@@ -696,6 +696,15 @@ describe('UpcomingJourneysTeaser (logged out)', () => {
     expect(text.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(section).getAllByRole('link', { name: 'Plan a journey' })).toHaveLength(1);
   });
+
+  it('lays the text and the button in one row from sm up, the button at its natural width', () => {
+    renderWithMantine(<UpcomingJourneysTeaser />);
+    const login = screen.getByRole('link', { name: 'Log in or sign up' });
+    const row = screen.getByRole('heading', { level: 3 }).parentElement?.parentElement;
+    expect(row).toHaveClass('mantine-Flex-root');
+    expect(row).toHaveStyle({ 'justify-content': 'space-between' });
+    expect(login.parentElement).toHaveStyle({ '--stack-align': 'flex-start' });
+  });
 });
 
 describe('UpcomingJourneysSection (logged in, nothing upcoming)', () => {

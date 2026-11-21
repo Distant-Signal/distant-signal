@@ -1,4 +1,4 @@
-import { Card, Group, Stack, Text } from '@mantine/core';
+import { Box, Card, Flex, Group, Stack, Text } from '@mantine/core';
 import { ButtonLink } from '@/components/ButtonLink';
 import { CardTitleLink, ClickableCard } from '@/components/ClickableCard';
 import { RegularJourneyLine } from '@/components/RegularJourneyLine';
@@ -545,20 +545,29 @@ export function UpcomingJourneysTeaser() {
         <TextLink href={PLAN_JOURNEY_HREF}>{PLAN_JOURNEY_LABEL}</TextLink>
       </Group>
       <Card {...tokens.card.static} padding="lg">
-        {/* Start-aligned, as every card on the site is: the heading, the
-            text and the button share one left edge. The text keeps to a
-            readable measure (`maw`) so it doesn't run the card's width at
-            desktop, and the button sits under it, never beside. */}
-        <Stack gap="md" align="flex-start">
-          <Stack gap="xs" maw={560}>
+        {/* One row from `sm` up: the text at a readable measure (`maw`) on
+            the left, the button on the right, so the card reads as full
+            width. On a phone it stacks, start-aligned, as every card on
+            the site is. The button keeps its natural width (`flex="none"`). */}
+        <Flex
+          direction={{ base: 'column', sm: 'row' }}
+          gap="md"
+          align={{ base: 'flex-start', sm: 'center' }}
+          justify="space-between"
+        >
+          <Stack gap="xs" maw={640}>
             <SectionTitle order={3}>Track a journey to see it here</SectionTitle>
             <Text c="dimmed" size="sm">
               Live delays and platform changes for every leg, a warning when a connection is at risk, other trains if it
               breaks, and help claiming Delay Repay.
             </Text>
           </Stack>
-          <LoginControl variant="button">Log in or sign up</LoginControl>
-        </Stack>
+          {/* `maw` keeps the LEG-1 consent note, once published, from
+              widening the row. */}
+          <Box flex="none" maw={{ base: '100%', sm: 280 }}>
+            <LoginControl variant="button">Log in or sign up</LoginControl>
+          </Box>
+        </Flex>
       </Card>
     </Stack>
   );
