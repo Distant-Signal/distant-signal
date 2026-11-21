@@ -1402,10 +1402,12 @@ stack (`frontend/e2e/fixtures/seed.sql`), in its own Playwright project
   spec inside the Playwright image matching the locked `@playwright/test`
   (`mcr.microsoft.com/playwright:v<version>-noble`), locally and in CI, so
   fonts and rendering match. Outside it every image differs.
-- **CI.** The `frontend-e2e` job runs it after the e2e specs, on every PR
-  and push that touches `frontend/` (Distant-Signal/ci's `paths-changed` action decides,
-  and says "changed" when it can't tell). Failed runs upload the
-  expected, actual and diff images in the Playwright report artifact.
+- **CI.** The `e2e-visual` job (the `Visual regression` check, from
+  `.github/workflows/e2e.yml`) runs it on every PR and push that touches
+  `frontend/` (Distant-Signal/ci's `paths-changed` action decides, and says
+  "changed" when it can't tell), beside the sharded e2e jobs. A failed run
+  uploads the expected, actual and diff images in its own
+  `playwright-report-visual` artifact.
 
 To run it locally, start the api and `npm run build && npm run start` the
 frontend with the `frontend-e2e` job's environment, then
