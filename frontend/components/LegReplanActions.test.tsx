@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { LegReplanActions, type LegReplanContext } from './LegReplanActions';
 import { MissedOfferProvider } from './MissedOfferContext';
@@ -79,6 +79,33 @@ describe('LegReplanActions', () => {
     expect(fetchMock).toHaveBeenCalledWith(`/api/Journeys/42/legs/${testLegId(7)}/alternatives?cause=missed`, {
       method: 'GET',
     });
+  });
+
+  it.each([
+    ['Escape', () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })],
+    ['the Close button', () => fireEvent.click(screen.getByRole('button', { name: 'Close' }))],
+  ])('gives focus back to "I missed this train" when the sheet closes with %s', async (_how, close) => {
+    stubFetch(suggestionSet());
+    renderActions(leg());
+    const trigger = screen.getByRole('button', { name: 'I missed this train' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    await screen.findByText('10:04 York to Edinburgh, direct');
+    close();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('gives focus back to "Find another way" when its sheet closes', async () => {
+    stubFetch(suggestionSet());
+    renderActions(leg({ status: 'cancelled' }));
+    const trigger = screen.getByRole('button', { name: 'Find another way' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 
   it('titles the sheet "Other ways to ..." while it loads, never "You missed the ..."', () => {

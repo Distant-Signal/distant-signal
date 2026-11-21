@@ -44,7 +44,20 @@ export function LegReplanActions({
   leg: JourneyLegDetail;
   context: LegReplanContext;
 }) {
+  // The sheet stays mounted and only `opened` flips: Mantine returns focus
+  // to the button that opened a modal or drawer when `opened` goes from
+  // true to false, which never ran when the sheet was unmounted with
+  // `mode`, so focus fell to the body (DS-534); and it records the opener
+  // only on an `opened` change, so mounting it already open would not do.
+  // `mode` keeps the last mode so the closing transition still has its
+  // content; before the first opening the sheet is closed and mounts no
+  // body, so its mode is unused.
   const [mode, setMode] = useState<AlternativesMode | null>(null);
+  const [opened, setOpened] = useState(false);
+  function open(next: AlternativesMode) {
+    setMode(next);
+    setOpened(true);
+  }
   const cancelled = leg.trackedTrainState?.status === 'cancelled';
   const offer = useMissedOffer(leg);
   const journeyPast = useJourneyPast();
@@ -62,6 +75,7 @@ export function LegReplanActions({
     context.openBreakId !== null
       ? { kind: 'break', breakId: context.openBreakId }
       : { kind: 'alternatives', legId: legRef(leg), cause: 'cancelled' };
+  const sheetMode = mode ?? findAnother;
   // "I missed this train" only looks: "Other ways to ...", never "You
   // missed the ...".
   const fallbackTitle = breakTitle({ ...facts, cause: cancelled ? 'cancelled' : null });
@@ -72,29 +86,25 @@ export function LegReplanActions({
         <Button
           size="xs"
           variant={offer === 'main' ? 'default' : 'subtle'}
-          onClick={() =>
-            setMode({ kind: 'missed', legId: legRef(leg), inboundLate: leg.connection?.state === 'missed' })
-          }
+          onClick={() => open({ kind: 'missed', legId: legRef(leg), inboundLate: leg.connection?.state === 'missed' })}
         >
           {offer === 'main' ? 'I missed this train' : 'I missed this one'}
         </Button>
       )}
       {showFindAnother && (
-        <Button size="xs" variant="light" onClick={() => setMode(findAnother)}>
+        <Button size="xs" variant="light" onClick={() => open(findAnother)}>
           Find another way
         </Button>
       )}
-      {mode !== null && (
-        <AlternativesSheet
-          journeyId={journeyId}
-          mode={mode}
-          opened
-          onClose={() => setMode(null)}
-          fallbackTitle={fallbackTitle}
-          canMute={mode.kind !== 'alternatives' && !context.suggestionsMuted}
-          journeyPast={journeyPast}
-        />
-      )}
+      <AlternativesSheet
+        journeyId={journeyId}
+        mode={sheetMode}
+        opened={opened}
+        onClose={() => setOpened(false)}
+        fallbackTitle={fallbackTitle}
+        canMute={sheetMode.kind !== 'alternatives' && !context.suggestionsMuted}
+        journeyPast={journeyPast}
+      />
     </>
   );
 }
