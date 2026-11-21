@@ -100,7 +100,7 @@ test.describe('home page journeys (logged in)', () => {
     // Its ten minutes to the start give it a leave-by (regular journeys
     // design §5.4), counting down until then.
     await expect(upcoming.getByText('Leave by 06:20')).toBeVisible();
-    await expect(upcoming.getByText(/^in \d/)).toBeVisible();
+    await expect(upcoming.getByText(/^in \d+ (h|min)\b/)).toBeVisible();
     await expect(upcoming.getByRole('link', { name: 'View all' })).toHaveAttribute('href', '/journeys');
     await expect(page.getByRole('heading', { name: 'Tracked trains' })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home');
