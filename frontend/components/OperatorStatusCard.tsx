@@ -151,6 +151,7 @@ export function OperatorStatusCard({
             <PinToggle
               kind="operator"
               id={operator.code}
+              name={operator.name}
               initiallyPinned={pinned}
               needsAccountHint={needsAccountHint}
             />

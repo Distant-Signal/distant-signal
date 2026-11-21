@@ -24,43 +24,43 @@ describe('PinToggle', () => {
   });
 
   it('shows a filled star when initially pinned, outline when not', () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={true} />);
-    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={true} />);
+    expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument();
   });
 
   it('states both the action and the current state in its accessible name', () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
 
-    renderWithMantine(<PinToggle kind="line" id="ecml" initiallyPinned={true} />);
-    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="ecml" initiallyPinned={true} />);
+    expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument();
   });
 
   // Task 3.4.13: an anonymous visitor got no hint that pinning needs an
   // account until they clicked and hit the 401 prompt.
   it('hints that pinning needs an account when needsAccountHint is set and the line is unpinned', () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} needsAccountHint />);
-    expect(screen.getByLabelText('Pin (needs an account)')).toBeInTheDocument();
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} needsAccountHint />);
+    expect(screen.getByLabelText('Pin Test line, needs an account')).toBeInTheDocument();
   });
 
   // A pinned line implies an account already exists -- the hint must not
   // leak into the (already-pinned) unpin wording.
   it('does not apply the account hint to an already-pinned line', () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={true} needsAccountHint />);
-    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={true} needsAccountHint />);
+    expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument();
   });
 
   it('defaults to the plain unpinned wording when needsAccountHint is omitted', () => {
-    renderWithMantine(<PinToggle kind="station" id="wok" initiallyPinned={false} />);
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    renderWithMantine(<PinToggle name="Test line" kind="station" id="wok" initiallyPinned={false} />);
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
   });
 
   it('renders a tooltip for sighted users with the same text as the accessible name', async () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    const star = screen.getByLabelText('Pin (currently not pinned)');
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    const star = screen.getByLabelText('Pin Test line, currently not pinned');
     fireEvent.mouseEnter(star);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Pin (currently not pinned)');
-    expect(star).toHaveAccessibleDescription('Pin (currently not pinned)');
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Pin Test line, currently not pinned');
+    expect(star).toHaveAccessibleDescription('Pin Test line, currently not pinned');
   });
 
   // Review §2.10: named alongside `ShareButton` as "the two actions a
@@ -72,19 +72,19 @@ describe('PinToggle', () => {
   // branch), which is why the assertion matches the whole expression
   // rather than a plain `'44px'`.
   it('sizes the star to the 44px primary-action touch target, not the 28px default', () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toHaveStyle({
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toHaveStyle({
       '--ai-size': 'calc(2.75rem * var(--mantine-scale))',
     });
   });
 
   it('distinguishes pinned from unpinned by more than icon fill alone (color also differs)', () => {
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    const unpinnedButton = screen.getByLabelText('Pin (currently not pinned)');
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    const unpinnedButton = screen.getByLabelText('Pin Test line, currently not pinned');
     const unpinnedStyle = unpinnedButton.getAttribute('style');
 
-    renderWithMantine(<PinToggle kind="line" id="ecml" initiallyPinned={true} />);
-    const pinnedButton = screen.getByLabelText('Unpin (currently pinned)');
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="ecml" initiallyPinned={true} />);
+    const pinnedButton = screen.getByLabelText('Unpin Test line, currently pinned');
     const pinnedStyle = pinnedButton.getAttribute('style');
 
     // Mantine resolves `color` into `--ai-bg`/`--ai-color` CSS vars on the
@@ -104,8 +104,8 @@ describe('PinToggle', () => {
       return new Response(null, { status: 204 });
     });
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -129,8 +129,8 @@ describe('PinToggle', () => {
       return new Response(null, { status: 204 });
     });
 
-    renderWithMantine(<PinToggle kind="station" id="WOK" initiallyPinned={true} />);
-    fireEvent.click(screen.getByLabelText('Unpin (currently pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="station" id="WOK" initiallyPinned={true} />);
+    fireEvent.click(screen.getByLabelText('Unpin Test line, currently pinned'));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -154,8 +154,8 @@ describe('PinToggle', () => {
       return new Response(null, { status: 204 });
     });
 
-    renderWithMantine(<PinToggle kind="operator" id="SW" initiallyPinned={true} />);
-    fireEvent.click(screen.getByLabelText('Unpin (currently pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="operator" id="SW" initiallyPinned={true} />);
+    fireEvent.click(screen.getByLabelText('Unpin Test line, currently pinned'));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -177,14 +177,14 @@ describe('PinToggle', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation(async () => new Response('no session', { status: 401 }));
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Pin (currently not pinned)')).not.toBeDisabled();
+      expect(screen.getByLabelText('Pin Test line, currently not pinned')).not.toBeDisabled();
     });
     // Still unpinned, and no write was attempted.
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/preferences');
   });
@@ -197,10 +197,10 @@ describe('PinToggle', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation(async () => new Response('no session', { status: 401 }));
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
     expect(screen.queryByText('Log in to pin this line.')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     expect(await screen.findByText('Log in to pin this line.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/api/auth/login?return_to=%2Flines');
@@ -219,8 +219,8 @@ describe('PinToggle', () => {
       return new Response('no session', { status: 401 });
     });
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     expect(await screen.findByText('Log in to pin this line.')).toBeInTheDocument();
   });
@@ -231,8 +231,8 @@ describe('PinToggle', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation(async () => new Response('server error', { status: 500 }));
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't pin this line. Try again.");
     expect(screen.queryByText('Log in to pin this line.')).not.toBeInTheDocument();
@@ -247,13 +247,13 @@ describe('PinToggle', () => {
           })
         : new Response('slow down', { status: 429 }),
     );
-    renderWithMantine(<PinToggle kind="station" id="KGX" initiallyPinned={true} />);
-    fireEvent.click(screen.getByLabelText('Unpin (currently pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="station" id="KGX" initiallyPinned={true} />);
+    fireEvent.click(screen.getByLabelText('Unpin Test line, currently pinned'));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       "Couldn't unpin this station. Too many requests. Wait a minute and try again.",
     );
-    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument();
   });
 
   // Two stars pressed quickly (one per row on /lines): both used to read the
@@ -280,11 +280,11 @@ describe('PinToggle', () => {
 
     renderWithMantine(
       <>
-        <PinToggle kind="line" id="a" initiallyPinned={false} />
-        <PinToggle kind="line" id="b" initiallyPinned={false} />
+        <PinToggle name="Test line" kind="line" id="a" initiallyPinned={false} />
+        <PinToggle name="Test line" kind="line" id="b" initiallyPinned={false} />
       </>,
     );
-    const [first, second] = screen.getAllByLabelText('Pin (currently not pinned)');
+    const [first, second] = screen.getAllByLabelText('Pin Test line, currently not pinned');
     fireEvent.click(first!);
     fireEvent.click(second!);
     await waitFor(() => expect(puts).toBe(1));
@@ -302,11 +302,11 @@ describe('PinToggle', () => {
         ? new Response(JSON.stringify({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] }), { status: 200 })
         : new Response(null, { status: 204 }),
     );
-    renderWithMantine(<PinToggle kind="station" id="KGX" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="station" id="KGX" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't pin this station. Try again.");
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
-    await waitFor(() => expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
+    await waitFor(() => expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument());
   });
 
   // A pin made in another tab: the server list already holds the id, and a
@@ -323,15 +323,15 @@ describe('PinToggle', () => {
     function Harness() {
       const [value, setValue] = useState(false);
       setPinnedProp = setValue;
-      return <PinToggle kind="line" id="wcml" initiallyPinned={value} />;
+      return <PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={value} />;
     }
     renderWithMantine(<Harness />);
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
     act(() => setPinnedProp(true));
-    expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument();
     act(() => setPinnedProp(false));
     // Stale again (another tab pinned it): pinning writes it once.
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
     await waitFor(() =>
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(
         '/api/preferences/pinned-lines',
@@ -354,13 +354,13 @@ describe('PinToggle', () => {
       return new Response('no session', { status: 401 });
     });
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
   });
 
   // Bug: `toggle()` used to be a bare `try`/`finally` with no `catch` -- a
@@ -373,16 +373,16 @@ describe('PinToggle', () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     expect(await screen.findByText("Couldn't pin this line. Try again.")).toBeInTheDocument();
     // The button recovers rather than staying stuck disabled/loading
     // forever -- the `finally` block already reset `busy`; what was
     // missing was only the visible error.
-    await waitFor(() => expect(screen.getByLabelText('Pin (currently not pinned)')).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByLabelText('Pin Test line, currently not pinned')).not.toBeDisabled());
     // Still unpinned -- the write never happened.
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
   });
 
   it('shows the same visible error when the PUT rejects outright (read succeeded, write did not)', async () => {
@@ -396,11 +396,11 @@ describe('PinToggle', () => {
       throw new TypeError('Failed to fetch');
     });
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
 
     expect(await screen.findByText("Couldn't pin this line. Try again.")).toBeInTheDocument();
-    expect(screen.getByLabelText('Pin (currently not pinned)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pin Test line, currently not pinned')).toBeInTheDocument();
   });
 
   it('clears a previous network-failure error at the start of a fresh attempt', async () => {
@@ -415,8 +415,8 @@ describe('PinToggle', () => {
       return new Response(null, { status: 204 });
     });
 
-    renderWithMantine(<PinToggle kind="line" id="wcml" initiallyPinned={false} />);
-    const button = screen.getByLabelText('Pin (currently not pinned)');
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
+    const button = screen.getByLabelText('Pin Test line, currently not pinned');
     fireEvent.click(button);
     expect(await screen.findByText("Couldn't pin this line. Try again.")).toBeInTheDocument();
 
@@ -433,9 +433,9 @@ describe('PinToggle', () => {
       }
       return new Response(null, { status: 204 });
     });
-    renderWithMantine(<PinToggle kind="line" id="metrolink:blue" initiallyPinned={false} />);
+    renderWithMantine(<PinToggle name="Test line" kind="line" id="metrolink:blue" initiallyPinned={false} />);
     expect(screen.queryByRole('switch', { name: 'Alert me about this line' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
     const alerts = await screen.findByRole('switch', { name: 'Alert me about this line' });
     expect(alerts).toBeChecked();
     fireEvent.click(alerts);
@@ -455,9 +455,9 @@ describe('PinToggle', () => {
         ? new Response(JSON.stringify({ pinnedLines: [], pinnedStations: [], pinnedOperators: [] }), { status: 200 })
         : new Response(null, { status: 204 }),
     );
-    renderWithMantine(<PinToggle kind="station" id="KGX" initiallyPinned={false} />);
-    fireEvent.click(screen.getByLabelText('Pin (currently not pinned)'));
-    await waitFor(() => expect(screen.getByLabelText('Unpin (currently pinned)')).toBeInTheDocument());
+    renderWithMantine(<PinToggle name="Test line" kind="station" id="KGX" initiallyPinned={false} />);
+    fireEvent.click(screen.getByLabelText('Pin Test line, currently not pinned'));
+    await waitFor(() => expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument());
     expect(screen.queryByRole('switch', { name: 'Alert me about this line' })).not.toBeInTheDocument();
   });
 });

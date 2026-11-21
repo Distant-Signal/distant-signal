@@ -142,7 +142,7 @@ describe('/transit/[network]/lines/[line]', () => {
 
   it('offers the follow star, pinned when the public line id is pinned', async () => {
     renderWithMantine(await TransitLinePage(params('blue')));
-    expect(screen.getByRole('button', { name: 'Pin (currently not pinned)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Pin Blue Line, currently not pinned' })).toBeTruthy();
     cleanup();
     vi.mocked(api.getPreferences).mockResolvedValue({
       pinnedLines: ['metrolink:blue'],
@@ -152,12 +152,12 @@ describe('/transit/[network]/lines/[line]', () => {
       bankHolidayDivision: null,
     });
     renderWithMantine(await TransitLinePage(params('blue')));
-    expect(screen.getByRole('button', { name: 'Unpin (currently pinned)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Unpin Blue Line, currently pinned' })).toBeTruthy();
     cleanup();
     // No session or an outage: unpinned, never an error.
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
     renderWithMantine(await TransitLinePage(params('blue')));
-    expect(screen.getByRole('button', { name: 'Pin (currently not pinned)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Pin Blue Line, currently not pinned' })).toBeTruthy();
   });
 
   it('is not found for a public id in the path or an unknown line', async () => {

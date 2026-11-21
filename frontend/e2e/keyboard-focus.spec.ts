@@ -134,7 +134,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       test('/lines, the log in prompt a pin opens', async ({ page }) => {
         await page.goto('/lines');
-        const trigger = page.getByRole('button', { name: /^Pin \(/ }).first();
+        const trigger = page.getByRole('button', { name: /^Pin .+, (currently not pinned|needs an account)$/ }).first();
         await expectDialogContract(page, trigger, page.getByRole('dialog', { name: 'Log in required' }));
       });
     });

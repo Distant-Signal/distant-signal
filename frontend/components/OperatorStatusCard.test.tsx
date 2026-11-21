@@ -84,14 +84,14 @@ describe('OperatorStatusCard', () => {
     const { container } = renderWithMantine(<OperatorStatusCard operator={operator} pinned={true} />);
     const pinToggle = container.querySelector('[aria-label*="Unpin"]');
     expect(pinToggle).toBeInTheDocument();
-    expect(pinToggle).toHaveAttribute('aria-label', 'Unpin (currently pinned)');
+    expect(pinToggle).toHaveAttribute('aria-label', 'Unpin Virgin Trains, currently pinned');
   });
 
   it('renders the unpinned state correctly when pinned is false', () => {
     const { container } = renderWithMantine(<OperatorStatusCard operator={operator} pinned={false} />);
     const pinToggle = container.querySelector('[aria-label*="Pin"]');
     expect(pinToggle).toBeInTheDocument();
-    expect(pinToggle).toHaveAttribute('aria-label', 'Pin (currently not pinned)');
+    expect(pinToggle).toHaveAttribute('aria-label', 'Pin Virgin Trains, currently not pinned');
   });
 
   it('renders the account hint when needsAccountHint is true and pinned is false', () => {
@@ -99,7 +99,7 @@ describe('OperatorStatusCard', () => {
       <OperatorStatusCard operator={operator} pinned={false} needsAccountHint={true} />,
     );
     const pinToggle = container.querySelector('[aria-label*="Pin"]');
-    expect(pinToggle).toHaveAttribute('aria-label', 'Pin (needs an account)');
+    expect(pinToggle).toHaveAttribute('aria-label', 'Pin Virgin Trains, needs an account');
   });
 
   it('clamps a long reason rather than letting it fill the card', () => {

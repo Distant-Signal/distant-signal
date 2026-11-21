@@ -364,7 +364,12 @@ export default async function StationDisruptionPage({ params }: { params: Promis
         <Group gap="md">
           <TextLink href={`/track?origin=${crs}`}>Track a train from here</TextLink>
           <TextLink href={`/plan?origin=${crs}`}>Plan a journey from here</TextLink>
-          <PinToggle kind="station" id={crs} initiallyPinned={preferences.pinnedStations.includes(crs)} />
+          <PinToggle
+            kind="station"
+            id={crs}
+            name={heading}
+            initiallyPinned={preferences.pinnedStations.includes(crs)}
+          />
           <ShareButton />
         </Group>
       </Group>
