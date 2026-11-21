@@ -307,13 +307,65 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # The browsers (~/.cache/ms-playwright) are cached per locked
+      # @playwright/test version. The cache is saved only by runs on main
+      # (the restore/save split), so a pull request reads it but can never
+      # write an entry other runs trust. The system libraries are not part of
+      # it: they are installed on every run, from apt.
+      - name: Read the locked Playwright version
+        id: playwright-version
+        run: |
+          set -euo pipefail
+          version="$(jq -er '.packages["node_modules/@playwright/test"].version' frontend/package-lock.json)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Restore the Playwright browsers cache
+        id: playwright-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}-chromium-firefox
+
       - name: Install Playwright browsers (chromium, firefox)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: npx playwright install --with-deps chromium firefox
+
+      - name: Install Playwright system dependencies (browsers restored from cache)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: npx playwright install-deps chromium firefox
+
+      - name: Save the Playwright browsers cache (main only)
+        if: github.ref == 'refs/heads/main' && matrix.serve-numeric-ids == '' && steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
+
+      # Next's build cache (frontend/.next/cache), keyed on the lockfile and
+      # the sources, as Next's CI guidance has it; a miss falls back to the
+      # newest entry for the same lockfile, which Next reuses for the files
+      # that didn't change. Saved by the first matrix job on main only.
+      - name: Restore the Next.js build cache
+        id: next-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: frontend/.next/cache
+          key: next-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/**/*.js', 'frontend/**/*.jsx', 'frontend/**/*.ts', 'frontend/**/*.tsx', 'frontend/**/*.css', 'frontend/**/*.mjs', '!frontend/node_modules/**', '!frontend/.next/**', '!frontend/e2e/**') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('frontend/package-lock.json') }}-
 
       - name: npm run build (next build)
         working-directory: frontend
         run: npm run build
+
+      - name: Save the Next.js build cache (main only)
+        if: github.ref == 'refs/heads/main' && matrix.serve-numeric-ids == '' && steps.next-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: frontend/.next/cache
+          key: ${{ steps.next-cache.outputs.cache-primary-key }}
 
       - name: Start frontend in the background
         working-directory: frontend
