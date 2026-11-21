@@ -399,6 +399,7 @@ export function JourneyLegCard({
         </Group>
         <TrainJourney
           state={state}
+          trainDetail={leg.trainDetail}
           skippedCrs={skippedCrs}
           legOriginCrs={leg.originCrs}
           legDestinationCrs={leg.destinationCrs}

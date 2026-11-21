@@ -217,6 +217,8 @@ export function loneTrainLeg(train: TrackedTrainListItem, state: TrackedTrainSta
     windowSearched: false,
     trackedTrainState: state,
     legSkip: null,
+    trainDetail: null,
+    snapshotAt: null,
     ...TRAIN_LEG_BLANKS,
   };
 }

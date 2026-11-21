@@ -116,6 +116,8 @@ export function trainLeg(
     kind: 'train',
     trackedTrainState: trainState(origin[0], destination[0], departure, arrival, state),
     legSkip: null,
+    trainDetail: null,
+    snapshotAt: null,
   };
 }
 
@@ -150,6 +152,8 @@ export function untrackedLeg(
     untrackedStatus: 'planned',
     trackedTrainState: null,
     legSkip: null,
+    trainDetail: null,
+    snapshotAt: null,
     ...overrides,
   };
 }

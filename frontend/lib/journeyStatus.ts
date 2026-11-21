@@ -111,9 +111,15 @@ export function legStatusGroup(leg: JourneyLegDetail): LegStatusGroup {
   // `trackingPhase` (spec 2026-10-20 §3, §4) before the waiting arm: a
   // train with no timetable and no report, or one whose first report
   // isn't due yet, used to read "Awaiting first report" too.
-  if (state.trackingPhase === 'noTimetable') return 'noTimetable';
-  if (state.trackingPhase === 'planned') return 'planned';
-  if (state.status === 'awaiting_activation' || state.status === null) return 'awaiting';
+  // A leg whose train has been pruned (`trainDetail` snapshot or
+  // unavailable) is over: it was never "awaiting" or "planned" now, so it
+  // skips those arms and reads from its recorded delay, if it has one.
+  const detailKept = leg.trainDetail === 'snapshot' || leg.trainDetail === 'unavailable';
+  if (!detailKept) {
+    if (state.trackingPhase === 'noTimetable') return 'noTimetable';
+    if (state.trackingPhase === 'planned') return 'planned';
+    if (state.status === 'awaiting_activation' || state.status === null) return 'awaiting';
+  }
   if (state.delayMinutes !== null && state.delayMinutes > 0) return 'delayed';
   return 'good'; // 'en_route' with no reported delay, or 'completed'.
 }
@@ -175,6 +181,8 @@ export function journeyListItemStatusGroup(item: JourneyListItem): LegStatusGrou
             trackingPhase: item.trackingPhase ?? null,
           } as JourneyLegDetail['trackedTrainState']),
     legSkip: null,
+    trainDetail: null,
+    snapshotAt: null,
   });
 }
 
@@ -216,6 +224,8 @@ export function trackedTrainListStatusGroup(
       trackingPhase: train.trackingPhase ?? null,
     } as JourneyLegDetail['trackedTrainState'],
     legSkip: null,
+    trainDetail: null,
+    snapshotAt: null,
   });
 }
 

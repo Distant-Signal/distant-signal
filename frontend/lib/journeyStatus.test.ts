@@ -78,6 +78,18 @@ describe('legStatusGroup', () => {
     expect(legStatusGroup(leg)).toBe('awaiting');
   });
 
+  it('does not call a pruned leg awaiting or planned', () => {
+    for (const trainDetail of ['snapshot', 'unavailable'] as const) {
+      const leg = baseLeg({ trainDetail, trackedTrainState: baseTrackedTrainState({ status: null }) });
+      expect(legStatusGroup(leg)).toBe('good');
+    }
+    const delayed = baseLeg({
+      trainDetail: 'snapshot',
+      trackedTrainState: baseTrackedTrainState({ status: 'completed', delayMinutes: 9 }),
+    });
+    expect(legStatusGroup(delayed)).toBe('delayed');
+  });
+
   it('classifies a tracked train with a null status as awaiting (not yet resolved)', () => {
     const leg = baseLeg({
       trackedTrainState: baseTrackedTrainState({ status: null, resolutionStatus: 'pending' }),
