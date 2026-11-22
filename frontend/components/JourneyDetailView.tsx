@@ -193,6 +193,7 @@ export function JourneyDetailView({
   openBreakOnLoad = false,
   fromPush = false,
   viaShareLink = false,
+  shareToken,
   calendarDownload = false,
 }: {
   journey: JourneyDetail;
@@ -204,6 +205,10 @@ export function JourneyDetailView({
   fromPush?: boolean;
   /** Opened through a share link, with no session (`/journeys/shared`). */
   viaShareLink?: boolean;
+  /** The share link's token, with `viaShareLink`: a leg whose train was
+   * pruned links to the train page under the share link's own path, so the
+   * api can read the leg's copy for this viewer (DS-638). */
+  shareToken?: string | undefined;
   /** Offer "Download calendar file", this journey as an `.ics` download (the
    * owner's, while the api's calendar feed is on). */
   calendarDownload?: boolean;
@@ -247,6 +252,7 @@ export function JourneyDetailView({
       journeyId={journey.publicId}
       leg={leg}
       isOwner={journey.isOwner}
+      shareToken={viaShareLink ? shareToken : undefined}
       isOnlyLeg={journey.legs.length === 1}
       neighbours={{ previous: journey.legs[index - 1], next: journey.legs[index + 1] }}
       replan={{

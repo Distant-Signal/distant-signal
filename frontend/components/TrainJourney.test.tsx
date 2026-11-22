@@ -1,10 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { TrainJourney } from './TrainJourney';
 import type { JourneyStop, TrackedTrainState } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
 import { JOURNEY_STOP_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
+
+// "Waiting for its first movement report" is gated on the train not having
+// long departed (lib/waitingForReport.ts), so these tests fix the clock to
+// the fixtures' own service day.
+function atServiceDay(): void {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-08-28T08:00:00Z'));
+}
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function journeyStop(overrides: Partial<JourneyStop>): JourneyStop {
   return {
@@ -121,6 +132,7 @@ describe('TrainJourney', () => {
   });
 
   it('resolved + awaiting_activation: names the matched train, no movement data', () => {
+    atServiceDay();
     renderWithMantine(
       <TrainJourney
         state={baseState({ resolutionStatus: 'resolved', trainUid: 'C21373', status: 'awaiting_activation' })}
@@ -1352,10 +1364,30 @@ describe('TrainJourney: a leg whose train detail is no longer live', () => {
   it.each([null, 'live', undefined] as const)(
     'trainDetail %s on a genuinely waiting leg: keeps the waiting copy',
     (d) => {
+      atServiceDay();
       renderWithMantine(<TrainJourney state={resolved()} trainDetail={d} />);
       expect(screen.getByText('Matched to a timetabled train')).toBeInTheDocument();
       expect(screen.getByText('Waiting for its first movement report.')).toBeInTheDocument();
       expect(screen.queryByText(/no longer kept/)).not.toBeInTheDocument();
     },
   );
+});
+
+describe('TrainJourney: the waiting copy is gated on not having departed (DS-648)', () => {
+  const waiting = baseState({ resolutionStatus: 'resolved', trainUid: 'C21373', status: null });
+
+  it('an old leg that never reported says no report was received, not that it is waiting', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-22T08:00:00Z'));
+    renderWithMantine(<TrainJourney state={waiting} trainDetail={null} />);
+    expect(screen.getByText('Matched to a timetabled train')).toBeInTheDocument();
+    expect(screen.getByText('No movement report was received.')).toBeInTheDocument();
+    expect(screen.queryByText(/Waiting for its first movement report/)).not.toBeInTheDocument();
+  });
+
+  it('a train due to leave today still waits', () => {
+    atServiceDay();
+    renderWithMantine(<TrainJourney state={waiting} trainDetail={null} />);
+    expect(screen.getByText('Waiting for its first movement report.')).toBeInTheDocument();
+  });
 });

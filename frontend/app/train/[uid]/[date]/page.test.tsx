@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest';
 import { flushPendingDeletes, resetPendingDeletes } from '@/lib/pendingDeletes';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
-import TrackedTrainByUidPage, { toJourneyState, trainPageDescription, generateMetadata } from './page';
+import TrackedTrainByUidPage, {
+  toJourneyState,
+  trainPageDescription,
+  generateMetadata,
+  renderTrainPage,
+  dynamic,
+} from './page';
 import * as api from '@/lib/api';
 import { ApiNotFoundError } from '@/lib/api';
 import type { PublicTrainState, TrackedTrainListItem } from '@/lib/types';
@@ -18,7 +24,7 @@ vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
   return {
     ...actual,
-    getPublicTrainByUidAndDate: vi.fn(),
+    getTrainByUidAndDateForViewer: vi.fn(),
     getPreviewTrain: vi.fn(),
     getMyTrackedTrains: vi.fn(),
     getTrackedTrainById: vi.fn(),
@@ -129,13 +135,13 @@ describe('TrackedTrainByUidPage error handling', () => {
   });
 
   it('still calls notFound() on ApiNotFoundError', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockRejectedValue(new ApiNotFoundError('not found'));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockRejectedValue(new ApiNotFoundError('not found'));
     await expect(renderPage()).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFoundMock).toHaveBeenCalled();
   });
 
   it('still propagates a bare Error uncaught', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockRejectedValue(new Error('boom'));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockRejectedValue(new Error('boom'));
     await expect(renderPage()).rejects.toThrow('boom');
     expect(notFoundMock).not.toHaveBeenCalled();
   });
@@ -149,14 +155,14 @@ describe('TrackedTrainByUidPage success path', () => {
   // that also starts at 1. Those controls now don't render at all: this
   // page describes a shared, public train and carries no subscription.
   it('renders no owner actions -- there is no subscription id in a public response', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     await renderPage();
     expect(screen.queryByRole('button', { name: 'Stop tracking' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument();
   });
 
   it('names the operator with its code in the header, once', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ operatorName: 'West Midlands Railway', operatorCode: 'WM' }),
     );
     await renderPage();
@@ -167,13 +173,13 @@ describe('TrackedTrainByUidPage success path', () => {
     [{ operatorName: null, operatorCode: 'WM' }, 'Operated by WM'],
     [{ operatorName: 'West Midlands Railway', operatorCode: null }, 'Operated by West Midlands Railway'],
   ])('shows whichever of the operator name and code the api sent (%o)', async (operator, text) => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState(operator));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState(operator));
     await renderPage();
     expect(screen.getByText(text)).toBeInTheDocument();
   });
 
   it('shows no operator line when the api sent neither', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ operatorName: null, operatorCode: null }),
     );
     await renderPage();
@@ -182,7 +188,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it('says the timetable may change for a provisional (far-ahead) service date', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ provisional: true, provisionalFrom: '2026-10-16' }),
     );
     await renderPage();
@@ -190,7 +196,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it.each([false, undefined])('shows no timetable note when provisional is %s', async (provisional) => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState(provisional === undefined ? {} : { provisional }),
     );
     await renderPage();
@@ -200,7 +206,7 @@ describe('TrackedTrainByUidPage success path', () => {
   // A train added at short notice: live running, but no timetable, so no
   // route, stops or departure time (U06535 on 16 Nov 2026).
   it('says why a live train with no stops has none', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         trainUid: 'U06535',
         serviceDate: '2026-11-16',
@@ -222,7 +228,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it("doesn't explain missing stops when the train has its stops", async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ trackingPhase: 'live', journeyStops: [ORIGIN_STOP] }),
     );
     await renderPage();
@@ -231,7 +237,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it("doesn't explain missing stops before the train is running", async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         trainId: null,
         originCrs: null,
@@ -251,7 +257,7 @@ describe('TrackedTrainByUidPage success path', () => {
   // The footer carries no credits: the train's sources are credited on the
   // page (CIF, TRUST and Darwin samples).
   it("credits the train's timetable, movements and live samples on the page", async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     await renderPage();
     const credits = [...document.querySelectorAll('[data-data-credits] [data-credit]')].map((node) =>
       node.getAttribute('data-credit'),
@@ -260,7 +266,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it('renders the shared train journey from the public response', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     await renderPage();
     expect(screen.getByRole('heading', { name: '19:32 WAT to WOK' })).toBeInTheDocument();
     expect(screen.getByText('UID W12345')).toBeInTheDocument();
@@ -275,7 +281,7 @@ describe('TrackedTrainByUidPage success path', () => {
   // per-subscription state -- so the page derives one. A train with no
   // TRUST `train_id` and no schedule match yet is "pending".
   it('derives a pending state for a bare train_uid with no schedule or TRUST data', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         originCrs: null,
         destinationCrs: null,
@@ -293,7 +299,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it('derives a schedule_matched state when there is schedule data but no TRUST train_id', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         destinationName: 'Woking',
         trainId: null,
@@ -309,7 +315,7 @@ describe('TrackedTrainByUidPage success path', () => {
   });
 
   it('renders a Track this train button for every visitor', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     renderWithMantine(await TrackedTrainByUidPage({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) }));
     expect(screen.getByRole('button', { name: 'Track this train' })).toBeInTheDocument();
   });
@@ -324,7 +330,7 @@ describe('TrackedTrainByUidPage success path', () => {
         }),
     );
     vi.stubGlobal('fetch', fetchMock);
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState({ trainUid: 'DIFFERENT' }));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState({ trainUid: 'DIFFERENT' }));
     renderWithMantine(await TrackedTrainByUidPage({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
@@ -352,7 +358,7 @@ describe('TrackedTrainByUidPage success path', () => {
         }),
     );
     vi.stubGlobal('fetch', fetchMock);
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     renderWithMantine(await TrackedTrainByUidPage({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Track this train' }));
@@ -367,20 +373,20 @@ describe('TrackedTrainByUidPage success path', () => {
     // Rename/Delete/tickets all key on a train_subscriptions.id this
     // response does not carry (see the page's own doc comment). Adding a
     // track CTA must not have opened that door.
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     renderWithMantine(await TrackedTrainByUidPage({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) }));
     expect(screen.queryByRole('button', { name: /Rename/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Delete/i })).not.toBeInTheDocument();
   });
 
   it('points back at the Trains section for looking up other trains', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     renderWithMantine(await TrackedTrainByUidPage({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) }));
     expect(screen.getByRole('link', { name: 'Look up another train' })).toHaveAttribute('href', '/trains');
   });
 
   it('offers tracking as a light, secondary button, not the primary action', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     renderWithMantine(await TrackedTrainByUidPage({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) }));
     expect(screen.getByRole('button', { name: 'Track this train' })).toHaveAttribute('data-variant', 'light');
   });
@@ -391,7 +397,7 @@ describe('TrackedTrainByUidPage success path', () => {
   // where the URL format was confirmed and the `trainUid`-nullability
   // gating that component itself implements.
   it('links out to the matching Real Time Trains service page', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     await renderPage();
     const link = screen.getByRole('link', { name: /View on Real Time Trains/ });
     expect(link).toHaveAttribute('href', 'https://www.realtimetrains.co.uk/service/gb-nr:W12345/2026-08-31/detailed');
@@ -405,7 +411,7 @@ describe('TrackedTrainByUidPage success path', () => {
   // the same UK-local-time note as the other two locations this task
   // covers (incidents detail, line history).
   it('shows a LastUpdated caption with the real auto-refresh cadence and UK-time note', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     await renderPage();
     expect(screen.getByText(/Updated/)).toBeInTheDocument();
     expect(screen.getByText(/refreshes every 30s/)).toBeInTheDocument();
@@ -415,7 +421,7 @@ describe('TrackedTrainByUidPage success path', () => {
 
 describe('TrackedTrainByUidPage tracking overlay', () => {
   beforeEach(() => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
   });
 
   it('renders the plain public view when logged out', async () => {
@@ -606,7 +612,7 @@ describe('generateMetadata', () => {
       vi.useRealTimers();
     });
     const train = publicTrainState({ originName: 'London Waterloo', destinationName: 'Woking' });
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(train);
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(train);
     vi.mocked(api.getPreviewTrain).mockResolvedValue({ ...train, delayMinutes: 0 });
     const onTime = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
     const [image] = onTime.openGraph?.images as { url: string; alt: string }[];
@@ -629,7 +635,7 @@ describe('generateMetadata', () => {
   });
 
   it('still lists its card, unversioned by state, when the preview read fails', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState());
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     vi.mocked(api.getPreviewTrain).mockRejectedValue(new Error('down'));
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
     expect((metadata.openGraph?.images as { url: string }[])[0]!.url).toMatch(
@@ -638,7 +644,7 @@ describe('generateMetadata', () => {
   });
 
   it('titles the page with origin and destination when both are known', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ originName: 'London Waterloo', destinationName: 'Woking' }),
     );
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
@@ -653,7 +659,7 @@ describe('generateMetadata', () => {
   });
 
   it('falls back to a bare train uid title when origin/destination are unknown', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ originCrs: null, originName: null, destinationCrs: null, destinationName: null }),
     );
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
@@ -664,7 +670,7 @@ describe('generateMetadata', () => {
   // in the card image only, so a chat app's hours-old unfurl never says a
   // delay or a location that has moved on.
   it("describes the page, not the train's live state", async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ lastReportedLocation: 'Woking', delayMinutes: 5, journeyStops: [ORIGIN_STOP] }),
     );
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
@@ -676,13 +682,13 @@ describe('generateMetadata', () => {
   });
 
   it('says the same for a cancelled train or one cut short', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(publicTrainState({ status: 'cancelled' }));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState({ status: 'cancelled' }));
     const cancelled = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
     expect(cancelled.description).toBe('19:32 WAT to WOK, Mon 31 Aug: calling points, platforms and live running.');
 
     const raynes = { crs: 'RAY', name: 'Raynes Park', stopIndex: 5 };
     const waterloo = { crs: 'WAT', name: 'London Waterloo', stopIndex: 11 };
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         status: 'cancelled',
         cancellation: {
@@ -702,7 +708,7 @@ describe('generateMetadata', () => {
   });
 
   it('names an untitled train by its UID', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         originCrs: null,
         originName: null,
@@ -716,7 +722,7 @@ describe('generateMetadata', () => {
   });
 
   it('calls notFound() on ApiNotFoundError, matching the page component', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockRejectedValue(new ApiNotFoundError('not found'));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockRejectedValue(new ApiNotFoundError('not found'));
     await expect(generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) })).rejects.toThrow(
       'NEXT_NOT_FOUND',
     );
@@ -724,12 +730,12 @@ describe('generateMetadata', () => {
   });
 
   it('calls notFound() for a malformed date, without fetching', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockClear();
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockClear();
     await expect(generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: 'not-a-date' }) })).rejects.toThrow(
       'NEXT_NOT_FOUND',
     );
     expect(notFoundMock).toHaveBeenCalled();
-    expect(api.getPublicTrainByUidAndDate).not.toHaveBeenCalled();
+    expect(api.getTrainByUidAndDateForViewer).not.toHaveBeenCalled();
   });
 });
 
@@ -845,7 +851,7 @@ describe('header and timetable departure times', () => {
   }
 
   it('renders one instant identically in the page header and the timetable row', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({
         originName: 'London Waterloo',
         destinationName: 'Woking',
@@ -896,7 +902,7 @@ describe('TrackedTrainByUidPage: buses and ferries', () => {
     ['bus', 'Bus service · UID C30818', 'Track this bus'],
     ['ferry', 'Ferry · UID C30818', 'Track this ferry'],
   ] as const)('%s: the header uses the mode label and the page says timetabled only', async (mode, heading, button) => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(bus(mode));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(bus(mode));
     await renderPage('C30818');
     expect(screen.getByText(heading)).toBeInTheDocument();
     expect(screen.getByText(/Timetabled only. Buses and ferries aren't tracked live/)).toBeInTheDocument();
@@ -906,7 +912,7 @@ describe('TrackedTrainByUidPage: buses and ferries', () => {
   });
 
   it('a train is named by its time and route, with the UID as secondary text', async () => {
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(
       publicTrainState({ serviceMode: 'train', liveTracking: true }),
     );
     await renderPage();
@@ -917,9 +923,76 @@ describe('TrackedTrainByUidPage: buses and ferries', () => {
   it('the metadata says a bus or ferry has its timetable only', async () => {
     const state = toJourneyState(bus('bus'));
     expect(state.serviceMode).toBe('bus');
-    vi.mocked(api.getPublicTrainByUidAndDate).mockResolvedValue(bus('ferry'));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(bus('ferry'));
     const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'C30818', date: '2026-08-31' }) });
     expect(metadata.description).toMatch(/: calling points and timetabled times\.$/);
     expect(metadata.description).not.toMatch(/live/);
+  });
+});
+
+describe('a pruned train served from a journey leg (DS-638)', () => {
+  const snapshotTrain = () =>
+    publicTrainState({
+      trainDetail: 'snapshot',
+      snapshotAt: '2026-10-01T03:00:00Z',
+      trainId: null,
+      status: 'completed',
+      delayMinutes: 6,
+      lastReportedLocation: null,
+      lastEventType: null,
+      nextCallingPoint: null,
+      operatorName: null,
+      operatorCode: null,
+      trackingPhase: null,
+      originName: 'London Waterloo',
+      destinationName: 'Woking',
+      journeyStops: [ORIGIN_STOP],
+    });
+
+  beforeEach(() => {
+    notFoundMock.mockClear();
+    vi.mocked(api.getPreviewTrain).mockReset();
+    vi.mocked(api.getPreviewTrain).mockRejectedValue(new Error('not stubbed'));
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(snapshotTrain());
+  });
+
+  it('shows the booked timetable and recorded outcome with the neutral note, and nothing live', async () => {
+    await renderPage();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('London Waterloo to Woking');
+    expect(screen.getByText(/Live details for this train are no longer kept\./)).toBeInTheDocument();
+    expect(screen.getByText(/The booked timetable is shown\./)).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Journey timeline' })).toBeInTheDocument();
+    expect(screen.queryByText(/refreshes every/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Waiting for its first movement report/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last reported/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Track this/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /share/i })).not.toBeInTheDocument();
+  });
+
+  it('passes the share token to the fetch on a share-link route', async () => {
+    const element = await renderTrainPage('W12345', '2026-08-31', 'Tok_en-1');
+    renderWithMantine(element);
+    expect(api.getTrainByUidAndDateForViewer).toHaveBeenCalledWith('W12345', '2026-08-31', 'Tok_en-1');
+  });
+
+  it('keeps the metadata generic: no route, times or card from the private copy', async () => {
+    const metadata = await generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) });
+    expect(metadata.title).toBe('Train W12345');
+    expect(metadata.description).toBe('A train from a journey.');
+    expect(JSON.stringify(metadata)).not.toMatch(/Waterloo|Woking|WAT|WOK|card\.png/);
+    expect(metadata.robots).toMatchObject({ index: false, follow: false });
+    expect(api.getPreviewTrain).not.toHaveBeenCalled();
+  });
+
+  it('stays the usual not-found for a viewer the api gave a 404', async () => {
+    vi.mocked(api.getTrainByUidAndDateForViewer).mockRejectedValue(new ApiNotFoundError('not found'));
+    await expect(renderPage()).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(generateMetadata({ params: Promise.resolve({ uid: 'W12345', date: '2026-08-31' }) })).rejects.toThrow(
+      'NEXT_NOT_FOUND',
+    );
+  });
+
+  it('forces the route dynamic so nothing is stored or shared', () => {
+    expect(dynamic).toBe('force-dynamic');
   });
 });

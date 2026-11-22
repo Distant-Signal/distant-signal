@@ -924,6 +924,51 @@ export async function getTrackedTrainById(id: number | string): Promise<TrackedT
   return response.json() as Promise<TrackedTrainState>;
 }
 
+/** The header the api reads a journey's share-link token from on
+ * `GET /Train/by-uid` (DS-638). */
+const SHARE_TOKEN_HEADER = 'X-Journey-Share-Token';
+
+/** A share token's shape (base64url); anything else is never sent. */
+const SHARE_TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+/** `GET /Train/by-uid/{uid}/{date}` for the viewer, ANONYMOUS FIRST.
+ *
+ * The public read goes out with no credentials, exactly as before, so a
+ * live train is the same answer for everyone and nothing about the viewer
+ * touches it. Only a 404 is retried, and only when the viewer has
+ * something the api could accept: their session cookie, or the share token
+ * of the journey they opened this page through (`shareToken`, from the
+ * `/journeys/shared/{token}/train/...` route's path). The api then serves a
+ * pruned train from a journey leg's copy (`trainDetail: 'snapshot'`) when
+ * that viewer may read the leg; anyone else still gets the 404.
+ *
+ * The retry is never stored: `cache: 'no-store'`, the same as every read
+ * here, and the callers' pages are dynamic and send `private, no-store`.
+ * A viewer with neither credential gets the original 404 with no second
+ * request. */
+export async function getTrainByUidAndDateForViewer(
+  uid: string,
+  date: string,
+  shareToken?: string | null,
+): Promise<PublicTrainState> {
+  try {
+    return await getPublicTrainByUidAndDate(uid, date);
+  } catch (err) {
+    if (!(err instanceof ApiNotFoundError)) throw err;
+    const cookie = await cookieForwardInit();
+    const token = shareToken && SHARE_TOKEN_PATTERN.test(shareToken) ? shareToken : null;
+    const headers: Record<string, string> = {
+      ...(cookie.headers as Record<string, string> | undefined),
+      ...(token ? { [SHARE_TOKEN_HEADER]: token } : {}),
+    };
+    if (Object.keys(headers).length === 0) throw err;
+    const url = `${baseUrl()}/Train/by-uid/${encodeURIComponent(uid)}/${encodeURIComponent(date)}`;
+    const response = await apiFetch(url, { cache: 'no-store', headers });
+    if (!response.ok) throw errorForResponse(url, response);
+    return (await response.json()) as PublicTrainState;
+  }
+}
+
 /** `GET /Train/by-uid/{uid}/{date}` -- PUBLIC and UNSCOPED, and typed as
  * the `PublicTrainState` it actually returns.
  *

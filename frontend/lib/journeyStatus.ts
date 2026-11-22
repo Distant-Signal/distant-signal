@@ -37,6 +37,7 @@ export type LegStatusGroup =
   | 'untrackedPlanned'
   | 'untrackedInProgress'
   | 'good'
+  | 'noRecord'
   | 'planned'
   | 'awaiting'
   | 'unmatched'
@@ -61,6 +62,10 @@ const LEG_STATUS_RANK: Record<LegStatusGroup, number> = {
   untrackedPlanned: -2,
   untrackedInProgress: -1,
   good: 0,
+  // A pruned train the leg kept no outcome for (DS-648): nothing says it
+  // was on time or late. Neutral, above "on time" so a journey is not
+  // called on time on no evidence, below everything that needs attention.
+  noRecord: 0.5,
   // A timetabled train whose first Network Rail report isn't due yet
   // (spec §4): nothing is wrong, but it isn't confirmed running either.
   planned: 1,
@@ -114,14 +119,20 @@ export function legStatusGroup(leg: JourneyLegDetail): LegStatusGroup {
   // A leg whose train has been pruned (`trainDetail` snapshot or
   // unavailable) is over: it was never "awaiting" or "planned" now, so it
   // skips those arms and reads from its recorded delay, if it has one.
-  const detailKept = leg.trainDetail === 'snapshot' || leg.trainDetail === 'unavailable';
+  const detailKept = legDetailKept(leg);
   if (!detailKept) {
     if (state.trackingPhase === 'noTimetable') return 'noTimetable';
     if (state.trackingPhase === 'planned') return 'planned';
     if (state.status === 'awaiting_activation' || state.status === null) return 'awaiting';
   }
+  if (detailKept && state.status !== 'completed') return 'noRecord';
   if (state.delayMinutes !== null && state.delayMinutes > 0) return 'delayed';
   return 'good'; // 'en_route' with no reported delay, or 'completed'.
+}
+
+/** The leg's train was pruned: its detail is a copy or gone (DS-643). */
+function legDetailKept(leg: JourneyLegDetail): boolean {
+  return leg.trainDetail === 'snapshot' || leg.trainDetail === 'unavailable';
 }
 
 /** The same classification applied to one row of `GET /Journeys/mine`
@@ -379,16 +390,19 @@ function trainStatus(leg: JourneyLegDetail): string | null {
   return isUntrackedLeg(leg) ? null : (leg.trackedTrainState?.status ?? null);
 }
 
-/** Arrived: a completed train, or an untracked leg that is done. */
+/** Over, for the journey's phase: arrived (a completed train, or an
+ * untracked leg that is done), or a train that was pruned, which is long
+ * past whatever happened to it. A pruned leg that kept no outcome still
+ * reads "No live record" (`legStatusGroup`), never "on time". */
 function legFinished(leg: JourneyLegDetail): boolean {
   if (isUntrackedLeg(leg)) return leg.untrackedStatus === 'done';
-  return trainStatus(leg) === 'completed';
+  return trainStatus(leg) === 'completed' || (legDetailKept(leg) && trainStatus(leg) !== 'cancelled');
 }
 
 function legStarted(leg: JourneyLegDetail): boolean {
   if (isUntrackedLeg(leg)) return leg.untrackedStatus === 'inProgress' || leg.untrackedStatus === 'done';
   const status = trainStatus(leg);
-  return status === 'en_route' || status === 'completed';
+  return status === 'en_route' || status === 'completed' || legDetailKept(leg);
 }
 
 /** One change, from `leg` onto `next`: the api's judgement
@@ -426,9 +440,7 @@ function worstConnection(legs: readonly JourneyLegDetail[]): 'atRisk' | 'missed'
 /** The summary from a journey's full legs (`GET /Journeys/{id}`). `null`
  * for a journey with no legs. */
 export function journeyDetailSummary(legs: readonly JourneyLegDetail[]): JourneySummary | null {
-  const notCompleted = legs.findIndex(
-    (leg) => !(trainStatus(leg) === 'completed' || (isUntrackedLeg(leg) && leg.untrackedStatus === 'done')),
-  );
+  const notCompleted = legs.findIndex((leg) => !legFinished(leg));
   const currentIndex = notCompleted === -1 ? legs.length - 1 : notCompleted;
   const currentLeg = legs[currentIndex];
   if (currentLeg === undefined) return null;

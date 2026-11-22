@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { journeyListItemStatusGroup, legStatusGroup, legStatusRank, worstLegStatus } from './journeyStatus';
+import {
+  journeyDetailSummary,
+  journeyListItemStatusGroup,
+  legStatusGroup,
+  legStatusRank,
+  worstLegStatus,
+} from './journeyStatus';
 import type { JourneyLegDetail, JourneyListItem, TrackedTrainState } from './types';
 import { JOURNEY_LEG_DEFAULTS, JOURNEY_LIST_ITEM_DEFAULTS, TRACKED_TRAIN_STATE_DEFAULTS } from '@/test/apiDefaults';
 
@@ -81,7 +87,7 @@ describe('legStatusGroup', () => {
   it('does not call a pruned leg awaiting or planned', () => {
     for (const trainDetail of ['snapshot', 'unavailable'] as const) {
       const leg = baseLeg({ trainDetail, trackedTrainState: baseTrackedTrainState({ status: null }) });
-      expect(legStatusGroup(leg)).toBe('good');
+      expect(legStatusGroup(leg)).toBe('noRecord');
     }
     const delayed = baseLeg({
       trainDetail: 'snapshot',
@@ -373,5 +379,39 @@ describe('legStatusGroup: untracked legs and tracking phases', () => {
     };
     expect(journeyListItemStatusGroup(row)).toBe('delayed');
     expect(journeyListItemStatusGroup({ ...row, resolutionStatus: null, status: null })).toBe('unmatched');
+  });
+});
+
+describe('a pruned leg with no recorded outcome (DS-648)', () => {
+  const pruned = (trainDetail: 'snapshot' | 'unavailable', status: TrackedTrainState['status']) =>
+    baseLeg({ trainDetail, trackedTrainState: baseTrackedTrainState({ status, delayMinutes: null }) });
+
+  it('is "no live record", never on time, when it kept no outcome', () => {
+    expect(legStatusGroup(pruned('unavailable', null))).toBe('noRecord');
+    expect(legStatusGroup(pruned('snapshot', null))).toBe('noRecord');
+    expect(legStatusGroup(pruned('snapshot', 'en_route'))).toBe('noRecord');
+  });
+
+  it('a snapshot with a recorded arrival is still on time, and a cancellation is still cancelled', () => {
+    expect(legStatusGroup(pruned('snapshot', 'completed'))).toBe('good');
+    expect(legStatusGroup(pruned('snapshot', 'cancelled'))).toBe('severe');
+  });
+
+  it('ranks above good and below a delay', () => {
+    expect(legStatusRank(pruned('unavailable', null))).toBeGreaterThan(legStatusRank(baseLeg({})));
+    expect(legStatusRank(pruned('unavailable', null))).toBeLessThan(
+      legStatusRank(baseLeg({ trackedTrainState: baseTrackedTrainState({ status: 'en_route', delayMinutes: 4 }) })),
+    );
+  });
+
+  it('heads a journey whose only leg has no record, and counts as past rather than upcoming', () => {
+    const summary = journeyDetailSummary([pruned('unavailable', null)]);
+    expect(summary?.group).toBe('noRecord');
+    expect(summary?.phase).toBe('completed');
+  });
+
+  it('does not roll a journey of one recorded arrival and one unrecorded leg up as on time', () => {
+    const summary = journeyDetailSummary([pruned('snapshot', 'completed'), pruned('unavailable', null)]);
+    expect(summary?.group).toBe('noRecord');
   });
 });
