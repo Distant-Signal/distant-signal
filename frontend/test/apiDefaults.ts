@@ -267,6 +267,8 @@ export const JOURNEY_LIST_ITEM_DEFAULTS = {
   plannedDeparture: null,
   plannedArrival: null,
   untrackedStatus: null,
+  trainDetail: null,
+  snapshotAt: null,
   trackingPhase: null,
   firstReportExpectedAt: null,
   trainLegCount: 1,

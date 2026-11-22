@@ -122,7 +122,12 @@ export function TrainJourney({
 
   // A pruned train (DS-643): its live detail is gone, so none of the
   // waiting, planned or running states below can be true of it.
-  if (state.resolutionStatus === 'resolved' && (trainDetail === 'snapshot' || trainDetail === 'unavailable')) {
+  // `schedule_matched` too: the api reports a pruned detail for either, and
+  // a train it never reported on is not one that "got no report" (DS-638).
+  if (
+    (state.resolutionStatus === 'resolved' || state.resolutionStatus === 'schedule_matched') &&
+    (trainDetail === 'snapshot' || trainDetail === 'unavailable')
+  ) {
     return (
       <Stack gap="sm" data-train-detail={trainDetail}>
         <KeptOutcome state={state} suppressTrainUidHeading={suppressTrainUidHeading} />

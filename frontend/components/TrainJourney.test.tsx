@@ -1361,6 +1361,18 @@ describe('TrainJourney: a leg whose train detail is no longer live', () => {
     expect(screen.getByText('Live details for this train are no longer kept.')).toBeInTheDocument();
   });
 
+  it('a schedule-matched leg with a kept detail says so, not that it got no report (DS-638)', () => {
+    renderWithMantine(
+      <TrainJourney
+        state={resolved({ resolutionStatus: 'schedule_matched', journeyStops: stops })}
+        trainDetail="snapshot"
+      />,
+    );
+    expect(screen.getByText(/Live details for this train are no longer kept\./)).toBeInTheDocument();
+    expect(screen.queryByText(/No movement report was received/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Live tracking hasn't started/)).not.toBeInTheDocument();
+  });
+
   it.each([null, 'live', undefined] as const)(
     'trainDetail %s on a genuinely waiting leg: keeps the waiting copy',
     (d) => {

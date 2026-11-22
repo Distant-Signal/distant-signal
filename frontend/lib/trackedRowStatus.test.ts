@@ -413,3 +413,51 @@ describe("tracked row status: the train's own cancellation (DS-181)", () => {
     expect(journeyRowStatus(row, TODAY)).toMatchObject({ kind: 'severe', cancellation: full });
   });
 });
+
+describe('a journey row whose train was pruned (DS-638)', () => {
+  // The api fills a pruned, matched leg's outcome on the row and says where
+  // its detail comes from; its counts then read it as finished.
+  const pruned = (overrides: Partial<JourneyListItem>) =>
+    journey({
+      serviceDate: PAST,
+      firstServiceDate: PAST,
+      trackingPhase: null,
+      status: null,
+      delayMinutes: null,
+      finalArrivalDelayMinutes: null,
+      ...overrides,
+    });
+
+  it('a recovered arrival reads Completed with its final delay, not "no report"', () => {
+    const row = pruned({
+      trainDetail: 'snapshot',
+      snapshotAt: '2026-11-20T10:00:00Z',
+      status: 'completed',
+      delayMinutes: 7,
+      finalArrivalDelayMinutes: 7,
+      finishedLegCount: 1,
+      startedLegCount: 1,
+    });
+    expect(journeyRowStatus(row, TODAY)).toMatchObject({ kind: 'completed', finished: true, delayMinutes: 7 });
+  });
+
+  it('a recovered cancellation is still Cancelled', () => {
+    const row = pruned({ trainDetail: 'snapshot', status: 'cancelled', cancelledLegCount: 1 });
+    expect(journeyRowStatus(row, TODAY)).toMatchObject({ kind: 'severe', finished: true });
+  });
+
+  it('a pruned leg with no outcome reads No live record, not "no report"', () => {
+    for (const trainDetail of ['snapshot', 'unavailable'] as const) {
+      expect(journeyRowStatus(pruned({ trainDetail }), TODAY)).toMatchObject({ kind: 'noRecord', finished: true });
+    }
+  });
+
+  it('a live or unknown leg that really got no report still says so', () => {
+    for (const trainDetail of ['live', null] as const) {
+      expect(journeyRowStatus(pruned({ trainDetail, status: 'awaiting_activation' }), TODAY)).toMatchObject({
+        kind: 'noReport',
+        finished: true,
+      });
+    }
+  });
+});
