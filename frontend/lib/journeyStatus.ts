@@ -192,8 +192,11 @@ export function journeyListItemStatusGroup(item: JourneyListItem): LegStatusGrou
             trackingPhase: item.trackingPhase ?? null,
           } as JourneyLegDetail['trackedTrainState']),
     legSkip: null,
-    trainDetail: null,
-    snapshotAt: null,
+    // Where the leg's detail comes from (DS-638): a train pruned from the
+    // shared table keeps its outcome (`status`, `delayMinutes`) on the row,
+    // and says so, so it is not read as one that was never reported.
+    trainDetail: item.trainDetail,
+    snapshotAt: item.snapshotAt,
   });
 }
 
