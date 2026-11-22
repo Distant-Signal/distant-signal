@@ -18,8 +18,29 @@ import {
   sharedJourneySummarySentences,
 } from '@/lib/sharedJourneyPreview';
 import { DataCredits, journeyCredits } from '@/components/DataCredits';
+import { renderTrainPage, PRIVATE_TRAIN_DESCRIPTION } from '@/app/train/[uid]/[date]/page';
 
 export const revalidate = 0;
+// What this page shows depends on the viewer (the train view below is read
+// with the share token or a session), so it is never stored or shared.
+export const dynamic = 'force-dynamic';
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TRAIN_UID_PATTERN = /^[A-Za-z0-9]{1,16}$/;
+
+/** `?train={uid}&date={date}`: a leg's train, read through this share link
+ * (DS-638). Only the train and day are in the query; the token stays in the
+ * path. `null` for anything else, which is the journey page as before. */
+function sharedTrainFrom(searchParams: Record<string, string | string[] | undefined>) {
+  const { train, date } = searchParams;
+  return typeof train === 'string' &&
+    typeof date === 'string' &&
+    TRAIN_UID_PATTERN.test(train) &&
+    DATE_PATTERN.test(date)
+    ? { uid: train, date }
+    : null;
+}
 
 const log = createLogger('app/journeys/shared/[token]');
 
@@ -149,8 +170,21 @@ const NO_LINK_METADATA: Metadata = { robots: NOINDEX_NOFOLLOW };
  * unconditional here rather than conditional on one being set. `JourneyDetail` carries no owner name/id at all to leak
  * in the first place (`journey_readable_by`'s own read-only, ownership-
  * blind contract). */
-export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: SearchParams;
+}): Promise<Metadata> {
   const { token } = await params;
+
+  // A leg's train, which may be only a journey leg's private copy: generic
+  // text, no fetch, no card, never indexed.
+  const sharedTrain = sharedTrainFrom(await searchParams);
+  if (sharedTrain) {
+    return pageMetadata(`Train ${sharedTrain.uid}`, PRIVATE_TRAIN_DESCRIPTION, { capability: true });
+  }
 
   if (!isValidShareToken(token)) {
     return NO_LINK_METADATA;
@@ -189,8 +223,21 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   });
 }
 
-export default async function SharedJourneyPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function SharedJourneyPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: SearchParams;
+}) {
   const { token } = await params;
+
+  // A leg's train, read through this link: the train page's own body with
+  // the share token, so a pruned train can show without a session.
+  const sharedTrain = sharedTrainFrom(await searchParams);
+  if (sharedTrain && isValidShareToken(token)) {
+    return renderTrainPage(sharedTrain.uid, sharedTrain.date, token);
+  }
 
   if (!isValidShareToken(token)) {
     return (

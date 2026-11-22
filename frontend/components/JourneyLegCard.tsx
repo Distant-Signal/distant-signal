@@ -544,17 +544,20 @@ function LegTrainPicker({
 }
 
 /** The leg's train page. A pruned train on a shared journey goes through
- * the share link's own path (the token stays in the path, never a query),
- * the one place a viewer with no session can read it; everything else is
- * the public `/train/{uid}/{date}`. */
+ * the share link's own page (`/journeys/shared/{token}?train=..&date=..`:
+ * the token stays in the path, where the share link already has it, under
+ * its `no-referrer` policy; the query holds only the train and day), the one
+ * place a viewer with no session can read it; everything else is the public
+ * `/train/{uid}/{date}`. */
 export function trainPageHref(
   trainUid: string,
   serviceDate: string,
   trainDetail: JourneyLegDetail['trainDetail'],
   shareToken: string | undefined,
 ): string {
-  const train = `/train/${encodeURIComponent(trainUid)}/${serviceDate}`;
-  return shareToken && trainDetail === 'snapshot'
-    ? `/journeys/shared/${encodeURIComponent(shareToken)}${train}`
-    : train;
+  if (shareToken && trainDetail === 'snapshot') {
+    const query = new URLSearchParams({ train: trainUid, date: serviceDate });
+    return `/journeys/shared/${encodeURIComponent(shareToken)}?${query.toString()}`;
+  }
+  return `/train/${encodeURIComponent(trainUid)}/${serviceDate}`;
 }

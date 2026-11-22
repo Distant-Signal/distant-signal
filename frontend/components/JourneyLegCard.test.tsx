@@ -999,9 +999,9 @@ describe('JourneyLegCard: Edit search', () => {
 });
 
 describe('trainPageHref', () => {
-  it('goes through the share link path, token in the path, for a pruned train on a shared journey', () => {
+  it('goes through the share link page, token in the path, for a pruned train on a shared journey', () => {
     expect(trainPageHref('W12345', '2026-08-31', 'snapshot', 'Abc_-123')).toBe(
-      '/journeys/shared/Abc_-123/train/W12345/2026-08-31',
+      '/journeys/shared/Abc_-123?train=W12345&date=2026-08-31',
     );
   });
 

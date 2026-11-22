@@ -270,8 +270,8 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
   return renderTrainPage(uid, date, null);
 }
 
-/** The page's body, shared with the share-link route
- * (`app/journeys/shared/[token]/train/[uid]/[date]`), which passes the
+/** The page's body, shared with the share-link page
+ * (`app/journeys/shared/[token]`, `?train=..&date=..`), which passes the
  * journey's share token so a pruned train on that journey can be read
  * without a session. `null` here. */
 export async function renderTrainPage(uid: string, date: string, shareToken: string | null) {

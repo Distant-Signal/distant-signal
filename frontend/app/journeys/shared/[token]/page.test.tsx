@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
-import SharedJourneyPage, { generateMetadata } from './page';
+import SharedJourneyPage, { generateMetadata, dynamic } from './page';
+import * as trainPage from '@/app/train/[uid]/[date]/page';
 import { getJourney, getJourneyByShareToken, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 import type { JourneyDetail, JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import {
@@ -10,6 +11,11 @@ import {
   TRACKED_TRAIN_STATE_DEFAULTS,
   testPublicId,
 } from '@/test/apiDefaults';
+
+vi.mock('@/app/train/[uid]/[date]/page', async () => {
+  const actual = await vi.importActual<typeof import('@/app/train/[uid]/[date]/page')>('@/app/train/[uid]/[date]/page');
+  return { ...actual, renderTrainPage: vi.fn(async () => 'a train') };
+});
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
@@ -124,7 +130,9 @@ beforeEach(() => {
 });
 
 async function renderPage(token = 'tok123') {
-  return renderWithMantine(await SharedJourneyPage({ params: Promise.resolve({ token }) }));
+  return renderWithMantine(
+    await SharedJourneyPage({ params: Promise.resolve({ token }), searchParams: Promise.resolve({}) }),
+  );
 }
 
 describe('SharedJourneyPage', () => {
@@ -272,7 +280,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.robots).toEqual({ index: false, follow: false });
     expect(metadata.description).toBe(
@@ -293,7 +304,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.title).toBe('London Kings Cross (KGX) to York (YRK), 22 Sep 2026');
     expect(metadata.openGraph?.title).toBe('London Kings Cross (KGX) to York (YRK), 22 Sep 2026 · Distant Signal');
@@ -310,7 +324,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.title).toBe('KGX to YRK, 22 Sep 2026');
   });
@@ -330,7 +347,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.title).toBe('Shared journey');
   });
@@ -347,7 +367,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.description).toBe('A journey on 22 Sep 2026, on time. 1 leg, direct.');
     expect(metadata.openGraph?.description).toBe('A journey on 22 Sep 2026, on time. 1 leg, direct.');
@@ -362,7 +385,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.description).toBe('A journey on 22 Sep 2026, running delayed. 1 leg, direct.');
     expect(metadata.description).not.toMatch(/47/);
@@ -376,7 +402,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.description).toBe('A journey on 22 Sep 2026, cancelled. 1 leg, direct.');
   });
@@ -386,7 +415,10 @@ describe('generateMetadata', () => {
       sharedJourney({ legs: [matchedLeg({ matchMode: 'unmatched', trackedTrainState: null })] }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'tok123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'tok123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata.description).toBe('A journey on 22 Sep 2026, still needs a train picked. 1 leg, direct.');
   });
@@ -406,7 +438,10 @@ describe('generateMetadata', () => {
       }),
     );
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'super-secret-tok-abc123' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'super-secret-tok-abc123' }),
+      searchParams: Promise.resolve({}),
+    });
 
     // The token appears only in the preview image's own path, which a chat
     // app can't fetch without it.
@@ -425,7 +460,10 @@ describe('generateMetadata', () => {
   it('falls back to site-wide metadata on ApiNotFoundError, without 404ing the route', async () => {
     vi.mocked(getJourneyByShareToken).mockRejectedValue(new ApiNotFoundError('not found'));
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: 'bad-token' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'bad-token' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata).toEqual({ robots: { index: false, follow: false } });
   });
@@ -433,7 +471,10 @@ describe('generateMetadata', () => {
   it('falls back to site-wide metadata for a malformed token, without ever calling getJourneyByShareToken', async () => {
     vi.mocked(getJourneyByShareToken).mockClear();
 
-    const metadata = await generateMetadata({ params: Promise.resolve({ token: '../evil' }) });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: '../evil' }),
+      searchParams: Promise.resolve({}),
+    });
 
     expect(metadata).toEqual({ robots: { index: false, follow: false } });
     expect(getJourneyByShareToken).not.toHaveBeenCalled();
@@ -442,6 +483,58 @@ describe('generateMetadata', () => {
   it('propagates an unexpected error', async () => {
     vi.mocked(getJourneyByShareToken).mockRejectedValue(new Error('boom'));
 
-    await expect(generateMetadata({ params: Promise.resolve({ token: 'tok123' }) })).rejects.toThrow('boom');
+    await expect(
+      generateMetadata({ params: Promise.resolve({ token: 'tok123' }), searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow('boom');
+  });
+});
+
+describe("a leg's train read through the share link (DS-638)", () => {
+  const query = (train: string, date: string) => Promise.resolve({ train, date });
+
+  beforeEach(() => {
+    vi.mocked(trainPage.renderTrainPage).mockClear();
+    vi.mocked(getJourneyByShareToken).mockClear();
+  });
+
+  it('renders the train page body with the token from the path, without reading the journey', async () => {
+    const result = await SharedJourneyPage({
+      params: Promise.resolve({ token: 'Tok_en-1' }),
+      searchParams: query('W12345', '2026-08-31'),
+    });
+    expect(result).toBe('a train');
+    expect(trainPage.renderTrainPage).toHaveBeenCalledWith('W12345', '2026-08-31', 'Tok_en-1');
+    expect(getJourneyByShareToken).not.toHaveBeenCalled();
+  });
+
+  it('ignores a malformed train or date and shows the journey page as before', async () => {
+    vi.mocked(getJourneyByShareToken).mockRejectedValue(new ApiNotFoundError('gone'));
+    await SharedJourneyPage({
+      params: Promise.resolve({ token: 'Tok_en-1' }),
+      searchParams: query('a/b', '2026-08-31'),
+    });
+    await SharedJourneyPage({ params: Promise.resolve({ token: 'Tok_en-1' }), searchParams: query('W12345', 'x') });
+    expect(trainPage.renderTrainPage).not.toHaveBeenCalled();
+  });
+
+  it('never passes a malformed token on', async () => {
+    await SharedJourneyPage({ params: Promise.resolve({ token: 'a b' }), searchParams: query('W12345', '2026-08-31') });
+    expect(trainPage.renderTrainPage).not.toHaveBeenCalled();
+  });
+
+  it('has generic, never-indexed metadata and fetches nothing', async () => {
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ token: 'Tok_en-1' }),
+      searchParams: query('W12345', '2026-08-31'),
+    });
+    expect(metadata.title).toBe('Train W12345');
+    expect(metadata.description).toBe('A train from a journey.');
+    expect(metadata.robots).toMatchObject({ index: false, follow: false });
+    expect(JSON.stringify(metadata)).not.toMatch(/Tok_en-1|card\.png/);
+    expect(getJourneyByShareToken).not.toHaveBeenCalled();
+  });
+
+  it('is never prerendered or stored', () => {
+    expect(dynamic).toBe('force-dynamic');
   });
 });
