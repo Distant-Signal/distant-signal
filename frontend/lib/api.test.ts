@@ -28,6 +28,7 @@ import {
   getStationName,
   getTrackedTrainById,
   getPublicTrainByUidAndDate,
+  getTrainByUidAndDateForViewer,
   getMyTrackedTrains,
   getMyReliability,
   getIncident,
@@ -1213,6 +1214,81 @@ describe('api client', () => {
       vi.fn(async () => new Response('not found', { status: 404 })),
     );
     await expect(getPublicTrainByUidAndDate('C21373', '2026-08-28')).rejects.toBeInstanceOf(ApiNotFoundError);
+  });
+
+  describe('getTrainByUidAndDateForViewer: anonymous first, then the viewer (DS-638)', () => {
+    const url = 'http://test-api:8080/Train/by-uid/C21373/2026-08-28';
+    const found = () => new Response(JSON.stringify({ trainUid: 'C21373', trainDetail: 'snapshot' }), { status: 200 });
+    const missing = () => new Response('not found', { status: 404 });
+
+    it('a live train is one anonymous call, with no cookie, even for a signed-in viewer', async () => {
+      incomingCookies.header = 'distant_signal_session=abc123';
+      const train = await getTrainByUidAndDateForViewer('C21373', '2026-08-28', 'tok_en-1');
+      expect(train).toBeDefined();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      const init = vi.mocked(fetch).mock.calls[0]![1] as RequestInit;
+      expect(init.headers).toBeUndefined();
+      expect(init.cache).toBe('no-store');
+    });
+
+    it('retries a 404 with the session cookie, uncached', async () => {
+      incomingCookies.header = 'distant_signal_session=abc123';
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(missing()).mockResolvedValueOnce(found()));
+      const train = await getTrainByUidAndDateForViewer('C21373', '2026-08-28');
+      expect(train.trainDetail).toBe('snapshot');
+      expect(fetch).toHaveBeenCalledTimes(2);
+      const [retryUrl, retryInit] = vi.mocked(fetch).mock.calls[1]! as [string, RequestInit];
+      expect(retryUrl).toBe(url);
+      expect(retryInit.cache).toBe('no-store');
+      expect(retryInit.headers).toEqual({ Cookie: 'distant_signal_session=abc123' });
+    });
+
+    it('retries a 404 with the share token header when given one', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(missing()).mockResolvedValueOnce(found()));
+      await getTrainByUidAndDateForViewer('C21373', '2026-08-28', 'Abc_-123');
+      const retryInit = vi.mocked(fetch).mock.calls[1]![1] as RequestInit;
+      expect(retryInit.headers).toEqual({ 'X-Journey-Share-Token': 'Abc_-123' });
+    });
+
+    it('never sends a malformed share token', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => missing()),
+      );
+      await expect(getTrainByUidAndDateForViewer('C21373', '2026-08-28', 'a b\r\nX: y')).rejects.toBeInstanceOf(
+        ApiNotFoundError,
+      );
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('a viewer with no credentials gets the 404 after one call', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => missing()),
+      );
+      await expect(getTrainByUidAndDateForViewer('C21373', '2026-08-28')).rejects.toBeInstanceOf(ApiNotFoundError);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('a 404 for the viewer too stays a 404', async () => {
+      incomingCookies.header = 'distant_signal_session=abc123';
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => missing()),
+      );
+      await expect(getTrainByUidAndDateForViewer('C21373', '2026-08-28')).rejects.toBeInstanceOf(ApiNotFoundError);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry a server error', async () => {
+      incomingCookies.header = 'distant_signal_session=abc123';
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response('boom', { status: 500 })),
+      );
+      await expect(getTrainByUidAndDateForViewer('C21373', '2026-08-28')).rejects.toThrow();
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('getMyTrackedTrains fetches the correct URL, forwarding cookies, with no caching', async () => {

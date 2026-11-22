@@ -66,7 +66,13 @@ export type TrackedTrainRowInput = {
   TrackingPhaseFields;
 
 /** Problems that stay on a finished row: it didn't simply arrive. */
-const STILL_FLAGGED: ReadonlySet<JourneySummaryGroup> = new Set(['severe', 'partCancelled', 'noTimetable', 'skipped']);
+const STILL_FLAGGED: ReadonlySet<JourneySummaryGroup> = new Set([
+  'severe',
+  'partCancelled',
+  'noTimetable',
+  'skipped',
+  'noRecord',
+]);
 
 /** A journey summary as a badge. A finished journey says "Completed"
  * unless something still flags it; one from a past day that never

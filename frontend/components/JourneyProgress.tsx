@@ -72,6 +72,10 @@ interface JourneyProgressProps {
    * omitted (a train page, or a leg whose stops weren't found) shows the
    * whole calling pattern. */
   legRange?: LegStopRange | null;
+  /** `false` when the train's scheduled departure is long past
+   * (`lib/waitingForReport.ts`): a matched train that never reported then
+   * says so instead of "waiting". Default `true`. */
+  waitingExpected?: boolean;
 }
 
 /** Origin and Terminate are the two node kinds that print their station
@@ -223,6 +227,7 @@ function progressCopy(
    * the leg, and the name of the stop it was last at (outside the leg's
    * stops when `phase` is `before`). `null` for the whole train. */
   leg: { phase: LegPhase; trainAt: string | null } | null = null,
+  waitingExpected = true,
 ): ProgressCopy {
   const terminus = stops[stops.length - 1];
   if (terminus === undefined) {
@@ -320,6 +325,12 @@ function progressCopy(
     // resolved + awaiting_activation: a real train_uid is matched, nothing
     // has been confirmed at all -- the same copy StatusMessage uses for
     // awaiting_activation.
+    if (!waitingExpected) {
+      return {
+        caption: 'Matched to a timetabled train. No movement report was received.',
+        ariaLabel: 'Journey progress: matched to a timetabled train, no movement report received',
+      };
+    }
     return {
       caption: 'Matched to a timetabled train. Waiting for its first movement report.',
       ariaLabel: 'Journey progress: matched to a timetabled train, waiting for its first movement report',
@@ -356,6 +367,7 @@ export function JourneyProgress({
   lastReportedLocation,
   endpointNames,
   legRange = null,
+  waitingExpected = true,
 }: JourneyProgressProps) {
   const clipped = legRange !== null;
   const stops = legRange ? allStops.slice(legRange.start, legRange.end + 1) : allStops;
@@ -444,6 +456,7 @@ export function JourneyProgress({
     markerFromReportedLocation,
     trackingPhase,
     legPhase ? { phase: legPhase, trainAt } : null,
+    waitingExpected,
   );
 
   // Scrolls THIS diagram's own horizontal scroll box, and only it --

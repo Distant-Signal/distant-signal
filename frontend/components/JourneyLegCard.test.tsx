@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
-import { JourneyLegCard } from './JourneyLegCard';
+import { JourneyLegCard, trainPageHref } from './JourneyLegCard';
 import { UsualTrainProvider } from './UsualTrainContext';
 import type { JourneyLegDetail, TrackedTrainState } from '@/lib/types';
 import { byVisibleText } from '@/test/routeText';
@@ -995,5 +995,19 @@ describe('JourneyLegCard: Edit search', () => {
         `/api/Journeys/7/legs/${testLegId(3)}/candidates`,
       ),
     );
+  });
+});
+
+describe('trainPageHref', () => {
+  it('goes through the share link path, token in the path, for a pruned train on a shared journey', () => {
+    expect(trainPageHref('W12345', '2026-08-31', 'snapshot', 'Abc_-123')).toBe(
+      '/journeys/shared/Abc_-123/train/W12345/2026-08-31',
+    );
+  });
+
+  it('is the public train page for everything else, and never carries the token in a query', () => {
+    expect(trainPageHref('W12345', '2026-08-31', 'snapshot', undefined)).toBe('/train/W12345/2026-08-31');
+    expect(trainPageHref('W12345', '2026-08-31', 'live', 'Abc_-123')).toBe('/train/W12345/2026-08-31');
+    expect(trainPageHref('W12345', '2026-08-31', null, 'Abc_-123')).toBe('/train/W12345/2026-08-31');
   });
 });

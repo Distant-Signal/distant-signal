@@ -15,6 +15,7 @@ import { CancellationNotice } from './CancellationNotice';
 import { trainCancellation } from '@/lib/cancellation';
 import { legStopRange } from '@/lib/legStopRange';
 import { trainPosition } from '@/lib/trainPosition';
+import { mayStillBeWaiting } from '@/lib/waitingForReport';
 
 /** Renders one train's journey through every state the backend can
  * return, per
@@ -102,6 +103,9 @@ export function TrainJourney({
   // `null`, preserving the exact guard semantics both `{... && (...)}` checks
   // below already relied on; filtering a non-null array can only ever shrink
   // it, never turn it back into `null`.
+  // Past its departure by a wide margin, a train with no status is not
+  // "waiting" (DS-648).
+  const waitingExpected = mayStillBeWaiting(state);
   const visibleJourneyStops = state.journeyStops?.filter(isGenuineCallingPoint) ?? null;
 
   // The journey leg's own stops, from boarding to alighting, on that same
@@ -189,6 +193,7 @@ export function TrainJourney({
           lastReportedLocation={state.lastReportedLocation}
           endpointNames={endpointNames}
           legRange={legRange}
+          waitingExpected={waitingExpected}
         />
       )}
       {visibleJourneyStops && (
@@ -267,6 +272,7 @@ function StatusMessage({
       </Text>
     );
 
+  const waitingExpected = mayStillBeWaiting(state);
   const pinSummary = showPinSummary(state, suppressTrainUidHeading) ? (
     <Text size="sm" c="dimmed">
       {trackedTrainDisplayName(state)}
@@ -375,7 +381,7 @@ function StatusMessage({
         <Text fw={500}>Matched to a timetabled train</Text>
         {pinSummary}
         <Text size="sm" c="dimmed">
-          Waiting for its first movement report.
+          {waitingExpected ? 'Waiting for its first movement report.' : 'No movement report was received.'}
         </Text>
       </Stack>
     );

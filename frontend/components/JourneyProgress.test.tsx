@@ -1145,6 +1145,22 @@ describe('JourneyProgress decision-table captions and aria-labels', () => {
     ).toBeInTheDocument();
   });
 
+  it('resolved + awaiting_activation, long past its departure: says no report was received', () => {
+    renderWithMantine(
+      <JourneyProgress
+        stops={[stop({ crs: 'A', kind: 'Origin' }), stop({ crs: 'B', kind: 'Terminate' })]}
+        resolutionStatus="resolved"
+        status="awaiting_activation"
+        trainUid="C21373"
+        mayHaveArrived={false}
+        lastReportedLocation={null}
+        waitingExpected={false}
+      />,
+    );
+    expect(screen.getByText('Matched to a timetabled train. No movement report was received.')).toBeInTheDocument();
+    expect(screen.queryByText(/Waiting for its first movement report/)).not.toBeInTheDocument();
+  });
+
   it('resolved + awaiting_activation: no marker, "matched to train" caption naming trainUid', () => {
     renderWithMantine(
       <JourneyProgress

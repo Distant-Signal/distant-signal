@@ -91,6 +91,7 @@ function journeyStatusPhrase(legs: JourneyLegDetail[]): string {
     untrackedPlanned: 'planned',
     untrackedInProgress: 'in progress',
     good: 'on time',
+    noRecord: 'with no live record kept',
     planned: 'planned',
     awaiting: 'awaiting its first movement report',
     noTimetable: 'not matched to a timetable',
@@ -278,7 +279,7 @@ export default async function SharedJourneyPage({ params }: { params: Promise<{ 
           afterFollowHref={`/journeys/${journey.publicId}`}
         />
       )}
-      <JourneyDetailView journey={journey} fetchedAt={fetchedAt} origin={origin} viaShareLink />
+      <JourneyDetailView journey={journey} fetchedAt={fetchedAt} origin={origin} viaShareLink shareToken={token} />
       <DataCredits credits={journeyCredits(journey.legs)} />
     </Stack>
   );

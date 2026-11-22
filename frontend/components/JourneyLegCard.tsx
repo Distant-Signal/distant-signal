@@ -160,6 +160,7 @@ export function JourneyLegCard({
   journeyId,
   leg,
   isOwner,
+  shareToken,
   isOnlyLeg,
   replan,
   neighbours,
@@ -168,6 +169,11 @@ export function JourneyLegCard({
   journeyId: string;
   leg: JourneyLegDetail;
   isOwner: boolean;
+  /** The token of the share link this journey is being read through, if
+   * any. A leg whose train was pruned (`trainDetail` `snapshot`) links to the
+   * train page under the share link's own path, so the api can read the
+   * leg's copy for a viewer with no session (DS-638). */
+  shareToken?: string | undefined;
   /** Whether this is the journey's only remaining leg -- threaded from
    * `page.tsx`'s own `journey.legs.length`, and passed straight through to
    * `RemoveJourneyLegButton` so it can warn (and, on success, redirect
@@ -366,7 +372,7 @@ export function JourneyLegCard({
               </TextLink>
             ) : (
               state.trainUid && (
-                <TextLink href={`/train/${encodeURIComponent(state.trainUid)}/${leg.serviceDate}`} size="xs">
+                <TextLink href={trainPageHref(state.trainUid, leg.serviceDate, leg.trainDetail, shareToken)} size="xs">
                   Train {state.trainUid}
                 </TextLink>
               )
@@ -535,4 +541,20 @@ function LegTrainPicker({
       />
     </Stack>
   );
+}
+
+/** The leg's train page. A pruned train on a shared journey goes through
+ * the share link's own path (the token stays in the path, never a query),
+ * the one place a viewer with no session can read it; everything else is
+ * the public `/train/{uid}/{date}`. */
+export function trainPageHref(
+  trainUid: string,
+  serviceDate: string,
+  trainDetail: JourneyLegDetail['trainDetail'],
+  shareToken: string | undefined,
+): string {
+  const train = `/train/${encodeURIComponent(trainUid)}/${serviceDate}`;
+  return shareToken && trainDetail === 'snapshot'
+    ? `/journeys/shared/${encodeURIComponent(shareToken)}${train}`
+    : train;
 }

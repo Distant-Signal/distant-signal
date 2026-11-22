@@ -1,10 +1,11 @@
 import { Stack, Title, Text, Group } from '@mantine/core';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPublicTrainByUidAndDate, getMyTrackedTrains, getPreviewTrain, ApiNotFoundError } from '@/lib/api';
+import { getTrainByUidAndDateForViewer, getMyTrackedTrains, getPreviewTrain, ApiNotFoundError } from '@/lib/api';
 import { ShareButton } from '@/components/ShareButton';
 import { TrainOperator } from '@/components/TrainOperator';
 import { TrainJourneyPanel } from '@/components/TrainJourneyPanel';
+import { TrainJourney } from '@/components/TrainJourney';
 import { TrackThisTrainButton } from '@/components/TrackThisTrainButton';
 import { TrackedTrainOwnerControls } from '@/components/TrackedTrainOwnerControls';
 import { TextLink } from '@/components/TextLink';
@@ -26,6 +27,18 @@ import { trainIdentifiers, trainName } from '@/lib/trainName';
 import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+// Never prerendered or stored: what this page shows depends on who is
+// looking. The api answers a pruned train only to a viewer who may read a
+// journey leg that kept it (DS-638), and that answer must not reach anyone
+// else through Next's full-route or data cache, a CDN or a browser. `cookies()`
+// below already makes the render dynamic; this keeps it so, and Next then
+// sends `private, no-cache, no-store, max-age=0, must-revalidate`.
+export const dynamic = 'force-dynamic';
+
+/** The meta description of a train held only as a journey leg's private
+ * copy: nothing about the train itself. */
+export const PRIVATE_TRAIN_DESCRIPTION = 'A train from a journey.';
 
 /** Adapts the PUBLIC, shared-train response into the subset
  * `TrainJourney` renders.
@@ -63,7 +76,10 @@ export function toJourneyState(train: PublicTrainState): TrainJourneyState {
     pinScheduledDeparture: train.scheduledDeparture,
     // `GET /Train/by-uid` is GB-only.
     irishTrain: null,
-    resolutionStatus: train.trainId ? 'resolved' : train.originCrs ? 'schedule_matched' : 'pending',
+    // A snapshot is a pruned train a journey leg still holds a copy of, so
+    // it is a resolved one whatever its (possibly absent) live id says.
+    resolutionStatus:
+      train.trainDetail === 'snapshot' || train.trainId ? 'resolved' : train.originCrs ? 'schedule_matched' : 'pending',
     trainUid: train.trainUid,
     trainId: train.trainId,
     scheduleDestinationCrs: train.destinationCrs,
@@ -181,12 +197,19 @@ export async function generateMetadata({
 
   let train: PublicTrainState;
   try {
-    train = await getPublicTrainByUidAndDate(uid, date);
+    train = await getTrainByUidAndDateForViewer(uid, date);
   } catch (err) {
     if (err instanceof ApiNotFoundError) {
       notFound();
     }
     throw err;
+  }
+
+  // A pruned train is only here because this viewer may read a journey leg
+  // that kept it. Nothing of that private copy goes into the title,
+  // description or a preview image: generic text, no card, never indexed.
+  if (train.trainDetail === 'snapshot') {
+    return pageMetadata(`${serviceHeading(train)} ${uid}`, PRIVATE_TRAIN_DESCRIPTION, { capability: true });
   }
 
   const title = publicTrainName(train) ?? `${serviceHeading(train)} ${uid}`;
@@ -244,7 +267,14 @@ export async function generateMetadata({
  * change. */
 export default async function TrackedTrainByUidPage({ params }: { params: Promise<{ uid: string; date: string }> }) {
   const { uid, date } = await params;
+  return renderTrainPage(uid, date, null);
+}
 
+/** The page's body, shared with the share-link route
+ * (`app/journeys/shared/[token]/train/[uid]/[date]`), which passes the
+ * journey's share token so a pruned train on that journey can be read
+ * without a session. `null` here. */
+export async function renderTrainPage(uid: string, date: string, shareToken: string | null) {
   // Validated before the fetch fires, per the same "malformed URL segment
   // 404s directly" rule as the by-id page (Task 8) --
   // docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md's
@@ -275,7 +305,7 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
     // for this pass); revisit if this membership check becomes a real
     // cost.
     [train, myTrackedTrains] = await Promise.all([
-      getPublicTrainByUidAndDate(uid, date),
+      getTrainByUidAndDateForViewer(uid, date, shareToken),
       getMyTrackedTrains().catch(() => null),
     ]);
   } catch (err) {
@@ -309,6 +339,7 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
   // fields (`trainId`, `lastReportedLocation`, `scheduleCallingPoints`,
   // `journeyStops`, ...) that `TrainJourney` needs, while `train` (the
   // public fetch above) already has them in full.
+  const snapshot = train.trainDetail === 'snapshot';
   const journeyState: TrainJourneyState = match
     ? { ...toJourneyState(train), customName: match.customName }
     : toJourneyState(train);
@@ -344,7 +375,7 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
             // `DeleteTrainButton`'s own doc comment for why this is a plain
             // prop rather than an `onDeleted` callback.
             <TrackedTrainOwnerControls train={match} afterDelete="refresh" />
-          ) : (
+          ) : snapshot ? null : (
             // Shown to EVERY visitor, logged in or not -- the shared
             // "show the control to everyone, prompt on the real 401"
             // posture `PinToggle`/`TrackTrainForm` already establish via
@@ -353,7 +384,11 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
           )}
           {/* Independent of ownership -- shown regardless of which branch
               above rendered. */}
-          <ShareButton />
+          {/* A pruned train's page answers only the viewer who may read the
+              journey that kept it, so a copied link would be a 404 for
+              anyone else, and on a share-link route it would carry the
+              journey's token. */}
+          {!snapshot && !shareToken && <ShareButton />}
         </Group>
       </Group>
       {/* `TrainJourneyPanel` bundles `TrainJourney` with its Real Time
@@ -370,17 +405,27 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
           omits this prop and keeps its own "Train {trainUid}" line. */}
       {/* Far-ahead service dates only (`provisional`, see
           `ProvisionalTimetableNote`): late timetable changes may still land. */}
-      <ProvisionalTimetableNote provisional={train.provisional} />
-      {/* A live train with no stops (added at short notice): says why only
-          its position and delay show. */}
-      <TimetableStopsNote train={train} />
-      <TrainJourneyPanel state={journeyState} suppressTrainUidHeading />
-      <Group gap={4}>
-        <LastUpdated timestamp={renderedAt} />
-        <Text size="xs" c="dimmed">
-          · refreshes every {REFRESH_INTERVAL_MS / 1000}s · {TIMES_IN_UK_LOCAL_TIME}
-        </Text>
-      </Group>
+      {snapshot ? (
+        // A pruned train, from a journey leg's own copy (DS-638): its
+        // booked timetable and recorded outcome, with the same note the
+        // journey legs carry. No live board, estimates, reasons or
+        // operator exist to show, and nothing here refreshes.
+        <TrainJourney state={journeyState} trainDetail="snapshot" suppressTrainUidHeading />
+      ) : (
+        <>
+          <ProvisionalTimetableNote provisional={train.provisional} />
+          {/* A live train with no stops (added at short notice): says why only
+              its position and delay show. */}
+          <TimetableStopsNote train={train} />
+          <TrainJourneyPanel state={journeyState} suppressTrainUidHeading />
+          <Group gap={4}>
+            <LastUpdated timestamp={renderedAt} />
+            <Text size="xs" c="dimmed">
+              · refreshes every {REFRESH_INTERVAL_MS / 1000}s · {TIMES_IN_UK_LOCAL_TIME}
+            </Text>
+          </Group>
+        </>
+      )}
       {/* `inline`/`underline="always"`: this link sits mid-sentence in
           body text rather than in a nav or beside a heading, so (a) colour
           alone can't be what marks it (WCAG 1.4.1) and (b) it must render as
@@ -391,9 +436,11 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
       <Text size="sm" c="dimmed">
         {match
           ? "You're already tracking this service. "
-          : isTimetableOnly(train)
-            ? 'This is the public view of this service. Track it above to keep its scheduled times in your list (there are no live alerts for buses and ferries). '
-            : 'This is the public view of this service. Track it above to get updates. '}
+          : snapshot
+            ? ''
+            : isTimetableOnly(train)
+              ? 'This is the public view of this service. Track it above to keep its scheduled times in your list (there are no live alerts for buses and ferries). '
+              : 'This is the public view of this service. Track it above to get updates. '}
         <TextLink href="/trains" inline underline="always">
           Look up another train
         </TextLink>

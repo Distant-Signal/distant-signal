@@ -23,6 +23,8 @@ const LABEL: Record<JourneySummaryGroup, string> = {
   untrackedPlanned: UNTRACKED_STATUS_LABEL.planned,
   untrackedInProgress: UNTRACKED_STATUS_LABEL.inProgress,
   good: 'On time',
+  // A pruned train with no recorded outcome (DS-648).
+  noRecord: 'No live record',
   // A timetabled train whose first report isn't due yet (spec §4).
   planned: 'Planned',
   awaiting: 'Awaiting first report',
@@ -48,6 +50,7 @@ const TONE: Record<JourneySummaryGroup, StateTone> = {
   untrackedPlanned: 'neutral',
   untrackedInProgress: 'neutral',
   good: 'good',
+  noRecord: 'neutral',
   // Gray, like "Awaiting first report": nothing is wrong yet, and blue is
   // kept for planned works.
   planned: 'neutral',
