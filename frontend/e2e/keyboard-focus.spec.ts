@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { waitUntilHydrated } from './a11y-helpers';
 import { openNavDrawer, waitForSessionNav } from './navDrawer';
 import { logInAs, MISS_SESSION_COOKIE, MISSED_JOURNEY } from './missFixtures';
 
@@ -60,17 +61,6 @@ function focusIsInside(container: Locator): Promise<boolean> {
 async function pressStaysInside(page: Page, container: Locator, key: string): Promise<boolean> {
   await page.keyboard.press(key);
   return focusIsInside(container);
-}
-
-/** Waits until React has hydrated `element`: it carries a `__reactProps$`
- * key once it is live. `page.goto` can resolve before that, and a key press
- * on a control that is not live yet does nothing. */
-async function waitUntilHydrated(element: Locator) {
-  await expect
-    .poll(() => element.evaluate((node) => Object.keys(node).some((key) => key.startsWith('__reactProps$'))), {
-      message: 'the control to be hydrated',
-    })
-    .toBe(true);
 }
 
 /** Opens `overlay` from `trigger` with the keyboard, once. It used to press

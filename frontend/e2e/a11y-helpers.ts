@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 // Shared by the a11y-*.spec.ts files, which re-run accessibility.spec.ts's
@@ -89,6 +89,18 @@ export async function gotoOk(page: Page, path: string) {
   // Next streams a route's loading skeleton (no h1) before its content, and
   // `goto` can resolve first: audit the real page, not the placeholder.
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeAttached();
+}
+
+/** Waits until React has hydrated `element`: it carries a `__reactProps$`
+ * key once it is live. `page.goto` can resolve before that, and a key press
+ * or focus on a control that is not live yet does nothing (a tooltip that
+ * opens on focus never opens). */
+export async function waitUntilHydrated(element: Locator) {
+  await expect
+    .poll(() => element.evaluate((node) => Object.keys(node).some((key) => key.startsWith('__reactProps$'))), {
+      message: 'the control to be hydrated',
+    })
+    .toBe(true);
 }
 
 /** Waits for the CSS transitions running now to end. A colour-scheme switch

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { AXE_TAGS, gotoOk } from './a11y-helpers';
+import { AXE_TAGS, gotoOk, waitUntilHydrated } from './a11y-helpers';
 import { openNavDrawer } from './navDrawer';
 import { LEGAL_ROUTES, LOGGED_IN_ROUTES, PUBLIC_ROUTES, REAL_LINE_ID, REAL_STATION_CRS } from './a11yRoutes';
 import { testPublicId, testTrackingId } from '../test/apiDefaults';
@@ -283,6 +283,9 @@ test.describe('accessibility: data freshness panel open', () => {
         // A short page: the panel is in the nav on every one.
         await page.goto('/attribution');
         const trigger = page.getByRole('button', { name: 'Data freshness' });
+        // Focus before hydration opens nothing: the tooltip's handlers are
+        // not attached yet, and a loaded runner took that long (DS-635).
+        await waitUntilHydrated(trigger);
         // Tabbed to rather than `focus()`ed: the tooltip opens on
         // keyboard focus (`:focus-visible`), not on a scripted focus.
         for (
