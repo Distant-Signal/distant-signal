@@ -189,7 +189,7 @@ jobs:
   # DS-534: frontend/e2e/fixtures/seed.sql seeds the missed-train fixtures
   # relative to the clock, and a seeding hour that put them on the wrong
   # London service date failed journey-missed-train.spec.ts only at some
-  # hours. scripts/check-e2e-seed-clock.py runs the seed at nine clocks (UTC
+  # hours. scripts/check-e2e-seed-clock.py runs the seed at thirteen clocks (UTC
   # and BST, 19:10 to 03:30 London) in databases cloned from a migrated
   # template and applies the api's missed-train rules to each. It needs only
   # Postgres and the migrations, so it runs on every PR and push rather than
