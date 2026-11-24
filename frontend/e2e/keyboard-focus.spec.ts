@@ -62,18 +62,28 @@ async function pressStaysInside(page: Page, container: Locator, key: string): Pr
   return focusIsInside(container);
 }
 
-/** Opens `overlay` from `trigger` with the keyboard. `page.goto` can resolve
- * before React hydrates, and a key press on a not yet live control does
- * nothing, so the press is repeated until the overlay shows (the same
- * approach as navDrawer.ts). */
+/** Waits until React has hydrated `element`: it carries a `__reactProps$`
+ * key once it is live. `page.goto` can resolve before that, and a key press
+ * on a control that is not live yet does nothing. */
+async function waitUntilHydrated(element: Locator) {
+  await expect
+    .poll(() => element.evaluate((node) => Object.keys(node).some((key) => key.startsWith('__reactProps$'))), {
+      message: 'the control to be hydrated',
+    })
+    .toBe(true);
+}
+
+/** Opens `overlay` from `trigger` with the keyboard, once. It used to press
+ * Enter again every 2 seconds until the overlay showed, to cover a press
+ * before hydration; on a slow runner a second press could land after the
+ * first had opened the overlay and close it again, leaving the open state
+ * and the focus Mantine recorded for returning to the trigger out of step
+ * (DS-635). Waiting for hydration and pressing once leaves no second press. */
 async function openWithKeyboard(trigger: Locator, overlay: Locator, page: Page) {
-  await expect(async () => {
-    if (!(await overlay.isVisible())) {
-      await trigger.focus();
-      await page.keyboard.press('Enter');
-    }
-    await expect(overlay).toBeVisible({ timeout: 2_000 });
-  }).toPass({ timeout: 30_000 });
+  await waitUntilHydrated(trigger);
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(overlay).toBeVisible({ timeout: 15_000 });
 }
 
 /** What a focus-trapped overlay owes a keyboard user. `overlay` is the

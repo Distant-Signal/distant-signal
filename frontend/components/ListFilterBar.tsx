@@ -161,6 +161,20 @@ export function ListFilterBar({
   const titleId = useId();
   const countId = useId();
   const hasPanel = children !== undefined && children !== null && children !== false;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // Closing from inside the panel (Escape, the "Show N" button) puts focus
+  // back on the Filters button itself. Mantine's own focus return refocuses
+  // whatever was active when the panel opened, and only if focus has not
+  // moved in the 10ms after it closed; when that was not the button (the
+  // panel's first focus can land before it records one) the focus the closing
+  // panel held fell to the page (keyboard-focus.spec.ts, `/trains` filters,
+  // first attempt only; DS-635). Our focus goes first, so Mantine's check
+  // sees that focus has moved and leaves it be. A click outside does not
+  // come through here: it keeps the focus the click gave.
+  function closeAndReturnFocus() {
+    close();
+    window.setTimeout(() => triggerRef.current?.focus({ preventScroll: true }), 0);
+  }
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
@@ -187,7 +201,7 @@ export function ListFilterBar({
         ) : (
           <span />
         )}
-        <Button onClick={close} size="sm">
+        <Button onClick={closeAndReturnFocus} size="sm">
           {matchCount === 0
             ? 'Close'
             : matchCount === null
@@ -214,6 +228,7 @@ export function ListFilterBar({
           </Badge>
         ) : undefined
       }
+      ref={triggerRef}
       onClick={toggle}
       aria-expanded={opened}
       aria-haspopup="dialog"
@@ -287,7 +302,7 @@ export function ListFilterBar({
                   // A combobox whose list was open has just closed it.
                   if (event.target instanceof HTMLElement && event.target.getAttribute('aria-expanded') === 'true')
                     return;
-                  close();
+                  closeAndReturnFocus();
                 }}
               >
                 <Stack gap="sm">

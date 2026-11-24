@@ -32,6 +32,13 @@ async function tabTo(page: Page, target: Locator, key: 'Tab' | 'Shift+Tab' = 'Ta
 /** Whether the focused element is inside `container`. */
 const focusIsInside = (container: Locator) => container.evaluate((el) => el.contains(document.activeElement));
 
+/** Waits for focus to move into `container`. A dialog is in the page a
+ * moment before focus is: Mantine's focus trap moves it in a timer set when
+ * the dialog mounts, so reading focus as soon as the dialog's text shows
+ * (as this spec did) is a race that a loaded runner loses (DS-635). */
+const expectFocusInside = (container: Locator, message: string) =>
+  expect.poll(() => focusIsInside(container), { message }).toBe(true);
+
 test.describe('keyboard-only journey', () => {
   test.skip(!SESSION_COOKIE, 'set E2E_SESSION_COOKIE to the seed session');
 
@@ -140,7 +147,7 @@ test.describe('keyboard-only journey', () => {
         await tabTo(page, trigger, 'Shift+Tab');
         await page.keyboard.press('Enter');
         await expect(dialog).toContainText('You can undo for a few seconds');
-        expect(await focusIsInside(dialog)).toBe(true);
+        await expectFocusInside(dialog, 'focus to move into the dialog');
         for (let presses = 0; presses < 6; presses++) {
           await page.keyboard.press('Tab');
           expect(await focusIsInside(dialog)).toBe(true);
@@ -153,6 +160,10 @@ test.describe('keyboard-only journey', () => {
       await test.step('confirming deletes it, and Undo on the toast brings it back', async () => {
         await page.keyboard.press('Enter');
         const confirm = page.getByRole('button', { name: 'Confirm delete journey' });
+        // Tab only once the dialog has taken focus: before that a Tab press
+        // moves through the page behind it.
+        await expect(dialog).toBeVisible();
+        await expectFocusInside(dialog, 'focus to move into the dialog');
         await tabTo(page, confirm);
         await page.keyboard.press('Enter');
         await expect(page).toHaveURL(/\/journeys$/);
