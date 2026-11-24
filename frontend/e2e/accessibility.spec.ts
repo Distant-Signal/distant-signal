@@ -4,6 +4,7 @@ import { AXE_TAGS } from './a11y-helpers';
 import { openNavDrawer } from './navDrawer';
 import { LEGAL_ROUTES, LOGGED_IN_ROUTES, PUBLIC_ROUTES, REAL_LINE_ID, REAL_STATION_CRS } from './a11yRoutes';
 import { testPublicId, testTrackingId } from '../test/apiDefaults';
+import { logInAs, MISS_SESSION_COOKIE } from './missFixtures';
 
 // A repeatable axe-core sweep over EVERY route in `app/`, in both colour
 // schemes, logged out and logged in, and across the interactive sub-states
@@ -378,6 +379,23 @@ test.describe('accessibility: logged in', () => {
     await expectNoViolations(page);
   });
 });
+
+// A leg whose train was cancelled (DS-626; the seed's journey 900403 of
+// `fixture-miss`, one leg on E2EMC1): the journey page's cancelled badge and
+// its "Find another way" action, in both schemes.
+for (const colorScheme of ['light', 'dark'] as const) {
+  test.describe(`accessibility: a cancelled leg, ${colorScheme} scheme`, () => {
+    test.use({ colorScheme });
+
+    test('/journeys/[id]', async ({ page, context }) => {
+      await logInAs(context, MISS_SESSION_COOKIE);
+      await page.goto(`/journeys/${testPublicId(900403)}`);
+      await expect(page.locator('#main-content').getByText('Cancelled').first()).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Find another way' })).toBeVisible();
+      await expectNoViolations(page);
+    });
+  });
+}
 
 test.describe('accessibility: /train/[uid]/[date]', () => {
   // See the `TRAIN_UID` comment at the top of this file for why this pair

@@ -9,13 +9,13 @@ Seeds frontend/e2e/fixtures/seed.sql as if run at several clocks.
 journey-missed-train.spec.ts needs, whenever the suite runs: journey 900401's
 leg finished and inside its miss window, and the trains E2EMS2 and E2EMS3,
 hours ahead, in the timetable the api searches for it. The api searches the
-leg's own service date, and the next one only once the clock is past that
-date's midnight (ds-api's `ReplanQuery::next_date_searched`: 1440 minutes or
-more), so a train hours ahead that falls on the next date is not found before
-midnight. This runs the seed once per clock (`e2e.now`, which the seed's
-missed-train section reads in place of NOW()) in a throwaway database cloned
-from a migrated template, then checks each fixture against the api's rule at
-the seeding instant and again after a suite's worth of minutes.
+leg's own service date, and the next one from 20:00 on it
+(`EVENING_ROLLOVER_MINUTE`, ds-api #111) or past its midnight, so a train hours
+ahead that falls on the next date must not be seeded before 20:00. This runs
+the seed once per clock (`e2e.now`, which the seed's missed-train section
+reads in place of NOW()) in a throwaway database cloned from a migrated
+template, then checks each fixture against the api's rule at the seeding
+instant and again after a suite's worth of minutes.
 
 Needs a migrated template database (ds-migrate at the api's core-version) and
 the libpq environment (PGHOST, PGPORT, PGUSER, ...) of a role that can create
@@ -33,9 +33,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Past this many minutes on a service date is the next date's midnight: when the
-# api's alternatives search starts to look at the next date too.
+# Past this many minutes on a service date is the next date's midnight.
 DAY_MINUTES = 1440
+# From this minute of the leg's date (20:00 London) the api's missed-train search
+# also looks at the next date (ds-api's `EVENING_ROLLOVER_MINUTE`, #111).
+EVENING_ROLLOVER_MINUTE = 1200
 
 SEED = (
     Path(__file__).resolve().parent.parent
@@ -50,11 +52,15 @@ SEED = (
 # date), just after it, and the early morning, in both.
 CLOCKS: tuple[str, ...] = (
     "2026-11-18T23:40:00Z",
+    "2026-11-18T19:55:00Z",
+    "2026-11-18T20:00:00Z",
     "2026-11-18T20:30:00Z",
     "2026-11-19T00:10:00Z",
     "2026-11-19T03:30:00Z",
     "2026-11-19T12:00:00Z",
     "2026-07-14T22:40:00Z",
+    "2026-07-14T18:55:00Z",
+    "2026-07-14T19:00:00Z",
     "2026-07-14T19:10:00Z",
     "2026-07-14T23:10:00Z",
     "2026-07-15T02:30:00Z",
@@ -137,7 +143,7 @@ def problems(facts: Facts) -> list[str]:
     if not facts.leg_arrived:
         found.append("the leg has not arrived")
     searched = [facts.leg_date]
-    if facts.minute_of_leg_date >= DAY_MINUTES:
+    if facts.minute_of_leg_date >= EVENING_ROLLOVER_MINUTE:
         searched.append(next_date(facts.leg_date))
     for uid in ("E2EMS2", "E2EMS3"):
         train = facts.trains.get(uid)

@@ -1476,8 +1476,8 @@ ON CONFLICT (revision_id, position) DO NOTHING;
 --                   which left 20 minutes ago and arrived 5 minutes ago (a
 --                   finished leg inside its window: "I missed this one", the
 --                   soft confirm, then the other ways). E2EMS2 and E2EMS3
---                   leave ZXA four and five hours from now, the trains it
---                   can take, on E2EMS1's service date (see below).
+--                   leave ZXA three and four hours from now, the trains it
+--                   can take.
 --   journey 900402  the same leg two days ago: its window has closed.
 -- The Fixture Solo group has its owner alone (leaving it is deleting it);
 -- the Fixture Pair group has the owner and a second member.
@@ -1577,17 +1577,19 @@ BEGIN
 END
 $fn$;
 
--- E2EMS2 and E2EMS3 run on E2EMS1's service date, whatever the hour: the api
--- searches a leg's own date, and the next one only once the clock is past
--- that date's midnight, so between 20:00 and midnight a date of their own
--- (the next) would be one it never looked at. Past midnight they are an
--- overnight train's calls, day offset 1.
+-- Each train runs on the service date of its own departure, as a real
+-- timetable's does: E2EMS2 and E2EMS3 take the next date once they leave
+-- after London midnight. The api searches a missed leg's own date, and the
+-- next one from 20:00 (ds-api #111, `EVENING_ROLLOVER_MINUTE`) or once the
+-- clock is past midnight. They leave three and four hours after the
+-- seeding, so a train that falls on the next date means the seeding was at
+-- 20:00 or later, when that date is searched.
 SELECT pg_temp.seed_miss_train('E2EMS1', d, pg_temp.e2e_now() - INTERVAL '20 minutes', pg_temp.e2e_now() - INTERVAL '5 minutes')
 FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
-SELECT pg_temp.seed_miss_train('E2EMS2', d, pg_temp.e2e_now() + INTERVAL '4 hours', pg_temp.e2e_now() + INTERVAL '4 hours 15 minutes')
-FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
-SELECT pg_temp.seed_miss_train('E2EMS3', d, pg_temp.e2e_now() + INTERVAL '5 hours', pg_temp.e2e_now() + INTERVAL '5 hours 15 minutes')
-FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
+SELECT pg_temp.seed_miss_train('E2EMS2', d, pg_temp.e2e_now() + INTERVAL '3 hours', pg_temp.e2e_now() + INTERVAL '3 hours 15 minutes')
+FROM (SELECT ((pg_temp.e2e_now() + INTERVAL '3 hours') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
+SELECT pg_temp.seed_miss_train('E2EMS3', d, pg_temp.e2e_now() + INTERVAL '4 hours', pg_temp.e2e_now() + INTERVAL '4 hours 15 minutes')
+FROM (SELECT ((pg_temp.e2e_now() + INTERVAL '4 hours') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
 SELECT pg_temp.seed_miss_train('E2EMS0', d, pg_temp.e2e_now() - INTERVAL '2 days 20 minutes', pg_temp.e2e_now() - INTERVAL '2 days 5 minutes')
 FROM (SELECT ((pg_temp.e2e_now() - INTERVAL '2 days 20 minutes') AT TIME ZONE 'Europe/London')::date AS d) AS leg_date;
 
@@ -1624,6 +1626,45 @@ VALUES
   ('fixture-pair-group', 'fixture-miss', 'owner', NOW()),
   ('fixture-pair-group', 'fixture-friend', 'member', NOW())
 ON CONFLICT (group_id, user_id) DO NOTHING;
+
+-- A cancelled leg (DS-626, e2e/accessibility.spec.ts): journey 900403 of
+-- fixture-miss, one ZXA to ZXB leg on E2EMC1 on 2099-03-03, a train the
+-- railway cancelled before it left (TRUST 0002 at ZXA, code IB: "Points
+-- failure (including no fault found)"), so the journey page shows the
+-- leg's cancelled state and "Find another way". Fixed date, like the other
+-- far-future fixtures; fixture-miss's other pages list journeys by id, none
+-- by count.
+SELECT pg_temp.seed_miss_train('E2EMC1', DATE '2099-03-03', TIMESTAMPTZ '2099-03-03T09:00:00Z', TIMESTAMPTZ '2099-03-03T09:15:00Z');
+
+INSERT INTO train_current_state (status, last_reported_location, last_event_type, delay_minutes, updated_at, trains_id, event_time)
+SELECT 'cancelled', 'ZXA', 'CANCELLATION', 0, NOW(), t.id, NOW()
+FROM trains t
+WHERE t.train_uid = 'E2EMC1' AND t.service_date = '2099-03-03'
+ON CONFLICT (trains_id) WHERE trains_id IS NOT NULL DO UPDATE SET
+  status = EXCLUDED.status, last_event_type = EXCLUDED.last_event_type, updated_at = EXCLUDED.updated_at;
+
+INSERT INTO train_reasons (trains_id, msg_type, reason_code, canx_type, loc_stanox, event_at)
+SELECT t.id, '0002', 'IB', 'AT ORIGIN', 'E2EMS-ZXA', NOW()
+FROM trains t
+WHERE t.train_uid = 'E2EMC1' AND t.service_date = '2099-03-03'
+ON CONFLICT (trains_id, msg_type) DO NOTHING;
+
+INSERT INTO train_subscriptions (user_id, service_date, pin_origin_crs, pin_destination_crs, resolution_status, tracked_at, trains_id, notifications_enabled)
+SELECT 'fixture-miss', t.service_date, 'ZXA', 'ZXB', 'resolved', NOW(), t.id, FALSE
+FROM trains t
+WHERE t.train_uid = 'E2EMC1' AND t.service_date = '2099-03-03'
+  AND NOT EXISTS (SELECT 1 FROM train_subscriptions ts WHERE ts.trains_id = t.id);
+
+INSERT INTO journeys (id, user_id, custom_name, created_at, updated_at)
+VALUES (900403, 'fixture-miss', 'Fixture cancelled train', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO journey_legs (journey_id, leg_order, origin_crs, destination_crs, service_date, train_subscription_id, match_mode)
+SELECT 900403, 1, 'ZXA', 'ZXB', t.service_date, ts.id, 'manual'
+FROM trains t
+JOIN train_subscriptions ts ON ts.trains_id = t.id AND ts.user_id = 'fixture-miss'
+WHERE t.train_uid = 'E2EMC1' AND t.service_date = '2099-03-03'
+ON CONFLICT (journey_id, leg_order) DO NOTHING;
 
 -- Opaque journey ids (DS-534): the api hands out journeys.public_id, which a
 -- migration fills with random ids. The specs name seeded journeys by

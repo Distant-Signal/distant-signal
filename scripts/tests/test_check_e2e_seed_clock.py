@@ -43,18 +43,18 @@ class ProblemsTest(unittest.TestCase):
         both = {"E2EMS2": ("2026-11-18", 1660.0), "E2EMS3": ("2026-11-18", 1720.0)}
         self.assertEqual(clock.problems(facts(1427, both)), [])
 
-    def test_the_next_date_is_not_searched_before_midnight(self) -> None:
-        """The next date is not searched before midnight."""
-        # What the seed did at 23:40: the trains on the next date, which the
-        # api does not look at until the clock is past the leg's midnight.
-        next_date = {"E2EMS2": ("2026-11-19", 220.0), "E2EMS3": ("2026-11-19", 280.0)}
-        found = clock.problems(facts(1427, next_date))
+    def test_the_next_date_is_not_searched_before_the_evening(self) -> None:
+        """The next date is not searched before 20:00."""
+        # A train on the next date at 19:59 on the leg's date: not looked at.
+        next_date = {"E2EMS2": ("2026-11-19", 20.0), "E2EMS3": ("2026-11-19", 80.0)}
+        found = clock.problems(facts(1199, next_date))
         self.assertEqual(len(found), 2)
         self.assertIn("not on a searched date", found[0])
 
-    def test_the_next_date_is_searched_past_midnight(self) -> None:
-        """The next date is searched past midnight."""
-        next_date = {"E2EMS2": ("2026-11-19", 220.0), "E2EMS3": ("2026-11-19", 280.0)}
+    def test_the_next_date_is_searched_from_20_00(self) -> None:
+        """The next date is searched from 20:00 and past midnight."""
+        next_date = {"E2EMS2": ("2026-11-19", 20.0), "E2EMS3": ("2026-11-19", 80.0)}
+        self.assertEqual(clock.problems(facts(1200, next_date)), [])
         self.assertEqual(clock.problems(facts(1450, next_date)), [])
 
     def test_a_train_that_has_left_is_reported(self) -> None:
