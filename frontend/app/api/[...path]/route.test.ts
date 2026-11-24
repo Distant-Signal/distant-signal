@@ -17,6 +17,10 @@ vi.mock('next/headers', () => ({
 }));
 
 vi.mock('@/lib/buildMix', () => ({ recordApiBuild: vi.fn() }));
+vi.mock('@/lib/logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/logger')>()),
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}));
 import { recordApiBuild } from '@/lib/buildMix';
 import { GET, HEAD, POST, PUT, DELETE, MAX_PROXY_BODY_BYTES, originOfReferer } from './route';
 
@@ -55,6 +59,33 @@ describe('/api/[...path] proxy', () => {
     await GET(req, { params: Promise.resolve({ path: ['preferences'] }) });
     const [calledUrl] = vi.mocked(fetch).mock.calls[0]!;
     expect(calledUrl.toString()).toBe('http://test-api:8080/public/preferences');
+  });
+
+  describe('X-DS-Min-Build', () => {
+    const call = () => GET(makeRequest('/api/preferences'), { params: Promise.resolve({ path: ['preferences'] }) });
+
+    it('is absent when FRONTEND_MIN_BUILD is unset or empty', async () => {
+      expect((await call()).headers.has('X-DS-Min-Build')).toBe(false);
+      vi.stubEnv('FRONTEND_MIN_BUILD', '');
+      expect((await call()).headers.has('X-DS-Min-Build')).toBe(false);
+    });
+
+    it('is set when FRONTEND_MIN_BUILD is a whole number', async () => {
+      vi.stubEnv('FRONTEND_MIN_BUILD', '123');
+      expect((await call()).headers.get('X-DS-Min-Build')).toBe('123');
+    });
+
+    it('is absent when FRONTEND_MIN_BUILD is invalid', async () => {
+      vi.stubEnv('FRONTEND_MIN_BUILD', 'build.123-abc');
+      expect((await call()).headers.has('X-DS-Min-Build')).toBe(false);
+    });
+
+    it('is also on a response the proxy makes itself', async () => {
+      vi.stubEnv('FRONTEND_MIN_BUILD', '9');
+      const res = await GET(makeRequest('/api/x'), { params: Promise.resolve({ path: ['..', 'admin'] }) });
+      expect(res.status).toBe(400);
+      expect(res.headers.get('X-DS-Min-Build')).toBe('9');
+    });
   });
 
   it('counts the X-DS-Build header against its build and never forwards it to the api', async () => {

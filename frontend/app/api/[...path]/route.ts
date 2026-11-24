@@ -4,6 +4,8 @@ import { clientIpFromHeaders, REAL_IP_HEADER } from '@/lib/clientIp';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import { BUILD_ID_HEADER } from '@/lib/buildId';
 import { recordApiBuild } from '@/lib/buildMix';
+import { MIN_BUILD_HEADER } from '@/lib/buildEpoch';
+import { configuredMinBuild } from '@/lib/minBuild';
 import { createLogger } from '@/lib/logger';
 import { isPublicCacheCandidate, lockDown, publicCacheEnabled, publicCacheHeadersFor } from '@/lib/proxyPublicCache';
 
@@ -265,7 +267,16 @@ function upstreamFailure(err: unknown): NextResponse {
   return new NextResponse('upstream unavailable', { status: 502 });
 }
 
+/** Adds `X-DS-Min-Build` when the operator set `FRONTEND_MIN_BUILD`; with it
+ * unset the response is untouched (docs/frontend-min-build.md). */
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
+  const res = await proxyUpstream(req, path);
+  const min = configuredMinBuild();
+  if (min !== null) res.headers.set(MIN_BUILD_HEADER, String(min));
+  return res;
+}
+
+async function proxyUpstream(req: NextRequest, path: string[]): Promise<NextResponse> {
   // The opt-in shared-cache policy (lib/proxyPublicCache.ts,
   // docs/api-proxy-public-cache.md). Off by default, and then nothing below
   // that mentions it runs: the proxy is byte-for-byte what it was. On, every
