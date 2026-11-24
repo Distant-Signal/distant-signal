@@ -226,6 +226,38 @@ describe('groupJourneyRowStatus: a group row says what the owner sees', () => {
     expect(groupJourneyRowStatus(shared({ ...open, serviceDate: PAST }), TODAY).kind).toBe('noTrainPicked');
   });
 
+  // DS-684: the api fills a pruned, matched leg's outcome on the row and
+  // says where its detail comes from, as on the owner's list (DS-638).
+  it('a recovered arrival reads Completed with its final delay, not "no report"', () => {
+    const row = shared({
+      serviceDate: PAST,
+      trainDetail: 'snapshot',
+      snapshotAt: '2026-11-20T10:00:00Z',
+      status: 'completed',
+      delayMinutes: 7,
+    });
+    expect(groupJourneyRowStatus(row, TODAY)).toMatchObject({ kind: 'completed', finished: true, delayMinutes: 7 });
+  });
+
+  it('a recovered cancellation is still Cancelled', () => {
+    const row = shared({ serviceDate: PAST, trainDetail: 'snapshot', status: 'cancelled', delayMinutes: null });
+    expect(groupJourneyRowStatus(row, TODAY)).toMatchObject({ kind: 'severe', finished: true });
+  });
+
+  it('a pruned leg with no outcome reads No live record, not "no report"', () => {
+    for (const trainDetail of ['snapshot', 'unavailable'] as const) {
+      const row = shared({ serviceDate: PAST, trainDetail, status: null, delayMinutes: null });
+      expect(groupJourneyRowStatus(row, TODAY)).toMatchObject({ kind: 'noRecord', finished: true });
+    }
+  });
+
+  it('a live or unknown leg that really got no report still says so', () => {
+    for (const trainDetail of ['live', null] as const) {
+      const row = shared({ serviceDate: PAST, trainDetail, status: 'awaiting_activation', delayMinutes: null });
+      expect(groupJourneyRowStatus(row, TODAY)).toMatchObject({ kind: 'noReport', finished: true });
+    }
+  });
+
   it('viewerCanPickGroupJourneyTrain: the sharer or a follower', () => {
     expect(viewerCanPickGroupJourneyTrain({ addedByIsMe: true, following: false })).toBe(true);
     expect(viewerCanPickGroupJourneyTrain({ addedByIsMe: false, following: true })).toBe(true);

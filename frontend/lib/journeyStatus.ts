@@ -3,6 +3,9 @@ import { isUntrackedLeg } from './untrackedLeg';
 import { trainCancellation } from './cancellation';
 import type { JourneyLegDetail, JourneyListItem, TrackingPhaseFields } from './types';
 
+/** Where a pruned train's detail comes from, as a leg carries it. */
+type LegTrainDetail = JourneyLegDetail['trainDetail'];
+
 /** The fields of a journey leg (`GET /Journeys/{id}`) that only an untracked
  * or timetabled leg, or a replanned one, fills: blank on a leg built from a
  * train's own row (`loneTrainLeg`, the list adapters below). */
@@ -212,6 +215,11 @@ export function trackedTrainListStatusGroup(
     status: string | null;
     delayMinutes: number | null;
     resolutionStatus: string;
+    /** Where the train's detail comes from (DS-684): a row whose train was
+     * pruned keeps its outcome in `status` and `delayMinutes`. Absent for a
+     * row that has no such field (a lone tracked train). */
+    trainDetail?: LegTrainDetail;
+    snapshotAt?: string | null;
   } & TrackingPhaseFields,
 ): LegStatusGroup {
   return legStatusGroup({
@@ -238,8 +246,8 @@ export function trackedTrainListStatusGroup(
       trackingPhase: train.trackingPhase ?? null,
     } as JourneyLegDetail['trackedTrainState'],
     legSkip: null,
-    trainDetail: null,
-    snapshotAt: null,
+    trainDetail: train.trainDetail ?? null,
+    snapshotAt: train.snapshotAt ?? null,
   });
 }
 
