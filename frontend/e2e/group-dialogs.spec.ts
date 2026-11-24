@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { scanPageBothSchemes, waitUntilHydrated } from './a11y-helpers';
 import { asUser, FRIEND_SESSION_COOKIE, logInAs, MISS_SESSION_COOKIE, PAIR_GROUP, SOLO_GROUP } from './missFixtures';
 
 // The owner's leave and delete dialogs (DS-534): the sole owner can't leave
@@ -152,5 +153,47 @@ test.describe('group dialogs', () => {
     await expect(page).toHaveURL(/\/groups$/);
     const gone = await request.get(`/api/groups/${id}`, { headers: asUser(MISS_SESSION_COOKIE) });
     expect(gone.status()).toBe(404);
+  });
+
+  test('"Make owner" hands the group over: axe-clean dialog, announced, focus on the heading', async ({
+    page,
+    request,
+  }) => {
+    // A group of two the test makes, so the seeded groups stay as seeded.
+    const created = await request.post('/api/groups', {
+      headers: asUser(MISS_SESSION_COOKIE),
+      data: { name: 'Fixture Handover' },
+    });
+    const { id } = (await created.json()) as { id: string };
+    const invite = await request.post(`/api/groups/${id}/invite-link`, { headers: asUser(MISS_SESSION_COOKIE) });
+    const { token } = (await invite.json()) as { token: string };
+    const joined = await request.post(`/api/groups/join/${token}`, { headers: asUser(FRIEND_SESSION_COOKIE) });
+    expect(joined.ok(), await joined.text()).toBe(true);
+
+    await page.goto(`/groups/${id}`);
+    const trigger = page.getByRole('button', { name: 'Make owner' });
+    await waitUntilHydrated(trigger);
+    // One per non-owner member, none on the owner's own row.
+    await expect(trigger).toHaveCount(1);
+    await trigger.click();
+
+    const dialog = page.getByRole('dialog', { name: /^Make .+ the owner\?$/ });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/stay a member and can leave/)).toBeVisible();
+    const scan = await scanPageBothSchemes(page);
+    expect(scan.violations, JSON.stringify(scan.violations.map((v) => v.id))).toEqual([]);
+
+    await dialog.getByRole('button', { name: 'Confirm make owner' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'is now the owner.' })).toBeAttached();
+    await expect(page.getByRole('heading', { level: 1, name: 'Fixture Handover' })).toBeFocused();
+    // The viewer is a member now: no owner-only controls, and the group is
+    // the friend's to delete.
+    await expect(page.getByRole('button', { name: 'Make owner' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Delete group' })).toHaveCount(0);
+
+    const asFriend = await request.delete(`/api/groups/${id}?expectedMemberCount=2`, {
+      headers: asUser(FRIEND_SESSION_COOKIE),
+    });
+    expect(asFriend.status()).toBe(204);
   });
 });

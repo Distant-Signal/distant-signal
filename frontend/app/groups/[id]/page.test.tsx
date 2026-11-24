@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within, cleanup } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { expectShrinkGuarded } from '@/test/shrinkGuard';
 import GroupDetailPage, { generateMetadata } from './page';
@@ -675,6 +675,16 @@ describe('GroupDetailPage', () => {
     it('an owner viewer sees "Promote to admin" on a plain member row', async () => {
       await renderAs(OWNER, 'owner');
       expect(screen.getByRole('button', { name: 'Promote to admin' })).toBeInTheDocument();
+    });
+
+    it('an owner viewer sees "Make owner" on every non-owner row, never on their own, and an admin sees none', async () => {
+      await renderAs(OWNER, 'owner');
+      expect(within(memberRow(PLAIN)).getByRole('button', { name: 'Make owner' })).toBeInTheDocument();
+      expect(within(memberRow(ADMIN)).getByRole('button', { name: 'Make owner' })).toBeInTheDocument();
+      expect(within(memberRow(OWNER)).queryByRole('button', { name: 'Make owner' })).not.toBeInTheDocument();
+      cleanup();
+      await renderAs(ADMIN, 'admin');
+      expect(screen.queryByRole('button', { name: 'Make owner' })).not.toBeInTheDocument();
     });
 
     it('an admin viewer does NOT see "Promote to admin" (the backend is owner-only)', async () => {
