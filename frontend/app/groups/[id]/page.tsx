@@ -14,6 +14,8 @@ import {
 import { RemoveMemberButton } from '@/components/RemoveMemberButton';
 import { PromoteMemberButton } from '@/components/PromoteMemberButton';
 import { DemoteMemberButton } from '@/components/DemoteMemberButton';
+import { TransferOwnershipButton } from '@/components/TransferOwnershipButton';
+import { GroupOwnershipAnnouncer } from '@/components/GroupOwnershipAnnouncer';
 import { LeaveGroupButton } from '@/components/LeaveGroupButton';
 import { RenameGroupButton } from '@/components/RenameGroupButton';
 import { DeleteGroupButton } from '@/components/DeleteGroupButton';
@@ -197,6 +199,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
 
   return (
     <Stack p="lg" gap="lg">
+      <GroupOwnershipAnnouncer viewerRole={group.role} />
       {/* Review §3.2.5: the detail page had no way back to `/groups` short
           of the browser's own Back button (which fails outright for a
           visitor who followed a deep link straight here). Mirrors
@@ -400,6 +403,12 @@ function MemberRow({
         )}
         {viewerIsOwner && member.role === 'admin' && (
           <DemoteMemberButton groupId={groupId} memberId={member.memberId} name={label} />
+        )}
+        {/* Owner-only like promote and demote: the api answers `403` to
+            anyone else. Not on the owner's own row (a self-transfer is a
+            `400`). */}
+        {viewerIsOwner && !isOwner && (
+          <TransferOwnershipButton groupId={groupId} memberId={member.memberId} name={label} />
         )}
         {canManage && !isOwner && <RemoveMemberButton groupId={groupId} memberId={member.memberId} name={label} />}
       </Group>
