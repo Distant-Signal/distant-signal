@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Badge, Button, Card, Group, NativeSelect, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { ConfirmActionButton } from './ConfirmActionButton';
 import { CopyableLink } from './CopyableLink';
 import { SectionTitle } from './SectionTitle';
@@ -103,7 +105,11 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
   const secretRule = data.kinds.find((k) => k.kind === kind)?.secret ?? 'none';
   const secretLabel = SECRET_LABELS[kind];
   const atLimit = data.destinations.length >= data.maxDestinations;
-  const canCreate = name.trim() !== '' && url.trim() !== '' && (secretRule !== 'required' || secret.trim() !== '');
+  const createBlockedReason = missingFieldsReason([
+    ...(name.trim() === '' ? ['Name'] : []),
+    ...(url.trim() === '' ? ['Address'] : []),
+    ...(secretRule === 'required' && secret.trim() === '' ? [secretLabel?.label ?? 'Secret'] : []),
+  ]);
 
   async function create() {
     setBusy(true);
@@ -272,9 +278,9 @@ export function Webhooks({ data, headingOrder = 2 }: { data: WebhooksResponse; h
               </Text>
               {error && <Alert color="red">{error}</Alert>}
               <Group>
-                <Button onClick={() => void create()} loading={busy} disabled={!canCreate}>
+                <GatedButton onClick={() => void create()} loading={busy} blockedReason={createBlockedReason}>
                   Add address
-                </Button>
+                </GatedButton>
               </Group>
             </>
           )}

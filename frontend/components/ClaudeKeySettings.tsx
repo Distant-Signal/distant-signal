@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useMounted } from '@mantine/hooks';
 import { Button, Group, PasswordInput, Stack, Text } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { getAnthropicApiKey, setAnthropicApiKey, clearAnthropicApiKey } from '@/lib/anthropicKey';
 
 /** The visitor's own Claude API key for "Ask about trains", on
@@ -58,9 +60,9 @@ export function ClaudeKeySettings() {
           flex={1}
           miw={0}
         />
-        <Button onClick={handleSave} disabled={!input.trim()}>
+        <GatedButton onClick={handleSave} blockedReason={missingFieldsReason(input.trim() ? [] : ['Claude API key'])}>
           Save
-        </Button>
+        </GatedButton>
         {displayedHasKey && (
           <Button variant="subtle" color="red" onClick={handleClear}>
             Clear

@@ -130,6 +130,6 @@ describe('AddTrainToGroupButton', () => {
     [select] = await screen.findAllByLabelText('Tracked train');
     fireEvent.click(select!);
     fireEvent.click(await screen.findByText(/Woking/));
-    expect(screen.getByRole('button', { name: 'Add to group' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add to group' })).not.toHaveAttribute('aria-disabled');
   });
 });

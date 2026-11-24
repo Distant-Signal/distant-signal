@@ -74,19 +74,31 @@ test.describe('keyboard-only journey', () => {
         await expect(to).toBeFocused();
       });
 
-      await test.step('Enter on Find routes plans; the next Tab reaches the results', async () => {
+      await test.step('Enter on Find routes plans, focus moves to the results, and the next Tab reaches them', async () => {
         // The fixture stations (ZMA, ZMB) are not in the station search, so
         // the form is filled from the URL, as a shared link would. The plan is
         // answered here: `/Trips/plan` is rate limited per client and the plan
         // specs spend that budget on real searches.
-        await page.route('**/api/Trips/plan?*', (route) => route.fulfill({ json: fixturePlan(londonTomorrow()) }));
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
+        await page.route('**/api/Trips/plan?*', async (route) => {
+          await gate;
+          await route.fulfill({ json: fixturePlan(londonTomorrow()) });
+        });
         await page.goto(`/plan?origin=ZMA&destination=ZMB&date=${londonTomorrow()}&departAfter=08:00`);
         const find = page.getByRole('button', { name: 'Find routes' });
-        await expect(find).toBeEnabled();
+        await expect(find).not.toHaveAttribute('aria-disabled');
         await tabTo(page, find);
         await page.keyboard.press('Enter');
+        // The button stays in the Tab order while the search runs, so focus
+        // is still on it, and moves to the summary of the results when they
+        // arrive; what was found is said in a polite live region.
+        await expect(page.getByRole('button', { name: 'Searching' })).toBeFocused();
+        release();
         await expect(page.getByText(/^09:00 .*09:40$/).first()).toBeVisible();
-        // The button gives way to the results: Tab carries on into them.
+        await expect(page.getByTestId('plan-timing-summary')).toBeFocused();
+        await expect(main.getByRole('status').filter({ hasText: '1 route found.' })).toHaveCount(1);
+        // Tab carries on into the results.
         await page.keyboard.press('Tab');
         await expect(page.getByRole('button', { name: 'Earlier routes' })).toBeFocused();
       });
@@ -100,8 +112,10 @@ test.describe('keyboard-only journey', () => {
         await tabTo(page, page.getByRole('button', { name: 'Track this journey' }));
         await page.keyboard.press('Enter');
         await expect(page.getByRole('alert').filter({ hasText: 'First leg tracked' })).toBeVisible();
-        // What was just done is announced (an alert), and focus is not moved:
-        // the button is gone, so the way on is the next Tab to "View journey".
+        // What was just done is announced (an alert), and focus moves to it:
+        // the button is gone, and the way on is the next Tab stops, ending at
+        // "View journey".
+        await expect(page.getByRole('alert').filter({ hasText: 'First leg tracked' })).toBeFocused();
         const view = page.getByRole('link', { name: 'View journey' });
         tracked.id = ((await view.getAttribute('href')) ?? '').split('/').pop() ?? null;
         await tabTo(page, view);
@@ -113,6 +127,19 @@ test.describe('keyboard-only journey', () => {
     } finally {
       if (tracked.id) await deleteJourney(request, tracked.id);
     }
+  });
+
+  test('a blocked Find routes is reached with Tab and says what is missing', async ({ page, context }) => {
+    await logIn(context);
+    await page.goto('/plan');
+    const find = page.getByRole('button', { name: 'Find routes' });
+    await expect(find).toHaveAttribute('aria-disabled', 'true');
+    await expect(find).toHaveAccessibleDescription('Fill in From and To.');
+    await tabTo(page, find);
+    await page.keyboard.press('Enter');
+    // Pressing it does nothing: still on the form, still focused.
+    await expect(find).toBeFocused();
+    await expect(page.getByTestId('plan-timing-summary')).toHaveCount(0);
   });
 
   test('expand a leg, delete the journey and undo', async ({ page, context, request }) => {

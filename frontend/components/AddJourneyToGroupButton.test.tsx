@@ -124,6 +124,6 @@ describe('AddJourneyToGroupButton', () => {
     [select] = await screen.findAllByLabelText('Journey');
     fireEvent.click(select!);
     fireEvent.click(await screen.findByText(byVisibleText(/WOK to WAT/)));
-    expect(screen.getByRole('button', { name: 'Add to group' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add to group' })).not.toHaveAttribute('aria-disabled');
   });
 });

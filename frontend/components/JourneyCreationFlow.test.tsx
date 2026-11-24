@@ -214,6 +214,17 @@ describe('JourneyCreationFlow', () => {
     expect(screen.queryByRole('button', { name: /Track this train/ })).not.toBeInTheDocument();
   });
 
+  it('moves focus to the "First leg tracked" notice when the journey is made', async () => {
+    const fetchMock = mockFetchByUrl({ journeyDetail: () => journeyDetailResponse([leg()]) });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithMantine(<JourneyCreationFlow initialEntryMode="known" />);
+
+    await createLegOne(fetchMock);
+
+    const notice = await screen.findByRole('alert', { name: /First leg tracked/ });
+    await waitFor(() => expect(notice).toHaveFocus());
+  });
+
   it('hides "Add a leg" while the only leg is still unmatched', async () => {
     const fetchMock = mockFetchByUrl({
       journeyDetail: () => journeyDetailResponse([leg({ trackedTrainState: null })]),

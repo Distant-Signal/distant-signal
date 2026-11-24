@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Group, Loader, Stack, Text } from '@mantine/core';
+import { Alert, Checkbox, Group, Loader, Stack, Text } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
 import { ButtonLink } from './ButtonLink';
 import { preselectedScopes, scopeSentence } from '@/lib/connectedApps';
 import { describeFailure } from '@/lib/failure';
@@ -167,9 +168,13 @@ export function ConnectAppConsent({
         </Alert>
       )}
       <Group gap="sm">
-        <Button onClick={() => void allow()} loading={busy} disabled={scopes.length === 0}>
+        <GatedButton
+          onClick={() => void allow()}
+          loading={busy}
+          blockedReason={scopes.length === 0 ? 'Tick at least one thing the app will be able to do.' : null}
+        >
           Allow
-        </Button>
+        </GatedButton>
         <ButtonLink href="/account/connected-apps" variant="default">
           Cancel
         </ButtonLink>

@@ -22,7 +22,8 @@ import { timingMode, type TimingMode } from '@/lib/tripPlanTiming';
 import { PlanTripAdvancedOptions, advancedOptionErrors } from './PlanTripAdvancedOptions';
 import { operatorName as catalogueOperatorName, type OperatorMode } from '@/lib/plannerOperators';
 import type { PlannerOperatorCatalogue } from '@/lib/types';
-import { ButtonSpinner } from '@/components/LoadingText';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { StationField } from '@/components/StationField';
 
 /** `@tabler/icons-react` isn't a project dependency (checked package.json,
@@ -408,6 +409,14 @@ export function PlanTripForm({
     destinationCrs.trim().length > 0 &&
     date !== null &&
     (mode === 'departAfter' || time.length > 0);
+  // What `canSubmit` is waiting for, named as the fields are (the button's
+  // accessible description while it is blocked).
+  const blockedReason = missingFieldsReason([
+    ...(originCrs.trim().length === 0 ? ['From'] : []),
+    ...(destinationCrs.trim().length === 0 ? ['To'] : []),
+    ...(date === null ? ['Date'] : []),
+    ...(mode === 'arriveBy' && time.length === 0 ? ['Time'] : []),
+  ]);
 
   return (
     <Stack gap="md">
@@ -551,16 +560,19 @@ export function PlanTripForm({
           Check Advanced options: {firstError}
         </Text>
       )}
-      <Button
-        // Not disabled by an advanced-option problem: a click opens the
-        // section on it, where a disabled button would just go quiet.
-        disabled={!canSubmit || searching}
+      {/* Not blocked by an advanced-option problem: a click opens the
+          section on it, where a blocked button would just go quiet. While a
+          search runs the button stays in the Tab order (`busy`), so focus is
+          still on it when the results arrive. */}
+      <GatedButton
+        data-plan-submit
+        blockedReason={canSubmit ? null : blockedReason}
+        busy={searching}
         onClick={handleSubmit}
         aria-describedby={firstError ? advancedErrorId : undefined}
-        leftSection={searching ? <ButtonSpinner /> : undefined}
       >
         {searching ? 'Searching' : 'Find routes'}
-      </Button>
+      </GatedButton>
     </Stack>
   );
 }

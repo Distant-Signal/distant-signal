@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Group, Modal, SegmentedControl, Stack, Text, TextInput } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { useDisclosure } from '@mantine/hooks';
 import { DateInput } from '@/components/LazyDateFields';
 import { PICKER_DATE_FORMAT } from '@/lib/dateFormat';
@@ -329,6 +331,22 @@ export function AddJourneyLegButton({
           windowOrderValid &&
           filtersValid;
 
+  // What the open form still needs, as the sentence the blocked button is
+  // described by.
+  const blockedReason =
+    mode === 'knownTrain'
+      ? missingFieldsReason([
+          ...(trainUid.trim() === '' ? ['Train UID'] : []),
+          ...(serviceDateValid ? [] : ['Service date']),
+        ])
+      : mode === 'untracked'
+        ? "Fill in the details of this leg's journey first."
+        : (missingFieldsReason([
+            ...(originCrsValid ? [] : ['From station']),
+            ...(destinationCrsValid ? [] : ['To station']),
+            ...(serviceDateValid ? [] : ['Service date']),
+          ]) ?? 'Check the times and filters for this leg first.');
+
   async function handleSubmit() {
     const body = currentRequest();
     if (!isValid || body === null) return;
@@ -517,9 +535,9 @@ export function AddJourneyLegButton({
           )}
           {error && <Alert color="red">{error}</Alert>}
           {needsLoginState.needsLogin && <LoginControl underline="always">Log in to add a leg</LoginControl>}
-          <Button onClick={handleSubmit} disabled={!isValid} loading={submitting}>
+          <GatedButton onClick={handleSubmit} blockedReason={isValid ? null : blockedReason} loading={submitting}>
             Add leg
-          </Button>
+          </GatedButton>
         </Stack>
       </Modal>
     </>

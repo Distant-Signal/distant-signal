@@ -1108,6 +1108,16 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
   number is the one "Leg N of M" shows (`lib/legActionLabel.ts`, from
   `shownLegs`, so folded walks are not counted). A list of rows is a real
   `ul` with `className="ds-plain-list"` and an `aria-label`, one `li` per row.
+- A primary action that waits for input is a `GatedButton`
+  (`components/GatedButton.tsx`), not a bare `disabled` button: it keeps its
+  place in the Tab order with `aria-disabled`, looks disabled, ignores the
+  press, and its `aria-describedby` sentence says what is missing ("Fill in
+  From and To.", `lib/missingFields.ts`). Its `busy` prop does the same
+  while its own request runs, so focus is not dropped to the page. When a
+  search or save finishes and the button is gone or the results replace the
+  form, focus moves to the result (the plan's summary line or failure
+  notice, the "First leg tracked" notice) unless the person has already
+  moved on, and a polite live region says what happened.
 - The 30-second auto-refresh is silent by design: it updates text in place,
   keeps focus and scroll, and mutates no live region. Announce a change only
   from a deliberate live region, not from the refresh.

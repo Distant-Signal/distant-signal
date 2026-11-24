@@ -1,7 +1,9 @@
 'use client';
 
 import { useId, useMemo, useState, type SubmitEvent } from 'react';
-import { Button, Checkbox, Group, Loader, SegmentedControl, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Checkbox, Group, Loader, SegmentedControl, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { DatePickerInput } from '@/components/LazyDateFields';
 import { PICKER_DATE_FORMAT } from '@/lib/dateFormat';
 import { nowInLondon } from '@/lib/londonWallClock';
@@ -305,6 +307,14 @@ export function TrainSearchForm({
     arrivalFromValid &&
     arrivalToValid &&
     timesComplete;
+
+  // What the Search button waits for: the stations first, then whatever the
+  // form's own messages flag.
+  const blockedReason =
+    missingFieldsReason([
+      ...(stationValid ? [] : [between ? 'From' : 'Station']),
+      ...(between && !stopsAtValid ? ['To'] : []),
+    ]) ?? 'Fix the problems shown in the form first.';
 
   // Anchored to Europe/London (FE-4), like the server's own window, so a
   // visitor whose device isn't on UK time gets the edges the server
@@ -832,9 +842,9 @@ export function TrainSearchForm({
         )}
         {otherFields}
         <Group>
-          <Button type="submit" disabled={!filtersValid}>
+          <GatedButton type="submit" blockedReason={filtersValid ? null : blockedReason}>
             Search
-          </Button>
+          </GatedButton>
         </Group>
         {resultsSection}
       </Stack>

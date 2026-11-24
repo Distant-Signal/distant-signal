@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Alert, Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { DateInput } from '@/components/LazyDateFields';
 import { PreferencesSection } from './PreferencesSection';
 import { PICKER_DATE_FORMAT } from '@/lib/dateFormat';
@@ -138,14 +140,17 @@ export function TimeAwaySection({ initial }: { initial: TimeAwayPeriod[] }) {
         onChange={(event) => setLabel(event.currentTarget.value)}
         maw={320}
       />
-      <Button
+      <GatedButton
         onClick={() => void add()}
-        disabled={!startsOn || !endsOn || busy}
+        blockedReason={missingFieldsReason([
+          ...(startsOn ? [] : ['First day away']),
+          ...(endsOn ? [] : ['Last day away']),
+        ])}
         loading={busy}
         className="ds-self-start"
       >
         Add time away
-      </Button>
+      </GatedButton>
       {status && (
         <Text size="sm" c="dimmed" role="status">
           {status}
