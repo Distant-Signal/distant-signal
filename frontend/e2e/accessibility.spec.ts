@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { AXE_TAGS } from './a11y-helpers';
+import { AXE_TAGS, gotoOk, waitUntilHydrated } from './a11y-helpers';
 import { openNavDrawer } from './navDrawer';
 import { LEGAL_ROUTES, LOGGED_IN_ROUTES, PUBLIC_ROUTES, REAL_LINE_ID, REAL_STATION_CRS } from './a11yRoutes';
 import { testPublicId, testTrackingId } from '../test/apiDefaults';
@@ -213,10 +213,14 @@ function sessionState(value: string) {
 test.describe('accessibility: anonymous, light scheme', () => {
   for (const [name, path] of ANONYMOUS_ROUTES) {
     test(name, async ({ page }) => {
-      // Next's error shell is itself accessible, so without this a route that
-      // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
-      const response = await page.goto(path);
-      expect(response?.status() ?? 0, `${path} returned a server error`).toBeLessThan(500);
+      // `gotoOk`: no server error (Next's error shell is itself accessible,
+      // so a route that 500s would otherwise pass: /connect-claude,
+      // 2026-09-29), and the route's own h1 is in the page. Next streams a
+      // route's loading skeleton, which has no h1, before its content, and
+      // `goto` can resolve first: a scan then failed `page-has-heading-one`
+      // on a slow runner (/journeys/regular/new and /journeys/regular/[id],
+      // first attempt only; DS-635).
+      await gotoOk(page, path);
       await expectNoViolations(page);
     });
   }
@@ -232,10 +236,9 @@ test.describe('accessibility: anonymous, dark scheme', () => {
   test.use({ colorScheme: 'dark' });
   for (const [name, path] of ANONYMOUS_ROUTES) {
     test(name, async ({ page }) => {
-      // Next's error shell is itself accessible, so without this a route that
-      // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
-      const response = await page.goto(path);
-      expect(response?.status() ?? 0, `${path} returned a server error`).toBeLessThan(500);
+      // `gotoOk`: no server error, and the route's own h1 in the page (see the
+      // first sweep above).
+      await gotoOk(page, path);
       await expectNoViolations(page);
     });
   }
@@ -281,6 +284,9 @@ test.describe('accessibility: data freshness panel open', () => {
         // A short page: the panel is in the nav on every one.
         await page.goto('/attribution');
         const trigger = page.getByRole('button', { name: 'Data freshness' });
+        // Focus before hydration opens nothing: the tooltip's handlers are
+        // not attached yet, and a loaded runner took that long (DS-635).
+        await waitUntilHydrated(trigger);
         // Tabbed to rather than `focus()`ed: the tooltip opens on
         // keyboard focus (`:focus-visible`), not on a scripted focus.
         for (
@@ -318,10 +324,9 @@ test.describe('accessibility: logged in', () => {
   // differs from the anonymous one. The dark run below scans the same list.
   for (const [name, path] of LOGGED_IN_ROUTES) {
     test(name, async ({ page }) => {
-      // Next's error shell is itself accessible, so without this a route that
-      // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
-      const response = await page.goto(path);
-      expect(response?.status() ?? 0, `${path} returned a server error`).toBeLessThan(500);
+      // `gotoOk`: no server error, and the route's own h1 in the page (see the
+      // first sweep above).
+      await gotoOk(page, path);
       await expectNoViolations(page);
     });
   }
@@ -852,10 +857,9 @@ test.describe('accessibility: logged in, dark scheme', () => {
 
   for (const [name, path] of LOGGED_IN_ROUTES) {
     test(name, async ({ page }) => {
-      // Next's error shell is itself accessible, so without this a route that
-      // 500s would pass the sweep (it did: /connect-claude, 2026-09-29).
-      const response = await page.goto(path);
-      expect(response?.status() ?? 0, `${path} returned a server error`).toBeLessThan(500);
+      // `gotoOk`: no server error, and the route's own h1 in the page (see the
+      // first sweep above).
+      await gotoOk(page, path);
       await expectNoViolations(page);
     });
   }

@@ -109,6 +109,27 @@ describe('ListFilterBar', () => {
   });
 });
 
+describe('ListFilterBar focus return', () => {
+  // `fireEvent.click` does not focus the button, so the panel opens with
+  // focus on the page and Mantine's own focus return has nothing right to
+  // return to: ours must still put focus on the Filters button.
+  it.each([
+    ['Escape', () => fireEvent.keyDown(screen.getByRole('dialog', { name: 'Filters' }), { key: 'Escape' })],
+    ['the Show button', () => fireEvent.click(screen.getByRole('button', { name: 'Show 1 incident' }))],
+  ])('puts focus back on the Filters button when %s closes the panel', async (_how, close) => {
+    renderWithMantine(
+      <ListFilterBar searchLabel="Find an incident" noun={NOUN} matchCount={1}>
+        <input aria-label="A field" data-autofocus />
+      </ListFilterBar>,
+    );
+    const button = screen.getByRole('button', { name: /Filters/ });
+    fireEvent.click(button);
+    await screen.findByRole('dialog', { name: 'Filters' });
+    close();
+    await waitFor(() => expect(button).toHaveFocus());
+  });
+});
+
 describe('countLabel', () => {
   it('picks the singular or plural noun', () => {
     expect(countLabel(1, NOUN)).toBe('1 incident');
