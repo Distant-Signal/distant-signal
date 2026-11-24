@@ -72,3 +72,5 @@ logcli query '{service_name="frontend"} |= "api requests by frontend build"' \
 
 The first column is the UTC day, the second the key, the third the count. Any
 24-hex key that is not the fixed build or a later one is a stale build.
+
+To make old builds retire themselves, see [frontend-min-build.md](frontend-min-build.md).

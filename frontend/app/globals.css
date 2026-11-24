@@ -2405,6 +2405,18 @@ svg[data-icon='external-link'] {
   width: min(calc(100vw - 32px), 480px);
 }
 
+/* The reload hint (components/BuildUpdateNotice.tsx): the connectivity
+   banner's placement, one banner height above it so both can show. Hidden
+   unless the operator sets a floor, so no page differs by default. */
+.updateBanner {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  width: min(calc(100vw - 32px), 480px);
+}
+
 /* `JourneyLegCard`'s open leg ("Needs a train picked"): border, tint, bold
    title and glyph, so it isn't marked by colour alone. The glyph uses the
    light variant's text colour, measured AA on this same `grape-light`

@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installBuildHeader } from './buildHeader';
+import { noteMinBuild } from './minBuildStore';
+
+vi.mock('./minBuildStore', () => ({ noteMinBuild: vi.fn() }));
 
 const ID = 'c'.repeat(24);
 
@@ -59,5 +62,15 @@ describe('installBuildHeader', () => {
     expect(window.fetch).not.toBe(original);
     undoReal();
     expect(window.fetch).toBe(original);
+  });
+
+  it('passes the floor an api response carries to the store, and none when absent', async () => {
+    vi.stubEnv('NEXT_PUBLIC_BUILD_ID', ID);
+    original.mockResolvedValueOnce(new Response('{}', { headers: { 'X-DS-Min-Build': '6' } }));
+    undo = installBuildHeader();
+    await window.fetch('/api/lines');
+    expect(noteMinBuild).toHaveBeenLastCalledWith('6');
+    await window.fetch('/api/lines');
+    expect(noteMinBuild).toHaveBeenLastCalledWith(null);
   });
 });

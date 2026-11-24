@@ -1,4 +1,5 @@
 import { computeBuildId } from './scripts/build-id.mjs';
+import { BUILD_EPOCH } from './scripts/build-epoch.mjs';
 
 // Computed once: both the Next build id and the id the browser sends on its
 // api calls (`NEXT_PUBLIC_BUILD_ID`, lib/buildId.ts).
@@ -159,7 +160,8 @@ const nextConfig = {
   generateBuildId: () => buildId,
   // Inlined into the browser bundle: the build id, sent as `X-DS-Build` on
   // api calls so the proxy can count requests per build (lib/buildMix.ts).
-  env: { NEXT_PUBLIC_BUILD_ID: buildId },
+  // The build epoch rides along for the reload hint (lib/buildEpoch.ts).
+  env: { NEXT_PUBLIC_BUILD_ID: buildId, NEXT_PUBLIC_BUILD_EPOCH: String(BUILD_EPOCH) },
   ...(devOrigins.length ? { allowedDevOrigins: devOrigins } : {}),
   // The Journeys page (`app/journeys/page.tsx`) was the Track page at
   // `/track/mine` until DS-115 (21 Oct 2026), and before that

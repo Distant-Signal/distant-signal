@@ -8,6 +8,8 @@ import { AutoRefresh } from '@/components/AutoRefresh';
 import { ColorSchemeMeta } from '@/components/ColorSchemeMeta';
 import { BrowserSecretsGuard } from '@/components/BrowserSecretsGuard';
 import { BuildHeader } from '@/components/BuildHeader';
+import { BuildUpdateNotice } from '@/components/BuildUpdateNotice';
+import { configuredMinBuild } from '@/lib/minBuild';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { UsageTracker } from '@/components/UsageTracker';
 import { OpenDataAttribution } from '@/components/OpenDataAttribution';
@@ -286,6 +288,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   doc comment. */}
                 <ServiceWorkerRegister loadedAt={new Date().toISOString()} />
                 <BuildHeader />
+                <BuildUpdateNotice serverMinBuild={configuredMinBuild()} />
                 {/* The fallback is the WHOLE bar rendered logged-out, not a
                   placeholder: the brand, the burger and every primary link
                   are identical either way, so a visitor sees a complete,

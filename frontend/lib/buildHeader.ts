@@ -1,4 +1,6 @@
 import { BUILD_ID_HEADER, clientBuildId } from '@/lib/buildId';
+import { MIN_BUILD_HEADER } from '@/lib/buildEpoch';
+import { noteMinBuild } from '@/lib/minBuildStore';
 
 /** Whether `input` names a call to the app's own `/api/*` proxy by string or
  * URL (a `Request` is left alone: no call site passes one). */
@@ -28,7 +30,12 @@ export function installBuildHeader(): () => void {
     if (!isOwnApiCall(input)) return wrapped(input, init);
     const headers = new Headers(init?.headers);
     if (!headers.has(BUILD_ID_HEADER)) headers.set(BUILD_ID_HEADER, id);
-    return wrapped(input, { ...init, headers });
+    return wrapped(input, { ...init, headers }).then((response) => {
+      // The floor the proxy sets when the operator asked old builds to
+      // reload (components/BuildUpdateNotice.tsx).
+      noteMinBuild(response.headers.get(MIN_BUILD_HEADER));
+      return response;
+    });
   };
   window.fetch = stamped;
   return () => {
