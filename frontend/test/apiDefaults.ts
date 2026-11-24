@@ -68,6 +68,8 @@ export const JOURNEY_STOP_DEFAULTS = {
   tiploc: null,
   actualArrival: null,
   actualDeparture: null,
+  actualArrivalIsActual: false,
+  actualDepartureIsActual: false,
   estimatedArrival: null,
   estimatedDeparture: null,
   estimateSource: null,
@@ -420,6 +422,10 @@ export const LEG_DELAY_REPAY_DEFAULTS = {
   liveTracking: true,
   unmeasurableReason: null,
   ticketKnown: false,
+  boardingCrs: null,
+  boardingActualDeparture: null,
+  boardingDelayMinutes: null,
+  boardingDelayBasis: null,
 } satisfies Partial<Api.LegDelayRepay>;
 
 /** A `ReliabilityJourney`, less its journey, date and delay. */
@@ -433,6 +439,7 @@ export const RELIABILITY_JOURNEY_DEFAULTS = {
   actualArrival: null,
   againstBookedPlan: false,
   differentDestination: false,
+  isMeasured: false,
   claimUrl: 'https://example.test/claim',
   disclaimer: 'A rough estimate.',
 } satisfies Partial<Api.ReliabilityJourney>;
@@ -481,6 +488,8 @@ export const GROUP_JOURNEY_DEFAULTS = {
   untrackedStatus: null,
   following: false,
   irishTrain: null,
+  trainDetail: null,
+  snapshotAt: null,
 } satisfies Partial<Api.GroupJourney>;
 
 /** An earlier plan's leg's untracked stops and network ride. */

@@ -62,6 +62,11 @@ export type TrackedTrainRowInput = {
   delayMinutes: number | null;
   delayProvisional?: boolean;
   cancellation?: ListCancellation | null;
+  /** Where the train's detail comes from (DS-684): a group journey row
+   * whose train was pruned keeps its outcome in `status` and
+   * `delayMinutes`. */
+  trainDetail?: GroupJourney['trainDetail'];
+  snapshotAt?: string | null;
 } & ServiceModeFields &
   TrackingPhaseFields;
 
@@ -238,6 +243,8 @@ export function groupJourneyRowStatus(journey: GroupJourney, today: string): Tra
       serviceMode: journey.serviceMode,
       liveTracking: journey.liveTracking,
       trackingPhase: journey.trackingPhase,
+      trainDetail: journey.trainDetail,
+      snapshotAt: journey.snapshotAt,
     },
     today,
   );

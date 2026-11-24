@@ -1015,7 +1015,22 @@ following: boolean,
  * and service date, for the Irish train page; `null` otherwise.
  * Additive (2026-11-06).
  */
-irishTrain: IrishTrain | null, serviceMode?: ServiceMode, liveTracking?: boolean, };
+irishTrain: IrishTrain | null, 
+/**
+ * Where the summarised train leg's detail comes from (additive,
+ * 2026-11-24), as on `GET /Journeys/mine`: `live` while the train's
+ * data is held; `snapshot` once it is pruned but the leg kept its own
+ * copy; `unavailable` when pruned and no copy was kept. `null` for an
+ * open or untracked leg. For `snapshot` and `unavailable` the leg's
+ * recorded outcome, when there is one, fills `status` (`completed` or
+ * `cancelled`) and `delayMinutes`. Only the outcome is read: never the
+ * copy's document.
+ */
+trainDetail: TrainDetail | null, 
+/**
+ * When the leg's copy was last written; set only with `snapshot`.
+ */
+snapshotAt: string | null, serviceMode?: ServiceMode, liveTracking?: boolean, };
 
 /**
  * Deliberately no `email` field, and `display_name` is deliberately never
@@ -1930,6 +1945,18 @@ locationType: LocationType | null,
  */
 parentCrs: string | null, tiploc: string | null, kind: "Origin" | "Intermediate" | "Terminate" | null, actualArrival: string | null, actualDeparture: string | null, 
 /**
+ * `true` exactly when `actual_arrival` was set from a TRUST movement
+ * report (a PASS's time included); `false` when it is `None`. Always
+ * present: `false` means "no recorded actual", never "on time" and
+ * never "estimated" (`estimated_arrival` is the estimate). `false` on a
+ * freshly-built stop, until the movement overlay sets it (DS-638).
+ */
+actualArrivalIsActual: boolean, 
+/**
+ * As `actual_arrival_is_actual`, for `actual_departure`.
+ */
+actualDepartureIsActual: boolean, 
+/**
  * The working time to the minute (`timetable.working_minute_arrival`)
  * plus the train's current overall delay, filled in by
  * `apply_delay_estimates` (below) ONLY while `actual_arrival` is still
@@ -2376,6 +2403,32 @@ unmeasurableReason: string | null,
  * means the 120-minute band shows both readings.
  */
 ticketKnown: boolean, 
+/**
+ * Where the passenger boards: the leg's origin, else the tracked
+ * train's pinned boarding station. `null` when neither is known
+ * (additive, DS-638).
+ */
+boardingCrs: string | null, 
+/**
+ * When the train ACTUALLY left `boardingCrs`, as TRUST reported it
+ * (RFC 3339). `null` when no departure was reported there (TRUST only
+ * reports at timing points, so a boarding station that is not one never
+ * has one), for a bus or ferry, and for a leg whose train data was
+ * pruned. Never an estimate or the booked time.
+ */
+boardingActualDeparture: string | null, 
+/**
+ * `boardingActualDeparture` minus the booked PUBLIC departure there, in
+ * whole minutes (positive is late, truncated toward zero). `null` when
+ * either is missing.
+ */
+boardingDelayMinutes: number | null, 
+/**
+ * Which baseline `boardingDelayMinutes` used, spelled as `delayBasis`;
+ * `null` exactly when `boardingDelayMinutes` is. It can differ from
+ * `delayBasis`: each is judged on its own station's times.
+ */
+boardingDelayBasis: DelayBasis | null, 
 /**
  * The delay against the PUBLIC arrival at `measured_at_crs` (design
  * doc §9 decision 3): measured once the train has arrived (or, at a
@@ -3861,9 +3914,21 @@ destinationCrs: string | null, destinationName: string | null,
  */
 bookedArrival: string | null, 
 /**
- * The arrival there on the current plan, when known.
+ * The arrival there on the current plan, when known. DERIVED, never a
+ * time TRUST reported: the last leg's booked public arrival plus its
+ * measured or forecast delay in whole minutes. `isMeasured` says which.
  */
 actualArrival: string | null, 
+/**
+ * `true` only when `actualArrival` rests on a delay that was MEASURED
+ * (the train reported at the destination, or the leg recorded its
+ * outcome there). `false` when `actualArrival` is `null`, when the delay
+ * is a forecast (`provisional`), when the train did not reach the
+ * destination (`outcome` `notReached`) and when the current plan ends
+ * somewhere else (`differentDestination`). Always present (additive,
+ * DS-638).
+ */
+isMeasured: boolean, 
 /**
  * Measured against the booked plan after the railway changed it.
  */
@@ -4437,7 +4502,22 @@ following: boolean,
  * and service date, for the Irish train page; `null` otherwise.
  * Additive (2026-11-06).
  */
-irishTrain: IrishTrain | null, serviceMode?: ServiceMode, liveTracking?: boolean, };
+irishTrain: IrishTrain | null, 
+/**
+ * Where the summarised train leg's detail comes from (additive,
+ * 2026-11-24), as on `GET /Journeys/mine`: `live` while the train's
+ * data is held; `snapshot` once it is pruned but the leg kept its own
+ * copy; `unavailable` when pruned and no copy was kept. `null` for an
+ * open or untracked leg. For `snapshot` and `unavailable` the leg's
+ * recorded outcome, when there is one, fills `status` (`completed` or
+ * `cancelled`) and `delayMinutes`. Only the outcome is read: never the
+ * copy's document.
+ */
+trainDetail: TrainDetail | null, 
+/**
+ * When the leg's copy was last written; set only with `snapshot`.
+ */
+snapshotAt: string | null, serviceMode?: ServiceMode, liveTracking?: boolean, };
 
 /**
  * One train shared into one group the CALLER is a member of -- `GroupTrain`
