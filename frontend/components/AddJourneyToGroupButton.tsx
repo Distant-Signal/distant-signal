@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Modal, Select, Text } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
 import { useDisclosure } from '@mantine/hooks';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
@@ -117,9 +118,14 @@ export function AddJourneyToGroupButton({
         )}
         {error && <Alert color="red">{error}</Alert>}
         {needsLoginState.needsLogin && <LoginControl underline="always">Log in to share a journey</LoginControl>}
-        <Button mt="md" onClick={handleAdd} disabled={!selected} loading={submitting}>
+        <GatedButton
+          mt="md"
+          onClick={handleAdd}
+          blockedReason={selected ? null : 'Choose a journey first.'}
+          loading={submitting}
+        >
           Add to group
-        </Button>
+        </GatedButton>
       </Modal>
     </>
   );

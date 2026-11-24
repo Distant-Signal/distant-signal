@@ -2,11 +2,12 @@
 
 import { useState, type SubmitEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, Button, Stack, TextInput } from '@mantine/core';
+import { Alert, Stack, TextInput } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginPromptModal } from './LoginPromptModal';
 import { describeFailure, failureFromResponse } from '@/lib/failure';
-import { ButtonSpinner } from '@/components/LoadingText';
 import type { GroupIdentityResponse } from '@/lib/types';
 
 /** `/groups/new`'s form -- creates a group, then immediately rotates its
@@ -77,13 +78,13 @@ export function CreateGroupForm() {
           {error}
         </Alert>
       )}
-      <Button
+      <GatedButton
         type="submit"
-        disabled={name.trim().length === 0 || submitting}
-        leftSection={submitting ? <ButtonSpinner /> : undefined}
+        blockedReason={missingFieldsReason(name.trim().length === 0 ? ['Group name'] : [])}
+        busy={submitting}
       >
         {submitting ? 'Creating' : 'Create group'}
-      </Button>
+      </GatedButton>
       <LoginPromptModal opened={needsLoginState.needsLogin} onClose={needsLoginState.reset}>
         Log in to create a group.
       </LoginPromptModal>

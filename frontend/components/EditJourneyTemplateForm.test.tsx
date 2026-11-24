@@ -147,14 +147,14 @@ describe('EditJourneyTemplateForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add another leg' }));
 
     // The newly-added second leg has no origin/destination yet.
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toHaveAttribute('aria-disabled', 'true');
 
     const originFields = screen.getAllByRole('combobox', { name: 'From station' });
     const destinationFields = screen.getAllByRole('combobox', { name: 'To station' });
     fireEvent.change(originFields[1]!, { target: { value: 'YRK' } });
     fireEvent.change(destinationFields[1]!, { target: { value: 'NCL' } });
 
-    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
   });
 
   it("uses the site's station search for each leg's From and To, with the same placeholders as adding a leg", () => {
@@ -181,7 +181,9 @@ describe('EditJourneyTemplateForm', () => {
     // then shows the station by name and code.
     // Picked once the search for what was typed comes back.
     await waitFor(() => expect(origin).toHaveValue('York (YRK)'), { timeout: 5000 });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled'),
+    );
     expect(screen.queryByText('Must be a 3-letter station code')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -211,7 +213,7 @@ describe('EditJourneyTemplateForm', () => {
     fireEvent.change(origin, { target: { value: 'Nowhere at all' } });
     // Not while it is still being typed.
     expect(screen.queryByText('Must be a 3-letter station code')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.blur(origin);
     expect(await screen.findByText('Must be a 3-letter station code')).toBeInTheDocument();
@@ -298,7 +300,7 @@ describe('EditJourneyTemplateForm', () => {
     // No time field was ever filled in -- origin/destination alone (the
     // only fields validate_template_leg actually checks) are enough to
     // enable Save.
-    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
 
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
@@ -341,7 +343,7 @@ describe('EditJourneyTemplateForm', () => {
     fireEvent.change(originFields[1]!, { target: { value: 'YRK' } });
     fireEvent.change(destinationFields[1]!, { target: { value: 'NCL' } });
 
-    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(putCalls()).toHaveLength(1));
@@ -366,7 +368,7 @@ describe('EditJourneyTemplateForm', () => {
   // exercises the same way.
   it('a half-typed time on a leg blocks Save, rather than silently dropping the bound', async () => {
     renderWithMantine(<EditJourneyTemplateForm template={template()} />);
-    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
 
     // An hour with no minutes -- a native `<input type="time">` reports
     // `value` as `''` here (indistinguishable from untouched) but sets
@@ -375,7 +377,7 @@ describe('EditJourneyTemplateForm', () => {
     setBadInput(departFrom, true);
     fireEvent.change(departFrom, { target: { value: '' } });
 
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(putCalls()).toHaveLength(0);
   });
@@ -426,13 +428,13 @@ describe('EditJourneyTemplateForm', () => {
     fireEvent.change(departFromFields[0]!, { target: { value: '08:00' } });
     setBadInput(departFromFields[0]!, true);
     fireEvent.change(departFromFields[0]!, { target: { value: '' } });
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toHaveAttribute('aria-disabled', 'true');
 
     // Remove leg 1 -- the incomplete block belongs to leg 1's own identity,
     // not to "whatever is now at index 0" (leg 2, post-removal).
     fireEvent.click(screen.getByRole('button', { name: 'Remove leg 1' }));
 
-    expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(putCalls()).toHaveLength(1));
@@ -557,11 +559,11 @@ describe('EditJourneyTemplateForm', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(
         'Add a departure time to each leg to let us pick your train.',
       );
-      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save changes' })).toHaveAttribute('aria-disabled', 'true');
 
       fireEvent.change(screen.getByLabelText('Latest arrival (optional)'), { target: { value: '09:30' } });
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
     });
 
     it('asks for a time on a recurring reminder template with an open leg', () => {
@@ -570,7 +572,7 @@ describe('EditJourneyTemplateForm', () => {
       expect(
         screen.getByText('Add a departure time to each leg so we can remind you to pick a train.'),
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Save changes' })).not.toHaveAttribute('aria-disabled');
     });
 
     it('the Paused switch sends the real active boolean, inverted', async () => {

@@ -177,7 +177,7 @@ describe('StationSearchForm', () => {
     const input = screen.getByRole('combobox', { name: 'Station name or code' });
     fireEvent.change(input, { target: { value: 'WOK' } });
 
-    expect(screen.getByRole('button', { name: 'Look up' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Look up' })).not.toHaveAttribute('aria-disabled');
     expect(lookupStatus()).toBeUndefined();
 
     await act(async () => {
@@ -188,7 +188,7 @@ describe('StationSearchForm', () => {
     // in, and the button stays disabled so a second click can't fire a
     // second navigation.
     const pendingButton = screen.getByRole('button', { name: 'Looking up' });
-    expect(pendingButton).toBeDisabled();
+    expect(pendingButton).toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByRole('button', { name: 'Look up' })).not.toBeInTheDocument();
 
     // The results area itself carries a real pending indicator too, not
@@ -204,21 +204,21 @@ describe('StationSearchForm', () => {
       resolveNavigation();
     });
 
-    expect(screen.getByRole('button', { name: 'Look up' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Look up' })).not.toHaveAttribute('aria-disabled');
     expect(lookupStatus()).toBeUndefined();
   });
 
   it('does not enter the pending state for a blank CRS code', async () => {
     renderWithProvider();
     const button = screen.getByRole('button', { name: 'Look up' });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
 
     await act(async () => {
       fireEvent.click(button);
     });
 
     expect(pushMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Look up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Look up' })).toHaveAttribute('aria-disabled', 'true');
     expect(lookupStatus()).toBeUndefined();
   });
 

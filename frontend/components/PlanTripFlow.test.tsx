@@ -822,6 +822,70 @@ describe('PlanTripFlow', () => {
     await screen.findByText(byVisibleText('08:00 EUS to MKC 08:50'));
   });
 
+  it('keeps focus on Find routes while it runs, then moves it to the results and announces them', async () => {
+    let resolveFetch: (value: Response) => void = () => {};
+    const pending = new Promise<Response>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.stubGlobal('fetch', vi.fn().mockReturnValueOnce(pending));
+
+    renderWithMantine(<PlanTripFlow onCreated={vi.fn()} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'EUS' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'MKC' } });
+    const find = screen.getByRole('button', { name: 'Find routes' });
+    find.focus();
+    fireEvent.click(find);
+
+    const searching = await screen.findByRole('button', { name: 'Searching' });
+    expect(searching).toHaveAttribute('aria-disabled', 'true');
+    expect(searching).toHaveFocus();
+    expect(screen.getAllByRole('status').some((node) => node.textContent === 'Searching for routes.')).toBe(true);
+
+    resolveFetch({ ok: true, json: () => Promise.resolve(singleSegmentPlan) } as Response);
+    const summary = await screen.findByTestId('plan-timing-summary');
+    await waitFor(() => expect(summary).toHaveFocus());
+    expect(screen.getAllByRole('status').some((node) => node.textContent === '1 route found.')).toBe(true);
+  });
+
+  it('leaves focus alone when the person has moved to another field before the results arrive', async () => {
+    let resolveFetch: (value: Response) => void = () => {};
+    const pending = new Promise<Response>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.stubGlobal('fetch', vi.fn().mockReturnValueOnce(pending));
+
+    renderWithMantine(<PlanTripFlow onCreated={vi.fn()} />);
+    const from = screen.getByRole('combobox', { name: 'From' });
+    fireEvent.change(from, { target: { value: 'EUS' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'MKC' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Find routes' }));
+    await screen.findByRole('button', { name: 'Searching' });
+    from.focus();
+
+    resolveFetch({ ok: true, json: () => Promise.resolve(singleSegmentPlan) } as Response);
+    await screen.findByTestId('plan-timing-summary');
+    expect(from).toHaveFocus();
+  });
+
+  it('blocks Track this journey with its reason until a route is chosen, and stays focusable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(singleSegmentPlan) }));
+    const onCreated = vi.fn();
+    renderWithMantine(<PlanTripFlow onCreated={onCreated} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'EUS' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'MKC' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Find routes' }));
+    const track = await screen.findByRole('button', { name: 'Track this journey' });
+    expect(track).toHaveAttribute('aria-disabled', 'true');
+    expect(track).toHaveAccessibleDescription('Choose a route first.');
+    track.focus();
+    expect(track).toHaveFocus();
+    fireEvent.click(track);
+    expect(onCreated).not.toHaveBeenCalled();
+    const radios = screen.getAllByRole('radio');
+    fireEvent.click(radios[radios.length - 1]!);
+    expect(track).not.toHaveAttribute('aria-disabled');
+  });
+
   it('discards a stale plan response that resolves after a newer one', async () => {
     // Regression coverage for the `searchRequestId` guard itself
     // (`PlanTripFlow.tsx`'s own doc comment) -- kept as defense-in-depth

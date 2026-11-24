@@ -25,7 +25,7 @@ describe.each(ID_SHAPES)('TimeAwaySection (%s)', (_name, shape) => {
     const { unmount } = renderWithMantine(<TimeAwaySection initial={shape([])} />);
     expect(screen.getByRole('region', { name: 'Time away' })).toBeInTheDocument();
     expect(screen.getByText('No time away.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add time away' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add time away' })).toHaveAttribute('aria-disabled', 'true');
     unmount();
     renderWithMantine(
       <TimeAwaySection

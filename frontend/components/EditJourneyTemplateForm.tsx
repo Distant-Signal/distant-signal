@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Chip, Group, SegmentedControl, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
 import { useNeedsLogin } from './useNeedsLogin';
 import { LoginControl } from './LoginControl';
 import { TimeFilterInput } from './TimeFilterInput';
@@ -252,6 +253,15 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
     allTimesComplete &&
     !autoNeedsTimes;
 
+  const blockedReason =
+    legs.length === 0
+      ? 'Add a leg first.'
+      : !legs.every((leg) => leg.originResolved !== null && leg.destinationResolved !== null)
+        ? 'Choose a station for every leg first.'
+        : autoNeedsTimes
+          ? 'Give each open leg a time window first.'
+          : 'Complete the times for every leg first.';
+
   async function handleSave() {
     if (!isValid) return;
     setSubmitting(true);
@@ -471,9 +481,9 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
       {error && <Alert color="red">{error}</Alert>}
       {saved && <Alert color="green">Saved.</Alert>}
       {needsLoginState.needsLogin && <LoginControl underline="always">Log in to save changes</LoginControl>}
-      <Button onClick={handleSave} disabled={!isValid} loading={submitting}>
+      <GatedButton onClick={handleSave} blockedReason={isValid ? null : blockedReason} loading={submitting}>
         Save changes
-      </Button>
+      </GatedButton>
     </Stack>
   );
 }

@@ -81,7 +81,8 @@ describe.each(ID_SHAPES)('Webhooks (%s)', (_name, shape) => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(created), { status: 201 }));
     renderWithMantine(<Webhooks data={shape(data)} />);
     const add = screen.getByRole('button', { name: 'Add address' });
-    expect(add).toBeDisabled();
+    expect(add).toHaveAttribute('aria-disabled', 'true');
+    expect(add).toHaveAccessibleDescription('Fill in Name and Address.');
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: ' Home ' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://example.org/h' } });
     fireEvent.click(add);
@@ -106,9 +107,10 @@ describe.each(ID_SHAPES)('Webhooks (%s)', (_name, shape) => {
     fireEvent.change(screen.getByRole('textbox', { name: /Name/ }), { target: { value: 'Server' } });
     fireEvent.change(screen.getByRole('textbox', { name: /Address/ }), { target: { value: 'https://g.example.org' } });
     const add = screen.getByRole('button', { name: 'Add address' });
-    expect(add).toBeDisabled();
+    expect(add).toHaveAttribute('aria-disabled', 'true');
+    expect(add).toHaveAccessibleDescription('Fill in App token.');
     fireEvent.change(screen.getByLabelText(/App token/), { target: { value: 'AppTok' } });
-    expect(add).toBeEnabled();
+    expect(add).not.toHaveAttribute('aria-disabled');
     fireEvent.click(add);
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith('/api/account/webhooks', {

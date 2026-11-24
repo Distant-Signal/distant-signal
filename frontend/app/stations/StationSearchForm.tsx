@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Group, Skeleton, Stack, Text } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
+import { missingFieldsReason } from '@/lib/missingFields';
 import { TrackEmptyState } from '@/components/TrackEmptyState';
 import { useMounted } from '@mantine/hooks';
 import { searchNearbyStations } from '@/lib/suggestions';
@@ -154,13 +156,13 @@ export function StationSearchForm() {
           onSuggestionsChange={setSuggestions}
           search={searchStationsAndStops}
         />
-        <Button
+        <GatedButton
           onClick={handleSearch}
-          disabled={isPending || crs.trim().length === 0}
-          leftSection={isPending ? <ButtonSpinner /> : undefined}
+          blockedReason={missingFieldsReason(crs.trim().length === 0 ? ['Station name or code'] : [])}
+          busy={isPending}
         >
           {isPending ? 'Looking up' : 'Look up'}
-        </Button>
+        </GatedButton>
       </Group>
       {isPending && (
         // Several seconds of a static, disabled button is not enough

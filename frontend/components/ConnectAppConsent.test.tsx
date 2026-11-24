@@ -88,6 +88,6 @@ describe('ConnectAppConsent', () => {
     );
     renderWithMantine(<ConnectAppConsent client="ds-mcp" />);
     fireEvent.click(await screen.findByRole('checkbox', { name: 'See your saved journeys' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Allow' })).toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Allow' })).toHaveAttribute('aria-disabled', 'true'));
   });
 });

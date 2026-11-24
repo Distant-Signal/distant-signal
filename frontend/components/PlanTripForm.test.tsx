@@ -36,32 +36,35 @@ describe('PlanTripForm', () => {
     expect(screen.getByRole('combobox', { name: 'To' })).toHaveValue('WOK');
   });
 
-  it('disables Find routes until both origin and destination are entered', () => {
+  it('blocks Find routes, and says what is missing, until both origin and destination are entered', () => {
     renderWithMantine(<PlanTripForm onSubmit={vi.fn()} />);
-    // `getByRole('button', { name })`, not `getByText` -- Mantine's
-    // `Button` wraps its label in an inner `<span
-    // class="mantine-Button-label">`, so `getByText('Find routes')`
-    // resolves to that span, not the `<button>` itself; `toBeDisabled`
-    // only recognises the disabled state on an actual form control
-    // (button/input/etc.), so asserting against the span always reads as
-    // "not disabled" regardless of the real button's state. Same
-    // `getByRole('button', { name })` convention every other disabled-
-    // submit-button test in this repo already uses (e.g.
-    // `CreateGroupForm.test.tsx`, `AddJourneyLegButton.test.tsx`).
+    // `getByRole('button', { name })`, not `getByText`: Mantine wraps the
+    // label in an inner span. The button is blocked with `aria-disabled`,
+    // not `disabled`, so it stays in the Tab order and carries its reason
+    // as its accessible description (`GatedButton`, DS-626).
     const submit = screen.getByRole('button', { name: 'Find routes' });
-    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-disabled', 'true');
+    expect(submit).toHaveAccessibleDescription('Fill in From and To.');
     // `getByRole('combobox', { name })`, not `getByLabelText` -- the real
-    // `Autocomplete` wiring (this task's own Step 1) renders an
-    // `aria-labelledby`'d options listbox `<div>` alongside the `<input>`,
-    // and both resolve to the same accessible name, so `getByLabelText`
-    // matches two elements once real suggestion data is wired in. Same
-    // `getByRole('combobox', { name })` convention
-    // `TrackTrainForm.test.tsx`'s own Origin-Autocomplete tests already
-    // use.
+    // `Autocomplete` wiring renders an `aria-labelledby`'d options listbox
+    // `<div>` alongside the `<input>`, and both resolve to the same
+    // accessible name, so `getByLabelText` matches two elements.
     fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'EUS' } });
-    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-disabled', 'true');
+    expect(submit).toHaveAccessibleDescription('Fill in To.');
     fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'MKC' } });
-    expect(submit).not.toBeDisabled();
+    expect(submit).not.toHaveAttribute('aria-disabled');
+    expect(submit).toHaveAccessibleDescription('');
+  });
+
+  it('does not submit while blocked, and a blocked Find routes is still focusable', () => {
+    const onSubmit = vi.fn();
+    renderWithMantine(<PlanTripForm onSubmit={onSubmit} />);
+    const submit = screen.getByRole('button', { name: 'Find routes' });
+    submit.focus();
+    expect(submit).toHaveFocus();
+    fireEvent.click(submit);
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('adds and removes waypoint fields', () => {
@@ -368,9 +371,11 @@ describe('PlanTripForm', () => {
       renderWithMantine(<PlanTripForm onSubmit={vi.fn()} initial={{ arriveBy: '09:00' }} />);
       fillEnds();
       fireEvent.change(screen.getByLabelText('Time'), { target: { value: '' } });
-      expect(screen.getByRole('button', { name: 'Find routes' })).toBeDisabled();
+      const submit = screen.getByRole('button', { name: 'Find routes' });
+      expect(submit).toHaveAttribute('aria-disabled', 'true');
+      expect(submit).toHaveAccessibleDescription('Fill in Time.');
       fireEvent.click(screen.getByRole('radio', { name: 'Depart at' }));
-      expect(screen.getByRole('button', { name: 'Find routes' })).toBeEnabled();
+      expect(submit).not.toHaveAttribute('aria-disabled');
     });
   });
 });

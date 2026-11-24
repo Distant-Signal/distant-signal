@@ -1,8 +1,9 @@
 'use client';
 
 import type { RouteShortcuts } from '@/lib/routeShortcuts';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Anchor, Button, Group, List, ListItem, Stack, Text } from '@mantine/core';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Anchor, Button, Group, List, ListItem, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { GatedButton } from '@/components/GatedButton';
 import { useRouter } from 'next/navigation';
 import { PlanTripForm } from './PlanTripForm';
 import { ItineraryOption } from './ItineraryOption';
@@ -177,6 +178,16 @@ export function PlanTripFlow({
   const [paging, setPaging] = useState<PageDirection | null>(null);
   const [pagingError, setPagingError] = useState<{ direction: PageDirection; message: string } | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  // Where focus goes when a search finishes (DS-626): "Find routes" stays in
+  // the Tab order while it runs, so focus is still on it, and moves to the
+  // summary of the results, or to the failure notice, when they arrive.
+  const summaryRef = useRef<HTMLParagraphElement>(null);
+  const planErrorRef = useRef<HTMLDivElement>(null);
+  const tooLargeRef = useRef<HTMLDivElement>(null);
+  const focusAfterSearch = useRef(false);
+  // The search's outcome, said in a polite live region (the visible results
+  // are not one: the 30-second refresh must stay silent).
+  const [announcement, setAnnouncement] = useState('');
   const pendingAnchor = useRef<ScrollAnchor | null>(null);
   const needsLoginState = useNeedsLogin();
   // Monotonic guard against a stale `GET /Trips/plan` response landing
@@ -213,6 +224,8 @@ export function PlanTripFlow({
     if (searching) return;
     const requestId = (searchRequestId.current += 1);
     setSearching(true);
+    focusAfterSearch.current = true;
+    setAnnouncement('Searching for routes.');
     setPlanError(null);
     setTooLarge(false);
     if (syncUrl) {
@@ -248,6 +261,7 @@ export function PlanTripFlow({
         result.segments.some((segment) => segment.itineraries.length === 0) ? 'no_route' : 'results',
       );
       setSearchedPlan(result);
+      setAnnouncement(routesFoundAnnouncement(result));
       setList(startList(query, sent.date, result));
       setAnsweredQuery(query);
       setSelections(result.segments.map(() => ({ itinerary: null })));
@@ -262,6 +276,7 @@ export function PlanTripFlow({
     } catch (error) {
       if (searchRequestId.current !== requestId) return;
       trackFeature('plan', 'failed');
+      setAnnouncement("Couldn't plan this trip.");
       if (error instanceof TripPlanError && isTooLargeSearchError(error)) {
         setTooLarge(true);
         return;
@@ -291,6 +306,11 @@ export function PlanTripFlow({
 
   const allSegmentsSelected =
     plan !== null && selections.length === plan.segments.length && selections.every((s) => s.itinerary !== null);
+
+  const chooseRouteReason =
+    plan !== null && plan.segments.length > 1
+      ? 'Choose a route for every part of the trip first.'
+      : 'Choose a route first.';
 
   async function handleTrackJourney() {
     if (!allSegmentsSelected) return;
@@ -437,6 +457,17 @@ export function PlanTripFlow({
     }
   }
 
+  // A finished search takes focus from the button that ran it, but never
+  // from a field the person has since moved on to.
+  useEffect(() => {
+    if (!focusAfterSearch.current || searching) return;
+    const target = summaryRef.current ?? planErrorRef.current ?? tooLargeRef.current;
+    if (!target) return;
+    focusAfterSearch.current = false;
+    const active = document.activeElement;
+    if (active === null || active === document.body || active.closest('[data-plan-submit]')) target.focus();
+  }, [searching, plan, planError, tooLarge]);
+
   useLayoutEffect(() => {
     restoreScrollAnchor(resultsRef.current, pendingAnchor.current);
     pendingAnchor.current = null;
@@ -485,13 +516,16 @@ export function PlanTripFlow({
         advancedOpenRequest={advancedOpenRequest}
         routeShortcuts={routeShortcuts}
       />
+      <VisuallyHidden role="status" aria-live="polite">
+        {announcement}
+      </VisuallyHidden>
       {planError && (
-        <Alert color="red" title="Couldn't plan this trip">
+        <Alert color="red" title="Couldn't plan this trip" ref={planErrorRef} tabIndex={-1}>
           {planError}
         </Alert>
       )}
       {tooLarge && (
-        <Alert color="red" title="Couldn't plan this trip: the search is too large">
+        <Alert color="red" title="Couldn't plan this trip: the search is too large" ref={tooLargeRef} tabIndex={-1}>
           <Text size="sm">
             Comparing options over this many stops, vias and changes is more than the planner can do at once. Try one of
             these:
@@ -504,7 +538,7 @@ export function PlanTripFlow({
         </Alert>
       )}
       {plan && answeredQuery && (
-        <Text fw={600} data-testid="plan-timing-summary">
+        <Text fw={600} data-testid="plan-timing-summary" ref={summaryRef} tabIndex={-1}>
           {timingSummary(answeredQuery)}
         </Text>
       )}
@@ -634,17 +668,24 @@ export function PlanTripFlow({
       )}
       {plan && (
         <Group gap="sm" wrap="wrap">
-          <Button
-            disabled={!allSegmentsSelected || creating}
-            loading={creating}
+          {/* Blocked, not `disabled`: still in the Tab order, saying what is
+              missing, and still holding focus while the journey is made. */}
+          <GatedButton
+            blockedReason={allSegmentsSelected ? null : chooseRouteReason}
+            busy={creating}
             onClick={() => void handleTrackJourney()}
           >
             Track this journey
-          </Button>
+          </GatedButton>
           {canMakeRegular && (
-            <Button variant="default" disabled={!allSegmentsSelected || creating} onClick={handleMakeRegular}>
+            <GatedButton
+              variant="default"
+              blockedReason={allSegmentsSelected ? null : chooseRouteReason}
+              busy={creating}
+              onClick={handleMakeRegular}
+            >
               Make this a regular journey
-            </Button>
+            </GatedButton>
           )}
         </Group>
       )}
@@ -691,4 +732,11 @@ function PageControl({
       </Button>
     </Stack>
   );
+}
+
+/** The search's outcome for the live region: how many routes it found. */
+function routesFoundAnnouncement(plan: TripPlanResponse): string {
+  const routes = plan.segments.reduce((total, segment) => total + segment.itineraries.length, 0);
+  if (routes === 0) return 'No routes found.';
+  return routes === 1 ? '1 route found.' : `${routes} routes found.`;
 }

@@ -2,7 +2,7 @@
 
 import { legRef } from '@/lib/publicId';
 import type { RouteShortcuts } from '@/lib/routeShortcuts';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Alert, Button, Card, Group, SegmentedControl, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { AddJourneyLegButton } from './AddJourneyLegButton';
@@ -123,6 +123,13 @@ export function JourneyCreationFlow({
   useEffect(() => {
     if (journeyId === null) trackFeature('journey_start', entryMode);
   }, [entryMode, journeyId]);
+  // The form that made the journey is gone, taking focus with it: move it to
+  // the "First leg tracked" notice (DS-626), which is also an alert, so what
+  // was done is announced.
+  const trackedRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (journeyId !== null) trackedRef.current?.focus();
+  }, [journeyId]);
 
   async function refreshJourney(id: string) {
     setLoadingJourney(true);
@@ -247,7 +254,7 @@ export function JourneyCreationFlow({
 
   return (
     <Stack gap="md">
-      <Alert color="green" title="First leg tracked">
+      <Alert color="green" title="First leg tracked" ref={trackedRef} tabIndex={-1}>
         Add another leg now if this trip involves a change of trains, or finish here. A single leg is already a
         complete, useful journey.
       </Alert>

@@ -361,12 +361,12 @@ describe('AddJourneyLegButton', () => {
     const serviceDate = screen.getByLabelText('Service date');
     fireEvent.change(serviceDate, { target: { value: '2026-09-22' } });
 
-    expect(screen.getByRole('button', { name: 'Add leg' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add leg' })).toHaveAttribute('aria-disabled', 'true');
 
     const arriveTo = screen.getByLabelText('Latest arrival (optional)');
     fireEvent.change(arriveTo, { target: { value: '18:00' } });
 
-    expect(screen.getByRole('button', { name: 'Add leg' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add leg' })).not.toHaveAttribute('aria-disabled');
   });
 
   // Review §2.2/I17: states the rule up front rather than only via a
@@ -390,7 +390,7 @@ describe('AddJourneyLegButton', () => {
     fireEvent.change(screen.getByLabelText('Earliest departure (optional)'), { target: { value: '18:00' } });
     fireEvent.change(screen.getByLabelText('Latest departure (optional)'), { target: { value: '09:00' } });
 
-    expect(screen.getByRole('button', { name: 'Add leg' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add leg' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('POSTs a knownTrain-mode request when the direct-pick mode is selected', async () => {
@@ -497,7 +497,7 @@ describe('AddJourneyLegButton', () => {
     fireEvent.blur(origin);
 
     expect(await screen.findByText('Must be a 3-letter station code')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add leg' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add leg' })).toHaveAttribute('aria-disabled', 'true');
     expect(legPosts()).toHaveLength(0);
   });
 
@@ -526,7 +526,7 @@ describe('AddJourneyLegButton', () => {
 
     // Picked once the search for what was typed comes back.
     await waitFor(() => expect(destination).toHaveValue('Clapham Junction (CLJ)'), { timeout: 5000 });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Add leg' })).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add leg' })).not.toHaveAttribute('aria-disabled'));
     expect(screen.queryByText('Must be a 3-letter station code')).not.toBeInTheDocument();
     expect(screen.getByText('Only trains reaching CLJ at or after this time.')).toBeInTheDocument();
 
@@ -595,7 +595,7 @@ describe('AddJourneyLegButton', () => {
     fireEvent.change(screen.getByLabelText('Earliest departure (optional)'), { target: { value: '09:00' } });
 
     expect(screen.queryByText('Must be a 3-letter station code')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add leg' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add leg' })).not.toHaveAttribute('aria-disabled');
 
     fireEvent.click(screen.getByRole('button', { name: 'Add leg' }));
     await waitFor(() => expect(legPosts()).toHaveLength(1));
@@ -620,7 +620,7 @@ describe('AddJourneyLegButton', () => {
     expect(screen.getByLabelText('Date')).toHaveValue('21 Oct 2026');
     expect(screen.getByLabelText('Leaves')).toHaveValue('10:07');
     expect(screen.queryByLabelText('Service date')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add leg' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add leg' })).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.change(screen.getByLabelText('Line (optional)'), { target: { value: 'Victoria line' } });
     fireEvent.change(placeField('To (optional)'), { target: { value: 'Victoria' } });
@@ -969,13 +969,13 @@ describe('AddJourneyLegButton', () => {
 
       addTyped('Avoid completely', 'clj');
       expect(await screen.findByText(/CLJ\)? is where you get off, so it can't be avoided\./)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Add leg' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Add leg' })).toHaveAttribute('aria-disabled', 'true');
 
       fireEvent.click(screen.getByRole('button', { name: /^Remove .*CLJ/ }));
-      await waitFor(() => expect(screen.getByRole('button', { name: 'Add leg' })).toBeEnabled());
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Add leg' })).not.toHaveAttribute('aria-disabled'));
       fireEvent.change(screen.getByRole('combobox', { name: 'Starts at' }), { target: { value: 'wo' } });
       expect(screen.getByText('Must be a 3-letter station code')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Add leg' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Add leg' })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('sends no filters when none is set, and starts empty on every open', async () => {

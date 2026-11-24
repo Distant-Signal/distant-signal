@@ -22,7 +22,9 @@ describe('CreateGroupForm', () => {
 
   it('Create group is disabled with an empty name', () => {
     renderWithMantine(<CreateGroupForm />);
-    expect(screen.getByRole('button', { name: 'Create group' })).toBeDisabled();
+    const create = screen.getByRole('button', { name: 'Create group' });
+    expect(create).toHaveAttribute('aria-disabled', 'true');
+    expect(create).toHaveAccessibleDescription('Fill in Group name.');
   });
 
   it('creates the group, rotates its invite link, and navigates to it', async () => {

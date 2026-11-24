@@ -237,7 +237,7 @@ describe('TrainSearchForm', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderWithMantine(<TrainSearchForm />);
 
-    expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('Pick a station to see its departures.')).toBeInTheDocument();
   });
 
@@ -415,9 +415,9 @@ describe('TrainSearchForm', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderWithMantine(<TrainSearchForm view="between" />);
     fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'MAN' } });
-    expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-disabled', 'true');
     fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'WAT' } });
-    expect(screen.getByRole('button', { name: 'Search' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Search' })).not.toHaveAttribute('aria-disabled');
     expect(searchCallUrls(fetchMock)).toHaveLength(0);
   });
 
@@ -629,7 +629,7 @@ describe('TrainSearchForm', () => {
       });
 
       expect(screen.getByText('Must be a time like 09:00')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('refuses a nonsense time outright instead of putting it on the wire', async () => {
@@ -669,7 +669,7 @@ describe('TrainSearchForm', () => {
       Object.defineProperty(input, 'validity', { configurable: true, get: () => ({ badInput: true }) });
       fireEvent.blur(input);
 
-      expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('stops refusing once a half-entered time is cleared away', async () => {
@@ -693,12 +693,12 @@ describe('TrainSearchForm', () => {
       renderWithMantine(<TrainSearchForm view="between" />);
       fireEvent.change(screen.getByRole('combobox', { name: 'From' }), { target: { value: 'MAN' } });
       fireEvent.change(screen.getByRole('combobox', { name: 'To' }), { target: { value: 'WAT' } });
-      expect(screen.getByRole('button', { name: 'Search' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Search' })).not.toHaveAttribute('aria-disabled');
 
       const arrival = panelField('Earliest arrival (optional)');
       Object.defineProperty(arrival, 'validity', { configurable: true, get: () => ({ badInput: true }) });
       fireEvent.blur(arrival);
-      expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('does not let the picker or clear button submit the form', async () => {
@@ -738,7 +738,7 @@ describe('TrainSearchForm', () => {
       });
 
       expect(screen.getByText('Must be a time like 09:00')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
