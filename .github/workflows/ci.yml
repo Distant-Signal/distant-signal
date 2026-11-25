@@ -48,6 +48,12 @@ jobs:
   # the Node-run scripts and configs, checkJs + strict), vitest and
   # `next build`.
   #
+  # Vitest is NOT run here (`skip-test: true`), though the check keeps the
+  # reusable job's name, `frontend / npm lint, licences, prettier, tsc, test,
+  # build`, so it stays stable. The tests run in the `vitest` shard jobs
+  # below, in parallel with this one; `vitest (gate)` is the check that
+  # fails when any shard does.
+  #
   # The copy guardrails are docs/style-guide.md's Writing rules: banned
   # phrases, Title Case h1/h2, meta descriptions over 160 characters and
   # pages without metadata. scripts/check-copy.py is stdlib-only; it runs
@@ -57,12 +63,60 @@ jobs:
   # The Playwright e2e tests need a live api, Postgres and Redis: see
   # frontend-e2e.
   frontend:
-    uses: Distant-Signal/ci/.github/workflows/node-ci.yml@d734bc69e3127d208304c9d6a5a04b9e5645fc76 # main
+    uses: Distant-Signal/ci/.github/workflows/node-ci.yml@8610585cf6437277e07cfcf98d9ee900f2a9565f # main
     with:
       working-directory: frontend
       repo-check-name: Copy guardrails (scripts/check-copy.py)
       repo-check-command: uv run --locked --no-default-groups scripts/check-copy.py
       extra-npm-scripts: typecheck:scripts
+      skip-test: true
+
+  # vitest, split into three shards (`--shard=i/N`: whole test files, split
+  # by Vitest's own file ordering) that run in parallel, one job apiece. The
+  # setup is node-ci.yml's (Node 22, the npm cache keyed on the lockfile,
+  # `npm ci`), so each shard installs from the cache. Change the shard count
+  # in the matrix and in the `--shard` argument together.
+  vitest:
+    name: vitest shard ${{ matrix.shard }}/3
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: vitest (shard ${{ matrix.shard }}/3)
+        run: npx vitest run --shard=${{ matrix.shard }}/3
+
+  # The gate: green only when every shard succeeded. `always()` so a failed
+  # or cancelled shard fails the gate instead of skipping it.
+  vitest-gate:
+    name: vitest (gate)
+    if: always()
+    needs: vitest
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Every shard succeeded
+        env:
+          RESULT: ${{ needs.vitest.result }}
+        run: |
+          echo "vitest: ${RESULT}"
+          [[ "${RESULT}" == "success" ]]
 
   # Custom: Playwright e2e + full-default-ruleset axe-core accessibility
   # sweep (frontend/e2e/, 7 spec files -- accessibility.spec.ts is the axe
