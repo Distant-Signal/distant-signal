@@ -401,6 +401,7 @@ def pages_without_metadata(frontend: Path) -> Iterator[Finding]:
                 " (title and description)",
             )
 
+
 # What a comment says when it records the process that produced the code
 # (a review finding, a plan task, a numbered decision) rather than why the
 # code is as it is.
