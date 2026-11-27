@@ -442,7 +442,7 @@ test.describe('accessibility: /train/[uid]/[date]', () => {
     test.describe(`part cancelled, ${colorScheme} scheme`, () => {
       test.use({ colorScheme });
       test('anonymous', async ({ page }) => {
-        await page.goto('/train/W81181/2026-12-03');
+        await page.goto('/train/W81181/2099-01-06');
         await expect(page.getByRole('alert').filter({ hasText: 'Terminates at York' })).toBeVisible();
         await expectNoViolations(page);
       });

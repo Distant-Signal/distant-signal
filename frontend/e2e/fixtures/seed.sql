@@ -1040,7 +1040,8 @@ VALUES ('940GZZLUKSX', 'KGX', 'hub')
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------
--- A part-cancelled train (DS-181): W81181 on 2026-12-03, far from every
+-- A part-cancelled train (DS-181): W81181 on 2099-01-06 (in 2099, so the date never nears "today" and the
+-- api's provisional-timetable banner always shows; far from every
 -- other fixture date, King's Cross to Edinburgh, left King's Cross and
 -- reached York, then cancelled en route at York (TRUST 0002 at
 -- fixture STANOX 99811, code IB: "Points failure (including no fault
@@ -1053,7 +1054,7 @@ ON CONFLICT DO NOTHING;
 -- ---------------------------------------------------------------------
 INSERT INTO trains (train_uid, service_date, origin_crs, scheduled_departure, destination_crs, calling_points, matched_line_id, schedule_matched_at, train_id, resolved_at, created_at)
 VALUES (
-    'W81181', '2026-12-03', 'KGX', '2026-12-03T09:00:00Z', 'ZED',
+    'W81181', '2099-01-06', 'KGX', '2099-01-06T09:00:00Z', 'ZED',
     '[{"tiploc":"KNGX","kind":"Origin","bookedArrival":null,"bookedDeparture":"09:00:00","publicDeparture":"09:00:00","isHalfMinuteArrival":false,"isHalfMinuteDeparture":false,"dayOffset":0},{"tiploc":"ZDSYORK","kind":"Intermediate","bookedArrival":"10:55:00","bookedDeparture":"10:57:00","publicArrival":"10:55:00","publicDeparture":"10:57:00","isHalfMinuteArrival":false,"isHalfMinuteDeparture":false,"dayOffset":0},{"tiploc":"ZDSEDIN","kind":"Terminate","bookedArrival":"13:30:00","bookedDeparture":null,"publicArrival":"13:30:00","isHalfMinuteArrival":false,"isHalfMinuteDeparture":false,"dayOffset":0}]'::jsonb,
     'lner-ecml', NOW(), 'TRUST-FIXTURE-81', NOW(), NOW()
 )
@@ -1070,26 +1071,26 @@ INSERT INTO tiploc_locations (tiploc, location_type, name, display_name, source_
 VALUES ('ZDSYORK', 'station', 'York', 'York', 1), ('ZDSEDIN', 'station', 'Edinburgh', 'Edinburgh', 1)
 ON CONFLICT DO NOTHING;
 
-WITH t AS (SELECT id FROM trains WHERE train_uid = 'W81181' AND service_date = '2026-12-03')
+WITH t AS (SELECT id FROM trains WHERE train_uid = 'W81181' AND service_date = '2099-01-06')
 INSERT INTO train_current_state (status, last_reported_location, last_event_type, delay_minutes, updated_at, trains_id, event_time)
-SELECT 'cancelled', 'ZYK', 'ARRIVAL', 3, NOW(), t.id, '2026-12-03T10:58:00Z'
+SELECT 'cancelled', 'ZYK', 'ARRIVAL', 3, NOW(), t.id, '2099-01-06T10:58:00Z'
 FROM t
 ON CONFLICT (trains_id) WHERE trains_id IS NOT NULL DO UPDATE SET
   status = EXCLUDED.status, last_reported_location = EXCLUDED.last_reported_location,
   last_event_type = EXCLUDED.last_event_type, delay_minutes = EXCLUDED.delay_minutes,
   updated_at = EXCLUDED.updated_at;
 
-WITH t AS (SELECT id FROM trains WHERE train_uid = 'W81181' AND service_date = '2026-12-03')
+WITH t AS (SELECT id FROM trains WHERE train_uid = 'W81181' AND service_date = '2099-01-06')
 INSERT INTO train_movement_events (dedup_key, msg_type, event_type, loc_stanox, loc_crs, planned_timestamp, actual_timestamp, gbtt_timestamp, variation_status, raw_body, received_at, trains_id)
 SELECT * FROM (VALUES
-  ('FIXTURE-DS181-1', '0003', 'DEPARTURE', '99001', 'KGX', '2026-12-03T09:00:00Z'::timestamptz, '2026-12-03T09:01:00Z'::timestamptz, '2026-12-03T09:00:00Z'::timestamptz, 'LATE', '{}'::jsonb, NOW(), (SELECT id FROM t)),
-  ('FIXTURE-DS181-2', '0003', 'ARRIVAL', '99811', 'ZYK', '2026-12-03T10:55:00Z'::timestamptz, '2026-12-03T10:58:00Z'::timestamptz, '2026-12-03T10:55:00Z'::timestamptz, 'LATE', '{}'::jsonb, NOW(), (SELECT id FROM t))
+  ('FIXTURE-DS181-1', '0003', 'DEPARTURE', '99001', 'KGX', '2099-01-06T09:00:00Z'::timestamptz, '2099-01-06T09:01:00Z'::timestamptz, '2099-01-06T09:00:00Z'::timestamptz, 'LATE', '{}'::jsonb, NOW(), (SELECT id FROM t)),
+  ('FIXTURE-DS181-2', '0003', 'ARRIVAL', '99811', 'ZYK', '2099-01-06T10:55:00Z'::timestamptz, '2099-01-06T10:58:00Z'::timestamptz, '2099-01-06T10:55:00Z'::timestamptz, 'LATE', '{}'::jsonb, NOW(), (SELECT id FROM t))
 ) AS v
 ON CONFLICT DO NOTHING;
 
-WITH t AS (SELECT id FROM trains WHERE train_uid = 'W81181' AND service_date = '2026-12-03')
+WITH t AS (SELECT id FROM trains WHERE train_uid = 'W81181' AND service_date = '2099-01-06')
 INSERT INTO train_reasons (trains_id, msg_type, reason_code, canx_type, loc_stanox, event_at)
-SELECT t.id, '0002', 'IB', 'EN ROUTE', '99811', '2026-12-03T11:05:00Z' FROM t
+SELECT t.id, '0002', 'IB', 'EN ROUTE', '99811', '2099-01-06T11:05:00Z' FROM t
 ON CONFLICT (trains_id, msg_type) DO UPDATE SET
   reason_code = EXCLUDED.reason_code, canx_type = EXCLUDED.canx_type,
   loc_stanox = EXCLUDED.loc_stanox, event_at = EXCLUDED.event_at;

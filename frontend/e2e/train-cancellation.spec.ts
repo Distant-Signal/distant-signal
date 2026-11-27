@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 
 // A train cut short (DS-181), against the seeded e2e stack
-// (frontend/e2e/fixtures/seed.sql): W81181 on 2026-12-03 left King's Cross,
+// (frontend/e2e/fixtures/seed.sql): W81181 on 2099-01-06 left King's Cross,
 // reached York and was cancelled en route there with a reason, so the
 // public train page says where it terminates and why, and strikes the
 // calls it no longer makes through, with "Cancelled" in words beside them.
 
-const PAGE = '/train/W81181/2026-12-03';
+const PAGE = '/train/W81181/2099-01-06';
 
 test('a train cut short says where it terminates, why, and which calls are cancelled', async ({ page }) => {
   await page.goto(PAGE);
@@ -30,6 +30,6 @@ test('a train cut short says where it terminates, why, and which calls are cance
   // card), so a shared link's unfurl never goes stale.
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     'content',
-    /, Thu 3 Dec: calling points, platforms and live running\.$/,
+    /, Tue 6 Jan: calling points, platforms and live running\.$/,
   );
 });
