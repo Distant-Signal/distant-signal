@@ -128,7 +128,8 @@ describe('PrivacyPage login service and Discord account ID', () => {
     const text = retentionText('Your account');
     expect(text).toMatch(/If you log in with Discord, also your Discord account ID/);
     expect(text).toMatch(/not your Discord username/);
-    expect(text).toMatch(/only to recognise your account if our login service gives you a new ID/);
+    expect(text).toMatch(/Only Discord accounts have this/);
+    expect(text).toMatch(/If you log in with Discord, we use your Discord account ID only to recognise your account/);
   });
 
   it('describes the login service and the copy of Discord account IDs from the previous one', () => {
@@ -136,6 +137,8 @@ describe('PrivacyPage login service and Discord account ID', () => {
     const text = retentionText('Logging in');
     expect(text).toMatch(/used only for Distant Signal and is run by us/);
     expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
+    expect(text).toMatch(/log in with Google or Microsoft, they tell our login service your account ID and your name/);
+    expect(text).toMatch(/does not keep your email address from them/);
     expect(text).toMatch(
       /copied the Discord account ID of each existing account from the login service we used before/,
     );
@@ -144,8 +147,26 @@ describe('PrivacyPage login service and Discord account ID', () => {
   it('says deleting the account leaves the login service account, and how to have it deleted', () => {
     render();
     const text = retentionText('Your rights');
-    expect(text).toMatch(/does not delete your Discord account or your account on our login service/);
+    expect(text).toMatch(
+      /does not delete your Discord, Google or Microsoft account, or your account on our login service/,
+    );
+    expect(text).toMatch(/Distant Signal's access in that provider's account settings/);
     expect(text).toMatch(/To have your login service account deleted, email/);
+  });
+});
+
+describe('PrivacyPage Google and Microsoft login', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('names Google and Microsoft as separate controllers and in the transfers', () => {
+    vi.stubEnv('LEGAL_PAGES_PREVIEW', 'true');
+    renderWithMantine(<PrivacyPage />);
+    expect(retentionText('Who we share it with')).toMatch(
+      /Discord, Google or Microsoft, if you log in with that provider\. Each is a separate controller/,
+    );
+    expect(retentionText('International transfers')).toMatch(/If you log in with Discord, Google or Microsoft/);
   });
 });
 
