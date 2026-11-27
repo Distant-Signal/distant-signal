@@ -186,7 +186,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Technical logs and IP addresses',
-      what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service.',
+      what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service. Our login service also logs your browser details and approximate location when you log in.',
       why: 'To keep the service secure, prevent abuse, limit how many requests one address can make, and fix faults.',
       basis: LEGITIMATE_INTERESTS,
       retention: `Our server logs are kept for up to 31 days. Our login service keeps its event logs for ${LEGAL_CONFIG.SSO_LOG_RETENTION}. Cloudflare keeps its logs under its own policy.`,
@@ -217,7 +217,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Backups',
-      what: 'Encrypted daily copies of our database, which include the data above.',
+      what: "Encrypted daily copies of our database and of our login service's database, which include the data above.",
       why: 'To recover from failures.',
       basis: 'The same basis as the data they contain.',
       retention:
@@ -282,11 +282,17 @@ export default function PrivacyPage() {
       <LegalSection title="Logging in">
         <Text>
           You log in through our own login service, which is used only for Distant Signal and is run by us. When you log
-          in with Discord, Discord tells our login service your Discord account ID, username and display name. If you
-          log in with Google or Microsoft, they tell our login service your account ID and your name, and our login
-          service does not keep your email address from them. Our login service keeps the ID and the names it is given,
-          so it can recognise you the next time you log in, and passes them to Distant Signal with an ID for your
-          account. It also keeps the event logs described above.
+          in with Discord, Discord tells our login service your Discord account ID, username and display name. Our login
+          service keeps these, and a copy of your Discord profile picture (a small image, and its web address). If you
+          log in with Google or Microsoft, they tell our login service your account ID and your name. Our login service
+          keeps these, and does not keep a profile picture. We do not store your email address from any of them.
+        </Text>
+        <Text>
+          Our login service uses what it keeps to recognise you the next time you log in, and passes your account ID,
+          username and display name to Distant Signal. It also keeps the access token the provider gives it for your
+          login (and a refresh token, if the provider gives one). It keeps event logs of logins, including your IP
+          address, browser details and approximate location, and deletes them after {LEGAL_CONFIG.SSO_LOG_RETENTION}.
+          Its database is backed up each night (see Backups above).
         </Text>
         <Text>
           When we moved logging in to this service, we copied the Discord account ID of each existing account from the

@@ -137,8 +137,12 @@ describe('PrivacyPage login service and Discord account ID', () => {
     const text = retentionText('Logging in');
     expect(text).toMatch(/used only for Distant Signal and is run by us/);
     expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
+    expect(text).toMatch(/a copy of your Discord profile picture/);
     expect(text).toMatch(/log in with Google or Microsoft, they tell our login service your account ID and your name/);
-    expect(text).toMatch(/does not keep your email address from them/);
+    expect(text).toMatch(/does not keep a profile picture/);
+    expect(text).toMatch(/We do not store your email address from any of them/);
+    expect(text).toMatch(/keeps the access token the provider gives it for your login/);
+    expect(text).toMatch(/IP address, browser details and approximate location, and deletes them after /);
     expect(text).toMatch(
       /copied the Discord account ID of each existing account from the login service we used before/,
     );
