@@ -42,8 +42,8 @@ function session(authenticated: boolean) {
 }
 
 describe('LineNotFound', () => {
-  // Task 3.4.10: "Back to your dashboard" assumed a home page an anonymous
-  // visitor doesn't have -- neutral wording works for both.
+  // "Back to your dashboard" assumed a home page an anonymous visitor doesn't have; neutral wording
+  // works for both.
   it('offers a neutral "Go to the home page" link, not "Back to your dashboard"', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(session(true));
     renderWithMantine(await LineNotFound());

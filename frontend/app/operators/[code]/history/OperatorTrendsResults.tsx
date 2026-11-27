@@ -18,9 +18,7 @@ import type { ChartPoint } from '@/app/lines/[id]/history/chartPoint';
 
 // Dispatches to the right fetch + floor + bucket-key field for the
 // selected tier -- operator-scoped sibling of TrendsResults.tsx's own
-// fetchPoints, reusing its SPARSE_FLOOR/toChartPoints (Judgment Call 3 of
-// docs/superpowers/plans/2026-09-22-operator-overview-phase4-historical-views-plan.md)
-// rather than re-deriving them.
+// fetchPoints, reusing its SPARSE_FLOOR/toChartPoints rather than re-deriving them.
 async function fetchPoints(
   code: string,
   granularity: TrendGranularity,
@@ -48,8 +46,7 @@ async function fetchPoints(
 }
 
 /** Operator-scoped sibling of `TrendsResults` -- same fetch/error/empty-state
- * shape, `code` in place of `id`. See this plan's Judgment Call 3 for why
- * this is a new sibling component, not a `scope`-branching rewrite of
+ * shape, `code` in place of `id`. A separate sibling component, not a `scope`-branching rewrite of
  * `TrendsResults` itself. */
 export async function OperatorTrendsResults({
   code,

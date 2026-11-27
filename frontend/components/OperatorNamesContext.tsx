@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
 /** Operator names by code, from the reference list, for the journey page's
- * client parts that are given a code only (an earlier plan's train, a
+ * client parts that are given a code only (a train from an earlier plan, a
  * candidate train). Empty when the list could not be read: those parts then
  * show the code alone. */
 const OperatorNamesContext = createContext<Readonly<Record<string, string>>>({});

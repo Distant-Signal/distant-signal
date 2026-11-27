@@ -5,15 +5,13 @@ import type { FullCoverageAvailability, LineStatus, SampleAvailability, SampleSt
  * `LineStatus` callers and the per-(station, operator)
  * `StationOperatorSampleStats` rows both satisfy this without a cast.
  * Widened, not renamed -- see
- * docs/superpowers/specs/2026-09-03-per-station-stats-design.md Decision 9
+ * docs/superpowers/specs/2026-09-03-per-station-stats-design.md
  * for why the eventual source-agnostic rename flagged by
  * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md
  * stays a separate, later step. `fullCoverageStats`/`fullCoverageAvailability`
- * are carried by BOTH `LineStatus` and (as of
- * docs/superpowers/specs/2026-09-04-per-station-full-coverage-stats-design.md
- * Decision 3) `StationOperatorSampleStats` -- the earlier "line-level scope
- * only" note here was accurate when written and is now stale; both real
- * callers structurally satisfy this field as of this update.
+ * are carried by BOTH `LineStatus` and (see
+ * docs/superpowers/specs/2026-09-04-per-station-full-coverage-stats-design.md)
+ * `StationOperatorSampleStats`, so both real callers structurally satisfy this.
  * `fullCoverageAvailability` stays optional on this shared type (rather
  * than required) only so a hypothetical future caller with neither field
  * still satisfies it structurally. */
@@ -39,7 +37,7 @@ export function firstSampleStats(statuses: LineStatus[]): SampleStats | undefine
  * `sampleAvailability` to build a reason from, even when nothing on the
  * line has stats. Returns `undefined` only for an empty array.
  *
- * The `fullCoverageStats` precedence step is Decision 3's extension
+ * The `fullCoverageStats` precedence step
  * (docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md):
  * a summary row should prefer the more complete number when one status on
  * the line has it, mirroring `escalate_from_sample_stats`'s existing
@@ -59,17 +57,13 @@ export function cancelledPercent(stats: SampleStats | undefined): number | null 
 
 /** The human-readable reason sample stats aren't shown, or `null` when real
  * stats are available and the caller should render numbers instead.
- * Precedence, in order: full-coverage available (new, most confident, see
- * Decision 2) -> sample available -> TfL (structural) -> sample
+ * Precedence, in order: full-coverage available (most confident) -> sample available -> TfL (structural) -> sample
  * available/absent hedges. MUST check `dataQuality` before
  * `sampleAvailability` — a TfL-quality status's `sampleAvailability` is
  * `'no-coverage'` by construction (it never went through the aggregator),
- * not a meaningful live-pipeline-gap signal. See this app's
- * plan/spec docs for
- * docs/superpowers/specs/2026-09-01-line-status-sample-coverage-design.md's
- * Decision 1/4 and
- * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md
- * Decision 2. */
+ * not a meaningful live-pipeline-gap signal. See
+ * docs/superpowers/specs/2026-09-01-line-status-sample-coverage-design.md and
+ * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md. */
 export function sampleUnavailableReason(status: SampleStatsCarrier): string | null {
   if (status.fullCoverageStats) return null;
   if (status.sampleStats) return null;
@@ -86,9 +80,8 @@ export function sampleUnavailableReason(status: SampleStatsCarrier): string | nu
 }
 
 /** Renders whichever real numbers exist -- `fullCoverageStats` preferred
- * over `sampleStats` when both are present on the same status (Decision 1:
- * "prefer status.fullCoverageStats over status.sampleStats when both exist
- * on the representative status — same numeric rendering, no new column").
+ * over `sampleStats` when both are present on the same status (same numeric
+ * rendering, no new column).
  * Falls through to `sampleUnavailableReason`'s hedge copy when neither is
  * present. */
 export function formatSampleSummary(status: SampleStatsCarrier | undefined): string {
@@ -101,7 +94,7 @@ export function formatSampleSummary(status: SampleStatsCarrier | undefined): str
   return cancelled === null ? delay : `${delay} · ${cancelled}% cancelled`;
 }
 
-/** NEW (Decision 2): a short, confident provenance line shown alongside
+/** A short, confident provenance line shown alongside
  * real numbers once full coverage exists -- deliberately does not replace
  * the numeric rendering itself (`formatSampleSummary` already routes
  * `fullCoverageStats` through the same numeric formatter `sampleStats`
@@ -116,7 +109,7 @@ export function coverageProvenanceNote(status: SampleStatsCarrier): string | nul
   return null;
 }
 
-/** NEW (Decision 2): the "upgrading, not yet upgraded" fourth copy state --
+/** The "upgrading, not yet upgraded" fourth copy state --
  * distinct from both existing sample-absence hedges -- for a line that has
  * been opted into full coverage (`full_coverage_enabled`) but whose signal
  * hasn't resolved yet this cycle. Needs the full `LineStatus` type, not the

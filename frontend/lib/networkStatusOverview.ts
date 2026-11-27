@@ -16,8 +16,7 @@ function realReports(reports: LineStatusReport[]): LineStatusReport[] {
 /** Worst-first, then alphabetical -- the exact comparator
  * `notGoodServiceSummary` (`app/page.tsx:144-156`) already uses for its own
  * "Right now" list, reimplemented here as a small, independently-tested,
- * exported function rather than reaching into that page-local one (see this
- * plan's Judgment Call 5 for why `app/page.tsx` itself is left untouched). */
+ * exported function rather than reaching into that page-local one. */
 function compareWorstFirst(a: LineStatusReport, b: LineStatusReport): number {
   const rankDiff = severityRank(worstStatus(b).statusSeverity) - severityRank(worstStatus(a).statusSeverity);
   return rankDiff !== 0 ? rankDiff : a.name.localeCompare(b.name);
@@ -25,7 +24,7 @@ function compareWorstFirst(a: LineStatusReport, b: LineStatusReport): number {
 
 export interface NetworkStatusOverview {
   /** How many lines fall into each severity bucket right now (deduplicated
-   * per Task 2's `realReports`). */
+   * per `realReports`). */
   counts: Record<SeverityGroup, number>;
   /** Every line's report, deduplicated. Not surfaced directly by the
    * dashboard, but used to derive `counts`/`byMode`/`byCountry` and offered
@@ -34,7 +33,7 @@ export interface NetworkStatusOverview {
   totalLines: number;
   /** Every affected line (i.e. not in the `'good'` bucket), worst-first
    * then alphabetical -- unbounded, unlike `app/page.tsx`'s
-   * `RIGHT_NOW_LIMIT`-capped list (see this plan's Judgment Call 7). */
+   * `RIGHT_NOW_LIMIT`-capped list. */
   worstFirst: LineStatusReport[];
   /** National Rail vs TfL, folding all five TfL-published modes
    * (`tube`/`dlr`/`overground`/`elizabeth-line`/`tram`) into one bucket --
@@ -49,8 +48,7 @@ export interface NetworkStatusOverview {
   byCountry: Partial<Record<Country, LineStatusReport[]>>;
   /** The most recent `computedAt` across every report in this snapshot, or
    * `null` for an empty one -- what `app/status/page.tsx` hands to
-   * `LastUpdated` under its own subtitle (2026-09-22 UX review §2.5: "right
-   * now" with no timestamp anywhere on the page, despite being served
+   * `LastUpdated` under its own subtitle (so "right now" carries a timestamp even though it's served
    * through `withStaleFallback`). Each report carries its own `computedAt`
    * (the aggregator cycle that produced IT), so the network-wide freshest
    * figure is the max across all of them, not any one report's value --

@@ -124,7 +124,6 @@ describe('app/error.tsx', () => {
 
   // Connectivity-aware behaviour, per
   // docs/superpowers/specs/2026-09-02-frontend-disconnect-reconnect-ux-design.md
-  // Decision 6.
   it('still lets the visitor retry by hand', () => {
     renderWithMantine(<Harness initial={false} />);
 

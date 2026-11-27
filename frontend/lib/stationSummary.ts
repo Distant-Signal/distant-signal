@@ -257,12 +257,12 @@ export function factSentences(stationName: string, facts: StationFacts): string[
   if (facts.stepFree !== null) {
     sentences.push(
       facts.stepFree.description === null
-        ? `Its step-free access category is ${facts.stepFree.code}.`
-        : `Its step-free access category is ${facts.stepFree.code}: ${facts.stepFree.description}.`,
+        ? `Step-free access category ${facts.stepFree.code}.`
+        : `Step-free access category ${facts.stepFree.code}: ${facts.stepFree.description}.`,
     );
   }
   if (facts.facilities.length > 0) {
-    sentences.push(`The station information lists ${joinNames(facts.facilities)}.`);
+    sentences.push(`Facilities listed: ${joinNames(facts.facilities)}.`);
   }
   return sentences;
 }

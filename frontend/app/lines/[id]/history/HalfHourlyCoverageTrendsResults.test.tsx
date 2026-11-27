@@ -89,12 +89,8 @@ describe('toHalfHourlyCoverageChartPoints', () => {
 });
 
 describe('HalfHourlyCoverageTrendsResults', () => {
-  // Task 3.4.5: the "Full coverage" heading used to render only once real
-  // chart data existed, so the empty state (every line, today, since no
-  // full-coverage producer exists yet) read as an unlabelled box
-  // indistinguishable from HalfHourlyTrendsResults' own empty state above
-  // it on /lines/[id]. It must render here too, not just in the populated
-  // case covered further down.
+  // The "Full coverage" heading must render in the empty state too, or that box is indistinguishable
+  // from HalfHourlyTrendsResults' own empty state above it on /lines/[id].
   it('renders the empty state alongside its own "Full coverage" heading, when there are no rows', async () => {
     vi.mocked(api.getLineHalfHourlyCoverageStats).mockResolvedValue([]);
     renderWithMantine(
@@ -150,9 +146,8 @@ describe('HalfHourlyCoverageTrendsResults', () => {
       await HalfHourlyCoverageTrendsResults({ id: 'wcml', from: '2026-08-31T00:00:00Z', to: '2026-09-01T00:00:00Z' }),
     );
 
-    // Verbatim match of CoverageTrendsResults.tsx's own honesty sentence --
-    // not reworded for granularity (design doc Decision 3): it states a
-    // population fact, not a per-bucket attribution rule.
+    // Verbatim match of CoverageTrendsResults.tsx's honesty sentence: it states a population fact,
+    // not a per-bucket attribution rule.
     expect(
       screen.getByText(
         'Rates shown cover every scheduled service on this line, cross-referenced against real train-movement data, not a sample of live departures at a handful of stations.',

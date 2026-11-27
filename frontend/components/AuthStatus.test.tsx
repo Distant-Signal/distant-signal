@@ -60,10 +60,9 @@ describe('AuthStatus', () => {
     expect(link).toHaveAttribute('href', '/api/auth/login?return_to=%2F');
   });
 
-  // Review §2.16 "auth controls are inconsistently sized" (a 16px "Log in"
-  // beside a ~12px "Log out"): the nav's "Log in" now renders at 14px
-  // (`sm`), the size the chrome's other text-link-styled controls converge
-  // on -- see TextLink.tsx's own `size` doc comment for the full reasoning.
+  // The nav's "Log in" renders at 14px (`sm`), the size the chrome's other text-link-styled controls
+  // converge on (a 16px "Log in" beside a ~12px "Log out" looked inconsistent); see TextLink.tsx's own
+  // `size` doc comment.
   it('renders "Log in" at the chrome\'s converged text-link size (sm), not Text\'s own 16px default', () => {
     renderWithMantine(<AuthStatus session={loggedOut} />);
     expect(screen.getByText('Log in')).toHaveStyle({ '--text-fz': 'var(--mantine-font-size-sm)' });
@@ -218,8 +217,7 @@ describe('AuthStatus', () => {
     expect(accountMenuName()).toBe('Logged in');
   });
 
-  // Review §3.1.3: /chat was undiscoverable -- this is the account menu's
-  // half of the fix (the drawer's own is in AppNavBar.test.tsx).
+  // The account menu's half of making /chat discoverable (the drawer's own is in AppNavBar.test.tsx).
   it('lists Chat in the account menu for every logged-in user', async () => {
     renderWithMantine(
       <AuthStatus

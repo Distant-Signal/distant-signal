@@ -36,8 +36,7 @@ export function DisruptionDetail({ disruption }: { disruption: Disruption }) {
           and `data-status-badge` already use. */}
       <div data-rich-text dangerouslySetInnerHTML={{ __html: sanitizeDescription(disruption.description) }} />
       {disruption.affectedStops.length > 0 && (
-        // Dimmed text, not pills (round 2): stations an item affects are
-        // never badges.
+        // Dimmed text, not pills: stations an item affects are never badges.
         <Text size="sm" c="dimmed">
           Stops: {disruption.affectedStops.join(', ')}
         </Text>

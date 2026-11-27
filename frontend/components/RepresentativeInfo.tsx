@@ -8,13 +8,11 @@ import type { LineStatus } from '@/lib/types';
  * first one found is representative of all of them. Omitted entirely (not
  * zeroed out) when neither exists on anything.
  *
- * Decision 1 extends the original sample-only rule: prefer a status
- * carrying `fullCoverageStats`, falling back to one carrying `sampleStats`
+ * Prefers a status carrying `fullCoverageStats`, falling back to one carrying `sampleStats`
  * — the same "prefer the more complete number" precedence
  * `representativeStatus` (`lib/sampleStats.ts`) already applies for
  * summary rows elsewhere. When both are present on the SAME status,
- * `fullCoverageStats` renders (per Decision 1's "prefer full coverage on
- * the numeric columns" table entry) — no line on this app's catalogue
+ * `fullCoverageStats` renders -- no line on this app's catalogue
  * carries either today, so this is forward-looking scaffolding, not a
  * behavior change. */
 export function RepresentativeInfo({ statuses }: { statuses: LineStatus[] }) {
@@ -34,8 +32,7 @@ export function RepresentativeInfo({ statuses }: { statuses: LineStatus[] }) {
           {delayed} of {total} sampled services delayed, {cancelled} cancelled ({cancelledPct}%), {skipped} skipping
           stops, avg {avgDelayMinutes.toFixed(1)} min late.
         </Text>
-        {/* Additive trust-signaling, not a second competing number -- see
-            Decision 2's "Full coverage, resolved" rendered-copy case. Only
+        {/* Additive trust-signaling, not a second competing number. Only
             appears once a status actually carries fullCoverageStats. */}
         {provenanceNote && (
           <Text size="xs" c="dimmed">

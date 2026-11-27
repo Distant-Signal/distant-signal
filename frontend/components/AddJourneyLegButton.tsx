@@ -294,10 +294,9 @@ export function AddJourneyLegButton({
   const windowTimesComplete = !Object.values(incompleteTimes).some(Boolean);
   const windowHasABound =
     departFrom.trim() !== '' || departTo.trim() !== '' || arriveFrom.trim() !== '' || arriveTo.trim() !== '';
-  // Review §2.2/M14: same "no visible earliest > latest check" gap
-  // `TrackTrainForm`'s own window fields had -- plain string comparison is
-  // safe here for the same reason it is there (`"HH:MM"` sorts
-  // lexicographically identical to chronologically within one day).
+  // `TrackTrainForm`'s window fields have the same earliest > latest check; plain string comparison is safe
+  // here for the same reason it is there (`"HH:MM"` sorts lexicographically identical to chronologically
+  // within one day).
   const windowOrderValid =
     (!departFrom || !departTo || departFrom <= departTo) && (!arriveFrom || !arriveTo || arriveFrom <= arriveTo);
 
@@ -403,13 +402,9 @@ export function AddJourneyLegButton({
         title={beforeLegId === null ? 'Add a leg to this journey' : 'Add a leg at the start'}
       >
         <Stack>
-          {/* Review §2.1/I21: aligned with `TrackTrainForm`'s own mode
-              toggle, which used to say "Search a time window" while this
-              one said "Search by time window" -- two near-identical
-              phrasings for the same choice. "I know the train" was already
-              here and is the better of the two labels the codebase had for
-              the OTHER option, so `TrackTrainForm` adopted it too rather
-              than the reverse. */}
+          {/* Aligned with `TrackTrainForm`'s own mode toggle so both phrase the same choice the same way.
+              "I know the train" was the better of the two labels the codebase had for the other option, so
+              `TrackTrainForm` adopted it too. */}
           {/* Stacked: three options don't fit side by side in the dialog
               without cutting "Search a time window" short. */}
           <SegmentedControl
@@ -458,16 +453,11 @@ export function AddJourneyLegButton({
                 onBlur={() => setDestinationTouched(true)}
                 error={destinationError}
               />
-              {/* Review §2.2/I17: same fix as `TrackTrainForm`'s own window
-                  fields -- states the at-least-one-of-four rule up front
-                  rather than leaving it to a disabled button with no
-                  explanation. */}
+              {/* States the at-least-one-of-four rule up front, as `TrackTrainForm`'s window fields do,
+                  rather than leaving it to a disabled button with no explanation. */}
               <Text size="sm">At least one of the four times below is required.</Text>
-              {/* Review §2.2/M14: matches `TrackTrainForm`'s own four
-                  descriptions verbatim ("leaving X"/"reaching Y" rather
-                  than the bare "departing"/"arriving" this modal used
-                  before) -- one phrasing for one rule, not three across
-                  the app. */}
+              {/* Matches `TrackTrainForm`'s four descriptions verbatim ("leaving X"/"reaching Y" rather
+                  than the bare "departing"/"arriving"): one phrasing for one rule across the app. */}
               <Group grow align="flex-start">
                 <TimeFilterInput
                   clockHint

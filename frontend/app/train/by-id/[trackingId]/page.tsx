@@ -45,13 +45,9 @@ export default async function TrackedTrainByIdPage({ params }: { params: Promise
     if (err instanceof ApiUnauthorizedError) {
       return (
         <Stack p="lg" gap="md">
-          {/* Task 3.6.10: this route can't disclose anything more than
-              "someone tracks a train here" before authenticating -- the
-              old title ("Tracking Train {trackingId}") printed the
-              internal `train_subscriptions.id` this URL is keyed on
-              verbatim, meaningless (and mildly confusing, reading like a
-              train's own identifier) to a visitor who isn't logged in as
-              its owner. */}
+          {/* This route can't disclose more than "someone tracks a train here" before authenticating: the
+              old title ("Tracking Train {trackingId}") printed the internal `train_subscriptions.id`
+              verbatim, meaningless to a visitor who isn't logged in as its owner. */}
           <Title order={1}>Log in to see this tracked train</Title>
           <LoginControl underline="always">Log in to view this tracked train</LoginControl>
         </Stack>

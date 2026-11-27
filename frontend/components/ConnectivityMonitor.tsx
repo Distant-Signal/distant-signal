@@ -6,27 +6,17 @@ import { Notification } from '@mantine/core';
 import { useMounted, useNetwork } from '@mantine/hooks';
 import { formatDateTime } from '@/lib/dateFormat';
 
-/** Routes whose whole content is a form with nothing live to "show the last
- * update" of -- review §2.16: the default offline copy ("showing the
- * update from {time}") is honest on a data page, where `lastGoodAt` really
- * does name the last render that reflected live data, and simply untrue
- * here, where there was never any live data being shown in the first
- * place. What a visitor on one of these routes actually needs to know is
- * whether losing the connection mid-form is going to cost them their
- * entries -- and since nothing on these routes has been submitted yet, the
- * honest answer is that nothing has been sent anywhere to be lost: the
- * entries are just React state sitting in the browser tab, same as they
- * were with a perfect connection. (This is a narrower, more honest claim
- * than promising the draft survives a *login* redirect -- it doesn't; see
- * `app/track/page.tsx` and `app/lines/new/page.tsx`'s own review §2.16
- * comments on that separate, unresolved gap.)
+/** Routes whose whole content is a form with nothing live to "show the last update" of: the default offline
+ * copy ("showing the update from {time}") is honest on a data page but untrue here, where there was never
+ * any live data. What a visitor on these routes needs to know is whether losing the connection mid-form
+ * costs them their entries, and since nothing has been submitted yet, nothing has been sent anywhere to
+ * be lost: the entries are React state in the browser tab, as with a perfect connection. (This is a
+ * narrower claim than promising the draft survives a *login* redirect, which it doesn't.)
  *
- * A plain `Set` of exact pathnames plus one dynamic-segment pattern, not a
- * prop threaded down from `app/layout.tsx`: `ConnectivityMonitor` already
- * runs as a Client Component wrapping the whole shell, and `usePathname()`
- * is exactly the "how does it currently know what page it's rendering on"
- * mechanism the plan's own task description points at -- no new prop, and
- * no risk of a route's own `page.tsx` forgetting to pass one. */
+ * A plain `Set` of exact pathnames plus one dynamic-segment pattern, not a prop threaded down from
+ * `app/layout.tsx`: `ConnectivityMonitor` already runs as a Client Component wrapping the whole shell and
+ * can read `usePathname()`, with no new prop and no risk of a route's own `page.tsx` forgetting to pass
+ * one. */
 const FORM_ROUTES = new Set(['/track', '/trains', '/lines/new']);
 
 /** `/lines/[id]/edit` -- the one form route with a dynamic segment, so it
@@ -41,7 +31,7 @@ function isFormRoute(pathname: string): boolean {
  * cycles, ~60s) before the banner appears, one success to clear it. The
  * debounce exists so a single blipped request -- a pod restart, one
  * dropped packet -- never flashes a "Reconnecting..." banner at someone
- * whose app is working fine. Design spec Decision 2. */
+ * whose app is working fine. */
 const CONSECUTIVE_FAILURES_TO_TRIP = 2;
 
 /** Non-throwing default deliberately: `app/error.tsx` renders inside a
@@ -61,11 +51,11 @@ export function useConnectivity() {
  * which renders *below* this point in the tree, inside Next's
  * ErrorBoundaryHandler -- can read the context. That containment is
  * load-bearing for the self-healing error page; verified against a real
- * dev server before this landed (plan Task 0): a Context update does reach
+ * dev server before this landed: a Context update does reach
  * a component inside a tripped error boundary, and React's propagation is
  * not blocked by the intervening class component.
  *
- * Two independent signals, deliberately treated differently (Decision 2):
+ * Two independent signals, deliberately treated differently:
  * `backendReachable` comes from the server and is debounced two-strikes,
  * because a server round-trip can blip. `useNetwork().online` is a local
  * browser fact with no round-trip to be wrong about, so it applies
@@ -95,7 +85,6 @@ export function ConnectivityMonitor({
   // banner stays hidden until mount and the context provides the only
   // honest server value -- `{ disconnected: false }` -- until then. Same
   // pre-mount discipline as PrideToggle/ThemeToggle/ServiceWorkerRegister.
-  // Design spec Decision 9.
   const mounted = useMounted();
   const { online } = useNetwork();
   const pathname = usePathname();
@@ -108,7 +97,7 @@ export function ConnectivityMonitor({
   // `backendReachable={false}`), but `lastGoodAt` freezes at the last
   // success -- which is exactly the timestamp the offline notification
   // below needs to make "showing the last update" name an actual time
-  // instead of an unverifiable claim (review §2.12/§5). Seeded from props
+  // instead of an unverifiable claim. Seeded from props
   // at mount, not `null`, so a visitor who is offline from the very first
   // paint still sees a real time rather than "unknown" if this render
   // happened to be the reachable one.
@@ -151,12 +140,11 @@ export function ConnectivityMonitor({
               whether the visitor's own device is offline or the backend is
               unreachable, so there is one message and no branching on
               `online` vs `backendDown`. `lastGoodAt` names an actual time
-              rather than leaving "the last update" an unverifiable claim
-              (review §2.12/§5) -- `null` only in the edge case where this
+              rather than leaving "the last update" an unverifiable claim. It is `null` only in the edge case where this
               render has never once observed a reachable backend, which has
               no real time to name.
 
-              The one branch that DOES exist is route-based (review §2.16):
+              The one branch that DOES exist is route-based:
               on a form route (`isFormRoute`), "showing the update from
               {time}" is a claim about live data this route never had in the
               first place -- there is nothing to have last updated. What a

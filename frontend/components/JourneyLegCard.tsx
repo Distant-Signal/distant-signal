@@ -62,11 +62,9 @@ function formatWindowTime(value: string): string {
 }
 
 /** "Departing at or after 18:00 · Arriving at or before 09:00"-shaped
- * summary of an open leg's own search window -- 2026-09-22 UX review
- * finding I18: "the window the user just typed is never shown back to
- * them" (spec §4 explicitly asks the open-leg card to show "the search
- * parameters (origin, destination, windows)"; only origin/destination
- * were ever rendered). Phrased to match `AddJourneyLegButton.tsx`'s own
+ * summary of an open leg's own search window, shown back to the traveller
+ * (spec §4: the open-leg card shows "the search parameters (origin,
+ * destination, windows)"). Phrased to match
  * field descriptions exactly ("Only trains departing at or after this
  * time.", etc.) rather than inventing new wording for the same facts.
  * `null` when the leg has no window at all (a `pin`/`knownTrain`-mode
@@ -104,17 +102,11 @@ function windowSummary(
 /** One leg's card on `/journeys/[id]` (design doc §4). Two branches:
  *
  * - **Open** (`trackedTrainState === null`): the search parameters plus,
- *   for the journey's OWNER only, a `JourneyLegCandidates` picker -- a
- *   non-owning group member (reachable here via `journey_readable_by`'s
- *   group-shared read path, see this plan's I1 final-review finding) sees
- *   a plain "waiting for the owner" message instead, since picking a train
- *   for someone else's leg is a 404 the backend correctly refuses.
- * - **Open** (`trackedTrainState === null`): the search parameters plus,
  *   for the journey's OWNER only, a "Remove leg" action (top-right of the
  *   card, same convention as the matched branch below) and a
  *   `JourneyLegCandidates` picker -- a non-owning group member (reachable
- *   here via `journey_readable_by`'s group-shared read path, see this
- *   plan's I1 final-review finding) sees a plain "waiting for the owner"
+ *   here via `journey_readable_by`'s group-shared read path) sees a plain
+ *   "waiting for the owner"
  *   message instead of the picker, since picking a train for someone
  *   else's leg is a 404 the backend correctly refuses; it never sees
  *   "Remove leg" either, for the same reason.
@@ -136,17 +128,8 @@ function windowSummary(
  *   Phase 0). Until then those legs had no way to pick another train
  *   except removing the leg and adding a new one.
  *
- *   Before this fix, the two actions were rendered as a ternary
- *   (`hasWindow ? <ChangeTrain> : <RemoveLeg>`): a leg with NO window got
- *   "Remove leg" but no way to swap its train, and -- the common case,
- *   since most legs are created via the time-window search flow -- a leg
- *   WITH a window got "Change train" but no way to remove it outright,
- *   leaving most legs on most journeys with no delete affordance at all.
- *   Both actions are now gated on the owner alone, never on each other.
- *
- * Every action lives in the card's OWN title row, top-right -- 2026-09-22
- * UX review finding I14/2.4's own recommendation: "actions live at the
- * top-right of the thing they act on", the same rule `page.tsx`'s header
+ * Every action lives in the card's OWN title row, top-right: actions live at
+ * the top-right of the thing they act on, the same rule `page.tsx`'s header
  * already applies to "Add a leg". */
 /** An open train leg's route. A leg saved with no origin (its train was
  * released, or never had a timetable) is a "Train leg", never "Unknown
@@ -221,42 +204,28 @@ export function JourneyLegCard({
   }
 
   if (leg.trackedTrainState === null) {
-    // Review §2.5/I27 + review finding 2.9 (the two branches reached the
-    // same conclusion from opposite ends): this used to interpolate raw
-    // CRS codes and a raw ISO `serviceDate` ("YRK -> NCL, 2026-09-22")
-    // while the matched card one row down rendered "London Kings Cross
-    // (KGX) -> York (YRK), 22 Sep 2026" -- two date formats and two
-    // naming conventions on the same page. `routeLabel`/`formatDate` are
-    // the shared formatters both `TrainJourney` and `/journeys` already
-    // use. Unlike the matched card there is no `journeyStops` to read
-    // names from, but the leg itself now carries `originName`/
-    // `destinationName` (resolved server-side from the `stations`
-    // reference table), so this degrades to bare codes only when the
-    // reference row genuinely doesn't exist.
+    // Uses the shared `routeLabel`/`formatDate` formatters `TrainJourney` and
+    // `/journeys` use, so this card and the matched card one row down agree on
+    // naming and date format. There is no `journeyStops` to read names from, but
+    // the leg carries `originName`/`destinationName` (resolved server-side from
+    // the `stations` reference table), so this degrades to bare codes only when
+    // the reference row genuinely doesn't exist.
     const header = `${openLegRouteLabel(leg)}, ${formatDate(leg.serviceDate)}`;
-    // Review I18 (found independently by two reviewers): the window the
-    // traveller just typed was never shown back to them -- the only place
-    // it lived was inside `hasWindow`'s own boolean check below, never
-    // rendered. The copy deliberately mirrors `AddJourneyLegButton.tsx`'s
-    // own field descriptions ("Only trains departing at or after this
-    // time.") rather than inventing new wording for the same facts, and
-    // says "at or after" rather than "after" because that is what the
-    // bound actually means. It does NOT repeat the station names: the
-    // header directly above already carries the route.
+    // Shows the window the traveller typed back to them. The copy mirrors
+    // `AddJourneyLegButton.tsx`'s own field descriptions ("Only trains departing
+    // at or after this time.") and says "at or after" rather than "after"
+    // because that is what the bound means. It does NOT repeat the station
+    // names: the header directly above already carries the route.
     const criteria = windowSummary(leg);
     return (
-      // Review §2.3/I15: the matched card (below) is dense -- headcode,
-      // route, summary lines, a badge, a diagram, a table -- while THIS
-      // card, the one that actually needs the user to do something, used
-      // to be a plain white box with nothing in its border, background,
-      // weight or icon saying "action required". Four non-colour-alone
-      // cues (WCAG 1.4.1): a left accent border, a tinted surface, a bold
-      // title, and a leading glyph -- all in grape, the app's action
-      // colour, matching `JourneyStatusBadge`'s own `unmatched` colour
-      // (this used to be blue, which the app otherwise keeps for planned
-      // or changed arrangements -- docs/style-guide.md "Semantic roles").
-      // The glyph uses the light variant's text colour, which is measured
-      // AA against this same `grape-light` surface in both schemes.
+      // The matched card (below) is dense, while THIS card, the one that needs
+      // the user to do something, must not look like a plain white box. Four
+      // non-colour-alone cues (WCAG 1.4.1): a left accent border, a tinted
+      // surface, a bold title, and a leading glyph -- all in grape, the app's
+      // action colour, matching `JourneyStatusBadge`'s own `unmatched` colour
+      // (blue is kept for planned or changed arrangements -- docs/style-guide.md
+      // "Semantic roles"). The glyph uses the light variant's text colour, which
+      // is measured AA against this same `grape-light` surface in both schemes.
       <Card withBorder data-needs-action className="openLegCard">
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start" wrap="wrap" gap="xs">
@@ -312,11 +281,10 @@ export function JourneyLegCard({
 
   const state = leg.trackedTrainState;
 
-  // Leg-scoped skip signal (§5.2) -- at most the leg's own origin/destination
-  // CRS, sourced from Task 4's `legSkip` wire field. `TrainJourney`/
-  // `JourneyTimeline` treat `undefined` and `[]` identically, but this is
-  // always a concrete (possibly empty) array here since `leg.legSkip` is
-  // only `null` when there's nothing to report.
+  // Leg-scoped skip signal: at most the leg's own origin/destination CRS, from
+  // the `legSkip` wire field. `TrainJourney`/`JourneyTimeline` treat `undefined`
+  // and `[]` identically, but this is always a concrete (possibly empty) array
+  // here since `leg.legSkip` is only `null` when there's nothing to report.
   const skippedCrs = [
     leg.legSkip?.originSkipped ? leg.originCrs : null,
     leg.legSkip?.destinationSkipped ? leg.destinationCrs : null,

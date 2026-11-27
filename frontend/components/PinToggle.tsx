@@ -68,11 +68,10 @@ export function PinToggle({
    * otherwise a list of identical buttons to a screen reader. */
   name: string;
   initiallyPinned: boolean;
-  // Review §3.4 (Task 3.4.13): an anonymous visitor gets no hint that
-  // pinning needs an account until they click and hit the `401` prompt
-  // below -- this folds "needs an account" into the star's own tooltip/
-  // aria-label up front instead, for a visitor known to have no session.
-  // Optional and defaulted to `false` so the one other call site
+  // An anonymous visitor gets no hint that pinning needs an account until they
+  // click and hit the `401` prompt below -- this folds "needs an account" into
+  // the star's own tooltip/aria-label up front, for a visitor known to have no
+  // session. Optional and defaulted to `false` so the one other call site
   // (`app/stations/[crs]/page.tsx`, which doesn't yet thread a viewer's
   // anonymous/signed-in state down to this component) is unaffected.
   needsAccountHint?: boolean;
@@ -234,9 +233,8 @@ export function PinToggle({
           // it closes (e2e/keyboard-focus.spec.ts).
           {...(busy && { 'aria-disabled': true, 'data-disabled': true })}
           aria-label={label}
-          // 44px, not Mantine's default `md` (28px): review §2.10 calls this
-          // out by name as one of "the two actions a returning user taps
-          // most" (alongside `ShareButton`), so it gets the 44px
+          // 44px, not Mantine's default `md` (28px): one of "the two actions a
+          // returning user taps most" (alongside `ShareButton`), so it gets the 44px
           // primary-action floor rather than the general 24px one. A bare
           // number sets `--ai-size` directly rather than picking a named
           // preset (`ActionIcon.css`), which only resizes the button box --

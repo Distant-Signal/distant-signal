@@ -94,11 +94,7 @@ export default async function PlanPage({
     <Stack p="lg" gap="md">
       <Title order={1}>{PLAN_JOURNEY_LABEL}</Title>
       <Text c="dimmed">
-        Find routes between two stations, or start from a train you already know. Once the first leg is tracked you can
-        add another for a change of trains, or stop there: a single train is already a complete journey.
-      </Text>
-      <Text size="sm" c="dimmed">
-        You don&apos;t need an account to plan. To track a journey, you&apos;ll be asked to log in when you save it.
+        Plan a route between two stations, or start from a train you know. You only need to log in to save and track it.
       </Text>
       <JourneyCreationFlow
         initialEntryMode={entryMode}

@@ -10,12 +10,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
-// Fixed rather than reading `window.location.origin`: the whole point of
-// review §2.11's fix is that this component no longer reads `window` at
-// all -- `origin` is now an ordinary prop the caller (a Server Component)
-// resolves via `lib/siteOrigin.ts`. Using a value that could never equal
-// jsdom's own default origin also makes it obvious, in every assertion
-// below, that the rendered URL came from the prop.
+// Fixed rather than read from `window.location.origin`: the component no
+// longer reads `window` at all, `origin` is a prop the caller (a Server
+// Component) resolves via `lib/siteOrigin.ts`. A value that could never equal
+// jsdom's own default origin also makes it obvious, in every assertion below,
+// that the rendered URL came from the prop.
 const ORIGIN = 'https://distant-signal.example';
 
 describe('GroupInviteLinkCard', () => {
@@ -64,9 +63,8 @@ describe('GroupInviteLinkCard', () => {
     );
   });
 
-  // Review §3.2.2: the card never said the link expires (spec §2.3 gives
-  // every link a 7-day life), so an owner had no way to know a link they'd
-  // shared or bookmarked had gone stale until a joiner's click 404'd.
+  // The card says the link expires (links last 7 days), so an owner can tell a
+  // shared or bookmarked link may have gone stale before a joiner's click 404s.
   it("shows the invite link's expiry date", () => {
     renderWithMantine(
       <GroupInviteLinkCard
@@ -110,14 +108,12 @@ describe('GroupInviteLinkCard', () => {
     expect(screen.getByDisplayValue(`${ORIGIN}/groups/join/tok123`)).toBeInTheDocument();
   });
 
-  /** Review §2.11: `origin` is a plain prop, resolved server-side before
-   * this component ever renders -- so the absolute URL is present and
-   * copyable/shareable on the FIRST render, with no mount-effect window
-   * where it reads as a bare, uncopyable path (or Share silently no-ops
-   * against `origin === ''`). Asserting with a synchronous `getBy*`
-   * (rather than `findBy*`/`waitFor`) is the actual proof: this would fail
-   * immediately, not just eventually, if the URL were still built from a
-   * `useEffect`. */
+  /** `origin` is a plain prop, resolved server-side before this component ever
+   * renders -- so the absolute URL is present and copyable/shareable on the
+   * FIRST render, with no mount-effect window where it reads as a bare path (or
+   * Share silently no-ops against `origin === ''`). A synchronous `getBy*`
+   * (rather than `findBy*`/`waitFor`) is the proof: it would fail immediately
+   * if the URL were still built from a `useEffect`. */
   it('renders the absolute join URL synchronously, with no effect to wait for', () => {
     renderWithMantine(
       <GroupInviteLinkCard
@@ -161,10 +157,9 @@ describe('GroupInviteLinkCard', () => {
     expect(screen.getByRole('button', { name: 'Share invite link' })).toBe(button);
   });
 
-  // Review §2.10: Mantine's default `md` `ActionIcon` (28px) is under the
-  // review's recommended sizing for this icon-button set. Sized to 36px to
-  // match the adjacent `TextInput`'s own height rather than the 44px
-  // primary-action floor `PinToggle`/`ShareButton` get -- see this
+  // Mantine's default `md` `ActionIcon` (28px) is too small for this icon-button
+  // set. Sized to 36px to match the adjacent `TextInput`'s own height rather
+  // than the 44px primary-action floor `PinToggle`/`ShareButton` get -- see this
   // component's own comment for the rationale. See `PinToggle.test.tsx`'s
   // identical assertion shape for why the expected value is a `calc()`
   // expression rather than a plain pixel string.

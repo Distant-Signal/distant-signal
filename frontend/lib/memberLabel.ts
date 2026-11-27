@@ -53,7 +53,7 @@ export function memberLabel(
 }
 
 /** A group role as shown beside a group or a member: "Owner", "Member".
- * Plain dimmed text, not a badge (round 2): a role is a fact about the
+ * Plain dimmed text, not a badge: a role is a fact about the
  * person, not a state. */
 export function groupRoleLabel(role: GroupRole): string {
   return role.charAt(0).toUpperCase() + role.slice(1);

@@ -31,7 +31,7 @@ export function LineDefinitionTooltip({ stations, operators }: { stations: strin
     >
       {/* Explicit `size="md"` (28px): matches Mantine's own `ActionIcon`
           default already in effect, spelled out so this control's
-          conformance with review §2.10's 24px touch-target floor doesn't
+          conformance with the 24px touch-target floor doesn't
           silently depend on that default never changing. */}
       <ActionIcon variant="subtle" aria-label="How this line is defined" size="md">
         <InfoIcon />

@@ -21,14 +21,9 @@ export default function NewCustomLinePage() {
     <Center>
       <Stack p="lg" gap="md" maw={480} w="100%">
         <Title order={1}>New custom line</Title>
-        {/* Review §2.16/Task 3.4.13's own account-needed hint, and Task
-            3.4.3's "what even is a custom line" explanation, both now live
-            inside `CustomLineForm` itself (rendered unconditionally there
-            for the explanation, and gated on `!existingLine` for the hint)
-            rather than duplicated here as a page-level `Text` -- this page
-            and `[id]/edit/page.tsx` both mount the form immediately below
-            their own `<h1>` with nothing in between, so centralizing the
-            copy in the one file both share avoids the two drifting apart. */}
+        {/* The account-needed hint and the "what is a custom line" explanation live inside `CustomLineForm`,
+            not here: this page and `[id]/edit/page.tsx` both mount the form directly under their `<h1>`, so
+            one shared copy cannot drift apart. */}
         <CustomLineForm cancelHref="/lines" />
       </Stack>
     </Center>

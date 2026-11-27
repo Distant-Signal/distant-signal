@@ -69,21 +69,17 @@ export function TextLink({
   children: React.ReactNode;
   underline?: 'hover' | 'always' | undefined;
   inline?: boolean;
-  // Left `undefined` by default -- Mantine's own `Text` default (`md`,
-  // 16px) is what every existing call site was already implicitly getting,
-  // so adding this prop must not change any of them. `AuthStatus`'s
-  // `LoginControl` is the one call site that now sets this explicitly, to
-  // `'sm'` (14px) -- the size the shared chrome's other text-link-styled
-  // controls converge on (review §2.16 "auth controls are inconsistently
-  // sized"): `sm` is Mantine's own font-size floor before `xs` (12px, which
-  // review §2.16 also flagged as too small on the footer's old NationalRail
-  // link), and it is already the size Mantine's `Menu.Item` renders "Log
-  // out" at by default (`node_modules/@mantine/core/styles/Menu.css`'s
-  // `--mantine-font-size-sm` on `.mantine-Menu-item`) -- so `sm` is not a
-  // new convention invented here, it is the one the rest of the chrome
-  // already landed on.
+  // Left `undefined` by default -- Mantine's own `Text` default (`md`, 16px) is
+  // what every existing call site was already implicitly getting, so adding
+  // this prop must not change any of them. `AuthStatus`'s `LoginControl` is the
+  // one call site that sets this explicitly, to `'sm'` (14px), the size the
+  // shared chrome's other text-link-styled controls use: `sm` is Mantine's own
+  // font-size floor before `xs` (12px, too small for the footer's NationalRail
+  // link), and it is already the size Mantine's `Menu.Item` renders "Log out"
+  // at by default (`node_modules/@mantine/core/styles/Menu.css`'s
+  // `--mantine-font-size-sm` on `.mantine-Menu-item`).
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | undefined;
-  // Task 3.4.8 (AllLinesTable's Name column): a wrapped two-line link at
+  // For AllLinesTable's Name column: a wrapped two-line link at
   // Mantine `Text`'s default line-height read as two separate stacked
   // items rather than one wrapped name at narrow widths. Optional --
   // `undefined` keeps every existing call site at Mantine's own default,
@@ -111,26 +107,23 @@ export function TextLink({
   onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLAnchorElement>) => void;
   // The full destination, for a call site whose visible text is a shortened
-  // stand-in for it (station-accessibility rich text's raw-URL-as-link-text
-  // fix, review §3.5.9: the link reads "nationalrail.co.uk" on screen but
+  // stand-in for it (station-accessibility rich text's raw-URL-as-link-text:
+  // the link reads "nationalrail.co.uk" on screen but
   // still discloses the exact URL on hover/focus).
   title?: string | undefined;
   // An explicit accessible name, for one of N identically-worded links in
   // a list -- "History" on every card in `/operators`' grid, where the
   // distinguishing text (the operator's name) is a sibling element and so
   // is NOT part of the link's own name. Screen-reader users listing links
-  // then hear N indistinguishable items (2026-09-22 UX review, I26/P3;
-  // WCAG 2.4.9). Left `undefined` everywhere the visible text is already
+  // then hear N indistinguishable items (WCAG 2.4.9). Left `undefined` everywhere the visible text is already
   // unique on its page, which is nearly every call site -- an `aria-label`
   // that merely restates the visible text is noise, and one that
   // *contradicts* it is a 2.5.3 Label-in-Name failure, so the label passed
   // here must always CONTAIN the visible text.
   //
-  // Two independent UX-review findings landed on this same prop: the
-  // `/operators` grid's repeated "History" links (above) and `/lines/[id]`'s
-  // repeated "View live status" links, one per train row. Both are the same
-  // shape -- N identically-worded links whose distinguishing text is always
-  // a sibling `<Text>` -- so they share one prop rather than two.
+  // Used for the `/operators` grid's repeated "History" links and
+  // `/lines/[id]`'s repeated "View live status" links (one per train row): both
+  // are N identically-worded links whose distinguishing text is a sibling `<Text>`.
   ariaLabel?: string;
   // `aria-current="page"` for a nav link pointing at the page being shown
   // (`PrimaryNavLink`). `globals.css` keys the active underline off it, so

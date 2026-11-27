@@ -5,21 +5,11 @@ import { TrendsCharts } from './TrendsCharts';
 import { HONESTY_COPY, HONESTY_COPY_DETAILS } from './TrendsResults';
 import type { ChartPoint } from './chartPoint';
 
-// Placeholder, not a validated number -- see
-// docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md
-// Decision 8 (written for the original 1-hour bucket). Deliberately NOT a
-// reuse of TrendsResults.tsx's SPARSE_DATA_FLOOR_CYCLES (20 out of a
-// ~1,440-cycle/day ceiling at the default 60s poll interval -- reusing it
-// as-is against a 30-minute bucket's ~30-cycle ceiling would demand ~67%
-// coverage, a far stricter bar than intended). This value is re-derived
-// against the half-hourly ceiling, keeping Decision 8's own "roughly a
-// third of the bucket's maximum possible coverage" ratio: a third of ~30
-// is 10, half of the original hourly-era value of 20 (which was itself a
-// third of the hourly ~60-cycle ceiling) -- halving the bucket duration
-// halves the cycle ceiling, so the floor halves with it to hold the same
-// ~33% coverage bar. Still an unvalidated placeholder -- revisit against
-// real sample_cycles-per-bucket distributions once this has run in
-// production.
+// Placeholder, not a validated number. Not TrendsResults.tsx's SPARSE_DATA_FLOOR_CYCLES (20 of ~1,440
+// cycles/day at the 60s poll interval): against a 30-minute bucket's ~30-cycle ceiling that would demand ~67%
+// coverage. 10 is a third of that ceiling, the same ~33% bar. Revisit against real sample_cycles-per-bucket
+// distributions once this has run in production. See
+// docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md.
 const SPARSE_DATA_FLOOR_CYCLES_HALF_HOURLY = 10;
 
 // Half-hourly sibling of TrendsResults.tsx's toChartPoints -- same
@@ -41,15 +31,9 @@ export function toHalfHourlyChartPoints(stats: LineHalfHourlyStats[]): ChartPoin
   });
 }
 
-/** Structurally parallel to `TrendsResults` (Decision 10) -- deliberately
- * a separate component, not a `granularity`-branching version of it,
- * since the fetch, sparse floor, and honesty copy are all genuinely
- * half-hourly-specific. The shared, reusable part is `TrendsCharts`
- * (generalized in the same plan's Task 9), which this renders exactly
- * the way `TrendsResults` does, passing `granularity="halfHour"`.
- * Originally `HourlyTrendsResults`, rendering 1-hour buckets -- renamed
- * (component, file, and every helper below) when the bucket size was
- * halved to 30 minutes; see git history for the hourly-era version. */
+/** Structurally parallel to `TrendsResults`, but a separate component rather than a `granularity` branch,
+ * since the fetch, sparse floor and honesty copy are half-hourly-specific. The shared part is `TrendsCharts`,
+ * rendered with `granularity="halfHour"`. */
 export async function HalfHourlyTrendsResults({ id, from, to }: { id: string; from: string; to: string }) {
   // This component is rendered inside a <Suspense> on /lines/[id]
   // (page.tsx). Suspense catches *suspension*, not errors -- an unhandled

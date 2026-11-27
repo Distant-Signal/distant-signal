@@ -18,10 +18,7 @@ import type { ChartPoint } from '@/app/lines/[id]/history/chartPoint';
 
 // Dispatches to the right fetch + floor + bucket-key field for the
 // selected tier -- network-scoped sibling of TrendsResults.tsx's own
-// fetchPoints (and OperatorTrendsResults.tsx's), reusing its
-// SPARSE_FLOOR/toChartPoints (Judgment Call 3 of
-// docs/superpowers/plans/2026-09-22-operator-overview-phase4-historical-views-plan.md)
-// rather than re-deriving them.
+// fetchPoints (and OperatorTrendsResults.tsx's), reusing its SPARSE_FLOOR/toChartPoints rather than re-deriving them.
 async function fetchPoints(granularity: TrendGranularity, from: string, to: string): Promise<ChartPoint[]> {
   switch (granularity) {
     case 'day': {
@@ -44,8 +41,7 @@ async function fetchPoints(granularity: TrendGranularity, from: string, to: stri
 }
 
 /** Network-scoped sibling of `TrendsResults`/`OperatorTrendsResults` --
- * every catalogue (National Rail) line, summed. See this plan's Judgment
- * Call 5: TfL lines never contribute (they carry no rows in the
+ * every catalogue (National Rail) line, summed. TfL lines never contribute (they carry no rows in the
  * underlying rollup tables at all), so this is honestly a National Rail
  * network view, not literally "every mode." */
 export async function NetworkTrendsResults({

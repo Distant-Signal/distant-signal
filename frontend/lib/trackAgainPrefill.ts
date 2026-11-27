@@ -3,11 +3,10 @@ import type { JourneyDetail, JourneyLegDetail } from './types';
 
 /** What a fresh `/track` visit would need to reproduce one leg's own
  * search criteria -- the shared shape `trackAgainHref` (below) turns into
- * a query string, and the shape Phase B's "promote this journey to a
- * template" feature (docs/superpowers/specs/2026-09-22-reusable-repeating-journeys-design.md
- * §6 item 2) is expected to reuse directly when it builds a
- * `journey_template_legs` row instead of a URL -- see this plan's own
- * closing note. Deliberately has no `serviceDate`/departure-time field at
+ * a query string, and the shape the "promote this journey to a
+ * template" feature (docs/superpowers/specs/2026-09-22-reusable-repeating-journeys-design.md)
+ * is expected to reuse directly when it builds a
+ * `journey_template_legs` row instead of a URL. Deliberately has no `serviceDate`/departure-time field at
  * all: "again" always means a NEW occurrence, so the date/time is always
  * left to whatever `/track`'s own form already defaults to (today/now),
  * never carried over from the journey being repeated. */
@@ -34,8 +33,7 @@ function toHHMM(value: string | null): string | null {
   return value ? value.slice(0, 5) : null;
 }
 
-/** Extracts "again" criteria from a journey's FIRST leg only -- see this
- * plan's Judgment Call 2 for why only the first leg, not the whole
+/** Extracts "again" criteria from a journey's FIRST leg only, not the whole
  * multi-leg shape. Returns `null` only for the defensive case of a
  * journey with zero legs (shouldn't happen in practice -- removing a
  * journey's only leg removes the journey itself, per
@@ -48,7 +46,7 @@ function toHHMM(value: string | null): string | null {
  * set, not from `matchMode` -- a matched window-mode leg keeps its window
  * fields populated forever (they're never cleared on match), so this is
  * the only reliable signal for "was this originally a time-window search,
- * or a direct pin/known-train pick" -- see Judgment Call 3. `origin`
+ * or a direct pin/known-train pick". `origin`
  * prefers the leg's own `originCrs`, falling back to the matched train's
  * own `pinOriginCrs` for the rare case a `knownTrain`-mode leg's own
  * `origin_crs` was `null` at creation time (the bound `trains` row had no

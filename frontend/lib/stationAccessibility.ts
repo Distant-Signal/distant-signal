@@ -4,8 +4,8 @@ import { ownValue } from './ownValue';
 
 /** Fixed display order and grouping for the twelve allowlisted keys -- see
  * docs/superpowers/specs/2026-09-12-station-accessibility-design.md
- * Decision 7, left untouched by the structured-rendering redesign
- * (2026-09-16-structured-accessibility-rendering-design.md §4.10). A
+ * (unchanged by the structured-rendering redesign,
+ * 2026-09-16-structured-accessibility-rendering-design.md). A
  * station page reader scans top-to-bottom for the thing they care about,
  * most-asked-about first; this is deliberately not alphabetical and not the
  * response's own key order. `StationAccessibilitySection` skips a whole
@@ -17,8 +17,8 @@ export const ACCESSIBILITY_CATEGORIES: {
   heading: string;
   keys: (keyof StationAccessibilityData)[];
 }[] = [
-  // `helpAndSupport` moved here from "Platform & station facilities"
-  // (review §3.5.4): its own fields (`helpPoints`, `staffHelp`, customer
+  // `helpAndSupport` sits here rather than under "Platform & station
+  // facilities": its own fields (`helpPoints`, `staffHelp`, customer
   // information tokens, induction loop) are near-duplicates of
   // `staffAssistance`'s -- the same fact captured twice by two independent
   // Darwin/Knowledgebase feeds -- so the two keys now render adjacently in
@@ -57,7 +57,7 @@ const KEY_LABEL_OVERRIDES: Record<string, string> = {
 
 /** Acronyms `humanizeKey`'s lowercase-then-capitalize-first pass would
  * otherwise mangle into "Cctv"/"Atm"/"Wifi" -- real output for
- * `stationFacilities.cctvAvailable`, `.atm` and `.wifi` (review §3.5.11).
+ * `stationFacilities.cctvAvailable`, `.atm` and `.wifi`.
  * Matched per word, case-insensitively, against the already-split camelCase
  * tokens, so `cctvAvailable` -> `['cctv', 'available']` -> `CCTV available`
  * without a separate table entry for every field the word can appear in. */
@@ -117,12 +117,12 @@ export function hostLabel(url: string): string | null {
   }
 }
 
-/** Decision 6's "`null`/`undefined` -> the key is skipped entirely" rule,
+/** The "`null`/`undefined` -> the key is skipped entirely" rule,
  * as a predicate the section component filters its keys through. The
  * backend already drops null-valued allowlisted keys
  * (`filter_accessibility_fields`), but the frontend does not treat that as
- * a hard guarantee -- and `null` is pervasive *below* the top level too
- * (§2.5), where this same predicate does the skipping. */
+ * a hard guarantee -- and `null` is pervasive *below* the top level too,
+ * where this same predicate does the skipping. */
 export function hasRenderableValue(value: unknown): boolean {
   return value !== null && value !== undefined;
 }
@@ -342,13 +342,12 @@ function isFacilityRecord(value: Record<string, unknown>): boolean {
 export const MAX_RENDER_DEPTH = 7;
 
 /** Turn one allowlisted key's value into something displayable. Never
- * throws, for any input at all -- the guarantee most worth keeping from the
- * original Decision 6 (§8). Every branch either produces a node or falls
+ * throws, for any input at all. Every branch either produces a node or falls
  * through to `raw`.
  *
  * `topKey` is the allowlisted key this value was fetched under (e.g.
  * `'carParks'`), threaded exactly one level deep so `renderFields` can
- * recognise the review's "Car parks" printed twice in a row (§3.5.11):
+ * recognise "Car parks" printed twice in a row:
  * `data.carParks` is itself an object with its OWN nested `carParks` array,
  * so the generic fallback used to label that nested field "Car parks"
  * again, immediately under a group entry already headed "Car parks". Only
@@ -422,7 +421,7 @@ function renderFacility(value: Record<string, unknown>, depth: number): Accessib
   // A facility's own free-text `location`/`notes` occasionally just repeats
   // its `operatorContactDetails.primaryTelephoneNumber` verbatim -- the
   // same number once as inert prose here and once, a few lines below, as
-  // the tappable `tel:` link `Contact` renders (review §3.5.8). Compared as
+  // the tappable `tel:` link `Contact` renders. Compared as
   // digits only so formatting differences between the two copies don't
   // hide a real duplicate.
   const contactPhone =
@@ -932,7 +931,7 @@ function pushWithoutLabel(fields: LabelledNode[], own: unknown, depth: number): 
  * humanized label already ends in that same word -- `stepFreeCategory` ->
  * "Step free category" holding a `category` field that would otherwise add
  * its own "Category:" line directly underneath, saying the word twice
- * (review §3.5.11). Generalised to the whole `CODE_LIKE_FIELDS` set rather
+ * Generalised to the whole `CODE_LIKE_FIELDS` set rather
  * than hard-coded to `stepFreeCategory.category` alone, since the same
  * shape (an object named after the thing its one code-like field also
  * names) is what produced this case and could produce another. */
@@ -958,8 +957,8 @@ function pushField(fields: LabelledNode[], key: string, own: unknown, depth: num
   // surrounding subject, not a distinct fact needing "Location:" in front
   // of it. `renderFacility`'s `location`/`notes` slot already treats a
   // facility's own location this way; this generalises the same rule to a
-  // Pattern D item's sibling `location` field (review §3.5.11's "Location:
-  // Next to Waitrose" inconsistency), the only place still labelling it.
+  // Pattern D item's sibling `location` field (the "Location: Next to Waitrose"
+  // inconsistency), the only place still labelling it.
   // (A `sentence`-kind location already lost its label in the branch
   // above -- this only has `text`-kind ones left to catch.)
   if (key.toLowerCase() === 'location' && node.kind === 'text') {
@@ -1031,8 +1030,8 @@ function isPunctuationOnlyText(text: string): boolean {
 /** True when a node would put nothing at all on the page. The section
  * component skips such a key rather than printing a label with blank space
  * under it, and treats a whole response of them as "nothing published" --
- * the same rule Decision 7 applies to category groups, applied all the way
- * down. Load-bearing given how pervasive `null` is (§2.5).
+ * the same rule category groups follow, applied all the way
+ * down. Load-bearing given how pervasive `null` is.
  *
  * Kept out of the render functions' return values deliberately, so a node
  * stays a faithful description of the value it was given and the decision
@@ -1092,7 +1091,7 @@ function isEmptyMarkup(html: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Cross-section de-duplication (review §3.5.4)
+// Cross-section de-duplication
 // ---------------------------------------------------------------------------
 
 /** A cheap, order-independent fingerprint of a node's own content -- used
@@ -1127,7 +1126,7 @@ function nodeSignature(node: AccessibilityNode, label?: string): string {
  * under `staffAssistance` and once under `helpAndSupport` (or, for tactile
  * paving, once under `stationAccessibility` and once under
  * `platformFacilities`): two independent Darwin/Knowledgebase fields
- * publishing the same fact (review §3.5.4).
+ * publishing the same fact.
  *
  * Deliberately shallow in what it recurses into: only `fields`/`contact`'s
  * field lists and a `facility`'s `parts` are walked, one labelled child at a
@@ -1182,7 +1181,7 @@ function dedupeFieldList(fields: LabelledNode[], seen: Set<string>): LabelledNod
 }
 
 // ---------------------------------------------------------------------------
-// Kind-ordering within a group (review §3.5.3)
+// Kind-ordering within a group
 // ---------------------------------------------------------------------------
 
 /** Where a node kind sits in the stable sort every group's entries go
@@ -1221,7 +1220,7 @@ export function sortEntriesByKind<T extends { node: AccessibilityNode }>(entries
 }
 
 // ---------------------------------------------------------------------------
-// Key facts (review §3.5.3, round 2)
+// Key facts
 // ---------------------------------------------------------------------------
 
 /** One row of the key facts definition list: "Step-free access" over
@@ -1295,7 +1294,7 @@ function facilityAvailable(value: unknown): unknown {
 }
 
 /** The facts a station-page reader most often scrolls the whole section to
- * find, shown first as a definition list (review §3.5.3, round 2). Each is
+ * find, shown first as a definition list. Each is
  * read off `data` through a narrow, known path rather than by scanning the
  * rendered node tree, so this stays a small, auditable list: a payload
  * shaped differently from the 31 surveyed stations simply omits that one

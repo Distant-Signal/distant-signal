@@ -50,9 +50,7 @@ function asRenderedTrainLeg(value: unknown): RenderedTrainLeg | null {
   return v as unknown as RenderedTrainLeg;
 }
 
-// Same unresearched-starting-figure posture as orchestrator/'s own model
-// choice (now deleted, see this plan's Task 5) -- carried forward
-// unchanged, not re-benchmarked by this task.
+// An unresearched starting figure, carried forward unchanged from the old orchestrator's model choice.
 const CHAT_MODEL = 'claude-opus-4-6';
 
 /** Warms `loadChatRuntime`; a failure here is retried, and reported, on Send. */
@@ -83,13 +81,9 @@ interface ChatPanelProps {
   mcpServerUrl: string;
 }
 
-/** The chat UI's own message list + input (embedded-chatbot-option-b-
- * client-side-tokens plan, Task 10). A Client Component -- it needs the
- * user's own session-held Anthropic key and MCP tokens, and runs the
- * tool-calling loop (`runChatTurn`, Task 1's `orchestrator/src/chat.ts`
- * relocated) directly in the browser now, not through a server-side
- * proxy -- there is no longer a server-side orchestrator to talk to
- * (Decision 1/3 of the client-side-tokens design doc). */
+/** The chat UI's own message list + input. A Client Component: it needs the user's own session-held
+ * Anthropic key and MCP tokens, and runs the tool-calling loop (`runChatTurn`) directly in the browser,
+ * not through a server-side proxy. */
 export function ChatPanel({ mcpServerUrl }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -482,11 +476,9 @@ function ChatMessageRow({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   return (
     <Stack gap={4} align={isUser ? 'flex-end' : 'flex-start'}>
-      {/* `grape.0`, not Mantine's default `blue.0` -- review §3.1.6: the
-          grape-theme spec reserves blue for `planned` severity
-          (`lib/severity.ts`'s `GROUP_COLOR`), the same reason
-          `app/connect-claude/page.tsx`'s own informational `Alert` moved
-          off blue. */}
+      {/* `grape.0`, not Mantine's default `blue.0`: the grape-theme spec reserves blue for `planned` severity
+          (`lib/severity.ts`'s `GROUP_COLOR`), the same reason `app/connect-claude/page.tsx`'s informational
+          `Alert` moved off blue. */}
       <Card withBorder padding="sm" radius="md" maw="80%" {...(isUser && { bg: 'grape.0' })}>
         {!isUser && (
           <Group gap={4} mb={4}>
@@ -507,15 +499,12 @@ function ChatMessageRow({ message }: { message: ChatMessage }) {
   );
 }
 
-/** A `plan_journey` result's leg, rendered as a small card with a "Track
- * this train" deep-link into `TrackTrainForm` (Task 5's own scope note: not
- * a full pre-fill of every `TrackTrainForm` field, just `origin` --
- * `TrackTrainForm`'s existing `initialOrigin` prop, the same mechanism
- * `/stations/[crs]`'s own "Track a train from here" shortcut already
- * uses). A leg with no CRS (`from.crs === null` -- `RenderedTrainLeg`'s own
- * TIPLOC-only fallback, per distant-signal-mcp's `StationRef`) has nothing
- * `/track?origin=` can pre-fill, so no button renders for it; the card
- * itself still does, so the leg's own detail isn't silently dropped. */
+/** A `plan_journey` result's leg, rendered as a small card with a "Track this train" deep-link into
+ * `TrackTrainForm`. Only `origin` is pre-filled, through `TrackTrainForm`'s `initialOrigin` prop, the same
+ * mechanism `/stations/[crs]`'s "Track a train from here" shortcut uses. A leg with no CRS
+ * (`from.crs === null`, `RenderedTrainLeg`'s TIPLOC-only fallback, per distant-signal-mcp's `StationRef`)
+ * has nothing `/track?origin=` can pre-fill, so no button renders for it; the card itself still does, so
+ * the leg's own detail isn't silently dropped. */
 function TrainLegCard({ leg }: { leg: RenderedTrainLeg }) {
   const originCrs = leg.from.crs;
   const originName = leg.from.name ?? leg.from.tiploc;

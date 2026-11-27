@@ -25,10 +25,9 @@ describe('ScheduleRow', () => {
     expect(screen.getByText('14:40 · BSK · SW')).toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review follow-up (item 5): the live picker used to show
-  // only the raw CRS code with no name at all -- `destinationName` is now
-  // resolved server-side and rendered via the shared `stationLabel`
-  // "Name (CODE)" convention.
+  // The live picker shows the destination's name, not just the raw CRS code:
+  // `destinationName` is resolved server-side and rendered via the shared
+  // `stationLabel` "Name (CODE)" convention.
   it('renders a resolved destination name alongside its code', () => {
     renderWithMantine(
       <ScheduleRow

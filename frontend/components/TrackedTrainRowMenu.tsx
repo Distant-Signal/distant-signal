@@ -6,7 +6,7 @@ import { KebabIcon } from './KebabIcon';
 import { RenameTrainButton, type RenameTrainButtonHandle } from './RenameTrainButton';
 import { DeleteTrainButton, type DeleteTrainButtonHandle } from './DeleteTrainButton';
 
-/** Task 3.6.7's `/journeys` row overflow-kebab, extracted into its own
+/** The `/journeys` row overflow menu, extracted into its own
  * Client Component rather than inlined in `app/journeys/page.tsx`
  * (a Server Component): `RenameTrainButton`'s `trigger`
  * prop is a function that returns JSX (`(onClick) => <Menu.Item .../>`),

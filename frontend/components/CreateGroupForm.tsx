@@ -11,9 +11,8 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
 import type { GroupIdentityResponse } from '@/lib/types';
 
 /** `/groups/new`'s form -- creates a group, then immediately rotates its
- * first invite link (spec §6: "on success, immediately generate the
- * group's first invite link") before navigating to the new group's detail
- * page, where `GroupInviteLinkCard` (Task 12) displays it. Both calls go
+ * first invite link before navigating to the new group's detail
+ * page, where `GroupInviteLinkCard` displays it. Both calls go
  * through the same-origin `/api/*` proxy -- this is a Client Component and
  * can't read the server-only `API_BASE_URL` env var, same reasoning as
  * `TrackTrainForm`/`DeleteTrainButton`.
@@ -21,7 +20,7 @@ import type { GroupIdentityResponse } from '@/lib/types';
  * The invite-link call is best-effort: the group itself has already been
  * created by the time it runs, so its failure must never block navigating
  * to the new group -- its own detail page's "Regenerate" control (visible
- * to the owner, Task 12) can create one later if this fails. */
+ * to the owner) can create one later if this fails. */
 export function CreateGroupForm() {
   const router = useRouter();
   const [name, setName] = useState('');

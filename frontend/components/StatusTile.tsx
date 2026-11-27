@@ -3,8 +3,7 @@ import { CardTitleLink, ClickableCard } from './ClickableCard';
 import { tokens } from '@/lib/theme';
 import { severityGroupTextColor, type SeverityGroup } from '@/lib/severity';
 
-/** A count over its label: the /status strip of five severity groups
- * (round 2, item 3).
+/** A count over its label: the /status strip of five severity groups.
  *
  * Five tiles never fill a two-column phone grid, so below `sm` each tile
  * is a compact row (count, label, then "View lines" at the far end) in a

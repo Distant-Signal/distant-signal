@@ -49,8 +49,8 @@ export function lastReachedIndex(stops: JourneyStop[]): number {
  * location matches no listed stop, or when there is no reported location
  * at all.
  *
- * This exists to close a self-contradiction, not to invent a position
- * (2026-09-22 UX review, C3). The summary block above this diagram prints
+ * This exists to close a self-contradiction, not to invent a position.
+ * The summary block above this diagram prints
  * "Last reported: Doncaster (departure)" straight off
  * `lastReportedLocation`, while `lastReachedIndex` walks only the
  * per-stop `actualArrival`/`actualDeparture`/`lastEventType` overlay. When

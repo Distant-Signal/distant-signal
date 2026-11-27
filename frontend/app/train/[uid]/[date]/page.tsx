@@ -165,25 +165,17 @@ export function trainPageDescription(
   return `${title}, ${serviceDateLabel(train.serviceDate)}: ${what}.`;
 }
 
-/** Per-page Open Graph/Twitter/`<title>` metadata for a shared train link
- * -- the design's whole reason for being, since this is one of the four
- * pages `ShareButton` renders on (see this file's own `ShareButton` usage
- * below). Fetches the exact same `getPublicTrainByUidAndDate(uid, date)`
- * call the page component makes; Next.js's own fetch request memoization
- * dedupes the two into a single network call per request (both this
- * function and the page component run within the same render, and every
- * `lib/api.ts` fetcher goes through the real `fetch()`, so the
- * memoization applies regardless of the `cache: 'no-store'` these use --
- * see https://nextjs.org/docs/app/api-reference/functions/fetch and this
- * plan's own investigation) -- no extra `cache()` wrapper needed.
+/** Per-page Open Graph/Twitter/`<title>` metadata for a shared train link: this is one of the four pages
+ * `ShareButton` renders on. Fetches the same `getPublicTrainByUidAndDate(uid, date)` call the page
+ * component makes; Next.js's fetch request memoization dedupes the two into a single network call per
+ * request (every `lib/api.ts` fetcher goes through the real `fetch()`, so memoization applies despite
+ * their `cache: 'no-store'`; see https://nextjs.org/docs/app/api-reference/functions/fetch), so no extra
+ * `cache()` wrapper is needed.
  *
- * Mirrors the page component's own `notFound()`-on-`ApiNotFoundError`
- * handling: `generateMetadata` runs before (and independently of) the page
- * component, so it needs its own equivalent try/catch rather than relying
- * on the page's -- Next.js supports calling `notFound()` from within
- * `generateMetadata` the same as from a page. The malformed-date check
- * mirrors the page's own pre-fetch validation for the same reason (no
- * network call for a URL segment that can never resolve). */
+ * Mirrors the page component's `notFound()`-on-`ApiNotFoundError` handling: `generateMetadata` runs
+ * before and independently of the page component, so it needs its own try/catch (Next.js supports
+ * calling `notFound()` from within it). The malformed-date check mirrors the page's pre-fetch validation
+ * for the same reason (no network call for a URL segment that can never resolve). */
 export async function generateMetadata({
   params,
 }: {
@@ -275,10 +267,8 @@ export default async function TrackedTrainByUidPage({ params }: { params: Promis
  * journey's share token so a pruned train on that journey can be read
  * without a session. `null` here. */
 export async function renderTrainPage(uid: string, date: string, shareToken: string | null) {
-  // Validated before the fetch fires, per the same "malformed URL segment
-  // 404s directly" rule as the by-id page (Task 8) --
-  // docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md's
-  // Error handling section.
+  // Validated before the fetch fires: a malformed URL segment 404s directly, as on the by-id page
+  // (docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md, Error handling section).
   if (!DATE_PATTERN.test(date)) {
     notFound();
   }
@@ -400,7 +390,7 @@ export async function renderTrainPage(uid: string, date: string, shareToken: str
           this pairing again -- see that component's own doc comment.
           `suppressTrainUidHeading`: this page's own `<h1>` above already
           reads "Train {uid}" -- see `TrainJourney.tsx`'s own doc comment
-          on that prop (Task 3.6.9). `by-id`'s own `<h1>` reads "Tracking
+          on that prop. `by-id`'s own `<h1>` reads "Tracking
           Train {trackingId}" instead (a different identifier), so it
           omits this prop and keeps its own "Train {trainUid}" line. */}
       {/* Far-ahead service dates only (`provisional`, see

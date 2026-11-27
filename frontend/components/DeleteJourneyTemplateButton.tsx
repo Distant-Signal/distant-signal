@@ -15,7 +15,7 @@ import { REGULAR_JOURNEYS_HREF } from '@/lib/regularJourneys';
  * `RemoveJourneyLegButton`'s `afterDelete`-style "closest surviving list"
  * target for a delete that removes the CURRENT page's own object) rather
  * than a bare `router.refresh()`, since this component is used both on
- * the list (Task 7) and the detail page (Task 8) and the detail page
+ * the list and the detail page, and the detail page
  * itself is gone after a successful delete. */
 export function DeleteJourneyTemplateButton({ templateId }: { templateId: string }) {
   return (

@@ -272,8 +272,8 @@ describe('TrackedTrainByUidPage success path', () => {
     expect(screen.getByText('UID W12345')).toBeInTheDocument();
     expect(screen.getByText(/Last reported: Woking/)).toBeInTheDocument();
     expect(screen.getByText(/Next calling point: Basingstoke/)).toBeInTheDocument();
-    // Task 3.6.9: `TrainJourney`'s own UID line would repeat the page's
-    // own identifiers line, so it is suppressed here.
+    // `TrainJourney`'s own UID line would repeat the page's own identifiers line, so it is suppressed
+    // here.
     expect(screen.getAllByText(/UID W12345/)).toHaveLength(1);
   });
 
@@ -405,11 +405,9 @@ describe('TrackedTrainByUidPage success path', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  // Review §2.12: a real "when was this fetched"/"how often does it
-  // refresh" caption under the summary block, using the app's actual
-  // 30s AutoRefresh cadence rather than a hardcoded, driftable number, plus
-  // the same UK-local-time note as the other two locations this task
-  // covers (incidents detail, line history).
+  // A "when was this fetched"/"how often does it refresh" caption under the summary block, using the
+  // app's real 30s AutoRefresh cadence rather than a hardcoded number, plus the same UK-local-time note
+  // as the incidents detail and line history pages.
   it('shows a LastUpdated caption with the real auto-refresh cadence and UK-time note', async () => {
     vi.mocked(api.getTrainByUidAndDateForViewer).mockResolvedValue(publicTrainState());
     await renderPage();

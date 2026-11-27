@@ -131,7 +131,7 @@ describe('PlatformBadge', () => {
       expect(root.querySelector('s')?.closest('[aria-hidden="true"]')).not.toBeNull();
     });
 
-    // Review §2.4/I20: orange means lateness, and a delay badge sits right
+    // Orange means lateness, and a delay badge sits right
     // beside this one on a departure row. Blue is the app's colour for a
     // changed arrangement (docs/style-guide.md, "Semantic roles").
     it('is blue, not the delay badge orange', () => {

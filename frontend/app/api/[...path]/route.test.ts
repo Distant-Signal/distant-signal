@@ -291,8 +291,8 @@ describe('/api/[...path] proxy', () => {
   it('a path outside public/, Train/, and Journeys/ still 400s', async () => {
     // Not reachable through this app's own links today (every catch-all
     // segment this app generates comes from a literal string, never raw
-    // user text) -- this is the traversal-safety net Decision 4 said
-    // stays "unchanged in kind"; confirm it still rejects a resolved path
+    // user text) -- this is the traversal-safety net; confirm it
+    // still rejects a resolved path
     // outside the widened three-prefix allowlist, not just the original
     // single-prefix one.
     const req = makeRequest('/api/../secret');

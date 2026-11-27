@@ -39,11 +39,8 @@ function ChartSlot({ h, children }: { h: number; children: ReactNode }) {
  * shaped helpers). Checking `delayRate === null` alone is sufficient
  * today because both of those helpers guarantee all four fields are
  * nulled together for a sparse bucket -- an implicit coupling to that
- * invariant, not something `ChartPoint`'s own type enforces. Generalized
- * from day-specific `{ day, startDay, endDay }` naming to
- * `{ bucketKey, startKey, endKey }` -- Decision 9 of
- * docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md;
- * the underlying algorithm is unchanged from the daily-only version. */
+ * invariant, not something `ChartPoint`'s own type enforces. Keyed by `bucketKey` (a day or a half-hour
+ * instant) so one algorithm serves every granularity. */
 export function gapSpans(
   points: { bucketKey: string; delayRate: number | null }[],
 ): { startKey: string; endKey: string }[] {
@@ -141,9 +138,8 @@ export function TrendsCharts({
    * "Scope decision: full-coverage". */
   showVolume?: boolean;
 }) {
-  // Review §3.3: the day axis used to print the raw "2026-09-15" bucket
-  // key. Ticks and tooltip headings now go through `lib/chartTheme.ts`
-  // ("15 Sep", "14:30"; "15 Sep 2026", "15 Sep, 14:30").
+  // Ticks and tooltip headings go through `lib/chartTheme.ts` ("15 Sep", "14:30"; "15 Sep 2026",
+  // "15 Sep, 14:30"), not the raw bucket key.
   const xAxisProps = {
     padding: { right: 12 },
     tickFormatter: (value: string) => bucketTickLabel(granularity, value),
@@ -169,9 +165,8 @@ export function TrendsCharts({
               compute_sample_stats), not a partition of it; stacking them
               would visually exceed total and mislead. No gapSpans/
               ReferenceArea here (unlike the two panels below): `total` is
-              never null for a bucket with a real row -- see this plan's
-              "Judgment call" section for why a low bar for a sparse bucket
-              is the informative signal, not something to hide. */}
+              never null for a bucket with a real row: a low count for a sparse bucket is the informative
+              signal, not something to hide. */}
           <ChartSlot h={180}>
             <TrendsBarChart
               h={180}
@@ -192,7 +187,7 @@ export function TrendsCharts({
         {/* The three rate metrics are 0-1 proportions and share one chart/axis.
             Average delay minutes is a different unit and is deliberately never
             combined onto this chart or its axis -- see the second LineChart
-            below, and the plan's Global Constraints. The dash patterns keep
+            below. The dash patterns keep
             the three apart without relying on colour. */}
         <ChartSlot h={310}>
           <TrendsLineChart

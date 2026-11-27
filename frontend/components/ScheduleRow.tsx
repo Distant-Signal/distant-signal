@@ -22,8 +22,7 @@ export interface ScheduleRowData {
   scheduled: string; // "HH:MM"
   destinationCrs: string;
   /** Resolved station name for `destinationCrs`, via a server-side batched
-   * `stations` lookup (2026-09-22 UX review follow-up -- this picker used
-   * to show the bare CRS code with no name at all). `null` when the code
+   * `stations` lookup, so the picker shows more than the bare CRS code. `null` when the code
    * has no reference row; `stationLabel` (below) falls back to the code
    * itself in that case, the same convention this app uses everywhere a
    * name might not resolve. */

@@ -322,7 +322,7 @@ export function TrainSearchForm({
   const today = nowInLondon().format('YYYY-MM-DD');
   const dateBounds = searchDateBounds(searchDates, today);
 
-  // What the time fields' descriptions name as the station they are
+  // What the advanced options' scope lines name as the station they are
   // scoped to: the entered code when it is valid ("RDG"), else the field.
   const stationDisplay = stationValid ? stationCrs.trim().toUpperCase() : between ? 'From' : 'Station';
   const stopsAtDisplay = stopsAtValid && stopsAt.trim() ? stopsAt.trim().toUpperCase() : 'To';
@@ -543,7 +543,6 @@ export function TrainSearchForm({
   const comboboxProps = inPanel ? { withinPortal: false } : undefined;
 
   const timeNoun = arrivals ? 'arrival' : 'departure';
-  const timeVerb = arrivals ? 'reaching' : between ? 'leaving' : 'at';
 
   /** Every field but the station (or stations): the rest of the full form,
    * then the panel. */
@@ -581,7 +580,6 @@ export function TrainSearchForm({
             clockHint
             label={`Earliest ${timeNoun} (optional)`}
             name={`earliest ${timeNoun}`}
-            description={`Only trains ${timeVerb} ${stationDisplay} at or after this time.`}
             value={fromTime}
             onChange={setFromTime}
             onIncompleteChange={(incomplete) => setIncompleteTimes((c) => ({ ...c, from: incomplete }))}
@@ -593,7 +591,6 @@ export function TrainSearchForm({
           <TimeFilterInput
             label={`Latest ${timeNoun} (optional)`}
             name={`latest ${timeNoun}`}
-            description={`Only trains ${timeVerb} ${stationDisplay} at or before this time.`}
             value={toTime}
             onChange={setToTime}
             onIncompleteChange={(incomplete) => setIncompleteTimes((c) => ({ ...c, to: incomplete }))}
@@ -615,7 +612,6 @@ export function TrainSearchForm({
             <TimeFilterInput
               label="Earliest arrival (optional)"
               name="earliest arrival"
-              description={`Only trains reaching ${stopsAtDisplay} at or after this time.`}
               value={arrivalFrom}
               onChange={setArrivalFrom}
               onIncompleteChange={(incomplete) => setIncompleteTimes((c) => ({ ...c, arrivalFrom: incomplete }))}
@@ -632,7 +628,6 @@ export function TrainSearchForm({
             <TimeFilterInput
               label="Latest arrival (optional)"
               name="latest arrival"
-              description={`Only trains reaching ${stopsAtDisplay} at or before this time.`}
               value={arrivalTo}
               onChange={setArrivalTo}
               onIncompleteChange={(incomplete) => setIncompleteTimes((c) => ({ ...c, arrivalTo: incomplete }))}

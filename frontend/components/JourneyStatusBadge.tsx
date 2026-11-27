@@ -16,12 +16,11 @@ export { JourneyStatusGroupBadge } from './TrackedRowStatusBadge';
  * a missed or tight connection shows. Renders nothing for a journey with
  * no legs (should not occur in practice).
  *
- * Review §2.5/M17: this used to wrap the `Badge` in a `Tooltip` whose
- * `label` was the exact same string the badge already renders visibly --
- * announcing nothing a sighted user didn't already have, while also being
- * unreachable by keyboard. Dropped rather than reworded.
+ * No `Tooltip` around the `Badge`: its `label` would repeat the badge's
+ * visible text, announcing nothing new, and a bare `Badge` is not a keyboard
+ * reachable trigger.
  *
- * Finding I15/2.3: when a leg still needs a train, the badge counts the
+ * When a leg still needs a train, the badge counts the
  * unmatched legs and becomes a same-page anchor to the FIRST one, landing
  * on `id="leg-{legId}"` (`app/journeys/[id]/page.tsx` sets that id on
  * every leg's own wrapper). A plain `<a href="#...">`: the browser's

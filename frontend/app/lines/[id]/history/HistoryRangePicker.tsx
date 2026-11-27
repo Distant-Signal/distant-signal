@@ -43,18 +43,9 @@ export function londonTodayDayProps(
  * of state — the two used to be able to disagree, and the quick-range
  * buttons looked identical whether or not their range was the one showing.
  *
- * Review §2.13 ("one idiom for pick exactly one"): this used to be a row of
- * filled/light preset buttons sitting above a date picker and its own
- * "Show history" submit button -- three controls for one value, two of
- * which applied immediately (the buttons) and one of which needed a
- * separate submit (the picker), with no state at all for "I hand-edited a
- * date" (the buttons all read as unselected, but so does a freshly-loaded
- * default). Collapsed to a single `SegmentedControl` -- 7 days / 30 days /
- * Custom dates -- with the picker and its submit button only shown once
- * "Custom dates" is picked. That both fixes the undefined "no preset
- * highlighted" state (Custom is always the correct, real answer once a
- * date has been hand-edited) and recovers the picker's vertical space on
- * every render that isn't actually using it. */
+ * One `SegmentedControl` (7 days / 30 days / Custom dates) replaces a row of preset buttons plus a date
+ * picker and submit button: three controls for one value, with no state for "I hand-edited a date".
+ * The picker and its submit button only show once "Custom dates" is picked. */
 export function HistoryRangePicker({
   basePath,
   preset,
@@ -142,12 +133,8 @@ export function HistoryRangePicker({
         </Text>
         <SegmentedControl
           aria-labelledby={periodLabelId}
-          // 2026-09-22 UX review §5.2: with no width constraint this
-          // stretches to its full-width `Stack` parent -- three short
-          // labels spread ~370px apart at desktop, reading as three
-          // separate controls rather than one. `fit-content` keeps it
-          // exactly as wide as its own three segments regardless of the
-          // page around it.
+          // `fit-content`: otherwise the control stretches across its full-width `Stack` parent and its three
+          // short labels read as three separate controls.
           w="fit-content"
           color="grape"
           // `SegmentedControl`'s active-label text colour is decided by

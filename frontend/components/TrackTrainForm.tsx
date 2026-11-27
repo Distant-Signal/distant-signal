@@ -33,35 +33,28 @@ import {
   type DepartureRow,
 } from '@/lib/departurePicker';
 
-/** The v1 entry point for individual train tracking -- a manual form, not
- * a per-departure "track this train" action, per
- * docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md
- * Decision 1 (no public API exposes individual departures today, so a
- * departure-row action can't be built). `initialOrigin` is set by
+/** Manual form for tracking a train: pick a departure (pin mode) or search a
+ * time window. No public API exposes individual departures, so a per-departure
+ * "track this train" action can't be built. `initialOrigin` is set by
  * `/track`'s page when arriving via the "Track a train from here" link on
- * `/stations/[crs]` (Decision 1's honest station-page shortcut).
+ * `/stations/[crs]`.
  *
- * Journey tracking Phase 1 (this task) moved both submit paths off the
- * legacy `POST /Train/track` route onto `POST /Journeys`: `submitTrack`
- * posts a `pin`-mode leg (the pre-existing "pick a departure"/manual-entry
- * flow, field-for-field identical to the old `TrackPinRequest`), and the
- * new `submitWindow` posts a `window`-mode leg for the `SegmentedControl`'s
- * second option -- an open time-window search with no train chosen yet
- * (the journey view, Task 17, is where a candidate gets picked next). Both
- * go through the same same-origin `/api/Journeys` proxy (Client Components
- * can't read the server-only `API_BASE_URL` env var `lib/api.ts` relies on
- * -- same reasoning as `PinToggle`). Mirrors `PinToggle`'s `needsLogin` 401
- * pattern, with one deliberate difference: a 401 here does NOT reset the
- * form. `PinToggle` can afford to forget its click (there was no typed
- * input to lose); a form with real typed input is worth protecting, so
- * every field stays exactly as typed while the login prompt renders
- * alongside it (Decision 4, "no navigation away").
+ * `submitTrack` posts a `pin`-mode leg to `POST /Journeys`; `submitWindow`
+ * posts a `window`-mode leg for the `SegmentedControl`'s second option, an
+ * open time-window search with no train chosen yet (the journey view is where
+ * a candidate gets picked next). Both go through the same-origin
+ * `/api/Journeys` proxy (Client Components can't read the server-only
+ * `API_BASE_URL` env var `lib/api.ts` relies on -- same reasoning as
+ * `PinToggle`). Mirrors `PinToggle`'s `needsLogin` 401 pattern, with one
+ * difference: a 401 here does NOT reset the form. A form with real typed input
+ * is worth protecting, so every field stays as typed while the login prompt
+ * renders alongside it.
  *
- * Shared-groups follow-up: `useGroupSummaries()` decides, once on mount,
+ * `useGroupSummaries()` decides, once on mount,
  * whether this user belongs to any group. Zero groups (the majority case,
  * and every anonymous visitor) leaves `handleSubmit`'s form `onSubmit`
  * calling `submitTrack(null)`/`submitWindow(null)` (per `mode`) directly --
- * no prompt, no behavior change from before this feature existed. One or
+ * no prompt. One or
  * more groups instead makes `handleSubmit` open `TrackDestinationModal`
  * first and defer the actual submit to its `onConfirm`, which calls
  * whichever of the two matches the current `mode` -- see that component's
@@ -95,12 +88,10 @@ export function TrackTrainForm({
   // `useState` initial values, same as `initialOrigin` already is -- no
   // new prop changes this component's submit behaviour.
   initialDestination?: string | undefined;
-  // Review §2.1/I21: the mode toggle used to live only in `useState`, so
-  // nothing in the app could send a user straight to window mode.
-  // `track/page.tsx` reads this off `?mode=window`, the same pattern its
-  // `?origin=` already uses. (A journey leg's "Edit search" no longer
-  // comes here: this form starts a NEW journey, so it re-searches the leg
-  // in place instead, `JourneyLegCard`'s `LegTrainPicker`.)
+  // The mode toggle is seeded from `?mode=window` (read by `track/page.tsx`, like
+  // its `?origin=`) so a link can send a user straight to window mode. (A journey
+  // leg's "Edit search" doesn't come here: this form starts a NEW journey, so that
+  // re-searches the leg in place via `JourneyLegCard`'s `LegTrainPicker`.)
   initialMode?: 'pick' | 'window';
   /** "YYYY-MM-DD" -- window mode's own service-date field
    * (`windowServiceDate`, below), which otherwise always defaults to
@@ -189,45 +180,20 @@ export function TrackTrainForm({
   // a new one for leg-window entry.
   const [mode, setMode] = useState<'pick' | 'window'>(initialMode);
   const modeLabelId = useId();
-  // Destination station is genuinely the SAME field in both modes -- one
-  // `destinationCrs` state (declared above, alongside `originCrs`), not a
-  // second `windowDestinationCrs` copy. It used to be a second copy: two
-  // independently-typed `useState`s that both happened to be seeded from
-  // `initialDestination`, so a value typed into one mode's Destination
-  // field silently vanished the moment the user switched to the other --
-  // toggling the `SegmentedControl` looks like "my typing got cleared"
-  // even though neither `setState` call is ever cleared by the toggle
-  // itself (2026-09-23 state-persistence-across-mode-toggle fix). Unifying
-  // the state is what makes the window-mode Autocomplete below able to
-  // reuse `destinationSuggestions`/`destinationSuggestionsLoading`
-  // (declared with `destinationCrs` above) instead of needing its own
-  // dedicated `useSuggestions` instance -- with one shared value there is
-  // only one thing for a suggestions dropdown to be driven by, so the
-  // reason a second hook instance existed (see this comment's own former
-  // text, in git blame) no longer applies.
-  //
-  // Origin (`originCrs`) already worked this way from the start -- see
-  // that field's own "Origin is the one field both modes share" comment
-  // just above the `SegmentedControl` in the JSX below -- this brings
-  // Destination in line with it. `scheduledDeparture`/window
-  // date-and-time-bounds/`operator` stay mode-scoped, deliberately NOT
-  // unified: they have no equivalent meaning in the other mode (window
-  // mode has no single scheduled-departure instant to fill, pick mode has
-  // no depart/arrive-window bounds, and `operator` only narrows pick
-  // mode's already-fetched departure-board picker -- window mode has no
-  // candidate list of its own to narrow at all, see `submitWindow`'s own
-  // doc comment).
-  // Review §2.2/M13: seeded with today's real date, not `null` -- a `null`
-  // value rendered the field as empty with "Today" as a grey PLACEHOLDER,
-  // which reads as "nothing selected" even though `submitWindow` (below)
-  // already resolves a `null` to today. Pin-mode's own `scheduledDeparture`
-  // field, twenty pixels away in the other branch, shows its default as a
-  // real value for the same reason -- this brings window mode in line with
-  // it. Still `clearable` (below), and `submitWindow`'s `?? nowInLondon()...`
-  // fallback stays as defence if a caller ever clears it back to `null`.
-  // `nowInLondon()`, not `dayjs()` -- this is a `serviceDate` sent straight
-  // to the backend (same reasoning as `scheduledDeparture`'s own default
-  // just above; 2026-09-26 review, finding M8).
+  // Destination is the SAME field in both modes: one `destinationCrs` state, so a
+  // value typed in one mode survives toggling the `SegmentedControl`, and the
+  // window-mode Autocomplete reuses `destinationSuggestions`/
+  // `destinationSuggestionsLoading` (declared with `destinationCrs` above).
+  // Origin (`originCrs`) is shared the same way. `scheduledDeparture`, the window
+  // date-and-time bounds and `operator` stay mode-scoped on purpose: they have no
+  // equivalent in the other mode (window mode has no single departure instant to
+  // fill, pick mode has no depart/arrive bounds, and `operator` only narrows pick
+  // mode's fetched departure board).
+  // Seeded with today's real date, not `null`: a `null` showed "Today" as a grey
+  // placeholder that reads as "nothing selected". Still `clearable` (below), and
+  // `submitWindow`'s `?? nowInLondon()...` fallback covers a cleared value.
+  // `nowInLondon()`, not `dayjs()`: this is a `serviceDate` sent straight to the
+  // backend, like `scheduledDeparture`'s default just above.
   const [windowServiceDate, setWindowServiceDate] = useState<string | null>(
     () => initialServiceDate ?? nowInLondon().format('YYYY-MM-DD'),
   );
@@ -291,13 +257,13 @@ export function TrackTrainForm({
   /** CIF-derived sibling of `pickDeparture` -- fills only
    * Destination/Scheduled-departure. `operator` is left exactly as the user
    * already typed it, never cleared, never guessed -- the CIF SCHEDULE feed
-   * has no operator field at all (Decision 2). If `row.destinationCrs` is
+   * has no operator field at all. If `row.destinationCrs` is
    * `null` (the terminating TIPLOC has no `stanox_crs` row), the existing
    * Destination field is left untouched too, for the same "never guess,
    * never clobber with a blank" reason.
    *
    * Adds `row.dayOffset` days to the row's own `serviceDate` (a
-   * Europe/London date -- 2026-09-26 review, finding M8 -- captured at fetch
+   * Europe/London date captured at fetch
    * time, see `CifPickerRow`), rather than always assuming "today" the way
    * `pickDeparture` (LDBWS, below) still does -- a post-midnight CIF calling
    * point (`dayOffset: 1`, e.g. `00:07`) is genuinely TOMORROW relative to
@@ -451,14 +417,14 @@ export function TrackTrainForm({
 
   /** The window-search mode's own submit -- posts a `window`-mode leg to
    * `POST /Journeys` instead of a `pin`-mode one, creating an `'unmatched'`
-   * leg with no train bound yet (the journey view, Task 17, is where a
+   * leg with no train bound yet (the journey view is where a
    * candidate gets picked next). Reuses `TrackDestinationModal`'s
    * Personal-vs-group prompt the same way `submitTrack` does -- see
    * `handleSubmit`'s own doc comment -- but `groupId` is currently a
    * placeholder here: sharing an open/unmatched leg into a group at
    * creation time has no real precedent yet (there is no train to share),
-   * and this plan's Non-goals explicitly defer journey-level group sharing
-   * to Phase 4. The parameter is kept, unused, purely so `handleSubmit`'s
+   * and journey-level group sharing is deferred. The parameter is kept,
+   * unused, purely so `handleSubmit`'s
    * dispatch to either `submitTrack`/`submitWindow` can share one call
    * shape without a branch on arity. */
   async function submitWindow(_groupId: string | null) {
@@ -485,10 +451,9 @@ export function TrackTrainForm({
       });
       if (response.ok) {
         const result = (await response.json()) as CreateJourneyResponse;
-        // No trackingId yet (an open leg has no train bound) -- so no
-        // group-share follow-up is possible here, unlike
-        // submitTrack/pin mode. The journey view itself (Task 17) is where
-        // a candidate gets picked next.
+        // No trackingId yet (an open leg has no train bound), so no group-share
+        // follow-up is possible here, unlike submitTrack/pin mode. The journey view
+        // is where a candidate gets picked next.
         // `_groupId` is reserved for a future group-share-on-window-search follow-up.
         if (onCreated) {
           onCreated(result);
@@ -518,21 +483,13 @@ export function TrackTrainForm({
    * `TrackDestinationModal` instead and defers the real submit to its
    * `onConfirm`. See this component's own doc comment.
    *
-   * Task 3.6.14: the submit `Button` below used to stay `disabled` the
-   * whole time `!canSubmit` held (i.e. before a valid origin/departure was
-   * entered at all), which Mantine renders as light-grey-on-slightly
-   * -lighter-grey in dark mode -- under 2:1, and unfixable by a `variant`
-   * change alone, since Mantine's own disabled style
-   * (`@mantine/core/styles.css`'s `[data-disabled]` rule) unconditionally
-   * overrides EVERY variant's background/text/border with that same pair
-   * of tokens. Rather than hand-patching `--mantine-color-disabled(-color)`
-   * app-wide for one button, this takes the plan's other sanctioned
-   * fix: the button now only disables while a submit is actually in
-   * flight (`submitting`, a brief, self-explanatory state with its own
-   * "Tracking" label) -- an invalid press instead falls through to here
-   * and surfaces the same `fieldError` `Alert` a failed backend
-   * validation already renders, so a click always gets a visible result
-   * instead of silently doing nothing behind an near-invisible control. */
+   * The submit `Button` below is disabled only while a submit is in flight
+   * (`submitting`, which has its own "Tracking" label). It stays enabled for an
+   * invalid form because Mantine's disabled style is under 2:1 contrast in dark
+   * mode and unfixable by a `variant` change alone (`@mantine/core/styles.css`'s
+   * `[data-disabled]` rule overrides every variant). An invalid press falls
+   * through to here and surfaces the same `fieldError` `Alert` a failed backend
+   * validation renders, so a click always gets a visible result. */
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (submitting) return;
@@ -545,12 +502,9 @@ export function TrackTrainForm({
         );
         return;
       }
-      // Review §2.2/M14: "no visible earliest > latest check" -- both were
-      // previously checked only for PRESENCE, never for order, so
-      // "earliest 18:00, latest 09:00" reached the backend unexamined.
-      // Plain string comparison is safe here: both are always `"HH:MM"`
-      // (`TimeFilterInput`'s own value contract), which sorts
-      // lexicographically identical to chronologically within one day.
+      // Presence alone isn't enough: "earliest 18:00, latest 09:00" would reach the
+      // backend unexamined. Plain string comparison is safe: both are always "HH:MM"
+      // (`TimeFilterInput`'s value contract), which sorts like time within one day.
       if (departFrom && departTo && departFrom > departTo) {
         setFieldError('Latest departure must be after earliest departure.');
         return;
@@ -599,12 +553,8 @@ export function TrackTrainForm({
 
   return (
     <Stack gap="md">
-      {/* Review §2.1/I21: the page's own intro used to be static copy
-          owned by `track/page.tsx` ("Pin a specific train…"), true of pick
-          mode only -- a visitor who switched to window mode was still told
-          the page was for a *specific* train. Lives here, not there, so it
-          can react to the client-side mode toggle instead of only the
-          initial `?mode=` a page load saw. */}
+      {/* The intro lives here, not in `track/page.tsx`, so it can follow the
+          client-side mode toggle instead of only the initial `?mode=` a page load saw. */}
       <Text c="dimmed">
         {mode === 'window'
           ? "Not sure which train yet? Tell us roughly when you're travelling (Origin, Destination and at least one of the times below) and we'll show you the matches to choose from. You can change your pick later."
@@ -625,37 +575,24 @@ export function TrackTrainForm({
           onChange={setOriginCrs}
           onBlur={() => setOriginTouched(true)}
           error={originTouched && originCrs.length > 0 && !originValid ? 'Must be a 3-letter station code' : null}
-          // NOT the native `required` attribute (Task 3.6.14): an empty
-          // origin is now validated by `handleSubmit` itself, which sets
-          // `fieldError` and returns before ever calling `submitTrack` --
-          // see that function's own doc comment. A native `required` field
-          // would make the browser's own constraint validation intercept
-          // the submit event before `handleSubmit` ever runs, silently
-          // replacing that explanatory message with (at best) a native
-          // validation bubble the button's near-invisible disabled state
-          // was already standing in for.
+          // NOT the native `required` attribute: an empty origin is validated by
+          // `handleSubmit` itself, which sets `fieldError` and returns before calling
+          // `submitTrack`. A native `required` would let the browser's constraint
+          // validation intercept the submit first and replace that message with a
+          // native validation bubble.
         />
         {/* Origin is the one field both modes share -- every leg shape
           (`pin`/`knownTrain`/`window`) needs an `originCrs`, so it stays
           above the mode switch rather than being duplicated inside each
           branch. */}
-        {/* Review §2.1/I21: "Pick a departure"/"Search a time window" named
-          the FORM's own mechanism, not the traveller's situation -- and the
-          sibling `AddJourneyLegButton` modal already used the clearer "I
-          know the train" for the equivalent choice, so the codebase had two
-          different vocabularies for one decision. Both controls now agree:
-          "I know the train" / "Search a time window".
+        {/* "I know the train" / "Search a time window" match the `AddJourneyLegButton`
+            modal's wording and name the traveller's situation, not the form's mechanism.
 
-          A visible label wired as the radiogroup's own name. Without it
-          a screen reader announced "radiogroup, Pick a departure, radio
-          button, 1 of 2, checked" -- the group itself unnamed -- and this
-          toggle is the main discovery path for window mode (`?mode=window`
-          deep-links into it, but nothing links there), so the name is
-          load-bearing (2026-09-22 UX review, I9/P4). Same `Text id` +
-          `aria-labelledby` shape
-          `HistoryRangePicker`'s "Period" control already uses; the
-          question is phrased from the traveller's situation rather than
-          from the form's mechanism. */}
+            A visible label wired as the radiogroup's own name. Without it a screen
+            reader announced "radiogroup, Pick a departure, radio button, 1 of 2,
+            checked" with the group itself unnamed, and this toggle is the main
+            discovery path for window mode. Same `Text id` + `aria-labelledby` shape
+            `HistoryRangePicker`'s "Period" control uses. */}
         <Text id={modeLabelId} size="xs" fw={600} c="dimmed">
           How do you want to find the train?
         </Text>
@@ -668,11 +605,8 @@ export function TrackTrainForm({
             { label: 'Search a time window', value: 'window' },
           ]}
         />
-        {/* Review §2.1/M23: the toggle swaps ~400px of form beneath it with
-          no announcement -- sighted users see it happen, screen-reader
-          users get nothing until they tab forward into different fields.
-          `VisuallyHidden` keeps this out of the visual layout entirely; the
-          visible cue (the fields themselves changing) is unaffected. */}
+        {/* The toggle swaps ~400px of form with no announcement for screen-reader
+            users. `VisuallyHidden` keeps this out of the visual layout. */}
         <VisuallyHidden role="status" aria-live="polite">
           {mode === 'window' ? 'Showing time-window search.' : 'Showing pick-a-departure search.'}
         </VisuallyHidden>
@@ -703,11 +637,9 @@ export function TrackTrainForm({
             <DatePickerInput
               valueFormat={PICKER_DATE_FORMAT}
               label="Date"
-              // Review §2.2/M13: `windowServiceDate` is seeded with today's
-              // real date above (not `null`), so this now shows an actual
-              // value ("22 Sep 2026") the way pin-mode's own default
-              // departure does -- "Today" stays only as the placeholder for
-              // if the field is ever cleared back to empty.
+              // `windowServiceDate` is seeded with today's real date, so this shows an actual
+              // value like pin-mode's default departure; "Today" is only the placeholder if
+              // the field is cleared.
               placeholder="Today"
               value={windowServiceDate}
               onChange={setWindowServiceDate}
@@ -727,14 +659,9 @@ export function TrackTrainForm({
               // leg dated past `PIN_MAX_DAYS_AHEAD` with `pinTooFarMessage`.
               maxDate={lastPinDate()}
             />
-            {/* Review §2.2/I17: all four fields below say "(optional)" in
-              their own label, which is individually true but collectively
-              misleading -- `windowHasABound` (used by `handleSubmit`
-              above) refuses to submit unless at least one of the four is
-              set, and until now that rule surfaced only as a post-submit
-              error. This states it up front instead of relabelling the
-              fields (which would have to explain "optional, but not all
-              four of you" some other way). */}
+            {/* All four fields below say "(optional)" individually, but `windowHasABound`
+                (used by `handleSubmit` above) refuses to submit unless at least one is set,
+                so the rule is stated up front rather than only as a post-submit error. */}
             <Text size="sm">At least one of the four times below is required to search.</Text>
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <TimeFilterInput
@@ -780,11 +707,8 @@ export function TrackTrainForm({
           </>
         ) : (
           <>
-            {/* Review §2.3/M12: `wrap="nowrap"` plus the button's own
-              `flexShrink: 0` -- without them this `Group` wraps at 390px,
-              orphaning "Now" alone on its own row under a full-width
-              picker (the same §2.5 shrink-guard idiom `StatusRow` already
-              centralises for badge/text rows). */}
+            {/* `wrap="nowrap"` plus the button's own `flexShrink: 0`: without them this
+                `Group` wraps at 390px, orphaning "Now" alone under a full-width picker. */}
             <Group align="flex-end" gap="xs" wrap="nowrap">
               <DateTimePicker
                 label="Scheduled departure"
@@ -795,7 +719,7 @@ export function TrackTrainForm({
                 // The backend rejects a departure more than 6 hours in the past
                 // (`crates/api/src/data/train_tracking.rs`'s `MAX_PIN_AGE`) --
                 // this hint is here so a rejection is rare rather than the
-                // user's first encounter with the rule, per Decision 1.
+                // user's first encounter with the rule.
                 description={`Must be within the last 6 hours, or up to ${PIN_MAX_DAYS_AHEAD} days ahead`}
                 // The backend's pin horizon (`PIN_MAX_DAYS_AHEAD`), as the
                 // last minute of that London day: Mantine clamps the picked
@@ -835,14 +759,14 @@ export function TrackTrainForm({
               onChange={setDestinationCrs}
             />
             <OperatorField label="Operator (optional)" placeholder="e.g. SW" value={operator} onChange={setOperator} />
-            {/* Always present -- never absent from the DOM, per
-              docs/superpowers/specs/2026-09-04-track-a-train-picker-refactor-design.md
-              Decision 4. `mih={72}` blunts the size jump between the
-              one/two-line text states; row-list states can legitimately grow
-              past the minimum and are deliberately given no maximum -- see
-              `DeparturePicker`'s doc comment for why the `mah`-capped
-              `ScrollArea` that used to bound them was a clip, not a scroller,
-              and why nothing replaced it. */}
+            {/* Always present, never absent from the DOM (see
+                docs/superpowers/specs/2026-09-04-track-a-train-picker-refactor-design.md).
+                `mih={72}` blunts the size jump between the
+                one/two-line text states; row-list states can legitimately grow
+                past the minimum and are deliberately given no maximum -- see
+                `DeparturePicker`'s doc comment for why the `mah`-capped
+                `ScrollArea` that used to bound them was a clip, not a scroller,
+                and why nothing replaced it. */}
             <Stack gap="xs" mih={72}>
               <DeparturePicker
                 originValid={originValid}
@@ -864,9 +788,9 @@ export function TrackTrainForm({
         )}
         <Group>
           {/* Disabled only while a submit is in flight -- see
-            `handleSubmit`'s own doc comment (Task 3.6.14) for why an
-            invalid-but-not-yet-submitted form no longer disables this
-            button at all. */}
+              `handleSubmit`'s doc comment for why an
+              invalid-but-not-yet-submitted form doesn't disable this
+              button. */}
           <Button type="submit" disabled={submitting} leftSection={submitting ? <ButtonSpinner /> : undefined}>
             {mode === 'window'
               ? submitting
@@ -884,9 +808,8 @@ export function TrackTrainForm({
         onClose={() => setDestinationPromptOpened(false)}
         onConfirm={(groupId) => void (mode === 'window' ? submitWindow(groupId) : submitTrack(groupId))}
       />
-      {/* Review §2.5/M19: the modal used to say "Log in to track this
-          train" unconditionally, even in window mode -- where nothing is
-          tracked yet (a window search doesn't have a chosen train). */}
+      {/* The modal copy follows the mode: in window mode nothing is tracked yet
+          (a window search has no chosen train). */}
       <LoginPromptModal opened={needsLoginState.needsLogin} onClose={needsLoginState.reset}>
         {mode === 'window' ? 'Log in to search for a train.' : 'Log in to track this train.'}
       </LoginPromptModal>

@@ -85,7 +85,7 @@ describe('CustomLineForm', () => {
     fireEvent.click(option);
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
-    // Task 3.4.4: the chip is now numbered by travel order -- the first
+    // The chip is numbered by travel order -- the first
     // station added is "1 Woking (WOK)", by name and code.
     expect(screen.getByText('1 Woking (WOK)')).toBeInTheDocument();
     expect(input).toHaveValue('');
@@ -116,11 +116,10 @@ describe('CustomLineForm', () => {
     expect(await screen.findByRole('option', { name: 'No matching stations', hidden: true })).toBeInTheDocument();
   });
 
-  // Review §2.10 / WCAG 1.4.11 (Non-text Contrast): the chip's `CloseButton`
-  // used to keep Mantine's default grey icon colour on the filled grape
-  // `Badge` background, measuring 1.69:1 -- short of the 3:1 non-text
-  // contrast minimum, and the only hard numeric WCAG failure in the whole
-  // accessibility review. `c="white"` matches the badge's own label colour
+  // WCAG 1.4.11 (Non-text Contrast): the chip's `CloseButton` with
+  // Mantine's default grey icon colour on the filled grape `Badge`
+  // background measures 1.69:1 -- short of the 3:1 non-text contrast
+  // minimum. `c="white"` matches the badge's own label colour
   // (4.85:1 on grape-7). Asserted via the rendered inline style rather than
   // a computed-contrast check: jsdom doesn't paint or resolve CSS custom
   // properties, so the `color: var(--mantine-color-white)` style Mantine's
@@ -333,7 +332,7 @@ describe('CustomLineForm', () => {
 
     mockUsePathname.mockReturnValue('/lines/new');
     renderWithProvider();
-    // `exact: false`: Task 3.4.4's `withAsterisk` makes the label's own
+    // `exact: false`: `withAsterisk` makes the label's own
     // text "Name *", not a bare "Name".
     fireEvent.change(screen.getByLabelText('Name', { exact: false }), { target: { value: 'My Commute' } });
     const stationInput = screen.getByRole('combobox', { name: 'Add station' });
@@ -363,9 +362,8 @@ describe('CustomLineForm', () => {
     expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument();
   });
 
-  // Task 3.4.3: neither `/lines/new` nor `/lines/[id]/edit` said what a
-  // custom line even is -- this now renders once, from the shared form,
-  // for both create and edit.
+  // The explanation of what a custom line is renders once, from the shared
+  // form, for both create and edit.
   it('explains what a custom line is, for both create and edit', () => {
     renderWithProvider();
     expect(screen.getByText(/A custom line groups any stations and operators you choose/)).toBeInTheDocument();
@@ -375,7 +373,7 @@ describe('CustomLineForm', () => {
     expect(screen.getByText(/A custom line groups any stations and operators you choose/)).toBeInTheDocument();
   });
 
-  // Task 3.4.13: the account-needed hint only makes sense while creating --
+  // The account-needed hint only makes sense while creating --
   // reaching the edit form at all already means the viewer is signed in
   // (the route 404s a non-owner before this form ever renders).
   it('shows the account-needed hint only when creating, not editing', () => {
@@ -389,8 +387,8 @@ describe('CustomLineForm', () => {
     expect(screen.queryByText(/Creating a line needs a Distant Signal account/)).not.toBeInTheDocument();
   });
 
-  // Task 3.4.4: the station list had no empty state at all before the
-  // first station was added.
+  // The station list needs an empty state before the first station is
+  // added.
   it('shows an empty-state hint before any station is added, and hides it once one is', () => {
     renderWithProvider();
     expect(screen.getByText('No stations yet. Add at least two, in travel order.')).toBeInTheDocument();
@@ -402,7 +400,7 @@ describe('CustomLineForm', () => {
     expect(screen.queryByText('No stations yet. Add at least two, in travel order.')).not.toBeInTheDocument();
   });
 
-  // Task 3.4.4: Name is validated as required with no visual mark.
+  // Name is validated as required, so it needs a visual mark.
   it('marks the Name field as required with an asterisk', () => {
     renderWithProvider();
     // Mantine's `withAsterisk` renders the `*` as its own `aria-hidden`
@@ -412,8 +410,7 @@ describe('CustomLineForm', () => {
     expect(screen.getByText('*')).toBeInTheDocument();
   });
 
-  // Task 3.4.11: the edit page had no way to delete a line at all -- only
-  // the (separate) detail page did.
+  // The edit page offers delete, not just the (separate) detail page.
   it('offers a "Delete line" link only when editing an existing line', () => {
     renderWithProvider();
     expect(screen.queryByRole('button', { name: 'Delete line' })).not.toBeInTheDocument();

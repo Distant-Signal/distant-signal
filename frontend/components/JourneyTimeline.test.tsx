@@ -191,9 +191,8 @@ describe('JourneyTimeline', () => {
     expect(cell?.querySelector('[aria-hidden="true"]')).toHaveTextContent('est.');
   });
 
-  // 2026-09-22 UX review finding I21/M21/2.10: a column that is empty on
-  // every row reads as broken, not as "nothing to report" -- hide it
-  // outright rather than rendering an always-blank header cell.
+  // A column that is empty on every row reads as broken, not as "nothing to
+  // report" -- hide it outright rather than rendering an always-blank header cell.
   it('hides the Platform column entirely when no stop has a known platform', () => {
     renderWithMantine(<JourneyTimeline stops={[stop({ platform: null }), stop({ platform: null })]} />);
     expect(screen.queryByRole('columnheader', { name: 'Platform' })).not.toBeInTheDocument();
@@ -486,9 +485,8 @@ describe('JourneyTimeline', () => {
     expect(screen.queryByText(/does not appear to have stopped here/i)).not.toBeInTheDocument();
   });
 
-  // Task 3.6.2: a stop whose server-side TIPLOC->CRS->name join didn't
-  // resolve gets a by-index placeholder, never the old "Unknown location"
-  // string.
+  // A stop whose server-side TIPLOC->CRS->name join didn't resolve gets a
+  // by-index placeholder, never the old "Unknown location" string.
   it('falls back to a by-index placeholder ("Stop N") when neither name nor CRS is known', () => {
     renderWithMantine(
       <JourneyTimeline
@@ -556,8 +554,8 @@ describe('JourneyTimeline', () => {
     expect(screen.queryByText(/station names unavailable/)).not.toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review finding I16/2.7: "the traveller gets off at York,
-  // which is a plain-weight row indistinguishable from Peterborough."
+  // "The traveller gets off at York, which is a plain-weight row
+  // indistinguishable from Peterborough": the leg destination must stand out.
   describe('legDestinationCrs', () => {
     it('bolds the leg destination row and marks it "You get off here", even for a plain intermediate stop', () => {
       renderWithMantine(

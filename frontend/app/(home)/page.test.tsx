@@ -35,10 +35,10 @@ vi.mock('next/headers', () => ({
   cookies: async () => ({ toString: () => '', get: () => undefined }),
 }));
 
-// The anonymous branch's login nudge is now LoginControl (Task 1), which calls
+// The anonymous branch's login nudge is LoginControl, which calls
 // usePathname()/useSearchParams() -- same stub AuthStatus.test.tsx and
 // TicketPanel.test.tsx use for the same reason. `useRouter` is stubbed too,
-// as of the "Your Operators" section (Task 13): `OperatorStatusCard`
+// for the "Your Operators" section: `OperatorStatusCard`
 // renders a `PinToggle` per card, which calls `useRouter()` -- same
 // workaround `app/operators/page.test.tsx` uses for the same reason (that
 // hook throws outside a real Next.js App Router tree).
@@ -122,9 +122,9 @@ beforeEach(() => {
   vi.mocked(api.getStationName).mockResolvedValue(null);
   vi.mocked(api.getStopPointDisruption).mockResolvedValue([]);
   vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue(null);
-  // Every test that predates operator pinning (Task 13) says nothing about
-  // it -- default the new sixth fetch to "no operators in the catalogue"
-  // so each still describes exactly the scenario it was written for.
+  // Most tests say nothing about operator pinning, so default the sixth
+  // fetch to "no operators in the catalogue" and each still describes
+  // exactly its own scenario.
   // Load-bearing mechanically too: `allOperators.filter(...)` below is
   // unguarded, and an automocked `undefined` return has no `.filter`.
   vi.mocked(api.getAllOperators).mockResolvedValue([]);
@@ -136,11 +136,10 @@ beforeEach(() => {
 });
 
 describe('DashboardPage', () => {
-  // Review §3.1.7: the nav bar already says "Distant Signal" -- this
-  // page's own <h1> used to repeat it, reading as duplicated branding
-  // above the fold on mobile. It keeps the <h1> (for the outline, and for
-  // a link-unfurler bot reading past a nav it never sees) but no longer
-  // duplicates the brand name in its text.
+  // The nav bar already says "Distant Signal", so repeating it in the <h1>
+  // would read as duplicated branding above the fold on mobile. The page
+  // keeps the <h1> (for the outline, and for a link-unfurler bot reading
+  // past a nav it never sees) without the brand name in its text.
   it('titles the anonymous h1 something other than the brand name the nav already carries', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue({
       authenticated: false,
@@ -224,14 +223,14 @@ describe('DashboardPage', () => {
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByText(/Every line is running a Good Service/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Log in to pin your lines, stations and operators' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Log in or sign up' })).toHaveAttribute(
       'href',
       '/api/auth/login?return_to=%2F',
     );
   });
 
-  // Notifications moved to /account/preferences (round 2): the home page
-  // no longer carries the control, logged in or out.
+  // Notifications live in /account/preferences: the home page does not
+  // carry the control, logged in or out.
   it.each([false, true])('has no notifications control (authenticated: %s)', async (authenticated) => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(
       authenticated
@@ -383,13 +382,11 @@ describe('DashboardPage', () => {
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
     renderWithMantine(await resolveAsync(await DashboardPage()));
     expect(screen.getByRole('heading', { name: 'Your lines' })).toBeInTheDocument();
-    // Load-bearing specifically for the PINNED case (Task 7): this user has
+    // Load-bearing specifically for the PINNED case: this user has
     // pinned a line, so "Right now" must stay absent even though the
     // authenticated branch can now render it for a zero-pinned-lines user.
     expect(screen.queryByText(/Right now/)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Log in to pin your lines, stations and operators' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Log in or sign up' })).not.toBeInTheDocument();
   });
 
   it('shows a pinned tram line with its status in "Your lines", and drops it while its network is dark', async () => {
@@ -532,8 +529,8 @@ describe('DashboardPage', () => {
   });
 
   it('renders the module at heading level 2 in the authenticated branch, no skip', async () => {
-    // All three pinned sections are empty here, so review §3.1.4 puts
-    // "Right now" first: h1 "Home" (visually hidden) -> h2 "Right now" ->
+    // All three pinned sections are empty here, so "Right now"
+    // goes first: h1 "Home" (visually hidden) -> h2 "Right now" ->
     // h2 "Your lines" -> h2 "Your stations" -> ... . Its own level-2
     // heading never skips to h3 regardless of where in the page it renders.
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue({
@@ -599,8 +596,8 @@ describe('DashboardPage', () => {
     }
   });
 
-  // Review §3.1.4: the authenticated dashboard used to double a "Browse
-  // all lines"/"Look up a station" link beside its section heading with an
+  // The authenticated dashboard must not double a "Browse all
+  // lines"/"Look up a station" link beside its section heading with an
   // identical link ~40px below it, inside the empty-state sentence.
   describe('empty-state link deduplication (review §3.1.4)', () => {
     it('keeps only the inline "Browse all lines" link when Your Lines is empty, not a second one beside the heading', async () => {
@@ -725,10 +722,8 @@ describe('DashboardPage', () => {
     });
   });
 
-  // Review §3.1.4: "order 'Right now' first when both pinned sections are
-  // empty" -- generalized by Task 13 to all THREE pinned sections, now that
-  // "Your Operators" exists (`allPinnedSectionsEmpty`, renamed from
-  // `bothPinnedSectionsEmpty`). Otherwise the module's usual position
+  // "Right now" goes first when all THREE pinned sections are empty
+  // (`allPinnedSectionsEmpty`). Otherwise the module's usual position
   // (after Your Operators, only when Lines specifically is empty) is
   // unchanged.
   describe('"Right now" ordering when all pinned sections are empty (review §3.1.4)', () => {
@@ -796,13 +791,11 @@ describe('DashboardPage', () => {
       expect(names.filter((n) => n === 'Right now')).toHaveLength(1);
     });
 
-    // Direct regression check for the `bothPinnedSectionsEmpty` ->
-    // `allPinnedSectionsEmpty` rename (Task 13): Lines and Stations are
-    // both empty here -- the exact input the OLD two-way flag would have
-    // called "both empty" and put "Right now" at the very top for -- but
-    // Operators has a pin, so the new three-way `&&` must keep it in its
-    // ordinary spot instead. A regressed rename (one that dropped the
-    // Operators leg, or used `||`) would put "Right now" first here.
+    // Lines and Stations are both empty here -- the input a two-way flag
+    // would have called "both empty" and put "Right now" at the very top
+    // for -- but Operators has a pin, so the three-way `&&` must keep it in
+    // its ordinary spot. A flag that dropped the Operators leg, or used
+    // `||`, would put "Right now" first here.
     it('keeps "Right now" in its ordinary spot, not at the top, when only Operators has something pinned', async () => {
       vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue({
         authenticated: true,
@@ -1070,12 +1063,12 @@ describe('DashboardPage', () => {
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
     renderWithMantine(await resolveAsync(await DashboardPage()));
-    expect(screen.getByRole('link', { name: 'Log in to pin your lines, stations and operators' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /^Log in/ })).toHaveLength(1);
   });
 });
 
 describe('DashboardPage -- outage behaviour', () => {
-  // Outage behaviour (design spec Decision 5 / plan Task 5).
+  // Outage behaviour: line status is served stale, per-user data is not.
   it('keeps rendering the last-known line status when the status fetch fails', async () => {
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report({ id: 'central', name: 'Central' })]);
     renderWithMantine(await resolveAsync(await DashboardPage()));
@@ -1166,7 +1159,7 @@ describe('DashboardPage -- outage behaviour', () => {
 });
 
 describe('DashboardPage -- pinned station line-coverage distinction', () => {
-  // The regression this task exists for, on the dashboard's own pinned-
+  // The regression guarded here, on the dashboard's own pinned-
   // station card: before this fix, `.catch(() => [])` silently swallowed
   // the backend's new "no line coverage" 404 the exact same way it already
   // swallowed a real connectivity failure, so a pinned but uncovered
@@ -1412,7 +1405,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     expect(screen.queryByRole('heading', { name: 'Lines shared with you' })).not.toBeInTheDocument();
   });
 
-  // Task 1.5 (WCAG 2.5.3): `SharedCustomLineSummaryRow` pairs its title
+  // WCAG 2.5.3: `SharedCustomLineSummaryRow` pairs its title
   // with a status badge in a `Group wrap="nowrap"` (`StatusRow`) -- the
   // badge must not be crushable, even with a very long line name.
   it('gives the status badge a shrink guard, even with a very long line name', async () => {
@@ -1444,7 +1437,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
   });
 });
 
-// Task 13: the third pinned-collection section, alongside "Your Lines" and
+// The third pinned-collection section, alongside "Your Lines" and
 // "Your Stations" above -- same worst-first-then-alphabetical sort, same
 // "browse the full list"/"pin something" empty-state shape, filtered from
 // the same public, unauthenticated `getAllOperators()` catalogue fetched
@@ -1600,10 +1593,10 @@ describe('DashboardPage -- Your Operators section', () => {
     expect(screen.queryByText("Couldn't load operator status right now.")).not.toBeInTheDocument();
   });
 
-  // Review M9: "Your Lines" (`LineStatusCard`) has no pin control of its
-  // own, so "Your Operators" cards drop theirs on this page too, rather
-  // than the dashboard having one card type pinnable and the other not for
-  // no visible reason. Unpinning stays reachable from `/operators` itself.
+  // "Your Lines" (`LineStatusCard`) has no pin control of its own, so
+  // "Your Operators" cards drop theirs on this page too, rather than the
+  // dashboard having one card type pinnable and the other not for no
+  // visible reason. Unpinning stays reachable from `/operators` itself.
   it('does not render a pin star on an operator card here (review M9)', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1619,10 +1612,9 @@ describe('DashboardPage -- Your Operators section', () => {
     expect(container.querySelector('[aria-label*="Pin"]')).not.toBeInTheDocument();
   });
 
-  // Review M10: the LNER signalling failure used to print in full on both
-  // the "Your Lines" card and the "Your Operators" card for a caller who
-  // pinned both the line and its operator -- collapse the operator card's
-  // copy of it into a cross-reference once the driving line is already
+  // A caller who pinned both a line and its operator would see the same
+  // signalling failure in full on both cards, so the operator card's copy
+  // collapses into a cross-reference once the driving line is already
   // pinned and shown above.
   it('collapses the reason into a cross-reference when the worst line is already pinned in Your Lines (review M10)', async () => {
     vi.mocked(api.getSessionOrLoggedOut).mockResolvedValue(loggedIn);
@@ -1763,9 +1755,7 @@ describe('DashboardPage -- journey sections', () => {
 
     const teaser = screen.getByRole('region', { name: 'Upcoming journeys' });
     expect(within(teaser).getByText('Track a journey to see it here')).toBeInTheDocument();
-    expect(within(teaser).getByText(/platform changes for every leg/)).toHaveTextContent(
-      /connection is at risk.*Delay Repay/,
-    );
+    expect(within(teaser).getByText(/connection warnings for every leg/)).toHaveTextContent(/Delay Repay/);
     expect(within(teaser).getByRole('link', { name: 'Log in or sign up' })).toHaveAttribute(
       'href',
       '/api/auth/login?return_to=%2F',
@@ -1794,7 +1784,7 @@ describe('DashboardPage -- journey sections', () => {
     renderWithMantine(await resolveAsync(await DashboardPage()));
 
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
-    // Nothing is pinned, so "Right now" leads the pins (review §3.1.4), after
+    // Nothing is pinned, so "Right now" leads the pins, after
     // the journeys.
     expect(headings.slice(0, 5)).toEqual(['Home', 'Current journey', 'Upcoming journeys', 'Right now', 'Your lines']);
 
@@ -2180,7 +2170,7 @@ describe('DashboardPage first flush (DS-170)', () => {
   it('carries the h1 and the summary before any data has loaded, with no session read', async () => {
     renderWithMantine(await firstFlush(await DashboardPage()));
     expect(screen.getByRole('heading', { level: 1, name: 'Live UK rail status' })).toBeInTheDocument();
-    expect(screen.getByText(/Live UK rail line status, train tracking and Delay Repay support/)).toBeInTheDocument();
+    expect(screen.getByText(/Line status, train tracking and Delay Repay help/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Browse all lines' })).toHaveAttribute('href', '/lines');
     expect(api.getSessionOrLoggedOut).not.toHaveBeenCalled();
     expect(screen.queryByText('Loading the home page')).not.toBeInTheDocument();

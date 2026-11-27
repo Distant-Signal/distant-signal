@@ -109,7 +109,7 @@ describe('trackAgainPrefill', () => {
   it('reads window mode for a MATCHED window leg too (match_mode does not decide this)', () => {
     // A window-mode leg keeps its window fields set forever, even after
     // being matched -- matchMode alone can't distinguish this from a
-    // pin/knownTrain leg. See Judgment Call 3.
+    // pin/knownTrain leg.
     const result = trackAgainPrefill(journey([leg({ arriveAfter: '17:00:00', arriveBefore: '19:00:00' })]));
     expect(result?.mode).toBe('window');
     expect(result?.arriveAfter).toBe('17:00');

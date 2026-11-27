@@ -4,17 +4,10 @@ import type { LineHalfHourlyCoverageStats } from '@/lib/types';
 import { TrendsCharts } from './TrendsCharts';
 import type { ChartPoint } from './chartPoint';
 
-// Placeholder, not a validated number -- half-hourly sibling of
-// CoverageTrendsResults.tsx's own SPARSE_DATA_FLOOR_WINDOWS (20), halved
-// following the exact precedent HalfHourlyTrendsResults.tsx's own
-// SPARSE_DATA_FLOOR_CYCLES_HALF_HOURLY comment already established:
-// halving the bucket duration halves the cycle/window ceiling, so the
-// floor halves with it to hold the same ~33% coverage bar. Doubly
-// unvalidated -- it is a halving of an already-unvalidated daily
-// placeholder, and there is still no real full-coverage producer to
-// observe a resolved_windows-per-half-hour distribution from. See
-// docs/superpowers/specs/2026-09-03-half-hourly-coverage-trends-design.md
-// Decision 2 / Open question 1.
+// Placeholder, not a validated number: half of CoverageTrendsResults.tsx's SPARSE_DATA_FLOOR_WINDOWS (20),
+// the same halving HalfHourlyTrendsResults.tsx applies to its cycle floor, to hold the same ~33% coverage bar.
+// Doubly unvalidated, and there is no real full-coverage producer yet to observe a distribution from.
+// See docs/superpowers/specs/2026-09-03-half-hourly-coverage-trends-design.md.
 const SPARSE_DATA_FLOOR_WINDOWS_HALF_HOURLY = 10;
 
 /** Half-hourly sibling of `CoverageTrendsResults.tsx`'s own
@@ -37,18 +30,11 @@ export function toHalfHourlyCoverageChartPoints(stats: LineHalfHourlyCoverageSta
   });
 }
 
-/** Half-hourly full-coverage Trends chart -- structurally parallel to
- * `HalfHourlyTrendsResults.tsx` (the sample-derived half-hourly chart) the
- * same way `CoverageTrendsResults.tsx` is structurally parallel to
- * `TrendsResults.tsx`. Deliberately a separate component, not a
- * `granularity`-branching version of `CoverageTrendsResults`, for the same
- * reason the sample-series pair is split (granularity design Decision
- * 10): the fetch, sparse floor, and honesty copy are all
- * granularity-specific content, not shared plumbing. The shared, reusable
- * part is `TrendsCharts`, rendered here exactly the way
- * `CoverageTrendsResults` renders it, passing `granularity="halfHour"`.
- * See docs/superpowers/specs/2026-09-03-half-hourly-coverage-trends-design.md
- * Decision 1. */
+/** Half-hourly full-coverage Trends chart, parallel to `HalfHourlyTrendsResults.tsx` the way
+ * `CoverageTrendsResults.tsx` is parallel to `TrendsResults.tsx`. A separate component rather than a
+ * `granularity` branch, since the fetch, sparse floor and honesty copy are granularity-specific; only
+ * `TrendsCharts` is shared, rendered with `granularity="halfHour"`.
+ * See docs/superpowers/specs/2026-09-03-half-hourly-coverage-trends-design.md. */
 export async function HalfHourlyCoverageTrendsResults({ id, from, to }: { id: string; from: string; to: string }) {
   // Same unreachable-backend posture as HalfHourlyTrendsResults.tsx: this
   // component is rendered inside its own <Suspense> on /lines/[id]
@@ -57,19 +43,8 @@ export async function HalfHourlyCoverageTrendsResults({ id, from, to }: { id: st
   // page. Deliberately NOT stale-served: this is a secondary, decorative
   // panel, and a wrong-but-plausible trend chart is worse than an honest
   // absence.
-  // Task 3.4.5: the "Full coverage" heading below used to render ONLY on
-  // the populated branch at the foot of this function -- the review's own
-  // spec called for it unconditionally, and the two failure/empty branches
-  // above rendered a bare `Paper` with no heading at all, indistinguishable
-  // in shape from HalfHourlyTrendsResults' own empty-state box immediately
-  // above it on `/lines/[id]` ("GOOD SERVICE Good Service"-style
-  // redundancy, but for two whole boxes: "Not enough sampled data yet for
-  // this line." directly followed by "Not enough full-coverage data yet
-  // for this line.", with nothing between them saying the second box is
-  // about a different, full-coverage series). Hoisted out to a local
-  // `heading` so all three branches below share the exact same element --
-  // confirmed missing by reading this function as it stood before this
-  // fix, not assumed from the design doc alone.
+  // The "Full coverage" heading is shared by every branch below, so the empty and failure boxes are
+  // still labelled as a separate series from the sample chart above them.
   const heading = (
     <Title order={3} size="h6">
       Every train
@@ -105,13 +80,9 @@ export async function HalfHourlyCoverageTrendsResults({ id, from, to }: { id: st
 
   return (
     <Stack gap="lg">
-      {/* Reused verbatim from CoverageTrendsResults.tsx, no rewording --
-          unlike the sample-series pair's copy (which reworded "that day"
-          to "that half hour" for its per-bucket attribution rule), this
-          sentence states a population fact (every scheduled service is
-          cross-referenced, by construction, regardless of bucket size),
-          not a per-bucket counting rule -- so there is nothing here for a
-          granularity change to reword. See design doc Decision 3. */}
+      {/* Reused verbatim from CoverageTrendsResults.tsx: this sentence states a population fact (every
+          scheduled service is cross-referenced regardless of bucket size), not a per-bucket counting rule,
+          so a granularity change has nothing to reword. */}
       <Text size="sm" c="dimmed">
         Rates shown cover every scheduled service on this line, cross-referenced against real train-movement data, not a
         sample of live departures at a handful of stations.

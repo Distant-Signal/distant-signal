@@ -97,7 +97,7 @@ function ariaSort(field: SortField, sort: SortState | null): 'ascending' | 'desc
   return sort.direction === 'asc' ? 'ascending' : 'descending';
 }
 
-/** Task 3.4.1: sort-by-status gets a defined rank for "no data" rows,
+/** Sort-by-status gets a defined rank for "no data" rows,
  * rather than falling into the generic "missing value always sorts last"
  * handling `rankFor` gives the two numeric columns -- a rank participates
  * in ascending/descending order like any real severity, instead of being
@@ -109,7 +109,7 @@ function ariaSort(field: SortField, sort: SortState | null): 'ascending' | 'desc
  * problems. */
 const NO_DATA_STATUS_RANK = -1;
 
-/** The "No data" badge's tooltip reason (Task 3.4.1). Mirrors the numeric
+/** The "No data" badge's tooltip reason. Mirrors the numeric
  * columns' own `representative ? sampleUnavailableReason(representative) :
  * <plain dash>` shape immediately below for the same reason -- `worst` and
  * `representative` are both derived from the same possibly-absent
@@ -259,7 +259,7 @@ export function filteredTitle(
 function lineRowData(line: LineSummary, report: LineStatusReport | undefined) {
   const worst = report ? worstStatus(report) : undefined;
   const representative = representativeStatus(report?.lineStatuses ?? []);
-  // Decision 1: prefer full-coverage numbers over sample numbers when
+  // Prefer full-coverage numbers over sample numbers when
   // both exist -- derived from the SAME `representative` status used
   // for the subtitle/tooltip below, not a separate scan, so "which
   // status is representative" and "which numbers render" never
@@ -267,10 +267,10 @@ function lineRowData(line: LineSummary, report: LineStatusReport | undefined) {
   const stats = representative?.fullCoverageStats ?? representative?.sampleStats;
   const cancelledPct = cancelledPercent(stats);
   // A line with no report at all has no modeName to derive a country
-  // from; every such line today is GB by construction (see
-  // docs/superpowers/plans/2026-09-05-country-filtering-plan.md
-  // Judgment Call 3 -- no non-GB LineSummary is reachable through
-  // GET /public/lines yet), so it defaults the same way
+  // from; every such line today is GB by construction (no non-GB
+  // LineSummary is reachable through GET /public/lines yet; see
+  // docs/superpowers/plans/2026-09-05-country-filtering-plan.md), so it
+  // defaults the same way
   // countryForReport itself defaults an unrecognised modeName.
   const country: Country = report ? countryForReport(report) : 'Gb';
   return { line, worst, stats, cancelledPct, representative, country };
@@ -293,7 +293,7 @@ const LineRow = memo(function LineRow({
   return (
     <tr className={TR} data-with-row-border="true">
       <td className={cx(TD, 'linesNameCell')}>
-        {/* Task 3.4.8: at narrow widths a wrapped two-line name read
+        {/* At narrow widths a wrapped two-line name read
           as two separate stacked list items rather than one
           wrapped link, at Mantine `Text`'s default (looser)
           line-height. */}
@@ -315,14 +315,12 @@ const LineRow = memo(function LineRow({
         {worst ? (
           <StatusBadge severity={worst.statusSeverity} />
         ) : (
-          // Task 3.4.1: previously rendered nothing at all -- ~120
-          // of ~125 rows had no `line_status` row yet (see
-          // `lineRowData`), so the Status column was blank for almost every
-          // line, with no way to tell "good service" from "no data"
-          // from "not computed yet". Grey/outline, not one of
-          // StatusBadge's severity colours (a stated Non-goal is
-          // leaving `severity.ts`'s hue map untouched) -- this is
-          // the absence of a status, not one more severity.
+          // Most rows have no `line_status` row yet (see `lineRowData`), so
+          // without this the Status column is blank with no way to tell
+          // "good service" from "no data" from "not computed yet".
+          // Grey/outline, not one of StatusBadge's severity colours
+          // (`severity.ts`'s hue map stays untouched) -- this is the
+          // absence of a status, not one more severity.
           // `data-status-badge` opts out of Mantine Badge's default
           // ellipsis truncation, the same fix `/lines/[id]`'s own
           // "No status yet" badge and `StatusBadge` itself already
@@ -387,7 +385,7 @@ export function AllLinesTable({
   reports: LineStatusReport[];
   pinnedLineIds: string[];
   tocs: Suggestion[];
-  // Task 3.4.13: hints the pin star that pinning needs an account, for a
+  // Hints the pin star that pinning needs an account, for a
   // visitor who has none yet. Optional, defaulting to `false`, so every
   // existing caller/test that doesn't pass it keeps today's behaviour.
   viewerIsAnonymous?: boolean;
@@ -397,10 +395,9 @@ export function AllLinesTable({
    * mount, same as `IncidentSearchForm`'s own `initialOperator`/
    * `initialLine`/`initialFrom`/`initialTo` props. Unlike those, this one
    * IS written back to afterwards -- see the URL sync effect
-   * below (2026-09-22 UX review §3.2: the chip used to only ever seed
-   * state, never update the URL, so tapping a dashboard tile then
-   * clearing the filter left `?statusGroup=severe` in the address bar
-   * disagreeing with an unfiltered table). */
+   * below (otherwise tapping a dashboard tile then
+   * clearing the filter would leave `?statusGroup=severe` in the address
+   * bar disagreeing with an unfiltered table). */
   initialStatusGroup?: SeverityGroup | undefined;
   /** Seeds the operator filter from `?operator=` (repeatable). Codes no
    * line carries are dropped. */
@@ -428,7 +425,7 @@ export function AllLinesTable({
   const [selectedCountries, setSelectedCountries] = useState<Country[]>([]);
   const [statusGroupFilter, setStatusGroupFilter] = useState<SeverityGroup | null>(initialStatusGroup ?? null);
   const [nameQuery, setNameQuery] = useState(initialQuery ?? '');
-  // Task 3.4.2: defaults to name order rather than the catalogue's own
+  // Defaults to name order rather than the catalogue's own
   // (arbitrary-looking) ordering, so a first-time visitor to a 125-row
   // table lands somewhere navigable instead of needing to discover sorting
   // exists first.
@@ -436,9 +433,8 @@ export function AllLinesTable({
   const countryLabelId = useId();
   const statusLabelId = useId();
 
-  // 2026-09-22 UX review §3.2: the URL stays truthful for refresh, share
-  // and Back, now for the search and operator filter too (they used to
-  // reset on every reload). See `useUrlFilterSync` for why it is
+  // The URL stays truthful for refresh, share and Back for the search and
+  // operator filter too, not just the status group. See `useUrlFilterSync` for why it is
   // `history.replaceState`, debounced.
   useUrlFilterSync({ query: nameQuery, operators: selectedOperators, statusGroup: statusGroupFilter }, linesFilterUrl);
 
@@ -486,14 +482,14 @@ export function AllLinesTable({
   // Mirrors operatorOptions's own "derive the option set from what's
   // actually present" pattern above, over `rows` rather than raw `lines`
   // since country is only knowable once a line is joined to its report.
-  // This is also this feature's self-hiding gate (Decision 4/5): a length
+  // This is also this feature's self-hiding gate: a length
   // of 1 (today, always exactly ['Gb']) means the filter control below does
   // not render at all.
   const countryOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.country))).sort(), [rows]);
 
   const filteredRows = useMemo(() => {
     let result = rows;
-    // Task 3.4.2: a plain case-insensitive substring match against the
+    // A plain case-insensitive substring match against the
     // line's own name -- unlike the operator filter's server-sourced
     // `Suggestion` list, every line is already loaded client-side here, so
     // there is nothing to fetch suggestions for. AND-combined with the
@@ -532,7 +528,7 @@ export function AllLinesTable({
   // Missing avgDelay/cancelled values (no sample stats) always sort to the
   // end, regardless of direction -- flipping direction shouldn't make
   // "unknown" rows jump to the top. Status is the one exception: it has its
-  // own defined `NO_DATA_STATUS_RANK` bucket instead (Task 3.4.1), so it
+  // own defined `NO_DATA_STATUS_RANK` bucket instead, so it
   // sorts like any other rank rather than through this null-to-the-end path.
   const sortedRows = useMemo(() => {
     if (!sort) return filteredRows;
@@ -636,7 +632,7 @@ export function AllLinesTable({
             </Group>
           </ChipGroup>
         </Stack>
-        {/* Self-hiding per Decision 4/5: with fewer than two countries present
+        {/* Self-hiding: with fewer than two countries present
             (today, always exactly ['Gb']) there is nothing meaningful to
             filter by, and a one-option control is worse than no control at
             all -- see
@@ -663,7 +659,7 @@ export function AllLinesTable({
           </Stack>
         )}
       </ListFilterBar>
-      {/* 2026-09-22 UX review §3.3: a filtered view says how many rows are
+      {/* A filtered view says how many rows are
           left and offers a way back, including the zero-row case a
           `0`-count dashboard tile (or a search with no match) can produce. */}
       <ListResultSummary
@@ -699,7 +695,7 @@ export function AllLinesTable({
                 the `<th>` itself: a bare cell with a click handler is not
                 focusable and cannot be triggered from the keyboard, which
                 made the whole sorting feature mouse-only. */}
-              {/* Task 3.4.7: `white-space: nowrap` so "Avg delay ↕" (the
+              {/* `white-space: nowrap` so "Avg delay ↕" (the
                 longest of the four labels) can't wrap its own sort glyph
                 onto a second line, orphaning it away from the label it
                 belongs to. */}

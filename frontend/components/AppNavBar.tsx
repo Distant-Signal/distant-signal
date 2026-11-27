@@ -62,7 +62,7 @@ const BAR_MIN_HEIGHT = 60;
  * it) and used for the matching `visibleFrom` here, so the two halves of
  * the swap cannot drift apart.
  *
- * `md` (992px), not the `sm` (768px) the review first suggested. That is
+ * `md` (992px), not `sm` (768px). That is
  * one measurement, not a preference: with this file temporarily switched
  * to `sm` and driven against a live backend at 768px in Chromium, the
  * inline bar measured
@@ -76,8 +76,7 @@ const BAR_MIN_HEIGHT = 60;
  * 992: that range gets the drawer, which carries every destination the
  * bar does.
  *
- * RE-VERIFY THIS IN FIREFOX after this plan's Task 1.14 (the
- * font-delivery fix). Every number here is font-metric dependent -- that
+ * RE-VERIFY THIS IN FIREFOX after any change to font delivery. Every number here is font-metric dependent -- that
  * is the whole reason the original defect showed in one engine and not
  * the other -- and changing how fonts are delivered can move Gecko's text
  * metrics again. `e2e/nav.spec.ts` pins 992 and 991 from both sides in
@@ -96,12 +95,10 @@ const NAV_BREAKPOINT = 'md';
 // tight group.
 //
 // The bar must stay one row from `md` (992px) up, logged in or out, in
-// Chromium and Firefox; `e2e/nav.spec.ts` asserts it. Round 2 (Oct 2026)
-// merged four tracking entries into one "Track" and moved the theme toggle
-// to /account/preferences, which bought back enough width for "Plan a
-// journey" to sit inline at every width from `md` up. The anonymous bar is
-// the binding case only through its "Log in" link; logged in, the account
-// menu avatar is narrower.
+// Chromium and Firefox; `e2e/nav.spec.ts` asserts it. Four tracking entries are merged into one "Track"
+// and the theme toggle lives in /account/preferences, which leaves enough width for "Plan a journey" to
+// sit inline at every width from `md` up. The anonymous bar is the binding case only through its
+// "Log in" link; logged in, the account menu avatar is narrower.
 
 export function AppNavBar({
   session,
@@ -201,9 +198,8 @@ export function AppNavBar({
                 `c="dimmed"`. Both render the exact same "Log in" string,
                 and this boundary is identical on every route, so a
                 mismatch here reads as the same text flipping colour
-                purely by streaming timing, not anything route-specific
-                (review §4.9). See `AppNavBar.test.tsx`'s own regression
-                test, which pins the two equal. */}
+                purely by streaming timing, not anything route-specific. See `AppNavBar.test.tsx`'s own
+                regression test, which pins the two equal. */}
             <Suspense
               fallback={
                 <Text size="sm" c="var(--mantine-color-anchor)">

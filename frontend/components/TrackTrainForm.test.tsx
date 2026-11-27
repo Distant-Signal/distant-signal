@@ -22,10 +22,9 @@ function renderWithGroups(ui: ReactElement, groups: GroupSummary[] | null) {
 }
 
 /** Routes a mocked `fetch` call by URL: `/api/stations/{crs}/departures`
- * (LDBWS), `/api/stations/{crs}/schedule-departures` (the CIF fallback,
- * this task), suggestion fetches, and everything else (the journey-submit
- * call, `POST /api/Journeys` since Task 15's `POST /Train/track` ->
- * `POST /Journeys` rewiring). `departures` defaults to an inert empty-array
+ * (LDBWS), `/api/stations/{crs}/schedule-departures` (the CIF fallback),
+ * suggestion fetches, and everything else (the journey-submit call,
+ * `POST /api/Journeys`). `departures` defaults to an inert empty-array
  * 200 so a test only needs to override the branch it actually cares about;
  * `scheduleDeparatures` has no default -- a test that expects the CIF
  * fallback to fire but doesn't configure it will throw loudly rather than
@@ -115,7 +114,7 @@ vi.mock('next/navigation', () => ({
 // so `fireEvent.change` continues to drive the real `onChange` handler --
 // and therefore the real submit logic below -- without exercising Mantine's
 // own (separately tested) calendar widget.
-// `...(await importOriginal())`, not a bare replacement object (Task 15):
+// `...(await importOriginal())`, not a bare replacement object:
 // this file now also renders `DatePickerInput` (the window-mode Date
 // field) and, via `TimeFilterInput`, `TimeInput` -- both real `@mantine/
 // dates` exports this component depends on. A bare `{ DateTimePicker:
@@ -169,8 +168,8 @@ vi.mock('@mantine/dates', async (importOriginal) => {
 
 // A fixed "now" well before every fixture departure time used below
 // (earliest is '08:22') -- `scheduledDeparture` now defaults to `nowInLondon()`
-// at mount (this task's own "default to now" fix), and the picker now
-// filters rows by it (`matchesScheduledDeparture`), so every test that
+// at mount and the picker filters rows by it (`matchesScheduledDeparture`),
+// so every test that
 // asserts a fixture row is visible without itself setting
 // `scheduledDeparture` needs the real wall-clock time pinned to something
 // earlier than all of them -- otherwise these tests would pass or fail
@@ -253,19 +252,15 @@ describe('TrackTrainForm', () => {
 
   it('leaves scheduled departure and window date at their own today/now defaults regardless of the new props', () => {
     renderWithMantine(<TrackTrainForm initialOrigin="WAT" initialDestination="RDG" initialDepartAfter="08:00" />);
-    // Judgment Call 4: no initialServiceDate/initialScheduledDeparture prop
-    // exists at all -- "again" never carries the old date/time forward.
+    // No initialServiceDate/initialScheduledDeparture prop exists at all --
+    // "again" never carries the old date/time forward.
     const picker = screen.getByLabelText<HTMLInputElement>(/Scheduled departure/);
     expect(picker.value).not.toBe('');
   });
 
-  // Task 3.6.14: this button used to stay `disabled` for as long as the
-  // origin/departure weren't valid yet, which Mantine renders as
-  // near-invisible light-grey-on-slightly-lighter-grey in dark mode. It's
-  // no longer disabled for that reason at all (only while a submit is
-  // actually in flight) -- an invalid press instead surfaces an inline
-  // field error and does not call the API, so a click always gets a
-  // visible result.
+  // This button is only disabled while a submit is in flight. An invalid press
+  // surfaces an inline field error without calling the API, so a click always
+  // gets a visible result (Mantine's disabled style is near-invisible in dark mode).
   it('is never disabled merely for an incomplete origin -- an invalid submit shows a field error instead', () => {
     renderWithMantine(<TrackTrainForm />);
     const button = screen.getByRole('button', { name: /Track this train/ });
@@ -513,8 +508,7 @@ describe('TrackTrainForm', () => {
     expect(await screen.findByText('Log in to track this train.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/api/auth/login?return_to=%2Ftrack');
     // Unlike PinToggle's toggle-and-forget click, the form's own input
-    // must survive a 401 -- Decision 4's explicit "preserve typed values"
-    // call.
+    // must survive a 401.
     expect(screen.getByRole('combobox', { name: /Origin station/ })).toHaveValue('WAT');
     expect(screen.getByRole('combobox', { name: /Destination station/ })).toHaveValue('WOK');
   });
@@ -747,7 +741,7 @@ describe('TrackTrainForm', () => {
     });
   });
 
-  // Task 15: the `SegmentedControl`'s second option -- an open time-window
+  // The `SegmentedControl`'s second option -- an open time-window
   // search that posts a `window`-mode leg to `POST /Journeys` instead of a
   // `pin`-mode one, via `submitWindow` rather than `submitTrack`.
   describe('window-search mode', () => {
@@ -762,10 +756,9 @@ describe('TrackTrainForm', () => {
       expect(screen.queryByRole('combobox', { name: /^Destination station$/ })).not.toBeInTheDocument();
     });
 
-    // Review §2.1/M23: the toggle swaps ~400px of form with no
-    // announcement for a screen-reader user -- a visually-hidden
-    // `role="status"` region names the mode so they don't have to tab
-    // forward to discover it.
+    // The toggle swaps ~400px of form with no announcement for a screen-reader
+    // user -- a visually-hidden `role="status"` region names the mode so they
+    // don't have to tab forward to discover it.
     it('announces the mode switch via a visually-hidden status region', () => {
       renderWithMantine(<TrackTrainForm />);
       // By its text: each station field has a status region of its own.
@@ -776,10 +769,8 @@ describe('TrackTrainForm', () => {
       expect(screen.getByText('Showing time-window search.')).toHaveAttribute('role', 'status');
     });
 
-    // Review §2.1/I21: `?mode=window` (wired through `track/page.tsx`) is
-    // the one thing that can now send a user straight to this mode -- the
-    // toggle used to be the ONLY discovery path, unreachable from anywhere
-    // else in the app (not even a bookmark).
+    // `?mode=window` (wired through `track/page.tsx`) lets a link send a user
+    // straight to this mode; the toggle is otherwise the only way to find it.
     it('starts in window mode when initialMode="window" is passed', () => {
       renderWithMantine(<TrackTrainForm initialMode="window" />);
       expect(screen.getByRole('radio', { name: 'Search a time window' })).toBeChecked();
@@ -1065,9 +1056,8 @@ describe('TrackTrainForm', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /Search for a train/ }));
 
-      // Review §2.5/M19: the modal's own copy now matches the mode -- a
-      // window search hasn't tracked anything yet, so "track this train"
-      // was never true here.
+      // The modal's own copy matches the mode -- a window search hasn't tracked
+      // anything yet, so "track this train" would be wrong.
       expect(await screen.findByText('Log in to search for a train.')).toBeInTheDocument();
       expect(screen.getByRole('combobox', { name: /^Destination station$/ })).toHaveValue('RDG');
     });
@@ -1084,8 +1074,8 @@ describe('TrackTrainForm', () => {
       expect(await screen.findByText('Log in to track this train.')).toBeInTheDocument();
     });
 
-    // Review §2.2/M14: the ordering check -- previously only PRESENCE was
-    // validated, so "earliest after latest" reached the backend unexamined.
+    // The ordering check: presence alone let "earliest after latest" reach the
+    // backend unexamined.
     it('rejects a window whose latest departure is before its earliest departure, with no network call', async () => {
       const fetchMock = mockFetchByUrl();
       vi.stubGlobal('fetch', fetchMock);
@@ -1120,10 +1110,9 @@ describe('TrackTrainForm', () => {
       expect(fetchMock).not.toHaveBeenCalledWith('/api/Journeys', expect.anything());
     });
 
-    // Review §2.2/I17: the labels still say "(optional)" per-field (each
-    // one individually is), but the group-level rule -- at least one of
-    // the four is required -- is now stated up front instead of only
-    // surfacing as a post-submit error.
+    // The labels still say "(optional)" per-field (each one individually is), but
+    // the group-level rule -- at least one of the four is required -- is stated
+    // up front instead of only surfacing as a post-submit error.
     it('states the at-least-one-of-four rule up front, not only after a failed submit', () => {
       renderWithMantine(<TrackTrainForm />);
       switchToWindowMode();
@@ -1160,8 +1149,8 @@ describe('TrackTrainForm', () => {
       expect(fetchMock).not.toHaveBeenCalledWith('/api/Journeys', expect.anything());
     });
 
-    // Review §2.2/M13: the field shows a real default value, not a grey
-    // placeholder indistinguishable from "nothing selected".
+    // The field shows a real default value, not a grey placeholder
+    // indistinguishable from "nothing selected".
     it("seeds the Date field with today's date rather than leaving it an empty placeholder", () => {
       renderWithMantine(<TrackTrainForm />);
       switchToWindowMode();
@@ -1176,9 +1165,9 @@ describe('TrackTrainForm', () => {
       expect(dateButton).not.toHaveTextContent('Today');
     });
 
-    // Review §2.1/I21: the page's own mode-aware intro copy now lives
-    // inside this form (see its own comment) rather than as static text
-    // owned by the page, so it reacts to the client-side toggle.
+    // The page's mode-aware intro copy lives inside this form (see its own
+    // comment) rather than as static text owned by the page, so it reacts to the
+    // client-side toggle.
     it('switches the intro copy to describe window mode once selected', () => {
       renderWithMantine(<TrackTrainForm />);
       expect(screen.getByText(/Track a specific train to see its live position/)).toBeInTheDocument();
@@ -1282,10 +1271,9 @@ describe('TrackTrainForm', () => {
       expect(screen.getByRole('combobox', { name: /Destination station/ })).toHaveValue('');
     });
 
-    // 2026-09-22 UX review follow-up (item 5): the live picker used to show
-    // only the raw destination CRS code -- `render::station_departure_json`
-    // now resolves it server-side via a batched `stations` lookup, and this
-    // picker renders it through the shared `stationLabel` convention.
+    // The live picker resolves the destination name server-side
+    // (`render::station_departure_json`, a batched `stations` lookup) and renders
+    // it through the shared `stationLabel` convention rather than the raw CRS.
     it('renders a resolved destination name alongside its code, falling back to the bare code when unresolved', async () => {
       const fetchMock = mockFetchByUrl({ departures: () => new Response(JSON.stringify(departures), { status: 200 }) });
       vi.stubGlobal('fetch', fetchMock);
@@ -1584,8 +1572,7 @@ describe('TrackTrainForm', () => {
       expect(screen.getByRole('button', { name: /09:00/ })).toBeInTheDocument();
       expect(screen.queryByText('On time')).not.toBeInTheDocument();
       expect(screen.queryByText('Cancelled')).not.toBeInTheDocument();
-      // 2026-09-22 UX review follow-up (item 5): resolved via the same
-      // server-side batched lookup as the LDBWS branch above.
+      // Resolved via the same server-side batched lookup as the LDBWS branch above.
       expect(screen.getByText(/08:22 · Crewe \(CRE\)/)).toBeInTheDocument();
       // LEG-23: the CIF timetable is not National Rail data, so no NRE credit.
       expect(document.querySelector('[data-nre-credit]')).toBeNull();
@@ -1699,13 +1686,10 @@ describe('TrackTrainForm', () => {
     });
 
     it('a post-midnight CIF row (dayOffset > 0) stays visible late at night and derives the correct next-day service_date on pick', async () => {
-      // Regression coverage for the exact bug this task fixes: a real
-      // overnight CIF schedule's post-midnight calling point (e.g. the
-      // live-confirmed c2c Barking 00:07, `schedule_query::resolve`'s own
-      // `f49687_raw` fixture) is genuinely TOMORROW relative to when the
-      // search ran, not "today" -- combining its bare `"00:07"` with the
-      // browser's current date would create a pin dated the wrong calendar
-      // day.
+      // A real overnight CIF schedule's post-midnight calling point (e.g. c2c Barking
+      // 00:07, `schedule_query::resolve`'s own `f49687_raw` fixture) is TOMORROW
+      // relative to when the search ran, so combining its bare "00:07" with the
+      // browser's current date would create a pin dated the wrong calendar day.
       const postMidnight = [{ uid: 'F49687', scheduled: '00:07', dayOffset: 1, destinationCrs: 'SNF' }];
       const fetchMock = mockFetchByUrl({
         departures: () => new Response('not found', { status: 404 }),
@@ -1757,8 +1741,8 @@ describe('TrackTrainForm', () => {
       renderWithMantine(<TrackTrainForm initialOrigin="WAT" />);
       await screen.findByRole('button', { name: /10:40/ });
 
-      // Partial, unresolved text -- both rows still shown, per Decision 1's
-      // "no filtering while the field still holds partial/typed-name text".
+      // Partial, unresolved text -- both rows still shown: no filtering while the
+      // field still holds partial/typed-name text.
       fireEvent.change(screen.getByRole('combobox', { name: /Destination station/ }), { target: { value: 'Bo' } });
       expect(screen.getByText(/10:15/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /10:40/ })).toBeInTheDocument();
@@ -2466,9 +2450,8 @@ describe('TrackTrainForm', () => {
       expect(screen.queryAllByLabelText('Track into')).toHaveLength(0);
     });
   });
-  // 2026-09-22 UX review, I9/P4: this toggle passed only
-  // value/onChange/data -- no heading, legend or aria-label -- and it is
-  // the ONLY discovery path for window mode.
+  // This toggle needs a heading, legend or aria-label: it is the
+  // only discovery path for window mode.
   it('names the pick-mode / window-mode radiogroup', () => {
     renderWithMantine(<TrackTrainForm />);
     expect(screen.getByRole('radiogroup', { name: 'How do you want to find the train?' })).toBeInTheDocument();

@@ -29,8 +29,7 @@ import { createTheme, defaultVariantColorsResolver, type VariantColorsResolver }
 
 /** `autoContrast`'s label-colour decision is, empirically, colour-scheme
  * BLIND for any colour rendered without an explicit shade suffix (every
- * `StatusBadge` and the incident-page `Badge`, per Decision 2 of this
- * plan's write-up): none of Badge/Button/Chip/etc.'s calls to
+ * `StatusBadge` and the incident-page `Badge`): none of Badge/Button/Chip/etc.'s calls to
  * `theme.variantColorResolver` in `@mantine/core`'s source
  * (`components/Badge/Badge.cjs` and its siblings) pass a `colorScheme`
  * field, so `defaultVariantColorsResolver`'s own call to
@@ -57,7 +56,7 @@ import { createTheme, defaultVariantColorsResolver, type VariantColorsResolver }
  * always picks black (correct for the shade-6 background light renders),
  * but shade 8 is dark enough that black on it is 1.83:1 (gray) / 4.18:1
  * (blue) -- both fail AA, undoing an already-passing pairing (dark mode
- * used to be unconditionally white before this plan, at 11.51/5.02).
+ * used to be unconditionally white, at 11.51/5.02).
  *
  * `variantColorResolver`'s input carries no `colorScheme` field either
  * (`VariantColorsResolverInput`'s shape, confirmed against
@@ -66,9 +65,8 @@ import { createTheme, defaultVariantColorsResolver, type VariantColorsResolver }
  * sets `:root { color-scheme: var(--mantine-color-scheme) }`
  * (`@mantine/core/styles.css`), so `light-dark(black, white)` resolves per
  * the *actual* active scheme at paint time, sidestepping the JS-side
- * blindness entirely. Confirmed live in both schemes against the Task 6
- * preview route before this fix (dark gray/blue both black, 1.83:1/4.18:1)
- * and after (white, 11.51:1/5.02:1) -- see the plan's Task 6 report. */
+ * blindness entirely. Confirmed live in both schemes: before this fix dark gray/blue were both black
+ * (1.83:1/4.18:1); after, white (11.51:1/5.02:1). */
 const SCHEME_BLIND_FILLED_COLORS = new Set(['gray', 'blue', 'pink', 'indigo']);
 // Pink and indigo were added later, for the same reason measured the same
 // way: shade 6 takes black (pink 5.63:1, indigo 4.86:1), but black on
@@ -284,7 +282,7 @@ export const tokens = {
   },
   /** `ActionIcon` sizes, in px. `field` sits flush beside a 36px input
    * (`CopyableLink`); `pageAction` is the 44px touch target for the two
-   * actions a returning visitor taps most, pin and share (review §2.10). */
+   * actions a returning visitor taps most, pin and share. */
   iconButton: {
     field: 36,
     pageAction: 44,

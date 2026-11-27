@@ -123,12 +123,9 @@ describe('LineHistoryPage', () => {
     expect(notFound).toHaveBeenCalled();
   });
 
-  // Review §2.11: the Timeline panel's Suspense fallback used to be a
-  // bare, unlabelled `Skeleton` -- no accessible name, nothing for a
-  // screen reader to announce while `getLineStatusHistory` was still in
-  // flight. A call that never resolves keeps the boundary suspended for
-  // the life of the test, so the fallback content can be asserted on
-  // directly.
+  // The Timeline panel's Suspense fallback must have an accessible name, so a screen reader announces
+  // something while `getLineStatusHistory` is in flight. A call that never resolves keeps the boundary
+  // suspended for the life of the test, so the fallback content can be asserted on directly.
   it('shows a labelled, announced loading state while the Timeline fetch is pending', async () => {
     vi.mocked(api.getLineStatusHistory).mockReturnValue(new Promise(() => {}));
     await renderPage();
@@ -168,18 +165,9 @@ describe('LineHistoryPage', () => {
     expect(await screen.findAllByTestId('line-chart')).toHaveLength(2);
   });
 
-  // NB deviating from the plan's own literal fixture here: the plan's Task
-  // 10 test asserted this against `renderPage()`'s bare DEFAULT range (the
-  // "Last 7 days" preset, no query params), but that's inconsistent with
-  // Task 6's own already-committed, already-tested `availableGranularities`
-  // point-budget math (`frontend/lib/history.ts`) -- a 7-day range is
-  // 7*48=336 half-hour buckets, over the MAX_CHART_POINTS=200 ceiling, so
-  // `halfHour` is correctly EXCLUDED for the default preset (confirmed by
-  // `history.test.ts`'s own "excludes half-hourly and hourly ... for a
-  // 10-day range" case, same formula, smaller range). Using a narrow
-  // 12-hour custom range instead -- the same width `history.test.ts`'s own
-  // "offers all four tiers for a narrow (12-hour) range" case uses -- to
-  // exercise a range where all four really are available.
+  // A 7-day range is 7*48=336 half-hour buckets, over the MAX_CHART_POINTS=200 ceiling, so `halfHour` is
+  // excluded for the default preset (see `lib/history.ts`). A narrow 12-hour custom range is used here so
+  // that all four tiers are available.
   it('the Trends tab shows a granularity control offering all four tiers for a narrow range', async () => {
     vi.mocked(api.getLineDailyStats).mockResolvedValue([dailyStatsRow({ day: '2026-08-30' })]);
     await renderPage({ from: '2026-08-31T00:00:00Z', to: '2026-08-31T12:00:00Z' });
@@ -210,9 +198,7 @@ describe('LineHistoryPage', () => {
     // Awaits HistoryResults directly rather than rendering LineHistoryPage
     // and waiting on its Suspense boundary -- see HistoryResults' own doc
     // comment in page.tsx for why (this harness has no RSC runtime, so that
-    // Suspense boundary never settles here). Reuses report()'s own default
-    // computedAt ('2026-08-31T09:00:00Z') rather than inventing a new date
-    // string, per this task's plan.
+    // Suspense boundary never settles here). Reuses report()'s default computedAt ('2026-08-31T09:00:00Z').
     vi.mocked(api.getLineStatusHistory).mockResolvedValue([report('c2c', 'c2c (London, Tilbury & Southend line)')]);
     renderWithMantine(
       await HistoryResults({
@@ -227,10 +213,8 @@ describe('LineHistoryPage', () => {
     expect(screen.getByRole('heading', { name: formatDate('2026-08-31T09:00:00Z'), level: 2 })).toBeInTheDocument();
   });
 
-  // Review §2.12: the timezone note appears once for the whole Timeline
-  // section, not once per row -- exercised here with entries spanning two
-  // different days (two separate day groups, each with its own rows) so a
-  // per-row or per-day regression would be caught.
+  // The timezone note appears once for the whole Timeline section, not once per row; entries span two
+  // days (two day groups) so a per-row or per-day regression would be caught.
   it('states the UK-local-time note exactly once across multiple days of rows', async () => {
     vi.mocked(api.getLineStatusHistory).mockResolvedValue([
       report('c2c', 'c2c (London, Tilbury & Southend line)'),
@@ -249,8 +233,7 @@ describe('LineHistoryPage', () => {
     expect(screen.getAllByText('Times in UK local time')).toHaveLength(1);
   });
 
-  // Review §2.9: "recompute" is the aggregator's own internal word for
-  // what happened, not a sentence a passenger would recognise.
+  // "recompute" is the aggregator's internal word, not a sentence a passenger would recognise.
   it('describes entries as status changes, not internal "recompute"s', async () => {
     vi.mocked(api.getLineStatusHistory).mockResolvedValue([
       report('c2c', 'c2c (London, Tilbury & Southend line)'),
@@ -270,9 +253,8 @@ describe('LineHistoryPage', () => {
     expect(screen.queryByText(/recompute/)).not.toBeInTheDocument();
   });
 
-  // Task 3.4.9: a status whose own `reason` is literally its severity
-  // label reads as redundant right next to the row's StatusBadge, which
-  // already shows that same label -- "GOOD SERVICE Good Service 21:34".
+  // A status whose `reason` is just its severity label reads as redundant next to the row's StatusBadge
+  // ("GOOD SERVICE Good Service 21:34").
   it('does not echo the severity label back as the reason text', async () => {
     vi.mocked(api.getLineStatusHistory).mockResolvedValue([
       {
@@ -322,12 +304,9 @@ describe('LineHistoryPage', () => {
     expect(screen.getByText('No reason given')).toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review §5.1: this Suspense boundary catches suspension,
-  // not errors -- an unguarded throw here used to propagate all the way to
-  // the route's global error.tsx, blanking the page title, "Back to line"
-  // link, Period control and both tabs. This is a regression test for the
-  // fix, not for the specific (unconfirmed) LNER trigger the review's
-  // screenshot showed -- any fetch failure now resolves to real markup.
+  // This Suspense boundary catches suspension, not errors: an unguarded throw used to reach the route's
+  // global error.tsx and blank the page title, "Back to line" link, Period control and both tabs. Any
+  // fetch failure must now resolve to real markup.
   it('resolves to a Paper instead of throwing when the history fetch fails', async () => {
     vi.mocked(api.getLineStatusHistory).mockRejectedValue(new Error('connect ECONNREFUSED'));
     renderWithMantine(
@@ -345,9 +324,8 @@ describe('LineHistoryPage', () => {
     expect(text.closest('.mantine-Paper-root')).not.toBeNull();
   });
 
-  // 2026-09-22 UX review §5.2: "No history entries in that range." used to
-  // be honest but terminal -- no way out, and no link to the one control
-  // (the Period picker) that would actually change the answer.
+  // "No history entries in that range." used to be a dead end, with no link to the one control (the
+  // Period picker) that would change the answer.
   it('offers a "Try 30 days" way out of an empty range, when not already viewing 30 days', async () => {
     vi.mocked(api.getLineStatusHistory).mockResolvedValue([]);
     renderWithMantine(

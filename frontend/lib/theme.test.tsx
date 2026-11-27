@@ -98,8 +98,7 @@ describe('theme', () => {
     }
   });
 
-  // Regression coverage for a real bug found during this plan's Task 6
-  // visual pass: none of Badge/Button/Chip's calls into
+  // Regression coverage for a real bug found in a visual pass: none of Badge/Button/Chip's calls into
   // theme.variantColorResolver (Mantine's own components) pass a
   // colorScheme field, so autoContrast's label-colour decision always
   // evaluates shade 6's luminance -- even when the rendered background is

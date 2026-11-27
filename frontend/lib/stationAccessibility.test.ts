@@ -396,7 +396,7 @@ describe('Pattern D -- named-item collection', () => {
       ]),
       'collection',
     );
-    // Round 2: numbered from 1 and named by its location, not the feed's
+    // Numbered from 1 and named by its location, not the feed's
     // zero-based "Balham Passenger Assistance Meeting Point 0".
     expect(node.items[0]!.label).toBe('Meeting point 1: Assistance Meeting Point');
     // The structured branch, because `available` is not a string -- and
@@ -538,7 +538,7 @@ describe('Patterns E and F', () => {
 
   it('keeps the label on a number or a boolean', () => {
     const node = expectKind(renderAccessibilityValue({ numberOfSpaces: 80, cctv: true }), 'fields');
-    // 'cctv' -> 'CCTV': the acronym map review §3.5.11 asks for.
+    // 'cctv' -> 'CCTV': the acronym map.
     expect(node.fields.map((field) => field.label)).toEqual(['Number of spaces', 'CCTV']);
     expect(expectKind(node.fields[1]!.node, 'text').text).toBe('Yes');
   });

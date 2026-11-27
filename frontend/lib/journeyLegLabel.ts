@@ -35,9 +35,8 @@ function findStop(stops: JourneyStop[] | null | undefined, crs: string | null): 
  * pin's CRS happens to match this leg's (common case: a leg created
  * directly from a pin/known-train pick carries the same origin the pin
  * did), and finally `null` -- `routeLabel`'s own bare-CRS-code fallback,
- * never a fabricated name. 2026-09-22 UX review findings I16/2.7 (the
- * matched leg card's title) and M18 (the page's own default `<h1>`) both
- * need this same resolution, hence factored out rather than duplicated. */
+ * never a fabricated name. Both the matched leg card's title and the page's
+ * default `<h1>` need this same resolution, hence factored out rather than duplicated. */
 export function legEndpointName(
   crs: string | null,
   stops: JourneyStop[] | null | undefined,
@@ -53,9 +52,8 @@ export function legEndpointName(
 }
 
 /** `"London Kings Cross (KGX) to York (YRK) · 16:00"`-shaped label for one
- * leg (2026-09-22 UX review finding I16/2.7: "the card is about the
- * train, not the leg" -- this is the leg's own identity, meant to replace
- * a headcode as a card's primary title). The departure time comes from
+ * leg: the leg's own identity, meant to replace
+ * a headcode as a card's primary title. The departure time comes from
  * THIS LEG's own origin stop specifically -- not the underlying train's
  * overall journey, which can start earlier on a leg that boards partway
  * through a longer service -- and is omitted (bare route only) whenever
@@ -88,8 +86,7 @@ export function legRouteAndTime(
 /** "arrive 18:22" (a confirmed actual arrival) or "arrive est. 18:22" (an
  * estimate or the bare schedule -- never asserted as confirmed) for the
  * leg's own destination row -- `null` when nothing is known yet. Backs
- * the inter-leg connector (2026-09-22 UX review finding I12/2.6: "Change
- * at York — arrive est. 18:22") -- reading the LEG's own destination stop
+ * the inter-leg connector ("Change at York, arrive est. 18:22"), reading the LEG's own destination stop
  * rather than the train's terminus, for the same reason `legRouteAndTime`
  * above does. */
 export function legDestinationArrivalLabel(

@@ -24,7 +24,6 @@ export function TrainOperatorSelect({
     <MultiSelect
       label="Operator (optional)"
       placeholder="Any operator"
-      description="Only trains run by one of these operators."
       data={data}
       value={value}
       onChange={onChange}

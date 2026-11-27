@@ -700,17 +700,15 @@ describe('api client', () => {
     });
   });
 
-  // The actual bug this plan fixes: every caller that used to write its own
+  // Every caller that used to write its own
   // `getSession().catch(() => ({ authenticated: false, ... }))` treated a
   // genuine failure to check (network error, timeout, 5xx) EXACTLY like a
-  // confirmed "not logged in" response -- rendering the identical
-  // logged-out UI with no log, no distinct state, anywhere. A real user
-  // with a valid session saw themselves logged out any time the session
-  // check merely had a bad moment. `getSessionOrLoggedOut` is the one place
-  // that degrading now happens, and the tests below are what actually pins
-  // the fix: the two cases must still resolve to the same UI-safe value
-  // (there is no redesign of the auth UI here), but only the genuine
-  // failure leaves a trace.
+  // confirmed "not logged in" response, rendering the identical logged-out UI
+  // with no log and no distinct state. A real user with a valid session saw
+  // themselves logged out any time the session check merely had a bad moment.
+  // `getSessionOrLoggedOut` is the one place that degrading now happens, and
+  // the tests below pin it: the two cases must still resolve to the same
+  // UI-safe value, but only the genuine failure leaves a trace.
   describe('getSessionOrLoggedOut', () => {
     // Each test below installs its own `console.error` spy and counts its
     // calls. Since Vitest 4, `vi.spyOn` on a method that is already a spy
@@ -756,11 +754,9 @@ describe('api client', () => {
       expect(consoleError).not.toHaveBeenCalled();
     });
 
-    // The regression this plan exists to fix: a network error used to
-    // become indistinguishable, everywhere downstream, from a real
-    // logged-out visitor. It still degrades to the same safe UI value (no
-    // redesign), but it now logs -- the trace that was entirely missing
-    // before.
+    // A network error must not be indistinguishable, downstream, from a real
+    // logged-out visitor. It still degrades to the same safe UI value, but it
+    // logs, leaving a trace.
     it('degrades to LOGGED_OUT_SESSION AND logs when getSession() rejects on a network failure', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.stubGlobal(
@@ -774,11 +770,10 @@ describe('api client', () => {
       expect(consoleError.mock.calls[0]![0]).toMatch(/getSession\(\) failed/);
     });
 
-    // The specific trigger this plan's diagnosis names: a genuine DB error
-    // during the session lookup now correctly propagates as a real 5xx
-    // (OptionalAuthenticatedUser, crates/api/src/auth.rs) instead of
-    // silently collapsing to `Ok(None)`. That is progress, but only if the
-    // newly-visible failure is actually surfaced instead of swallowed here.
+    // A genuine DB error during the session lookup propagates as a real 5xx
+    // (OptionalAuthenticatedUser, crates/api/src/auth.rs) instead of silently
+    // collapsing to `Ok(None)`. That only helps if the newly-visible failure is
+    // surfaced instead of swallowed here.
     it('degrades to LOGGED_OUT_SESSION AND logs when the backend responds 5xx', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.stubGlobal(
@@ -916,8 +911,8 @@ describe('api client', () => {
     expect(init.headers).toBeUndefined();
   });
 
-  // Decision 8 in the design spec: on /lines/[id], "not logged in" and
-  // "logged in but not the owner" must render identically, so both a bare
+  // On /lines/[id], "not logged in" and "logged in but not the owner"
+  // must render identically, so both a bare
   // 401 and a genuine 404 collapse into the same ApiNotFoundError -- unlike
   // getTrackedTrainById below, which keeps them distinct.
   it('getCustomLine collapses a 401 into ApiNotFoundError', async () => {
@@ -1104,7 +1099,7 @@ describe('api client', () => {
       'fetch',
       vi.fn(async () => new Response('unauthorized', { status: 401 })),
     );
-    // Load-bearing for Task 10/11: when checking authentication status,
+    // Load-bearing: when checking authentication status,
     // the caller needs to distinguish "not logged in at all" (401) from
     // "doesn't exist / isn't yours" (404), so it's not enough to just match
     // the message, the type must be pinned too.

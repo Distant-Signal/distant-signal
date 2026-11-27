@@ -349,9 +349,8 @@ export default async function LineDetailPage({
   //
   // `getAllTocs` is hour-cached reference data used only to resolve the
   // "Operators" row's ATOC codes to names below; an empty list degrades to
-  // bare codes rather than the whole page (review §2.9: a raw ATOC code
-  // like "GR" is exactly the kind of internal token this page must not
-  // surface unresolved).
+  // bare codes rather than the whole page (a raw ATOC code like "GR" is an internal token this page must
+  // not surface unresolved).
   //
   // `getCustomLine` 404s for a catalogue-line id (the endpoint only ever
   // reads the `custom_lines` table) -- that expected 404 is how this page
@@ -450,11 +449,8 @@ export default async function LineDetailPage({
   // eslint-disable-next-line react-hooks/purity -- server component: one timestamp per request, passed down so SSR and hydration agree
   const now = Date.now();
 
-  // A fixed rolling 24-hour window, not a URL-driven preset -- this embed
-  // has no range picker of its own (Decision 11 of
-  // docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md).
-  // "View history" below remains the way to reach the full range picker
-  // and the daily Trends tab.
+  // A fixed rolling 24-hour window, not a URL-driven preset: this embed has no range picker of its own.
+  // "View history" below remains the way to reach the full range picker and the daily Trends tab.
   const trendsRange = resolveHalfHourlyRange(now);
 
   // The same rail day used both to fetch LineTrainsResults' data and to
@@ -468,14 +464,9 @@ export default async function LineDetailPage({
     <Stack p="lg" gap="md">
       <Group justify="space-between">
         <Title order={1}>{name}</Title>
-        {/* Task 3.4.6: the ⓘ tooltip used to sit next to the title in its
-            own `Group`, which on mobile wraps independently of this outer
-            `Group` -- a long line name alone could already fill the row,
-            leaving the small ⓘ button to wrap onto its own orphaned line
-            underneath. Moved in with Edit/Delete/Share/the status badge
-            instead: that cluster is already right-aligned and already
-            wraps as one unit, so ⓘ now wraps down together with it rather
-            than alone. */}
+        {/* The ⓘ tooltip sits in this cluster, not next to the title: a long line name can fill the title row
+            and leave the small button wrapped onto its own line. This right-aligned cluster wraps as one
+            unit. */}
         <Group gap="sm">
           {/* Gated on the response's own `isOwner`, NOT on `isCustom`.
               Those were the same thing until custom-line group sharing
@@ -633,38 +624,24 @@ export default async function LineDetailPage({
       )}
       <Stack gap="xs">
         <SectionTitle>Recent trends (last 24 hours)</SectionTitle>
-        {/* Half-hourly (30-minute buckets), not the dedicated history
-            page's daily rollup -- Decision 1/2 of
-            docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md
-            (written for the original 1-hour bucket; the reasoning is
-            unchanged at 30 minutes): a rolling 24-hour window needs
-            intra-day resolution the daily table can't provide, so this
-            renders through a new, separate half-hourly fetch/component
-            (HalfHourlyTrendsResults, formerly HourlyTrendsResults) rather
-            than TrendsResults. It still shares TrendsCharts -- the actual
-            chart rendering, legend, dash patterns, gap bands, edge padding
-            -- with the dedicated history page's daily Trends tab; only the
-            fetch, sparse-data floor, and copy are half-hourly-specific.
-            `View history` above remains the way to reach the full range
-            picker, the Timeline tab, and the daily Trends tab.
+        {/* Half-hourly (30-minute buckets), not the history page's daily rollup: a rolling 24-hour window
+            needs intra-day resolution the daily table can't provide, so this uses a separate half-hourly
+            fetch/component (HalfHourlyTrendsResults) rather than TrendsResults. It still shares TrendsCharts
+            with the history page's daily Trends tab; only the fetch, sparse-data floor and copy differ.
+            `View history` above remains the way to reach the full range picker, the Timeline tab and the
+            daily Trends tab.
 
-            Wrapped in its own Suspense boundary, same rationale as before:
-            `getLineHalfHourlyStats` is comparatively slow, and without this
-            boundary it would block the whole page behind a chart a visitor
-            may not even scroll down to see. A brand-new line with no
-            half-hourly-stats rows yet still resolves fast:
-            `HalfHourlyTrendsResults` renders its own "Not enough sampled
-            data yet" text rather than leaving this section hanging. */}
+            Its own Suspense boundary: `getLineHalfHourlyStats` is comparatively slow, and without the
+            boundary it would block the whole page behind a chart a visitor may not scroll down to. A
+            brand-new line with no rows yet still resolves fast: `HalfHourlyTrendsResults` renders its own
+            "Not enough sampled data yet" text. */}
         <Suspense fallback={<TrendsLoadingFallback />}>
           <HalfHourlyTrendsResults id={id} from={trendsRange.from} to={trendsRange.to} />
         </Suspense>
-        {/* The half-hourly full-coverage series (Decision 1 of
-            docs/superpowers/specs/2026-09-03-half-hourly-coverage-trends-design.md)
-            -- a second, separate section under the sample-derived one
-            above, sharing the same trendsRange rather than computing its
-            own "now" a few milliseconds later. Its own, separate Suspense
-            boundary (Decision 4 of that design doc), so a slow coverage
-            fetch never blocks the sample chart above it, and vice versa. */}
+        {/* The half-hourly full-coverage series: a second, separate section under the sample-derived one,
+            sharing the same trendsRange rather than computing its own "now" a few milliseconds later. Its own
+            Suspense boundary, so a slow coverage fetch never blocks the sample chart above it, and vice
+            versa. */}
         <Suspense fallback={<TrendsLoadingFallback />}>
           <HalfHourlyCoverageTrendsResults id={id} from={trendsRange.from} to={trendsRange.to} />
         </Suspense>

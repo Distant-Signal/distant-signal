@@ -219,7 +219,7 @@ describe('JourneysPage', () => {
     expect(screen.getByText('12 min late')).toBeInTheDocument();
   });
 
-  // Task 3.6.8: `trackedTrainDisplayName` already falls back to
+  // `trackedTrainDisplayName` already falls back to
   // `${route}, ${when}` when no custom name is set, so the row's own
   // heading ALREADY contains "31 Aug 2026" in that case -- a second,
   // separate dimmed line repeating just the date/time would print it
@@ -247,8 +247,8 @@ describe('JourneysPage', () => {
     expect(within(card).getAllByText(/31 Aug 2026/)).toHaveLength(1);
   });
 
-  // Task 1.5 (WCAG 2.5.3): the row nests a `StatusRow` (title + status
-  // badge) inside an outer `StatusRow` (that inner row + the Task 3.6.7
+  // WCAG 2.5.3: the row nests a `StatusRow` (title + status
+  // badge) inside an outer `StatusRow` (that inner row + the
   // overflow-kebab menu) -- both `Group wrap="nowrap"`s. Neither the badge
   // nor the kebab trigger may be crushable, even with a very long custom
   // name.
@@ -732,7 +732,7 @@ describe('JourneysPage', () => {
       expect(screen.getByText('9 min late')).toBeInTheDocument();
     });
 
-    // Task 1.5 (WCAG 2.5.3): `SharedTrainListRow` pairs its heading with
+    // WCAG 2.5.3: `SharedTrainListRow` pairs its heading with
     // `RowStatusBadge` in its own `Group wrap="nowrap"` (`StatusRow`),
     // separate from the own-row one covered above.
     it('gives the shared row’s status badges a shrink guard', async () => {
@@ -904,9 +904,8 @@ describe('JourneysPage', () => {
       expect(screen.queryByText('Your reliability')).not.toBeInTheDocument();
     });
   });
-  // 2026-09-22 UX review, C1: `getMyJourneys()` existed in lib/api.ts with
-  // zero callers, so a journey created by time-window search was
-  // unreachable the moment its page was closed.
+  // `getMyJourneys()` is the only way back to a journey created by
+  // time-window search once its page is closed.
   describe('journeys (C1)', () => {
     // A one-leg journey: its whole-journey fields and counts follow its
     // current leg unless a test sets them.

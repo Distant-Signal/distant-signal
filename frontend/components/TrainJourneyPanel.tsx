@@ -19,7 +19,7 @@ import type { TrainJourneyState } from '@/lib/types';
  * future change to this pairing) only has to happen once.
  *
  * `suppressTrainUidHeading` passes straight through to `TrainJourney` --
- * see that component's own doc comment (Task 3.6.9).
+ * see that component's own doc comment.
  *
  * Both train pages also get the optional "Detailed (working timetable)"
  * view here (`WorkingTimetable`), fed the UNFILTERED stops so it can show

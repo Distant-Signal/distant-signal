@@ -20,13 +20,12 @@ import { describeFailure, failureFromResponse } from '@/lib/failure';
  * (`MaterializeTemplateRequest.serviceDate` is required, matching
  * `crates/api/src/routes/journey_templates.rs::MaterializeTemplateRequest`'s
  * own doc comment). Clicking this MORE THAN ONCE for the same date is
- * explicitly supported, not blocked — see the Phase B plan's Judgment
- * Call 7 — so this component adds no "already ran today" guard of its
+ * explicitly supported, not blocked, so this component adds no "already ran today" guard of its
  * own. On success, navigates straight to the freshly-minted journey's own
  * detail page (`/journeys/{journeyId}`) — the natural next step is
  * picking a candidate for each newly-unmatched leg there.
  *
- * With `keepLaterDates` (R2, decision 6), a date after tomorrow is kept
+ * With `keepLaterDates`, a date after tomorrow is kept
  * instead (`POST /JourneyTemplates/{id}/extra-dates`): the journey is
  * added the evening before, like the regular journey's other dates, and
  * the page says so. */

@@ -190,10 +190,9 @@ describe('GroupDetailPage', () => {
     expect(screen.getByText('Alex')).toBeInTheDocument();
     expect(screen.getByText('Sam')).toBeInTheDocument();
     expect(screen.getByText(/Shared by Sam/)).toBeInTheDocument();
-    // Review §2.9: this card used to print the raw `status` enum token
-    // ("en_route") verbatim in the subtitle. It now renders through the
-    // Track list's `TrackedRowStatusBadge`: the delay badge alone, as on
-    // the owner's own row -- and the raw token must never appear.
+    // This card renders through the Track list's `TrackedRowStatusBadge`:
+    // the delay badge alone, as on the owner's own row -- and the raw
+    // `status` enum token ("en_route") must never appear in the subtitle.
     expect(screen.queryByText('En route')).not.toBeInTheDocument();
     expect(screen.getByText('5 min late')).toBeInTheDocument();
     expect(screen.queryByText('en_route')).not.toBeInTheDocument();
@@ -465,9 +464,8 @@ describe('GroupDetailPage', () => {
     expect(screen.queryByText('A member')).not.toBeInTheDocument();
   });
 
-  // Review §3.2.5: the only way back to `/groups` used to be the browser's
-  // own Back button, which fails outright for a visitor who followed a
-  // deep link straight to a group's detail page.
+  // The browser's own Back button fails outright for a visitor who followed
+  // a deep link straight to a group's detail page, so the page links back.
   it('links back to /groups above the page heading', async () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
@@ -501,10 +499,9 @@ describe('GroupDetailPage', () => {
     expect(back).not.toHaveTextContent('←');
   });
 
-  // Review §3.2.5: nothing marked which row in the member list was the
-  // current viewer's own -- awkward to spot even with a real name, and
-  // outright ambiguous for a placeholder-rendered member matching their
-  // own opaque tag against the list.
+  // The viewer's own row needs a marker: it is awkward to spot even with a
+  // real name, and ambiguous for a placeholder-rendered member matching
+  // their own opaque tag against the list.
   it('marks the current user\'s own row with "(you)" and no other row', async () => {
     vi.mocked(getGroup).mockResolvedValue({
       id: 'grp-1',
@@ -736,7 +733,7 @@ describe('GroupDetailPage', () => {
       expect(screen.getByRole('button', { name: 'Remove from group' })).toBeInTheDocument();
     });
 
-    // Task 1.5 (WCAG 2.5.3): the row's `Group wrap="nowrap"` (`StatusRow`)
+    // WCAG 2.5.3: the row's `Group wrap="nowrap"` (`StatusRow`)
     // pairs the train's display name with this button -- it must not be
     // crushable by a long name/subtitle.
     it('puts "Remove from group" on its own line, where the title cannot squeeze it', async () => {
@@ -801,7 +798,7 @@ describe('GroupDetailPage', () => {
       expect(screen.queryByText(/leaving would delete this group/)).not.toBeInTheDocument();
     });
 
-    // Review §3.2.1: the owner leaving a group that survives (other members
+    // The owner leaving a group that survives (other members
     // remain) always transfers ownership -- `remove_member`'s own successor
     // query picks the longest-standing remaining ADMIN over a longer-standing
     // plain member, so the copy here must name Adam, not Priya, even though
@@ -843,8 +840,8 @@ describe('GroupDetailPage', () => {
       expect(screen.queryByText(/will become the new owner/)).not.toBeInTheDocument();
     });
 
-    // Review §3.2.1: "Delete group" moved out of the header into its own
-    // "Danger zone" section at the foot of the page.
+    // "Delete group" lives in its own "Danger zone" section at the foot of
+    // the page, not in the header.
     it('renders "Delete group" inside a "Danger zone" heading for an owner', async () => {
       await renderAs(OWNER, 'owner');
       expect(screen.getByRole('heading', { name: 'Danger zone' })).toBeInTheDocument();
@@ -960,7 +957,7 @@ describe('GroupDetailPage', () => {
       expect(screen.getByRole('button', { name: 'Stop sharing' })).toBeInTheDocument();
     });
 
-    // Task 1.5 (WCAG 2.5.3): the row pairs a (potentially long) line name
+    // WCAG 2.5.3: the row pairs a (potentially long) line name
     // with this status badge and "Stop sharing" button in a `Group
     // wrap="nowrap"` (`StatusRow`) -- without a shrink guard on both,
     // either could be crushed to nothing instead of the title truncating.
@@ -986,22 +983,12 @@ describe('GroupDetailPage', () => {
     });
   });
 
-  // Item 7 of the 2026-09-22 UX review's fix-cycle follow-up: no seed data
-  // ever created a group with an actual shared journey in it, so
-  // `SharedJourneyRow` (page.tsx) had only ever been reviewed in its EMPTY
-  // state -- every test above this point that touches journeys at all
-  // leaves `getGroupJourneys` at its `beforeEach` default of `[]`. Live
-  // visual verification (seeding a real group/journey/share against the
-  // running preview and looking at the rendered page) was attempted but
-  // not possible this session: the preview's own API process (port 8080)
-  // was reachable earlier in this session but had gone down by the time
-  // this item was reached, and standing up a private replacement against
-  // the same shared database was judged too risky for a check-only task.
-  // This describe block is the fallback the task's own instructions name
-  // for that case: a realistic component-level fixture, checked for the
-  // same class of issues (truncation, missing labels, colour-only
-  // signals) the rest of this review cycle found elsewhere. Mirrors
-  // 'shared custom lines' above field-for-field.
+  // No seed data creates a group with an actual shared journey in it, and
+  // every test above leaves `getGroupJourneys` at its `beforeEach` default
+  // of `[]`, so `SharedJourneyRow` (page.tsx) needs a realistic
+  // component-level fixture here, checked for truncation, missing labels
+  // and colour-only signals. Mirrors 'shared custom lines' above
+  // field-for-field.
   describe('shared journeys', () => {
     const SHARER = 'user-sharer';
     const VIEWER_OWN = (viewerId: string) => viewerId.replace('user-', 'member-');
@@ -1261,11 +1248,11 @@ describe('GroupDetailPage', () => {
       expect(screen.getByRole('button', { name: 'Remove from group' })).toBeInTheDocument();
     });
 
-    // Task 1.5 (WCAG 2.5.3): a (potentially long) route/custom name must
-    // not crush the status badge or "Remove from group". Since 2026-10-20
-    // both sit on their own line under the title rather than in its
-    // `Group wrap="nowrap"` (`StatusRow`) -- before that, either could be crushed to
-    // nothing instead of the title truncating.
+    // WCAG 2.5.3: a (potentially long) route/custom name must not crush
+    // the status badge or "Remove from group". Both sit on their own line
+    // under the title rather than in its `Group wrap="nowrap"`
+    // (`StatusRow`), where either could be crushed to nothing instead of
+    // the title truncating.
     it('keeps the status badge and the "Remove from group" button out of a long custom name\'s row', async () => {
       vi.mocked(getGroupJourneys).mockResolvedValue([
         journey({

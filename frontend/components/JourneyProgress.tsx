@@ -24,7 +24,7 @@ const INTERMEDIATE_DIAMETER = 12;
  * top of its flex item (`.journeyProgressLine`'s `align-items: flex-start`
  * in `globals.css`). That keeps every circle's vertical center at the same
  * offset (`NODE_CIRCLE_SLOT / 2`) regardless of the varying total height
- * Task 3's endpoint labels (and Task 6's `mayHaveArrived` glyph) introduce
+ * endpoint labels (and the `mayHaveArrived` glyph) introduce
  * below the circle. Set equal to `ENDPOINT_DIAMETER` -- the largest circle
  * -- so no circle ever overflows its own slot. The connecting line's own
  * vertical offset (`.journeyProgressLine::before`'s `top` in `globals.css`)
@@ -35,7 +35,7 @@ const NODE_CIRCLE_SLOT = ENDPOINT_DIAMETER;
 
 /** See this component's extra props beyond `{ stops }`: `resolutionStatus`,
  * `status`, `trainUid`, and `mayHaveArrived` are needed to render the full
- * status-matrix captions in `progressCopy` (added in a later task) --
+ * status-matrix captions in `progressCopy` --
  * `schedule_matched` and `resolved`+`awaiting_activation` produce
  * IDENTICAL `stops`/`lastReachedIndex` shapes but need different caption
  * text, and only `resolutionStatus` distinguishes them. See
@@ -44,7 +44,7 @@ const NODE_CIRCLE_SLOT = ENDPOINT_DIAMETER;
  *
  * `lastReportedLocation` is the SAME field `TrainJourney.tsx`'s
  * `JourneyDetails` already prints as "Last reported: X" -- passed through
- * here (Task 3.6.1) so a `status === 'en_route'` train whose last movement
+ * here so a `status === 'en_route'` train whose last movement
  * report didn't match any timetabled stop (`lastReachedIndex` still `-1`)
  * can say where it actually was last confirmed, instead of reusing the
  * "waiting for its first movement report" copy that belongs to a train
@@ -79,7 +79,7 @@ interface JourneyProgressProps {
 }
 
 /** Origin and Terminate are the two node kinds that print their station
- * name as always-visible text (spec Decision 3), which is why they get a
+ * name as always-visible text, which is why they get a
  * bigger circle AND a wider layout slot (`.journeyProgressNode--endpoint`
  * in globals.css). One predicate for both so a future third "endpoint-ish"
  * kind can't end up sized one way and slotted the other. */
@@ -132,7 +132,7 @@ type NodeState = 'reached' | 'marker' | 'not-reached' | 'cancelled-remaining';
  * exactly at `lastIndex` is additionally the "you are here" marker; every
  * later index is "not yet reached" -- or, on a cancelled journey,
  * `'cancelled-remaining'` instead, so it reads visibly differently from
- * "just hasn't got there yet" (spec Decision 5). `lastIndex === -1` means
+ * "just hasn't got there yet". `lastIndex === -1` means
  * nothing has been confirmed, so every node takes the `index > lastIndex`
  * branch and no marker exists -- this falls out of the comparison rather
  * than needing a special case, including for a cancelled journey with no
@@ -174,7 +174,7 @@ const DELAY_COLOR: Record<DelayState, string> = {
 /** The "you are here" marker gets the same fill as any other reached node
  * PLUS a `boxShadow` halo -- a wider, higher-contrast ring, not a
  * different color, so it stays legible against any of the three delay
- * colors (spec Decision 3). */
+ * colors. */
 function circleStyle(state: NodeState, delay: DelayState): React.CSSProperties {
   if (state === 'not-reached') {
     return { border: '2px solid var(--mantine-color-gray-5)', backgroundColor: 'transparent' };
@@ -198,11 +198,11 @@ interface ProgressCopy {
   ariaLabel: string;
 }
 
-/** One pair of strings for every row of the status/resolution decision
- * table -- see this plan's Global Constraints for the table copied
- * verbatim from the spec. `caption` is the always-visible `Text` shown
+/** One pair of strings for every row of the status/resolution decision table
+ * (docs/superpowers/plans/2026-09-12-journey-progress-visualization.md, Global
+ * Constraints). `caption` is the always-visible `Text` shown
  * under the diagram; `ariaLabel` is the diagram container's textual
- * restatement (spec Decision 6 -- the container is a labelled
+ * restatement (the container is a labelled
  * `role="group"`, see `JourneyProgress`'s own comment for why that role
  * and not `role="img"`). They are independent strings, not one string
  * reused twice, because the aria-label states the exact stop position
@@ -304,7 +304,7 @@ function progressCopy(
     // schedule mismatch), so `lastReachedIndex` still came back `-1`. That
     // is a materially different fact from "nothing has been confirmed yet"
     // (the `awaiting_activation` branch below) and must not reuse its
-    // caption -- see Task 3.6.1: reusing it here directly contradicted a
+    // caption: reusing it here directly contradicted a
     // summary above that already shows a confirmed delay/ETA for the same
     // train. The marker rule itself is untouched: `lastIndex === -1` still
     // means no marker is drawn (`nodeState`) -- only this caption differs.
@@ -497,8 +497,8 @@ export function JourneyProgress({
 
   return (
     <Stack gap="xs">
-      {/* `role="group"` + `aria-label`, NOT `role="img"`. Spec Decision 6
-          asks for two things at once: (a) a single container-level string
+      {/* `role="group"` + `aria-label`, NOT `role="img"`. The diagram needs two
+          things at once: (a) a single container-level string
           that restates what the diagram shows, and (b) per-node `Tooltip`
           triggers that "remain independently focusable/readable for a
           sighted keyboard user who wants the intermediate-stop detail".
@@ -507,8 +507,7 @@ export function JourneyProgress({
           triggers -- is dropped from the accessibility tree. That made the
           triggers focusable but silent (a keyboard user tabs onto a node
           and a screen reader announces nothing), which is a WCAG 4.1.2
-          Name/Role/Value failure and contradicts Decision 6's own second
-          bullet. `group` keeps (a) -- the same per-state label, announced
+          Name/Role/Value failure and defeats (b). `group` keeps (a) -- the same per-state label, announced
           on entering the container -- while letting (b) actually work. A
           group name is announced at group entry rather than inline like an
           `img`'s, and a low-verbosity screen reader may skip it, so the
@@ -584,8 +583,8 @@ export function JourneyProgress({
 }
 
 /** Origin/Terminate always print their name as visible text next to the
- * node (spec Decision 3: "the origin and terminus names are always
- * printed"). Every other node is a bare circle; a `Tooltip` (matching
+ * node ("the origin and terminus names are always printed"). Every other node
+ * is a bare circle; a `Tooltip` (matching
  * `LineDefinitionTooltip.tsx`'s existing hover/focus/touch pattern)
  * reveals its name and scheduled time on demand instead of permanently
  * occupying screen space -- with 20-30+ evenly-spaced nodes, a label under
@@ -667,8 +666,8 @@ function JourneyProgressNode({
     </Flex>
   );
 
-  // Not a color change (spec Decision 5's own stated reason: color alone
-  // must never be the only signal, and the marker's fill already encodes
+  // Not a color change (color alone must never be the only signal, and the
+  // marker's fill already encodes
   // delay) -- a small glyph next to the marker, consistent with the
   // "May have arrived" `Alert` already shown above this diagram by
   // `TrainJourney.tsx`'s `StatusMessage`.
@@ -772,8 +771,8 @@ function JourneyProgressNode({
             A real button, not a bare `tabIndex={0}` div: the same
             "focusable element with a real role and its own `aria-label`"
             shape `LineDefinitionTooltip.tsx`'s `ActionIcon` trigger
-            already uses, which is the existing codebase pattern spec
-            Decision 6 points at. A focusable div has role `generic`, and
+            already uses, which is the existing codebase pattern. A
+            focusable div has role `generic`, and
             an `aria-label` on a `generic` element names nothing, so that
             shape would leave the trigger focusable-but-silent even now
             that the container is a `group`.

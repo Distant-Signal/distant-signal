@@ -113,7 +113,7 @@ describe('AllLinesPage', () => {
     // Group is itself a sibling of the heading in the same outer row --
     // same "shared parent row" assertion style CustomLineForm.test.tsx uses
     // for its Cancel/submit pairing, extended one level for the nested
-    // Group these two links now share (plan Task 5, Step 6).
+    // Group these two links share.
     expect(newLineLink.parentElement).toBe(incidentsLink.parentElement);
     expect(newLineLink.parentElement?.parentElement).toBe(heading.parentElement);
   });
@@ -126,7 +126,7 @@ describe('AllLinesPage', () => {
     expect(screen.queryByRole('heading', { name: 'New Custom Line' })).not.toBeInTheDocument();
   });
 
-  // Outage behaviour (design spec Decision 5 / plan Task 5).
+  // Outage behaviour: keep rendering the last-known status.
   it('keeps rendering the last-known line status when the status fetch fails', async () => {
     // One good render populates the stale cache...
     await renderPage();

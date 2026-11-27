@@ -243,7 +243,7 @@ export function usualTrainSummary(
 }
 
 /** What "Make this a regular journey" on /plan hands the form: the route,
- * the time bound, the plan's options and the picked itinerary. Kept in
+ * the time bound, the plan options and the picked itinerary. Kept in
  * this tab's session storage for the one navigation (no account data). */
 export interface RegularJourneyDraft {
   originCrs: string;

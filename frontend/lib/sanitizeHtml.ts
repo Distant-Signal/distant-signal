@@ -28,9 +28,8 @@ const ALLOWED_ATTR = ['href'];
  * inline issue list) and `app/incidents/[id]/page.tsx` (the incident's own
  * detail page), so both apply the exact same allowlist and the same
  * forced `target="_blank" rel="noopener"` link hardening. Extracted out of
- * `DisruptionDetail.tsx`, where this previously lived file-local — see
- * docs/superpowers/specs/2026-08-31-incident-detail-page-design.md
- * Decision 5.
+ * `DisruptionDetail.tsx`, where this previously lived file-local (see
+ * docs/superpowers/specs/2026-08-31-incident-detail-page-design.md).
  *
  * Every surviving link opens a new tab, so each one also gets the
  * new-tab marker (`markNewTabLinks`), added to DOMPurify's own DOM output
@@ -110,7 +109,7 @@ function demoteHeadings(root: Element): void {
   });
 }
 
-/** review §3.5.9: an anchor whose visible text is byte-identical to its own
+/** An anchor whose visible text is byte-identical to its own
  * `href` ("https://www.nationalrail.co.uk/stations_destinations/passenger-
  * assist.aspx") reads as noise, not a destination. Rewritten to the
  * hostname (the new-tab marker follows from `markNewTabLinks`), with

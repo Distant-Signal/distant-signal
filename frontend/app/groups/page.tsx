@@ -53,9 +53,8 @@ export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPT
 /** `/groups` -- list of the current user's groups: name, member count,
  * role badge, "Create group" CTA (spec §6).
  *
- * `maw={640}` on both returns below (review §3.2.8, deliberately on top of
- * Task 1.1's root-cause `<main>` fix, not instead of it -- see that task's
- * own note): a list of short name/badge rows stretching the full content
+ * `maw={640}` on both returns below, on top of the `<main>` width fix: a list of short
+ * name/badge rows stretching the full content
  * width reads as sparse rather than as a deliberate layout, the same
  * "measure" concern typography guidance raises for any list of short
  * lines. */
@@ -73,8 +72,7 @@ export default async function GroupsPage() {
             never run the client-only AutoOpenLoginPrompt modal below,
             which stays as progressive enhancement on top of it.
 
-            A filled `LoginControl`, not the underlined `LoginControl` text this
-            used to be (review §2.16) -- the only action an anonymous
+            A filled `LoginControl`, not an underlined text link -- the only action an anonymous
             visitor can take on this route had markedly less visual weight
             than the "Create group" `TextLink` an authenticated visitor sees
             in its place. */}
@@ -90,7 +88,7 @@ export default async function GroupsPage() {
     <Stack p="lg" gap="lg" maw={640}>
       <Group justify="space-between" align="baseline">
         <Title order={1}>Groups</Title>
-        {/* Review §2.7/M20: the empty state below has its own, single
+        {/* The empty state below has its own, single
             "Create a group" call to action in the body -- a second,
             differently-styled link up here would duplicate it 40px away and
             (with nothing else in this row to balance `justify="space-between"`)
@@ -100,14 +98,12 @@ export default async function GroupsPage() {
       </Group>
       {groups.length === 0 ? (
         <Stack gap="sm" align="flex-start">
-          {/* Review §2.7/M20: body colour, not `c="dimmed"` -- this sentence
+          {/* Body colour, not `c="dimmed"` -- this sentence
               is the only guidance on the page, not metadata to be
               de-emphasised. "journeys and custom lines" matches this route's
-              own `<meta description>` above (a group shares both); the old
-              copy said "tracked trains" alone. The second clause names the
-              far more common way most people actually end up in a group --
-              being invited -- which the page previously never mentioned at
-              all. */}
+              own `<meta description>` above (a group shares both). The second
+              clause names the far more common way most people actually end
+              up in a group: being invited. */}
           <Text>
             You&apos;re not in any groups yet. Create one to share journeys and custom lines with other people, or ask a
             group member to send you their invite link if you&apos;re joining an existing one.
@@ -127,10 +123,10 @@ export default async function GroupsPage() {
 }
 
 function GroupRow({ group }: { group: GroupSummary }) {
-  // `ClickableCard` (review §3.2.5): the name is the link, stretched over
+  // `ClickableCard`: the name is the link, stretched over
   // the card, with the clickable card's hover, press and focus states.
-  // The member count and role are dimmed text, not badges (round 2):
-  // neither is a state.
+  // The member count and role are dimmed text, not badges: neither is a
+  // state.
   return (
     <ClickableCard>
       <Group justify="space-between" wrap="nowrap">

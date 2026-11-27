@@ -67,9 +67,8 @@ describe('LoginControl (link)', () => {
     expect(screen.getByRole('link', { name: 'Log in to pin' })).toHaveAttribute('data-text-link', 'always');
   });
 
-  // Review §2.16: AuthStatus's nav-bar use of this component now sets
-  // `size="sm"` explicitly, converging on the size the rest of the chrome's
-  // text-link-styled controls already use.
+  // AuthStatus's nav-bar use of this component sets `size="sm"` explicitly,
+  // matching the size the rest of the chrome's text-link-styled controls use.
   it('passes through the size prop to TextLink', () => {
     mockUsePathname.mockReturnValue('/');
     mockUseSearchParams.mockReturnValue(new URLSearchParams(''));

@@ -17,7 +17,7 @@ import { describeFailure } from '@/lib/failure';
  * couple of seconds) -- parameterized by an explicit `url` rather than
  * `window.location.href`, since this shares a DIFFERENT page (the join
  * page) than the one it's rendered on. `admin`/`owner`-only: the caller
- * (Task 12's page) never renders this for a plain `member` at all,
+ * (`app/groups/[id]/page.tsx`) never renders this for a plain `member` at all,
  * matching `inviteLink` being `null` in that case on the wire already. */
 
 export function GroupInviteLinkCard({
@@ -28,16 +28,12 @@ export function GroupInviteLinkCard({
   groupId: string;
   inviteLink: GroupInviteLink | null;
   // Resolved server-side by the caller (`app/groups/[id]/page.tsx`, via
-  // `lib/siteOrigin.ts`'s `getSiteOrigin()`) rather than read here from
-  // `window.location.origin` in a mount effect (review §2.11). That
-  // effect-based version had `origin` read as `''` for this component's
-  // first render -- this is a `'use client'` component rendered by an
-  // async Server Component, so its FIRST render happens on the SERVER,
-  // where `window` is undefined -- which made `url` a bare, uncopyable
-  // path (`/groups/join/{token}`) and left `share()` silently inert until
-  // the effect flushed. A prop resolved before this component ever
-  // renders has no such window: `url` is the real absolute link on every
-  // render, server and client alike, so it's usable immediately.
+  // `lib/siteOrigin.ts`'s `getSiteOrigin()`) rather than read from
+  // `window.location.origin` in a mount effect: this `'use client'` component
+  // first renders on the SERVER, where `window` is undefined, so an effect-based
+  // origin would leave `url` a bare, uncopyable path (`/groups/join/{token}`)
+  // and `share()` inert until the effect flushed. As a prop, `url` is the real
+  // absolute link on every render.
   origin: string;
 }) {
   const router = useRouter();
@@ -118,12 +114,11 @@ export function GroupInviteLinkCard({
             No active invite link.
           </Text>
         )}
-        {/* Review §3.2.2: nothing here told a viewer this link ever
-            expires (spec §2.3 gives every link a 7-day life) -- an owner
-            who bookmarked or pinned an old link would only discover it had
-            gone stale when a new joiner's click 404'd. `inviteLink` (not a
-            derived `url`) is the source, so this renders even though
-            `url` already folds the token into an absolute path above. */}
+        {/* The card says the link expires (every link has a 7-day life): an
+            owner who bookmarked or pinned an old link would otherwise only
+            discover it had gone stale when a new joiner's click 404'd.
+            `inviteLink` (not a derived `url`) is the source, so this renders
+            even though `url` already folds the token into an absolute path above. */}
         {inviteLink && (
           <Text size="xs" c="dimmed">
             Expires {formatDate(inviteLink.expiresAt)}.

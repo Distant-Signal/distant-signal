@@ -44,9 +44,8 @@ describe('routeLabel', () => {
 
   // Both of the next two used to mix forms -- one end got "Name (CODE)",
   // the other a bare code -- which read as a data error rather than a
-  // degraded lookup (review §2.9). Now that only one end's name is
-  // unresolved forces BOTH ends to bare codes, so the string is never
-  // internally inconsistent.
+  // degraded lookup. Now one unresolved name forces BOTH ends to bare codes,
+  // so the string is never internally inconsistent.
   it('falls back to bare codes on both ends when only the origin name is unresolved', () => {
     expect(routeLabel('KGX', null, 'EDB', 'Edinburgh Waverley')).toBe('KGX to EDB');
   });

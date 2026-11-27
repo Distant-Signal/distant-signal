@@ -90,7 +90,6 @@ export function TrainsAdvancedOptions({
         <StationField
           label="Starts at"
           placeholder="e.g. Paddington or PAD"
-          description="Only trains that start their journey at this station."
           value={filters.startsAt[0] ?? ''}
           onChange={(value) => onChange({ ...filters, startsAt: value.trim() ? [value] : [] })}
           comboboxProps={comboboxProps}
@@ -146,7 +145,6 @@ export function TrainsAdvancedOptions({
         <StationField
           label="Terminates at"
           placeholder="e.g. Paddington or PAD"
-          description="Only trains that end their journey at this station."
           value={filters.terminatesAt[0] ?? ''}
           onChange={(value) => onChange({ ...filters, terminatesAt: value.trim() ? [value] : [] })}
           comboboxProps={comboboxProps}

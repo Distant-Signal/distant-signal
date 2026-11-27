@@ -21,7 +21,10 @@ Fails (exit 1) on:
   - a Title Case h1 or h2 (a `Title` of order 1 or 2, or a `SectionTitle`
     of order 2), outside the proper nouns and official status names below;
   - a meta description over 160 characters;
-  - an app/**/page.tsx with neither `metadata` nor `generateMetadata`.
+  - an app/**/page.tsx with neither `metadata` nor `generateMetadata`;
+  - a code comment in app/, components/ or lib/ that narrates how the code
+    was built (a review section, a plan task, a decision number) instead of
+    why it exists. Say the reason; a docs/ path is a fine pointer.
 
 A string is user-facing when it is JSX text, a JSX attribute people read
 (label, title, description, placeholder, aria-label, ...), a literal that
@@ -398,6 +401,91 @@ def pages_without_metadata(frontend: Path) -> Iterator[Finding]:
                 " (title and description)",
             )
 
+# What a comment says when it records the process that produced the code
+# (a review finding, a plan task, a numbered decision) rather than why the
+# code is as it is.
+PROCESS_COMMENT = re.compile(
+    r"\b[Rr]eview §"
+    r"|\b[Rr]eview [A-Z]\d"
+    r"|\bUX review\b"
+    r"|\b[Rr]ound \d"
+    r"|\bTask \d"
+    r"|\bthis (?:plan|task)\b"
+    r"|\bplan's\b"
+    r"|\bwrite-up\b"
+    r"|\b(?:Decision|Correction|Judgment Call) \d"
+)
+COMMENT_ROOTS = ("app", "components", "lib")
+COMMENT_SUFFIXES = frozenset({".ts", ".tsx", ".mjs", ".css"})
+# Generated, not written.
+COMMENT_SKIP = frozenset({"lib/api-types.ts"})
+# Still to be reworded by the change that has that file open.
+COMMENT_PENDING = frozenset({"app/account/preferences/page.tsx"})
+
+
+def comments(source: str) -> Iterator[tuple[int, str]]:
+    """Yield (first line, text) for each comment in TypeScript or CSS source.
+
+    A small scanner, not a parser: it skips quoted strings (a quote ends at
+    the end of its line, so JSX text with an apostrophe cannot swallow the
+    file) and takes `//` after a colon to be a URL.
+    """
+    i, line, n = 0, 1, len(source)
+    while i < n:
+        char = source[i]
+        pair = source[i : i + 2]
+        if char == "\n":
+            line += 1
+            i += 1
+        elif pair == "/*":
+            end = source.find("*/", i + 2)
+            end = n if end < 0 else end + 2
+            yield line, source[i:end]
+            line += source.count("\n", i, end)
+            i = end
+        elif pair == "//" and source[i - 1 : i] != ":":
+            end = source.find("\n", i)
+            end = n if end < 0 else end
+            yield line, source[i:end]
+            i = end
+        elif char in "\"'":
+            i += 1
+            while i < n and source[i] not in (char, "\n"):
+                i += 2 if source[i] == "\\" else 1
+            i += 1
+        elif char == "`":
+            i += 1
+            while i < n and source[i] != "`":
+                line += source[i] == "\n"
+                i += 2 if source[i] == "\\" else 1
+            i += 1
+        else:
+            i += 1
+
+
+def process_history_comments(frontend: Path) -> Iterator[Finding]:
+    """Yield a finding per comment that narrates the process, not the code."""
+    for root in COMMENT_ROOTS:
+        for path in sorted((frontend / root).rglob("*")):
+            rel = path.relative_to(frontend).as_posix()
+            if (
+                path.suffix not in COMMENT_SUFFIXES
+                or rel in COMMENT_SKIP
+                or rel in COMMENT_PENDING
+                or "node_modules" in path.parts
+            ):
+                continue
+            for first, text in comments(path.read_text(encoding="utf-8")):
+                match = PROCESS_COMMENT.search(text)
+                if match:
+                    line = first + text.count("\n", 0, match.start())
+                    yield Finding(
+                        rel,
+                        line,
+                        f"comment narrates the process ({match.group(0)!r}):"
+                        " say why the code exists instead",
+                    )
+
 
 def extract(frontend: Path) -> list[str]:
     """Run the extractor and return its JSON lines."""
@@ -419,6 +507,7 @@ def check(records: Sequence[Record], frontend: Path | None) -> list[Finding]:
         *title_case_headings(records),
         *long_meta_descriptions(records),
         *(pages_without_metadata(frontend) if frontend is not None else ()),
+        *(process_history_comments(frontend) if frontend is not None else ()),
     ]
     return sorted(
         set(findings), key=lambda finding: (finding.file, finding.line, finding.message)

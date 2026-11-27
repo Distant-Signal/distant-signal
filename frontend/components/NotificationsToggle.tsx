@@ -35,10 +35,10 @@ interface Failure {
   reference?: string;
 }
 
-/** Global "Enable notifications" control (Decision 6) -- not per-line,
- * since Decision 5 reuses pinned_lines/tracked_trains directly as scope.
+/** Global "Enable notifications" control -- not per-line: pinned_lines and
+ * tracked_trains are reused directly as scope.
  * Renders for every visitor (Tier 2, per docs/superpowers/specs/2026-08-31-anonymous-user-ux-design.md),
- * gated on browser capability, not install state (Decision 1 -- Android
+ * gated on browser capability, not install state (Android
  * and every desktop browser get real push from a bare open tab; only iOS
  * requires Home Screen install, which this component doesn't require: on
  * iOS outside the home screen, Safari has no `PushManager`, so the button

@@ -239,18 +239,14 @@ export function resolveRange(params: { from?: string; to?: string; range?: strin
 const HOUR_MS = 3_600_000;
 
 /** The line-info-page embed's fixed rolling 24-hour window -- deliberately
- * NOT a `RangePreset`/`resolveRange` variant: Decision 11 of
- * docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md
- * is explicit that this view has no user-selectable range at all, unlike
+ * NOT a `RangePreset`/`resolveRange` variant: this view has no
+ * user-selectable range at all (see
+ * docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md), unlike
  * the history page's day/30-day presets (which live in the URL). No
  * `preset`/`from`/`to`-from-query-params handling is needed here for the
  * same reason -- this always resolves the same window relative to `now`.
  * The window itself (24 hours) is independent of the chart's bucket
- * granularity, so this logic is unchanged from its original
- * `resolveHourlyRange` form -- only the name changed, to stay consistent
- * with the rest of this feature's rename when the bucket size was halved
- * to 30 minutes (see `HalfHourlyTrendsResults.tsx`, which is this
- * function's only caller). */
+ * granularity (see `HalfHourlyTrendsResults.tsx`, this function's only caller). */
 export function resolveHalfHourlyRange(now: number): { from: string; to: string } {
   return {
     from: new Date(now - 24 * HOUR_MS).toISOString(),
@@ -292,30 +288,29 @@ export function retentionShortfallDays(
 
 export type TrendGranularity = 'halfHour' | 'hour' | 'sixHour' | 'day';
 
-/** Finest to coarsest -- the four tiers Decision 1 of
- * docs/superpowers/specs/2026-09-05-configurable-trend-granularity-design.md
- * settled on. Order matters: `resolveGranularity`'s fallback walks this
- * array rightward (toward `'day'`) to find "the next coarser available
- * tier" (Decision 7). */
+/** Finest to coarsest -- the four trend granularity tiers
+ * (docs/superpowers/specs/2026-09-05-configurable-trend-granularity-design.md).
+ * Order matters: `resolveGranularity`'s fallback walks this
+ * array rightward (toward `'day'`) to find the next coarser available
+ * tier. */
 const GRANULARITY_ORDER: TrendGranularity[] = ['halfHour', 'hour', 'sixHour', 'day'];
 
 /** Bucket width in minutes per tier -- used only to estimate how many
  * chart points a range would render (`withinPointBudget`). Matches the
- * bucket sizes fixed by Decision 1/2 (30/60/360 minutes); `day`'s 1440 is
+ * bucket sizes (30/60/360 minutes); `day`'s 1440 is
  * never actually compared against `MAX_CHART_POINTS` -- see
  * `withinPointBudget`'s own doc comment. */
 const BUCKET_MINUTES: Record<TrendGranularity, number> = { halfHour: 30, hour: 60, sixHour: 360, day: 1440 };
 
-/** Decision 7's placeholder point-count ceiling -- "a reasoned, not
- * measured" starting value, the same unvalidated-guess posture as every
- * other floor/ceiling constant in this feature area (design spec Open
- * question 2). Revisit against real chart-legibility feedback once this
- * has run in production. */
+/** Placeholder point-count ceiling -- a reasoned, not measured, starting
+ * value, the same unvalidated-guess posture as every other floor/ceiling
+ * constant in this feature area. Revisit against real chart-legibility
+ * feedback once this has run in production. */
 const MAX_CHART_POINTS = 200;
 
 /** The two retention ceilings bounding the three sub-daily tiers (all
- * backed by one table, `line_status_half_hourly_stats` -- Decision 2) and
- * the daily tier, echoed from `/public/history-retention` (Decision 8). */
+ * backed by one table, `line_status_half_hourly_stats`) and
+ * the daily tier, echoed from `/public/history-retention`. */
 export interface GranularityRetentionCeilings {
   dailyStatsRetentionDays: number;
   halfHourlyStatsRetentionHours: number;
@@ -368,13 +363,13 @@ function isTrendGranularity(value: string | undefined): value is TrendGranularit
 
 /** The Trends tab's `?granularity=` URL param, resolved the same
  * "URL is the source of truth, invalid falls back to a default rather than
- * erroring" way `resolveRange` already resolves `?range=` (Decision 6).
+ * erroring" way `resolveRange` already resolves `?range=`.
  * Defaults to `'day'` when unset/unparseable -- the existing, always-safe
  * behavior, unchanged for a viewer who has never touched the new control.
  * If the requested tier is a real `TrendGranularity` but isn't currently
  * available for `rangeWidthMs` (e.g. a wide custom range pushes `'hour'`
  * past the point budget), falls back to the next coarser AVAILABLE tier
- * (Decision 7) -- never silently ignored, never thrown. */
+ * -- never silently ignored, never thrown. */
 export function resolveGranularity(
   params: { granularity?: string },
   rangeWidthMs: number,
@@ -389,7 +384,7 @@ export function resolveGranularity(
 }
 
 /** Trends-tab sibling of `retentionShortfallDays`, for the sub-daily-aware
- * ceiling Decision 8 adds. Reuses `retentionShortfallDays`'s exact
+ * ceiling. Reuses `retentionShortfallDays`'s exact
  * day-based math rather than duplicating it: a sub-daily tier's ceiling is
  * expressed in hours (`halfHourlyStatsRetentionHours`), converted here to
  * an equivalent whole-day figure that function already knows how to

@@ -129,10 +129,9 @@ describe('PlanPage (/plan, Plan a journey)', () => {
     expect(screen.getByRole('link', { name: 'Regular journeys' })).toHaveAttribute('href', '/journeys/regular');
   });
 
-  it('says planning needs no account, and that saving asks you to log in', async () => {
+  it('says only saving and tracking need a login', async () => {
     await renderPage();
-    expect(screen.getByText(/You don.t need an account to plan/)).toBeInTheDocument();
-    expect(screen.getByText(/asked to log in when you save it/)).toBeInTheDocument();
+    expect(screen.getByText(/You only need to log in to save and track it/)).toBeInTheDocument();
     // The two pages' cross-links are gone: everything is on this one.
     expect(screen.queryByRole('link', { name: 'Track it directly' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Plan a journey' })).not.toBeInTheDocument();

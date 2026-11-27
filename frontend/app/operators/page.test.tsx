@@ -123,10 +123,8 @@ describe('OperatorsPage', () => {
     expect(screen.getByText('No operator status data available right now.')).toBeInTheDocument();
   });
 
-  // Review M7/§2.6: alphabetical was fine at nine operators, but the
-  // homepage source describes a full catalogue of 25-40 -- worst-first
-  // matches every other status surface in the app (the dashboard's "Lines
-  // to watch", the homepage's own pinned sections).
+  // Worst-first, as on every other status surface (the dashboard's "Lines to watch", the homepage's
+  // pinned sections); alphabetical doesn't scale to a full catalogue of 25-40.
   it('orders cards worst-first, not alphabetically (review M7)', async () => {
     await renderPage();
 

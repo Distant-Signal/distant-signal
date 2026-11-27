@@ -1,9 +1,7 @@
 /** The Anthropic Messages API tool-calling loop against distant-signal-mcp's
- * six tools -- relocated verbatim in shape from orchestrator/src/chat.ts
- * (now deleted, see this plan's Task 5) into the browser, per the
- * client-side-tokens design doc's Decision 1. The loop logic itself is
- * NOT redesigned here, only where it runs and how its two clients
- * authenticate.
+ * six tools. It runs in the browser (the loop moved here from the former
+ * orchestrator service); only where it runs and how its two clients
+ * authenticate changed, not the loop logic.
  *
  * DQ12 (FE-6): only tools known to be read-only run automatically
  * (`isAutoRunTool`); any other tool waits for the passenger via

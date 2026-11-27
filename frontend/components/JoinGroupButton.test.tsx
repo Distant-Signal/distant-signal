@@ -44,7 +44,7 @@ describe('JoinGroupButton', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  // Review §3.2.3: a 409 means "you're already in this group", not a
+  // A 409 means "you're already in this group", not a
   // failure -- routes to the group exactly like the ordinary success path,
   // rather than surfacing an error alert for something that isn't one.
   it('a 409 (already a member) routes to the group instead of showing an error', async () => {

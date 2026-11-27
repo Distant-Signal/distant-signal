@@ -11,14 +11,13 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * real owner (see that page's `isOwner` gate). So a `401` here can, in
  * practice, only happen from a session that lapses between page load and
  * this click — the same narrow race `TicketPanel`'s design already
- * reasoned about (Decision 4,
- * docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md).
+ * reasoned about (docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md).
  * Matches `PinToggle`'s established `needsLogin` pattern: catch the `401`
  * specifically and show a login prompt, never the raw backend rejection
  * text this used to fall through to.
  *
  * Used on the line page's heading row and in `CustomLineForm`'s edit-mode
- * footer (Task 3.4.11), with the same trigger in both: the app has one
+ * footer, with the same trigger in both: the app has one
  * confirm-trigger style. */
 export function DeleteLineButton({ id }: { id: string }) {
   return (

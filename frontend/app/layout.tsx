@@ -57,9 +57,8 @@ export const SITE_METADATA: Metadata = {
   // resolve-basics.js) defaults `capable` to `true` whenever `appleWebApp`
   // is set at all and the caller doesn't include a `capable` key -- so
   // omitting it here would *still* emit a `mobile-web-app-capable` meta
-  // tag, the exact discouraged/rejected tag this plan's Global Constraints
-  // say to never add. Verified empirically against a running `next start`
-  // server this session: without this line, `mobile-web-app-capable`
+  // tag, the discouraged tag. Verified against a running `next start`
+  // server: without this line, `mobile-web-app-capable`
   // appeared in the rendered <head> even though only `statusBarStyle` was
   // set.
   appleWebApp: {
@@ -96,8 +95,7 @@ export const viewport: Viewport = {
 // fetch inside a <Suspense> boundary resolves after RootLayout has
 // already returned its JSX, so RootLayout could never read the outcome to
 // pass to a sibling. See
-// docs/superpowers/specs/2026-09-02-frontend-disconnect-reconnect-ux-design.md
-// Decision 1 and its implementation plan's Correction 1.
+// docs/superpowers/specs/2026-09-02-frontend-disconnect-reconnect-ux-design.md.
 //
 // The cost, stated plainly: the nav-bar freshness tooltip no longer
 // streams in -- RootLayout awaits it before emitting any HTML. Acceptable

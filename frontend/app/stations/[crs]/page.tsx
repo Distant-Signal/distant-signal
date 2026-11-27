@@ -65,8 +65,7 @@ const CRS_PATTERN = /^[A-Za-z]{3}$/;
 
 // The exact shape getPreferences() already returns for a 401, named so the
 // fallback below is typed as `Preferences` rather than inferred with
-// `never[]` members. Per-user data fails closed during an outage (design
-// spec Decision 5) instead of being stale-served.
+// `never[]` members. Per-user data fails closed during an outage instead of being stale-served.
 const NO_PREFERENCES: Preferences = {
   pinnedLines: [],
   pinnedStations: [],
@@ -119,7 +118,7 @@ async function fetchStationDisruptions(crs: string): Promise<StationDisruptions>
  * coverage, so a station can independently be `covered`/`none` for
  * disruptions and `sampled`/`not-sampled` for stats. Structurally mirrors
  * `fetchStationDisruptions`'s own 404-vs-other-failure split. See
- * docs/superpowers/specs/2026-09-03-per-station-stats-design.md Decision 9. */
+ * docs/superpowers/specs/2026-09-03-per-station-stats-design.md. */
 type StationSampleStatsResult =
   { coverage: 'not-sampled' } | { coverage: 'sampled'; operatorStats: StationOperatorSampleStats[] };
 
@@ -137,8 +136,8 @@ async function fetchStationSampleStats(crs: string): Promise<StationSampleStatsR
  * this app has ever captured `stations` reference data for this CRS at all
  * (`404`, `'unavailable'`), vs. whether it has but none of the twelve
  * allowlisted accessibility keys were present (`200 {}`, `'empty'`). See
- * docs/superpowers/specs/2026-09-12-station-accessibility-design.md
- * Correction 5 / Decision 9: those are two different, already-representable
+ * docs/superpowers/specs/2026-09-12-station-accessibility-design.md. Those are two different,
+ * already-representable
  * database states (the column is `NOT NULL DEFAULT '{}'`, but a CRS can
  * have no `stations` row at all) and must stay visibly distinct in the UI,
  * not collapsed into one "no data" message.
@@ -280,8 +279,7 @@ export default async function StationDisruptionPage({ params }: { params: Promis
   ] = await Promise.all([
     fetchStationDisruptions(crs),
     // Per-user, so it fails closed to "nothing pinned" (the shape a 401
-    // already returns) rather than being stale-served -- design spec
-    // Decision 5. The pin button reads as unpinned during an outage.
+    // already returns) rather than being stale-served. The pin button reads as unpinned during an outage.
     getPreferences().catch(() => NO_PREFERENCES),
     fetchStationSampleStats(crs),
     fetchStationAccessibility(crs),
@@ -349,17 +347,10 @@ export default async function StationDisruptionPage({ params }: { params: Promis
         <JsonLd data={stationJsonLd({ origin, crs, name: lookup.name })} />
       )}
       <Group justify="space-between">
-        {/* review §3.5.1: this page is 85% accessibility & facilities
-            content with no way to jump to it, and an `<h1>` reading
-            "Disruptions at X" for a page that is mostly NOT disruptions
-            was itself part of the problem. The heading now matches
-            `generateMetadata`'s own title form; the "On this page" row
-            immediately below restores the page's own framing (what the
-            page is FOR) that the old title carried, as navigation rather
-            than as prose. Deliberately not a tabs rewrite -- Decision 8's
-            placement (accessibility last) is unchanged, only the page's
-            framing changes, which the 09-17 review itself recommends as
-            the cheaper option that gets most of the benefit. */}
+        {/* The heading matches `generateMetadata`'s title form; the "On this page" row below restores the
+            page's framing (what it is for) as navigation rather than prose, since most of the page is
+            accessibility and facilities content with no other way to jump to it. Not a tabs rewrite:
+            accessibility stays last. */}
         <Title order={1}>{heading}</Title>
         <Group gap="md">
           <TextLink href={`/track?origin=${crs}`}>Track a train from here</TextLink>
@@ -397,10 +388,8 @@ export default async function StationDisruptionPage({ params }: { params: Promis
 
       {/* Two different absences, said honestly rather than collapsed into
           one cheerful "no disruptions" that would just as easily describe a
-          station we've never modelled at all -- the bug this task exists to
-          fix (see fetchStationDisruptions's doc comment above). Wrapped with
-          the reports list below in one `id="disruptions"` container -- the
-          "On this page" row's own jump target (review §3.5.1). */}
+          station we've never modelled at all (see fetchStationDisruptions's doc comment above). Wrapped with
+          the reports list below in one `id="disruptions"` container, the "On this page" row's jump target. */}
       <Stack gap="md" id="disruptions">
         {coverage === 'none' && (
           <Text c="dimmed">This station isn&apos;t covered by our line-status tracking yet.</Text>
@@ -456,10 +445,8 @@ export default async function StationDisruptionPage({ params }: { params: Promis
       )}
 
       {/* Sample stats by operator -- an independent block from the
-          disruption section above, keyed by LDBWS live-sampling coverage
-          rather than line-status-catalogue coverage (Decision 9). Three
-          honest states, mirroring the disruption section's own
-          coverage-vs-empty split immediately above. */}
+          disruption section above, keyed by LDBWS live-sampling coverage rather than line-status-catalogue
+          coverage. Three honest states, mirroring the disruption section's own coverage-vs-empty split. */}
       <Divider />
       <Stack gap="xs" id="stats">
         <SectionTitle>Sample stats by operator</SectionTitle>
@@ -492,12 +479,9 @@ export default async function StationDisruptionPage({ params }: { params: Promis
         <TextLink href={departuresHref}>See departures from {lookup.outcome === 'found' ? lookup.name : crs}</TextLink>
       </Stack>
 
-      {/* Accessibility & facilities -- a fourth independent block, keyed by
-          a third, orthogonal coverage question again: whether this app has
-          any `stations` reference row for this CRS at all. Deliberately
-          headed "Accessibility & facilities" rather than bare
-          "Accessibility", which in this codebase means WCAG (design spec
-          Correction 4 / Decision 8). */}
+      {/* Accessibility & facilities: a fourth independent block, keyed by whether this app has any `stations`
+          reference row for this CRS at all. Headed "Accessibility & facilities" rather than bare
+          "Accessibility", which in this codebase means WCAG. */}
       <Divider />
       <div id="accessibility">
         <StationAccessibilitySection result={accessibilityResult} />

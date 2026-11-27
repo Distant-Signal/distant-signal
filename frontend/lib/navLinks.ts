@@ -25,7 +25,7 @@ export interface NavDestination {
 }
 
 /** The one journeys entry: "Journeys", `/journeys` (DS-115, 21 Oct 2026).
- * It was "Track" on `/track/mine` (round 2, 12 Oct 2026), which had folded
+ * It was "Track" on `/track/mine`, which had folded
  * four tracking entries into one; `/track/mine` now redirects here
  * (`next.config.mjs`). The page lists your journeys, upcoming then past,
  * with "Plan a journey", "Find a train" and journey
@@ -113,7 +113,7 @@ export const CHAT_DESTINATION: NavDestination = { href: '/chat', label: 'Ask abo
 export const ACCOUNT_DESTINATION: NavDestination = { href: '/account', label: 'Account & data' };
 
 /** `/account/preferences`: colour theme, notifications, pride flag and the
- * Claude API key (round 2, item 4). Open to everyone, since most of it is
+ * Claude API key. Open to everyone, since most of it is
  * saved in the browser, so the drawer always lists it, the footer links to
  * it, and logged-out desktop visitors, who have no account menu, get a gear
  * in the bar (`PreferencesNavIcon`). */
@@ -126,7 +126,7 @@ export const PREFERENCES_DESTINATION: NavDestination = { href: '/account/prefere
  * bar and the drawer alike (`primaryNavDestinations`).
  *
  * It used to be drawer-only, on the grounds that the inline bar had no width
- * to spare; once round 2 freed that width it was simply never added, so from
+ * to spare; once that width was freed it was simply never added, so from
  * `md` up the section had no link in the chrome at all. Measured in Chromium
  * with it inline, the logged-out bar at 992px (its narrowest) still has 74px
  * of slack. Its `section` keeps it current on a network's own pages. */

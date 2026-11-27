@@ -6,7 +6,7 @@ import { ConfirmActionButton } from './ConfirmActionButton';
  * via the same-origin `/api/*` proxy. Mirrors `DeleteTrainButton.tsx`'s
  * confirm-modal shape exactly. The backend's own `remove_member` handler
  * already refuses to target the `owner` row (`403`) regardless of what
- * this button does, but the caller (Task 12's page) additionally never
+ * this button does, but the caller (`app/groups/[id]/page.tsx`) additionally never
  * RENDERS this button for the owner's own row at all -- defense in depth,
  * not reliance on the backend alone. */
 export function RemoveMemberButton({ groupId, memberId, name }: { groupId: string; memberId: string; name: string }) {

@@ -7,7 +7,7 @@ import { useShareOrCopy } from './useShareOrCopy';
 import { tokens } from '@/lib/theme';
 
 const DEFAULT_LABEL = 'Share this page';
-// Task 3.6.10: the visible Tooltip text only -- reassures a visitor on a
+// The visible Tooltip text only -- reassures a visitor on a
 // canonical-URL page (e.g. `/train/[uid]/[date]`, one of this button's
 // four callers alongside stations/lines/incidents) that sharing from here
 // really does hand out that page's own stable, permanent link, not some
@@ -43,7 +43,7 @@ export function ShareButton() {
   return (
     <Tooltip label={tooltipText}>
       {/* `tokens.iconButton.pageAction` (44px), not Mantine's default
-          `md` (28px): review §2.10 names this and `PinToggle`'s star as
+          `md` (28px): this and `PinToggle`'s star are
           the two actions a returning visitor taps most. */}
       <ActionIcon
         variant="outline"

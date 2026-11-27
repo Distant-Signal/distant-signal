@@ -39,8 +39,8 @@ import { ButtonLink } from '@/components/ButtonLink';
  * links to this form's edit mode for the line's real owner (see that
  * page's `isOwner` gate). So a `401` here can, in practice, only happen
  * from a session that lapses between page load and this submit — the same
- * narrow race `TicketPanel`'s design already reasoned about (Decision 4,
- * docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md).
+ * narrow race `TicketPanel`'s design already reasoned about
+ * (docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md).
  * Matches `PinToggle`'s established `needsLogin` pattern: catch the `401`
  * specifically and show a login prompt, never the raw backend rejection
  * text (`"no session"`) this used to fall through to. */
@@ -152,8 +152,7 @@ export function CustomLineForm({ existingLine, cancelHref }: { existingLine?: Cu
 
   return (
     <Stack gap="sm" maw={480}>
-      {/* Task 3.4.3: neither the create nor the edit page said what a
-          custom line actually is -- rendered here, once, rather than
+      {/* What a custom line actually is, rendered here once rather than
           duplicated across `app/lines/new/page.tsx` and
           `app/lines/[id]/edit/page.tsx`, since both mount this form
           immediately below their own `<h1>` with nothing in between. */}
@@ -161,18 +160,15 @@ export function CustomLineForm({ existingLine, cancelHref }: { existingLine?: Cu
         A custom line groups any stations and operators you choose into one line you can track status for. It&apos;s
         private to you and appears in your own lines table.
       </Text>
-      {/* Task 3.4.13: create-only -- an owner reaching the edit form is
+      {/* Create-only -- an owner reaching the edit form is
           already signed in (the route 404s a non-owner before this ever
           renders), so the hint would be both pointless and misleading
           there. Deliberately does NOT promise the in-progress entry
           survives the trip through the OIDC login redirect: verified
           against this component (no sessionStorage/localStorage anywhere
-          in it) that it does not, the same finding Task 1.15 made for its
-          own page -- an honest "you'll be sent to log in" beats a false
-          "your entries are kept". This also replaces the near-identical
-          plain `Text` `app/lines/new/page.tsx` used to render itself,
-          upgraded to an `Alert` for more visual weight per the review, not
-          duplicated alongside it. */}
+          in it) that it does not -- an honest "you'll be sent to log in" beats a false
+          "your entries are kept". An `Alert` rather than plain `Text` for
+          visual weight. */}
       {!existingLine && (
         <Alert color="grape" variant="light">
           Creating a line needs a Distant Signal account. You&apos;ll be sent to log in when you save if you aren&apos;t
@@ -210,15 +206,12 @@ export function CustomLineForm({ existingLine, cancelHref }: { existingLine?: Cu
           Add
         </Button>
       </Group>
-      {/* Task 3.4.4: this list had neither an empty state nor any
-          indication that order matters (it's travel order, per
-          DESIGN.md §5.1's ordered-list domain model) -- an empty
-          `Group` gave no feedback at all before the first station was
-          added, and once a couple were added there was nothing to show
-          they were sequential rather than an unordered set. Numbering the
-          chips inline (rather than a full drag-reorderable vertical list)
-          is the smaller of the two fixes the review names; reordering
-          stays out of scope here. */}
+      {/* The list needs an empty state and an indication that order matters
+          (it's travel order, per DESIGN.md §5.1's ordered-list domain
+          model): an empty `Group` gives no feedback before the first
+          station, and nothing otherwise shows the chips are sequential.
+          Numbering the chips inline is the smaller fix than a full
+          drag-reorderable vertical list; reordering stays out of scope. */}
       {stations.length === 0 ? (
         <Text size="sm" c="dimmed">
           No stations yet. Add at least two, in travel order.
@@ -270,7 +263,7 @@ export function CustomLineForm({ existingLine, cancelHref }: { existingLine?: Cu
         // colour is always measured against the page background it was
         // actually chosen for.
         variant="transparent"
-        // Task 3.4.12: Mantine `Button variant="subtle"`'s default text
+        // Mantine `Button variant="subtle"`'s default text
         // colour measured near-white on this app's near-white dark
         // background -- effectively invisible as a link. Pinned to the
         // same `--mantine-color-anchor` token every ordinary text link in
@@ -330,8 +323,8 @@ export function CustomLineForm({ existingLine, cancelHref }: { existingLine?: Cu
           {existingLine ? 'Save changes' : 'Create line'}
         </Button>
       )}
-      {/* Task 3.4.11: the edit page had no way to delete a line at all --
-          only the detail page's own heading-row `Button` did. Reuses that
+      {/* Delete from the edit page too, not only the detail page's own
+          heading-row `Button`. Reuses that
           same component/modal/`handleDelete` (rather than a second,
           separately-implemented delete flow), rendered as a quieter text
           link appropriate to a form's footer. `existingLine` gates it

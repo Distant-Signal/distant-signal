@@ -64,16 +64,8 @@ describe('gapSpans', () => {
   });
 
   it('merges a multi-day gap into one span', () => {
-    // NB: the plan's own literal test fixture for this case (`docs/superpowers/plans/2026-09-02-line-history-chart-fixes.md`,
-    // Task 4 Step 4) asserts `endDay: '2026-08-04'`, but day04 here has a
-    // non-null value (0.2) -- that's inconsistent with both gapSpans'
-    // prescribed algorithm (Step 1) and every other case in this same
-    // describe block (e.g. "multiple separate spans" below correctly ends
-    // a gap at the last *null* day, not the following valid day). Treating
-    // that as a typo in the plan, not a spec to match: propagating it here
-    // would mean the shaded gap band spills into a valid data day, exactly
-    // the spillover risk Task 4 Step 3 itself calls out as a live-render
-    // risk to check for.
+    // day04 has a non-null value, so the gap ends at the last null day (day03); it must not spill into
+    // a valid data day.
     expect(
       gapSpans([
         point('2026-08-01', 0.1),
@@ -149,8 +141,7 @@ describe('gapSpans (half-hourly buckets)', () => {
   });
 
   it('does not collide two buckets that share the same wall-clock time-of-day label on different days', () => {
-    // Regression guard for the finding in this plan's Status note: the raw
-    // RFC3339 instant, not a formatted "HH:mm" label, must be what
+    // Regression guard: the raw RFC3339 instant, not a formatted "HH:mm" label, must be what
     // gapSpans/referenceAreaBounds treat as the bucket identity.
     const points = [halfHourPoint('2026-08-30T14:00:00Z', 0.1), halfHourPoint('2026-08-31T14:00:00Z', null)];
     const spans = gapSpans(points);
@@ -182,9 +173,8 @@ describe('TrendsCharts granularity prop', () => {
     },
   );
 
-  // Review §3.3/I10: the day axis used to print the raw bucket key
-  // ("2026-08-01") verbatim -- every other date in the app reads "15 Sep"
-  // style. Now formatted, not omitted.
+  // The day axis must print a short date ("15 Sep"), like every other date in the app, not the raw
+  // bucket key ("2026-08-01").
   it('gives the x-axis a human short-date tickFormatter for the day granularity', async () => {
     renderWithMantine(<TrendsCharts points={points} granularity="day" order={2} />);
     const chart = (await screen.findAllByTestId('line-chart'))[0];

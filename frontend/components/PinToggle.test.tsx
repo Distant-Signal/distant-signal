@@ -36,8 +36,8 @@ describe('PinToggle', () => {
     expect(screen.getByLabelText('Unpin Test line, currently pinned')).toBeInTheDocument();
   });
 
-  // Task 3.4.13: an anonymous visitor got no hint that pinning needs an
-  // account until they clicked and hit the 401 prompt.
+  // An anonymous visitor gets a hint that pinning needs an account up front,
+  // rather than only after clicking and hitting the 401 prompt.
   it('hints that pinning needs an account when needsAccountHint is set and the line is unpinned', () => {
     renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} needsAccountHint />);
     expect(screen.getByLabelText('Pin Test line, needs an account')).toBeInTheDocument();
@@ -63,14 +63,13 @@ describe('PinToggle', () => {
     expect(star).toHaveAccessibleDescription('Pin Test line, currently not pinned');
   });
 
-  // Review §2.10: named alongside `ShareButton` as "the two actions a
-  // returning user taps most" on the station page, so it gets the 44px
-  // primary-action touch-target floor rather than Mantine's default `md`
-  // ActionIcon size (28px). `--ai-size` is the CSS variable `ActionIcon`
-  // actually reads its box dimensions from (`ActionIcon.css`); a bare
-  // `size={44}` prop resolves to this exact `calc()` (`getSize`'s numeric
-  // branch), which is why the assertion matches the whole expression
-  // rather than a plain `'44px'`.
+  // Named alongside `ShareButton` as "the two actions a returning user taps
+  // most" on the station page, so it gets the 44px primary-action touch-target
+  // floor rather than Mantine's default `md` ActionIcon size (28px). `--ai-size`
+  // is the CSS variable `ActionIcon` actually reads its box dimensions from
+  // (`ActionIcon.css`); a bare `size={44}` prop resolves to this exact `calc()`
+  // (`getSize`'s numeric branch), which is why the assertion matches the whole
+  // expression rather than a plain `'44px'`.
   it('sizes the star to the 44px primary-action touch target, not the 28px default', () => {
     renderWithMantine(<PinToggle name="Test line" kind="line" id="wcml" initiallyPinned={false} />);
     expect(screen.getByLabelText('Pin Test line, currently not pinned')).toHaveStyle({

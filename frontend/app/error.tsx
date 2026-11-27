@@ -64,7 +64,6 @@ export default function Error({
   // is a prop only this component receives; no sibling elsewhere in the
   // tree can call it, which is why this fix can only live here. See
   // docs/superpowers/specs/2026-09-02-frontend-disconnect-reconnect-ux-design.md
-  // Decision 6.
   //
   // Only ever on a true -> false transition, never on the initial render.
   // A genuine (non-connectivity) Server Component bug renders this page
@@ -107,7 +106,7 @@ export default function Error({
         <Button onClick={tryAgain} w="fit-content">
           Try again
         </Button>
-        {/* 2026-09-22 UX review §5.1: "your dashboard" assumes a logged-in
+        {/* "Your dashboard" would assume a logged-in
             user, but this is the app's ONLY error boundary (this file's own
             doc comment above) -- it renders for anonymous visitors too,
             for whom `/` isn't a dashboard and there's no "yours" about it.

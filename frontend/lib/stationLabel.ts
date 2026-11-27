@@ -29,7 +29,7 @@ export const UNKNOWN_STATION_LABEL = 'Unknown station';
 
 /** `"A (AAA) to B (BBB)"`, or just the origin when there is no destination
  * (a pre-match pin genuinely has none -- see
- * `2026-09-01-tracked-trains-home-page-design.md` Decision 1).
+ * `2026-09-01-tracked-trains-home-page-design.md`).
  *
  * When BOTH ends have a code, the two ends are always formatted the same
  * way as each other: full `Name (CODE)` when both names resolved, bare
@@ -40,7 +40,7 @@ export const UNKNOWN_STATION_LABEL = 'Unknown station';
  * ends were resolved independently, so a route with only one name known
  * rendered as e.g. "London Kings Cross (KGX) to EDB" -- a real code paired
  * with a resolved name right next to a bare code, which reads as a data
- * error rather than a degraded lookup (review §2.9). Falling back to a
+ * error rather than a degraded lookup. Falling back to a
  * bare code is right; mixing the two forms in one string is not. */
 export function routeLabel(
   originCrs: string | null | undefined,

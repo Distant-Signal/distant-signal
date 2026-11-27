@@ -33,9 +33,7 @@ export interface RenameTrainButtonHandle {
  *
  * `Save` is disabled whenever the trimmed input is empty -- this is the
  * one deliberate divergence from a plain "submit whatever's in the box"
- * pattern (see
- * docs/superpowers/plans/2026-09-05-custom-tracking-names-plan.md's
- * Judgment Call 3): the backend already normalizes an empty-after-trim
+ * pattern: the backend already normalizes an empty-after-trim
  * value to "clear the name" on any successful write, so without this,
  * accidentally emptying the field and hitting Save would silently clear a
  * name the user meant to just edit. Disabling Save on empty input means
@@ -44,7 +42,7 @@ export interface RenameTrainButtonHandle {
  *
  * `trigger`, when given, replaces the default `Button` -- see
  * `DeleteTrainButton.tsx`'s own doc comment on its matching `trigger` prop
- * for why (Task 3.6.7's `/journeys` list-row overflow-kebab fix).
+ * for why (the `/journeys` list-row overflow menu).
  *
  * `ref` exposes `{ open: handleOpen }` -- same escape hatch, and the same
  * reason, as `DeleteTrainButton`'s own `ref` (see its doc comment): a

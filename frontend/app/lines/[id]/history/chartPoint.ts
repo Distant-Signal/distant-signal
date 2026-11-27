@@ -14,9 +14,7 @@
  * across a day boundary, so the category-axis IDENTITY must stay the
  * always-unique raw instant, with display formatting applied separately,
  * only for the tick labels). See
- * docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md
- * Decision 9 (written when this was still an hourly rollup -- the
- * reasoning is unchanged at 30-minute buckets). */
+ * docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md. */
 export interface ChartPoint {
   bucketKey: string;
   delayRate: number | null;
@@ -25,8 +23,7 @@ export interface ChartPoint {
   avgDelayMinutes: number | null;
   /** How many distinct trains (LDBWS `service_id`s, deduplicated) were
    * first observed during this bucket -- NOT how many were concurrently
-   * running (see the design doc's Decision 1 caveat, and each caller's own
-   * honesty-copy paragraph). Never `null`, unlike the four fields above:
+   * running (see each caller's own honesty-copy paragraph). Never `null`, unlike the four fields above:
    * deliberately NOT gated by the sparse-data floor a mapper applies to
    * those -- a low `total` for a sparse bucket is exactly why that
    * bucket's rate fields are null, and hiding it here would defeat the

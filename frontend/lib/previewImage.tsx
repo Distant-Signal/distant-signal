@@ -13,7 +13,7 @@ import {
 import { SITE_NAME } from './pageMetadata';
 import { renderableText } from './previewGlyphs';
 
-/** The link-preview (Open Graph) image template (round 2, item 9): the
+/** The link-preview (Open Graph) image template: the
  * page's title on the brand background, under the wordmark. A route opts in
  * with an `opengraph-image.tsx` that re-exports `size`, `contentType` and
  * `alt` from here and renders `renderPreviewImage(title)`; Next then lists

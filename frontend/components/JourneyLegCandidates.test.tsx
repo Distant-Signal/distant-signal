@@ -91,7 +91,7 @@ function mockFetchByUrl(
     // Matches with OR without a `?operator=...` query string -- every test
     // in this file that doesn't type into the Operator field never commits
     // a non-empty `committedOperator`, so its fetch stays queryless exactly
-    // as before this task; the ones that do type are the only callers that
+    // as before; the ones that do type are the only callers that
     // ever hit the `?` branch.
     if (/\/api\/Journeys\/\d+\/legs\/\d+\/candidates(\?.*)?$/.test(url)) {
       return Promise.resolve(candidates());
@@ -187,8 +187,7 @@ describe('JourneyLegCandidates', () => {
     expect(first).toHaveTextContent('Scheduled');
   });
 
-  // Review §2.5/M15 -- the list's own intro line, added independently of
-  // the per-row leg-times rewrite above (both land on this component).
+  // The list's own intro line, separate from the per-row leg-times above.
   it('names the match count and says the pick can still be changed', async () => {
     vi.stubGlobal('fetch', mockFetchByUrl());
     renderWithMantine(<JourneyLegCandidates journeyId="1" legId="2" serviceDate="2026-09-22" onPicked={onPicked} />);
@@ -488,12 +487,11 @@ describe('JourneyLegCandidates', () => {
     );
   });
 
-  // Task 6, journey-leg-operator-filter plan: the backend now filters
-  // candidates by operator/TOC and echoes each row's own operator back --
-  // these tests cover the row-rendering half, the debounced-refetch half,
-  // and (separately) that the Operator field's own suggestion dropdown is
-  // wired through the same shared plumbing every other CRS/TOC-code field
-  // in this app uses.
+  // The backend filters candidates by operator/TOC and echoes each row's own
+  // operator back -- these tests cover the row-rendering half, the
+  // debounced-refetch half, and (separately) that the Operator field's own
+  // suggestion dropdown is wired through the same shared plumbing every other
+  // CRS/TOC-code field in this app uses.
   describe('operator filter', () => {
     it('renders the operator on a row that has one and omits it on a row that does not', async () => {
       vi.stubGlobal('fetch', mockFetchByUrl());

@@ -47,8 +47,7 @@ html:root[data-mantine-color-scheme='light'] {
      scale that clears AA; a hand-mixed intermediate is ruled out by the
      grape spec's "no custom colour tuples" Non-goal. Dimmed text still
      reads as dimmed because body text here is black (21:1), so the
-     hierarchy survives -- but it IS visibly darker than before; see this
-     plan's Task 6. Dark is untouched: `--mantine-color-dimmed` resolves to
+     hierarchy survives -- but it IS visibly darker than before. Dark is untouched: `--mantine-color-dimmed` resolves to
      dark 2 there -- but see the dark-scheme block below, which is where
      that claim stopped being true. */
   --mantine-color-dimmed: var(--mantine-color-gray-7);
@@ -226,12 +225,12 @@ html:root[data-mantine-color-scheme='light'] {
      available" text (design §4.2), never the fact's only carrier, so it
      only needs to clear the UI-component contrast floor (3:1) rather than
      text's 4.5:1. Green 7 / red 7 in light, green 4 / red 4 in dark --
-     review §3.5.6's own numbers. The dark half is the same red 4
+     the numbers this glyph needs. The dark half is the same red 4
      `--ds-color-error-text` already uses in the dark block below, so the
      glyph's dark resolution matches an established pattern rather than
      inventing a new one; the light half is one shade lighter than that
      token's red 9, since 7 already clears the lower 3:1 bar this glyph
-     needs and the review named it explicitly. */
+     needs. */
   --ds-color-good-icon: var(--mantine-color-green-7);
   --ds-color-bad-icon: var(--mantine-color-red-7);
 
@@ -457,7 +456,7 @@ html:root[data-mantine-color-scheme='dark'] .mantine-Input-input:not([data-varia
    in @mantine/core/styles.css) rather than reading
    `--mantine-color-dimmed` -- so ConnectivityMonitor's "Reconnecting..."
    banner shipped at 3.32:1 on white. Caught by running axe against the
-   banner-visible state (this feature's Task 6 Step 2), which the route-level
+   banner-visible state, which the route-level
    sweep in e2e/accessibility.spec.ts can't see, since the banner only exists
    while the backend is unreachable. Same gray 7 (8.18:1) and same reasoning
    as above.
@@ -510,7 +509,7 @@ html:root[data-mantine-color-scheme='dark'] .mantine-Input-input:not([data-varia
    `text-decoration-skip-ink: none` turns off the browser default of
    lifting the line over each letter's descenders/ascenders at word
    boundaries, which on a multi-word link reads as a gapped, dashed-looking
-   underline rather than one continuous line (review §2.8). */
+   underline rather than one continuous line. */
 a[data-text-link] {
   text-decoration: none;
   text-decoration-color: var(--mantine-color-anchor);
@@ -1603,11 +1602,11 @@ a[data-text-link-tone='inherit'] {
    sufficient distinguisher from surrounding body text (WCAG 1.4.1). */
 [data-rich-text] a {
   color: var(--mantine-color-anchor);
-  /* review §3.5.9: a long unrewritten URL (a malformed href `hostLabel`
+  /* A long unrewritten URL (a malformed href `hostLabel`
      rejected, or an anchor whose text genuinely isn't its own href) could
      otherwise force the whole `[data-rich-text]` column wider than its
      container instead of wrapping -- the 70ch column `StationAccessibility
-     Section.tsx` now sets (§3.5.10) makes this more likely to bite, not
+     Section.tsx` sets makes this more likely to bite, not
      less. `anywhere` breaks inside a word only as a last resort, after
      ordinary word-break opportunities are exhausted. */
   overflow-wrap: anywhere;
@@ -1630,8 +1629,8 @@ a[data-text-link-tone='inherit'] {
   white-space: nowrap;
 }
 
-/* review §3.5.7: rich-text paragraphs (station-accessibility notes, mostly)
-   had no vertical rhythm of their own -- Mantine's `Typography` doesn't set
+/* Rich-text paragraphs (station-accessibility notes, mostly)
+   have no vertical rhythm of their own -- Mantine's `Typography` doesn't set
    a `p` margin, so two- and three-paragraph notes ran together as one
    block while sitting next to plain `Stack`-spaced label/value rows that
    very visibly did have rhythm. `xs` matches this section's own between-row
@@ -1789,7 +1788,7 @@ a[data-text-link-tone='inherit'] {
   --journey-progress-slot: 56px;
   /* Wider than a bare intermediate slot because an endpoint is the only
      node that prints its station name as always-visible text below the
-     circle (spec Decision 3). At 56px, "London Paddington" could only fit
+     circle. At 56px, "London Paddington" could only fit
      by breaking mid-word; 84px takes it to a clean two lines. */
   --journey-progress-endpoint-slot: 84px;
   overflow-x: auto;
@@ -1806,13 +1805,12 @@ a[data-text-link-tone='inherit'] {
      2px outline at a 2px offset, so 4px is an exact fit with no slack for a
      `--mantine-scale` bump or a custom `focusClassName`. */
   padding-block: 6px;
-  /* 2026-09-22 UX review finding I5/2.8: on a narrow viewport the end
-     node's always-visible label (spec Decision 3) is centered on a circle
+  /* On a narrow viewport the end
+     node's always-visible label is centered on a circle
      that sits right at the scroll container's own edge -- with no
      horizontal buffer there, the label's last glyph got clipped by this
      element's own scroll/padding box ("Edinburgh" rendering as
-     "Edinburgł" in the review's capture). This is exactly the review's
-     own second suggested fix ("padding-inline on the container") --
+     "Edinburgł"). Padding-inline on the container gives
      enough room for a bold 12px label's descender/edge to clear the box
      without materially narrowing the diagram's own scroll range. */
   padding-inline: 10px;
@@ -1995,8 +1993,8 @@ a[data-text-link-tone='inherit'] {
    above a list (/lines, /incidents, /trains, /operators, a tram network's
    stops; docs/style-guide.md, "List search and filters"). The sticky
    variant (`data-sticky`, the default) sticks at every width so search is
-   always in reach (Task 3.4.2 made the /lines controls sticky on phones
-   only, but then they were a ~300px block, a third of a 390x844 screen).
+   always in reach (it was once sticky on phones only, but then it was a
+   ~300px block, a third of a 390x844 screen).
 
    The sticky bar bleeds out over the page's `lg` side padding so the stuck
    rule spans the content edge to edge, and its own vertical padding is
@@ -2167,8 +2165,8 @@ a[data-text-link-tone='inherit'] {
   outline-offset: 2px;
 }
 
-/* Shared touch-target-padding utility -- review §2.10 ("Interactive
-   targets below the 24px minimum"). For a small icon-only control whose
+/* Shared touch-target-padding utility for interactive
+   targets below the 24px minimum. For a small icon-only control whose
    VISIBLE glyph must stay the same size (this is a hit-area fix, not a
    redesign), an invisible `::before` centred on the element is the only
    way to grow the pointer/touch target without growing anything a sighted
@@ -2199,7 +2197,7 @@ a[data-text-link-tone='inherit'] {
   transform: translate(-50%, -50%);
 }
 
-/* `/groups/{id}`'s header actions (review §3.2.1) -- "Rename"/"Leave group"
+/* `/groups/{id}`'s header actions -- "Rename"/"Leave group"
    sat 12px apart in a `nowrap` `Group` next to the group name, which on a
    narrow phone left both squeezed against the `<h1>` with no room to grow.
    Above `$mantine-breakpoint-xs` the actions stay a normal inline `Group`
@@ -2223,7 +2221,7 @@ a[data-text-link-tone='inherit'] {
   }
 }
 
-/* `/groups/{id}`'s member rows (review §3.2.4) -- name, role badge and the
+/* `/groups/{id}`'s member rows -- name, role badge and the
    row's action button(s) used to sit in one `nowrap` `Group`, which on a
    narrow phone left the action buttons wrapping directly on top of each
    other hard against the name instead of getting their own line. Above
@@ -2392,7 +2390,7 @@ svg[data-icon='external-link'] {
 
 /* `ConnectivityMonitor`'s "Reconnecting" notice. zIndex 300 sits below
    DataFreshnessInfo's tooltip (400) and Mantine's Modal, so it never covers
-   something the visitor opened (design spec Decision 8). Review §2.16:
+   something the visitor opened. It is
    capped at 480px (the app's narrow-form width) and floored at the
    viewport minus a 16px gutter each side, so on a 390px phone it neither
    shrinks to a four-line wrap nor touches the screen edges. */

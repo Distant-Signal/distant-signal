@@ -239,8 +239,7 @@ describe('JourneyDetailPage', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
-  // 2026-09-22 UX review finding M18: a null customName no longer falls
-  // back to the flat "Tracked journey" -- it defaults to the route.
+  // A null customName defaults to the route, not a flat "Tracked journey".
   it('defaults the <h1> to the route when there is no custom name', async () => {
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney());
     await renderPage();
@@ -289,8 +288,8 @@ describe('JourneyDetailPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: "Trip to Grandma's" })).toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review finding I24/2.12: no freshness timestamp
-  // anywhere on the page.
+  // Without a freshness timestamp nothing says when the page's figures were
+  // measured.
   it('shows a "Data as of" freshness line', async () => {
     vi.mocked(api.getJourney).mockResolvedValue(baseJourney());
     await renderPage();
@@ -320,8 +319,7 @@ describe('JourneyDetailPage', () => {
       });
     }
 
-    // 2026-09-22 UX review finding I12/2.6: "the journey is not drawn as
-    // a chain" -- number the legs.
+    // Numbering the legs makes the journey read as a chain.
     it('numbers each leg "Leg N of M"', async () => {
       vi.mocked(api.getJourney).mockResolvedValue(twoLegJourney());
       await renderPage();

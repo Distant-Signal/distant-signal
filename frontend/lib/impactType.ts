@@ -2,8 +2,8 @@ import { ownValue } from './ownValue';
 
 /** Labels for `Disruption.impactType`'s three known values -- see
  * `common::Disruption` (`crates/common/src/lib.rs`) and
- * docs/superpowers/specs/2026-09-01-disruption-impact-type-design.md
- * Decision 7. Rendered by both `DisruptionDetail.tsx` (expanded panel) and
+ * docs/superpowers/specs/2026-09-01-disruption-impact-type-design.md.
+ * Rendered by both `DisruptionDetail.tsx` (expanded panel) and
  * `IssueList.tsx` (collapsed row) via `impactTypeLabel`, so both surfaces
  * stay in sync on wording by construction. */
 export const IMPACT_TYPE_LABELS: Record<string, string> = {

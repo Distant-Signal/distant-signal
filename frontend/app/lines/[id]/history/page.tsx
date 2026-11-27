@@ -60,7 +60,7 @@ async function resolveLineName(id: string): Promise<string> {
  * existing `null`-means-unknown/hide-the-banner semantics for the Timeline
  * tab (unchanged -- Non-goal of
  * docs/superpowers/specs/2026-09-05-configurable-trend-granularity-design.md).
- * The two new fields (Decision 8) default to `0` on failure rather than
+ * The two new fields default to `0` on failure rather than
  * `null`: `resolveGranularity`/`availableGranularities` need concrete
  * numbers, and `0` (combined with `'day'` always being exempt from both
  * checks -- see `frontend/lib/history.ts`) collapses safely to "only Daily
@@ -149,7 +149,7 @@ export default async function LineHistoryPage({
       <Title order={1}>{name} history</Title>
       <HistoryRangePicker basePath={`/lines/${id}/history`} preset={range.preset} from={range.from} to={range.to} />
       {/* Timeline (the existing per-status-change history) and Trends (the
-          Task 9 daily rollup) are split into tabs since they're different
+          daily rollup) are split into tabs since they're different
           views over data with different retention windows — the 7-day
           shortfall notice below is specific to `line_status_history` and
           would be misleading if shown while looking at Trends, so it lives
@@ -205,7 +205,7 @@ export default async function LineHistoryPage({
             {/* Fallback sized to the *empty* state `HistoryResults` itself
                 renders ("No history entries in that range.", a single
                 `Text` with no wrapper) rather than to a populated result's
-                height (review §2.11) -- a quiet range resolving from a
+                height -- a quiet range resolving from a
                 240px grey box down to one line was a large, jarring shift.
                 `role="status"`/`aria-busy` gives assistive tech something
                 to announce while a slower, longer range is still loading;
@@ -237,7 +237,7 @@ export default async function LineHistoryPage({
               available={available}
             />
             {/* Sub-daily-aware sibling of the Timeline tab's own shortfall
-                banner (Decision 8) -- only non-null when the CURRENTLY
+                banner -- only non-null when the CURRENTLY
                 SELECTED tier's own real retention ceiling doesn't reach
                 back to range.from. A custom range can still outrun a
                 35-day sub-daily retention or a 300-day daily one even
@@ -257,17 +257,10 @@ export default async function LineHistoryPage({
             >
               <TrendsResults id={id} from={range.from} to={range.to} granularity={granularity} />
             </Suspense>
-            {/* Decision 4's daily full-coverage series -- a second,
-                separate section under the existing sample-based one, always
-                attempted (not conditionally hidden behind a pre-check for
-                whether this line has any coverage rows). Judgment call: the
-                simplest of the three UI shapes the design doc's Open
-                Question 4 leaves open (separate series vs. one series with
-                a marked transition vs. hiding the sample series once
-                coverage exists) -- chosen because it needs no new
-                "does this line have coverage data at all" lookup and
-                degrades to an honest, harmless empty-state message today,
-                since nothing produces full-coverage data yet. */}
+            {/* Daily full-coverage series: a separate section under the sample-based one, always
+                attempted rather than hidden behind a pre-check for whether this line has any coverage
+                rows. The simplest of the layouts considered; it degrades to an honest, harmless
+                empty-state message while nothing produces full-coverage data. */}
             <Suspense
               key={range.preset ?? `${range.from}-${range.to}`}
               fallback={<LoadingPlaceholder label="Loading trends for every train" height={320} />}
@@ -292,13 +285,10 @@ export default async function LineHistoryPage({
 // test in this file asserts on HistoryResults' resolved content). Awaiting
 // this function directly, the same way TrendsResults.test.tsx does for its
 // sibling, sidesteps the Suspense boundary entirely.
-/** Task 3.4.9: some upstream statuses set `reason` to literally the same
- * words as their own severity label (e.g. `reason: "Good Service"` on a
- * severity-10 status) -- redundant right next to the row's own
- * `StatusBadge`, which already renders that exact label: "GOOD SERVICE
- * Good Service 21:34". A genuinely empty `reason` is a different fact (no
- * reason was supplied at all, not that the one supplied just echoes the
- * badge) and keeps its own, pre-existing "No reason given" copy. */
+/** Some upstream statuses set `reason` to the same words as their own severity label (e.g. `reason:
+ * "Good Service"` on a severity-10 status), which is redundant next to the row's `StatusBadge`: "GOOD
+ * SERVICE Good Service 21:34". A genuinely empty `reason` is a different fact (none was supplied) and
+ * keeps its own "No reason given" copy. */
 function timelineReasonText(span: HistorySpan): string {
   if (!span.reason) return 'No reason given';
   if (span.reason === severityLabel(span.severity)) return 'No incidents reported';
@@ -328,15 +318,9 @@ export async function HistoryResults({
   try {
     entries = await getLineStatusHistory(id, from, to);
   } catch (err) {
-    // 2026-09-22 UX review §5.1: this Suspense boundary only catches
-    // *suspension*, not errors, so an unhandled rejection here propagated
-    // past it to the route's global error.tsx -- blanking the page title,
-    // "Back to line" link, Period control and BOTH tabs (Trends survives
-    // fine on its own; only this Timeline panel lacked the same
-    // catch-and-render-a-Paper guard `TrendsResults`/`LineTrainsResults`
-    // already use). Logged so a genuine backend regression here isn't
-    // silent, the same posture `resolveLineName` above takes for its own
-    // swallowed failure.
+    // This Suspense boundary only catches suspension, not errors: an unhandled rejection would propagate
+    // to the route's global error.tsx and blank the page title, "Back to line" link, Period control and
+    // both tabs. Logged so a genuine backend regression isn't silent, as `resolveLineName` above does.
     log.error('Could not load line status history.', { line_id: id, from, to, error: err });
     return (
       <Paper withBorder p="md">
@@ -348,13 +332,8 @@ export async function HistoryResults({
   const spanCount = days.reduce((total, day) => total + day.spans.length, 0);
 
   if (days.length === 0) {
-    // 2026-09-22 UX review §5.2: honest but previously terminal -- the
-    // control that would change the answer (the Period picker above) is
-    // 40px away with nothing pointing at it, and the copy didn't say
-    // whether a genuinely quiet line just has nothing to show or the
-    // range is simply too short to have caught anything. "Try 30 days" is
-    // withheld once 30 days is already the active preset -- there's no
-    // wider preset this page offers to suggest instead.
+    // The Period picker above is the control that would change the answer, so point at it. "Try 30 days"
+    // is withheld once 30 days is already the active preset: no wider preset is offered.
     return (
       <Stack gap="xs">
         <Text c="dimmed">No history entries in that range.</Text>

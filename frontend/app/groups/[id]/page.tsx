@@ -200,9 +200,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   return (
     <Stack p="lg" gap="lg">
       <GroupOwnershipAnnouncer viewerRole={group.role} />
-      {/* Review §3.2.5: the detail page had no way back to `/groups` short
-          of the browser's own Back button (which fails outright for a
-          visitor who followed a deep link straight here). Mirrors
+      {/* A way back to `/groups`, since the browser's own Back button
+          fails outright for a visitor who followed a deep link straight
+          here. Mirrors
           `app/lines/[id]/history/page.tsx`'s own "Back to line" TextLink,
           placed above the `<h1>` the same way. */}
       <TextLink href="/groups" underline="always">
@@ -210,16 +210,13 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       </TextLink>
       <Group justify="space-between" align="baseline">
         <Title order={1}>{group.name}</Title>
-        {/* Review §3.2.1 (design decision): "Delete group" used to sit
-            here too, in the same red-outline style as "Leave group" --
-            visually identical despite wildly different blast radii (one
-            member's own access vs. the whole group, every member, gone).
-            It now lives alone in the "Danger zone" section at the foot of
-            the page, subtly styled, so the one button every viewer might
-            actually want keeps the visual weight here.
+        {/* "Delete group" is not here: it would look identical to "Leave
+            group" despite a far larger blast radius (one member's own
+            access vs. the whole group gone), so it lives alone in the
+            "Danger zone" section at the foot of the page.
             `groupHeaderActions` (app/globals.css) stacks these full-width
-            with more breathing room between them below `xs`, where they
-            used to sit 12px apart directly against the heading. */}
+            below `xs`, rather than leaving them 12px apart directly
+            against the heading. */}
         <Group gap="xs" className="groupHeaderActions">
           {canManage && <RenameGroupButton groupId={id} currentName={group.name} />}
           <LeaveGroupButton
@@ -232,7 +229,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       </Group>
 
       <Stack gap="sm">
-        {/* `SectionTitle` (review §3.2.5; docs/style-guide.md "Heading
+        {/* `SectionTitle` (docs/style-guide.md "Heading
             rules"): an `order={2}` `Title` with no `size` renders at
             near-`h1` scale on mobile, which reads as a second page title
             rather than a section heading. It stays an `h2` and is drawn at
@@ -327,8 +324,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         ]}
       />
 
-      {/* "Danger zone" (review §3.2.1, design decision) -- the demoted
-          home for "Delete group", now a subtle red text button rather than
+      {/* "Danger zone" -- the demoted
+          home for "Delete group", a subtle red text button rather than
           a second red-outline button beside "Leave group" in the header.
           Owner-only, matching the button's own gating; the section itself
           doesn't render at all for anyone else, since there is nothing
@@ -369,17 +366,15 @@ function MemberRow({
   return (
     // Plain `div`s with `app/globals.css` classes, not nested Mantine
     // `Group`s with responsive props -- `.groupMemberRow` stacks the
-    // identity half above the actions half below `xs` (review §3.2.4:
-    // the two ~36px action buttons used to wrap directly on top of each
-    // other, crushed against the name, rather than getting their own
-    // line).
+    // identity half above the actions half below `xs`, so
+    // the two ~36px action buttons get their own line rather than wrapping
+    // on top of each other, crushed against the name.
     <div className="groupMemberRow">
       <Group gap="xs" wrap="nowrap">
         <Text>{label}</Text>
-        {/* Review §3.2.5: with no name/identity marker of its own, nothing
-            on this page told a viewer which row was THEM -- especially
-            awkward for a placeholder-rendered member ("A member
-            (#a1b2c3)") trying to match their own tag against the list. */}
+        {/* Marks which row is the viewer's own -- especially needed for a
+            placeholder-rendered member ("A member (#a1b2c3)") trying to
+            match their own tag against the list. */}
         {isCurrentUser && (
           <Text c="dimmed" size="sm">
             (you)
@@ -469,7 +464,7 @@ function SharedTrainRow({ groupId, train, canManage }: { groupId: string; train:
             that disagreed with every other status badge in the app.
             Same shared component `/` and `/journeys` render off, so
             this card and those two pages can never drift on wording
-            again (review §2.9). Now the Track list's one status badge
+            again. It is the Track list's one status badge
             (DS-114), so a shared train and the owner's own row read the
             same. */}
         <TrackedRowStatusBadge status={trackedTrainRowStatus(train, londonDayKey(new Date()))} />
@@ -487,11 +482,10 @@ function SharedTrainRow({ groupId, train, canManage }: { groupId: string; train:
  * `canRemove` mirrors `groups::remove_journey_from_group`'s own
  * sharer-or-manager check exactly, the same way `SharedTrainRow`'s does.
  * Links out to `/journeys/{journeyId}` for full detail -- reachable by a
- * non-owning group member because of Task 4's `journey_readable_by`
- * widening, the one piece of this feature that isn't a pure
- * `SharedTrainRow` copy (that link resolving to a real page, rather than a
- * 404, for a member who isn't the journey's owner, IS the whole point of
- * this feature's one new authorization path). */
+ * non-owning group member because of the `journey_readable_by`
+ * widening, the one piece that isn't a pure `SharedTrainRow` copy (the
+ * link must resolve to a real page, not a 404, for a member who isn't the
+ * journey's owner). */
 function SharedJourneyRow({
   groupId,
   journey,

@@ -552,7 +552,7 @@ describe('JourneyProgress', () => {
       // Not a submit button: harmless today (no ancestor <form>), but this
       // is exactly the attribute a later refactor drops silently.
       expect(trigger).toHaveAttribute('type', 'button');
-      // Spec Decision 6 wants these reachable, so the trigger must appear
+      // These must be reachable, so the trigger must appear
       // in the document's own tab order -- asserted by collecting it, not
       // just by checking `tabindex !== "-1"` on the element in hand
       // (`getByRole`/`.focus()` would both still pass for a
@@ -1182,7 +1182,7 @@ describe('JourneyProgress decision-table captions and aria-labels', () => {
     ).toBeInTheDocument();
   });
 
-  // Task 3.6.1: `status === 'en_route'` with `lastIndex === -1` is a
+  // `status === 'en_route'` with `lastIndex === -1` is a
   // CONFIRMED en-route train whose last movement report didn't match a
   // timetabled stop -- a materially different fact from
   // `awaiting_activation` above (nothing confirmed at all), and it must
@@ -1212,11 +1212,10 @@ describe('JourneyProgress decision-table captions and aria-labels', () => {
     expect(screen.queryByText(/waiting for its first movement report/)).not.toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review, C3. The page said "Last reported: Doncaster
-  // (departure)" in its summary block AND "Last reported at Doncaster --
-  // that report couldn't be matched to a timetabled stop" under the
-  // diagram, with Doncaster sitting in the table below with a real time.
-  // Both cannot be true; the second is the one that was wrong.
+  // The summary block said "Last reported: Doncaster (departure)" while the
+  // caption under the diagram said "Last reported at Doncaster -- that report
+  // couldn't be matched to a timetabled stop", with Doncaster in the table below
+  // with a real time. Both cannot be true; the second was wrong.
   describe('a lastReportedLocation that IS a listed stop (C3)', () => {
     const doncasterRoute = [
       stop({ crs: 'KGX', name: 'London Kings Cross', kind: 'Origin' }),

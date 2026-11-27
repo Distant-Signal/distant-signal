@@ -8,17 +8,13 @@
 // Next.js renders it on the server for the initial HTML, where `window` is
 // undefined.
 //
-// Historically (review §2.11's finding) this component read
-// `window.location.origin` in a mount effect: fine on the server (the read
-// was deferred out of the render body precisely to avoid a `window`
-// `ReferenceError` there), but it meant the server-rendered HTML carried
-// only a bare, uncopyable relative path, and `share()` was inert until that
-// effect flushed client-side. The fix moved the origin resolution
-// server-side entirely (`lib/siteOrigin.ts`'s `getSiteOrigin()`, called by
-// `app/groups/[id]/page.tsx`) and threads it down as an ordinary `origin`
-// prop -- so this file's job now is proving the ABSOLUTE url is already
-// present in the server-rendered HTML, with no client-side fill-in step
-// left to reproduce.
+// This component once read `window.location.origin` in a mount effect, which
+// left the server-rendered HTML with only a bare, uncopyable relative path and
+// `share()` inert until the effect flushed. The origin is now resolved on the
+// server (`lib/siteOrigin.ts`'s `getSiteOrigin()`, called by
+// `app/groups/[id]/page.tsx`) and passed down as an `origin` prop, so this file
+// proves the ABSOLUTE url is already in the server-rendered HTML, with no
+// client-side fill-in step.
 //
 // `renderToString` in a `node` environment is that server, near enough: no
 // `window`, no `document`, and effects never run -- exactly the conditions

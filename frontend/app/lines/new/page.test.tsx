@@ -21,19 +21,15 @@ describe('NewCustomLinePage', () => {
     renderWithMantine(<NewCustomLinePage />);
 
     expect(screen.getByRole('heading', { name: 'New custom line', level: 1 })).toBeInTheDocument();
-    // Create mode, not edit: the Name field is present and the submit
-    // button reads "Create line" (CustomLineForm's own create-vs-edit
-    // label, unchanged).
-    // `exact: false`: Task 3.4.4's `withAsterisk` makes the label's own
-    // text "Name *", not a bare "Name".
+    // Create mode, not edit: the Name field is present and the submit button reads "Create line".
+    // `exact: false`: `withAsterisk` makes the label's text "Name *", not a bare "Name".
     expect(screen.getByLabelText('Name', { exact: false })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create line' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/lines');
   });
 
-  // Review §2.16: the "Create line" button above is shown to every
-  // visitor, logged in or not, with nothing hinting that saving needs an
-  // account -- this note is that hint.
+  // The "Create line" button is shown to every visitor, logged in or not; this note hints that saving
+  // needs an account.
   it('hints that creating a line needs an account', () => {
     renderWithMantine(<NewCustomLinePage />);
     expect(screen.getByText(/needs a Distant Signal account/)).toBeInTheDocument();

@@ -8,8 +8,7 @@ import { missingFieldsReason } from '@/lib/missingFields';
 import { getAnthropicApiKey, setAnthropicApiKey, clearAnthropicApiKey } from '@/lib/anthropicKey';
 
 /** The visitor's own Claude API key for "Ask about trains", on
- * /account/preferences (client-side-tokens design doc, Decision 6). It used
- * to sit at the top of /chat; the chat page now links here.
+ * /account/preferences. It used to sit at the top of /chat; the chat page now links here.
  *
  * The "kept in this browser tab" sentence is a trust requirement, not polish:
  * the key never reaches a Distant Signal server, which only has value if

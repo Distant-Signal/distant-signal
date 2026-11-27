@@ -88,13 +88,13 @@ const MAX_REQUESTS_PER_PAGE = 3;
  * anchoring: `<segment>:<itinerary key>`. */
 const ENTRY_ATTRIBUTE = 'data-plan-entry';
 
-/** "Plan a route for me" (design spec §5.3): the form (Task 3) → results
- * comparison (Task 4, per segment) → one `POST /Journeys/itinerary` for
+/** "Plan a route for me" (design spec §5.3): the form → results
+ * comparison (per segment) → one `POST /Journeys/itinerary` for
  * every train leg of the chosen itineraries → hands off to
  * `JourneyCreationFlow`'s `handleLegOneCreated`-driven view via
  * `onCreated`, called exactly once, after the journey exists.
  *
- * The save is atomic (2026-10-14, decision D-15): the journey and all its
+ * The save is atomic: the journey and all its
  * legs are created in one transaction, so either everything is tracked or
  * nothing is. This replaced a `POST /Journeys` followed by one
  * `POST /Journeys/{id}/legs` per later leg, whose partial failures needed
@@ -237,7 +237,7 @@ export function PlanTripFlow({
     setPagingError(null);
     // Clears out the PREVIOUS search's resolved names immediately (not
     // just once the new lookup resolves) -- otherwise a code the new plan
-    // never mentions could keep rendering the old plan's name for the
+    // never mentions could keep rendering the old search's name for the
     // brief window before `getStationNames` below resolves.
     setStationNames(new Map());
     trackFeature('plan', 'searched');

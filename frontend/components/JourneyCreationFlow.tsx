@@ -167,8 +167,8 @@ export function JourneyCreationFlow({
   if (journeyId === null) {
     return (
       <Stack gap="md">
-        {/* I3: mirrors `TrackTrainForm.tsx`'s own `modeLabelId` +
-            `aria-labelledby` fix (2026-09-22 UX review) for its own mode
+        {/* Mirrors `TrackTrainForm.tsx`'s own `modeLabelId` +
+            `aria-labelledby` fix for its own mode
             toggle -- without a visible `Text` label wired as the name, a
             screen reader announces an unnamed "radiogroup". This toggle's
             swap is arguably more significant than that one: it swaps the

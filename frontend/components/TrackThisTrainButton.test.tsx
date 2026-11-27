@@ -126,8 +126,8 @@ describe('TrackThisTrainButton', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  // The concurrent-double-submit guard Task 8's in-function fix cannot
-  // close on its own -- asserted, not assumed.
+  // The concurrent-double-submit guard that the in-function check cannot
+  // close on its own.
   it('disables itself while a request is in flight', async () => {
     let resolveTrack: (value: Response) => void = () => {};
     const pending = new Promise<Response>((resolve) => {
