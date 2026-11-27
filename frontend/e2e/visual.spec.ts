@@ -83,7 +83,7 @@ const PAGES: [name: string, path: string][] = [
   ['train', `/train/${TRAIN_UID}/${TRAIN_DATE}`],
   // A train cut short (DS-181): the seed's W81181, cancelled en route at
   // York with a reason, Edinburgh struck through.
-  ['train-part-cancelled', '/train/W81181/2026-12-03'],
+  ['train-part-cancelled', '/train/W81181/2099-01-06'],
   ['incidents', '/incidents'],
   // The plan form in each timing mode (2026-10-19), restored from the URL;
   // the seed's /plan timetable codes. The time and date fields are masked.
