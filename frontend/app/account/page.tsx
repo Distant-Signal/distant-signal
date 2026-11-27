@@ -64,6 +64,17 @@ export default async function AccountPage() {
         </Stack>
       </Card>
 
+      <Card withBorder component="section" aria-labelledby="login-methods-heading">
+        <Stack gap="xs">
+          <SectionTitle id="login-methods-heading">Logging in another way</SectionTitle>
+          <Text size="sm">
+            This account belongs to the way you logged in. Logging in with a different method, for example Google
+            instead of Discord, starts a separate account with no journeys. To use more than one method with the same
+            account, link it in your login account settings while you are logged in with the method you already use.
+          </Text>
+        </Stack>
+      </Card>
+
       <Card withBorder component="section" aria-labelledby="retention-heading">
         <Stack gap="xs">
           <SectionTitle id="retention-heading">How long we keep it</SectionTitle>
