@@ -318,6 +318,7 @@ export function UntrackedLegFields({
           error={null}
         />
         <TimeFilterInput
+          clockHint
           label="Arrives"
           name="arrives"
           description={untrackedDraftArrivesNextDay(draft) ? 'The next day.' : 'UK time.'}

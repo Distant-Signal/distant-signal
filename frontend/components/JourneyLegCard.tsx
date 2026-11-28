@@ -64,9 +64,9 @@ function formatWindowTime(value: string): string {
 /** "Departing at or after 18:00 · Arriving at or before 09:00"-shaped
  * summary of an open leg's own search window, shown back to the traveller
  * (spec §4: the open-leg card shows "the search parameters (origin,
- * destination, windows)"). Phrased to match
- * field descriptions exactly ("Only trains departing at or after this
- * time.", etc.) rather than inventing new wording for the same facts.
+ * destination, windows)"). Uses the same "at or after" / "at or before"
+ * wording as the search form's field labels, rather than inventing new
+ * wording for the same facts.
  * `null` when the leg has no window at all (a `pin`/`knownTrain`-mode
  * leg is never `trackedTrainState === null` in the first place, so this
  * realistically never returns `null` at this call site, but it's a
@@ -211,10 +211,8 @@ export function JourneyLegCard({
     // the `stations` reference table), so this degrades to bare codes only when
     // the reference row genuinely doesn't exist.
     const header = `${openLegRouteLabel(leg)}, ${formatDate(leg.serviceDate)}`;
-    // Shows the window the traveller typed back to them. The copy mirrors
-    // `AddJourneyLegButton.tsx`'s own field descriptions ("Only trains departing
-    // at or after this time.") and says "at or after" rather than "after"
-    // because that is what the bound means. It does NOT repeat the station
+    // Shows the window the traveller typed back to them. It says "at or after"
+    // rather than "after" because that is what the bound means. It does NOT repeat the station
     // names: the header directly above already carries the route.
     const criteria = windowSummary(leg);
     return (

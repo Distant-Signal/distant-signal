@@ -111,7 +111,7 @@ export const INCOMPLETE_TIME_MESSAGE = 'Enter a complete time, or clear this fie
  * names for the two buttons -- four of these render on one form, so
  * "Clear" and "Pick a time" alone would be four indistinguishable pairs in
  * a screen reader's control list. */
-/** Said once per form, on its first time field (`clockHint`). */
+/** Said once per form, on the first row of time fields (`clockHint`). */
 export const CLOCK_HINT = '24-hour clock, e.g. 19:00.';
 
 export function TimeFilterInput({
@@ -131,8 +131,11 @@ export function TimeFilterInput({
   onChange: (value: string) => void;
   onIncompleteChange: (incomplete: boolean) => void;
   error: string | null;
-  /** Adds the 24-hour clock hint to the description. Set it on the first
-   * time field of a form only, so the hint is stated once. */
+  /** Adds the 24-hour clock hint to the description. Set it on both fields
+   * of the first side-by-side pair of a form (or on a lone first field), so
+   * the hint is stated once per form and the pair stays level: Mantine's
+   * `Input` overwrites any `aria-describedby` passed in, so one shared hint
+   * line under the pair cannot be wired to both inputs. */
   clockHint?: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);

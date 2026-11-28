@@ -526,7 +526,6 @@ describe('AddJourneyLegButton', () => {
     await waitFor(() => expect(destination).toHaveValue('Clapham Junction (CLJ)'), { timeout: 5000 });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Add leg' })).not.toHaveAttribute('aria-disabled'));
     expect(screen.queryByText('Must be a 3-letter station code')).not.toBeInTheDocument();
-    expect(screen.getByText('Only trains reaching CLJ at or after this time.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add leg' }));
     await waitFor(() => {
