@@ -42,6 +42,9 @@ import { withAbsoluteTitle } from '@/lib/pageMetadata';
 // so an account survives the change of `sub` (ds-api docs/connected-apps.md,
 // "Account continuity"). The "Logging in" section is worded for after that
 // cut-over; this text has to be in place before the Discord ids are loaded.
+// Google and Microsoft sign-in (DS-638): worded "if you log in with ...", so
+// it is true whether or not those sources are enabled yet. The Discord id is
+// Discord-only; those users get no such key.
 // ============================================================================
 
 // Reads the legal-pages flags per request (see lib/legal.ts).
@@ -89,7 +92,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     {
       title: 'Your account',
       what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in. If you log in with Discord, also your Discord account ID: the number Discord gives your account, not your Discord username.',
-      why: 'To create and run your account. We use your Discord account ID only to recognise your account if our login service gives you a new ID, so you keep your journeys and settings.',
+      why: 'To create and run your account. If you log in with Discord, we use your Discord account ID only to recognise your account if our login service gives you a new ID, so you keep your journeys and settings.',
       basis: CONTRACT,
       retention:
         retention.inactiveAccountDays > 0
@@ -183,7 +186,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Technical logs and IP addresses',
-      what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service.',
+      what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service. Our login service also logs your IP address and browser details when you log in.',
       why: 'To keep the service secure, prevent abuse, limit how many requests one address can make, and fix faults.',
       basis: LEGITIMATE_INTERESTS,
       retention: `Our server logs are kept for up to 31 days. Our login service keeps its event logs for ${LEGAL_CONFIG.SSO_LOG_RETENTION}. Cloudflare keeps its logs under its own policy.`,
@@ -280,8 +283,18 @@ export default function PrivacyPage() {
         <Text>
           You log in through our own login service, which is used only for Distant Signal and is run by us. When you log
           in with Discord, Discord tells our login service your Discord account ID, username and display name. Our login
-          service keeps these, so it can recognise you the next time you log in, and passes them to Distant Signal with
-          an ID for your account. It also keeps the event logs described above.
+          service keeps these, and a copy of your Discord profile picture (a small image, and its web address). Our
+          login service does not ask the provider for your email address and does not store one.
+        </Text>
+        <Text>
+          Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
+          for your account, your username and display name, your access groups and, if you log in with Discord, your
+          Discord account ID. Distant Signal does not store your profile picture. It also keeps the access key the
+          provider gave it when you logged in, and a key to renew it if the provider gives one. Nothing uses them. They
+          are deleted if your login service account is deleted. Our login service keeps a log of logins and other
+          account activity, including your IP address, browser details, approximate location and internet provider, and
+          deletes it after {LEGAL_CONFIG.SSO_LOG_RETENTION}. It keeps your account until you ask us to delete it (see
+          Your rights). Its database is also backed up each night. The copies are encrypted and kept for 7 days.
         </Text>
         <Text>
           When we moved logging in to this service, we copied the Discord account ID of each existing account from the
@@ -448,7 +461,8 @@ export default function PrivacyPage() {
           ) : null}
           <ListItem>Hetzner (backup storage, Germany), which stores our encrypted backups on our behalf.</ListItem>
           <ListItem>
-            Discord, if you log in with Discord. Discord is a separate controller and its own privacy policy applies.
+            Discord, Google or Microsoft, if you log in with that provider. Each is a separate controller and its own
+            privacy policy applies.
           </ListItem>
           <ListItem>
             The push service your browser uses (Google, Mozilla or Apple), if you turn on notifications. It carries each
@@ -485,10 +499,11 @@ export default function PrivacyPage() {
           processing agreement that includes the UK International Data Transfer Addendum.
         </Text>
         <Text>
-          If you log in with Discord, turn on notifications, add a notification address, use the AI chat or connect an
-          assistant, those providers (Discord, your browser&apos;s push service, the address you choose, Anthropic or
-          your assistant&apos;s provider) process data in the United States, and possibly elsewhere. They do so under
-          their own terms with you, not under a contract with us. We send to them only because you chose the feature.
+          If you log in with Discord, Google or Microsoft, turn on notifications, add a notification address, use the AI
+          chat or connect an assistant, those providers (Discord, Google or Microsoft, your browser&apos;s push service,
+          the address you choose, Anthropic or your assistant&apos;s provider) process data in the United States, and
+          possibly elsewhere. They do so under their own terms with you, not under a contract with us. We send to them
+          only because you chose the feature.
         </Text>
       </LegalSection>
 
@@ -508,9 +523,10 @@ export default function PrivacyPage() {
           </ListItem>
           <ListItem>
             To delete your account and its data, use <strong>{ACCOUNT_DELETE_LABEL}</strong> on the same page. Deleting
-            your Distant Signal account does not delete your Discord account or your account on our login service. You
-            can remove Distant Signal&apos;s access in Discord&apos;s settings. To have your login service account
-            deleted, email <ContactEmail />.
+            your Distant Signal account does not delete your Discord, Google or Microsoft account, or your account on
+            our login service. You can remove Distant Signal&apos;s access in that provider&apos;s account settings.
+            Removing access there does not delete what our login service has already kept; email us for that. To have
+            your login service account deleted, email <ContactEmail />.
           </ListItem>
           <ListItem>
             For anything else, or if you cannot log in, email <ContactEmail />. We reply within one month. For a complex
