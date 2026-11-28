@@ -4,11 +4,11 @@ import { renderWithMantine } from '@/test/render';
 import { badgeTextTransform } from '@/test/badge';
 import { TrackedTrainStatusBadge } from './TrackedTrainStatusBadge';
 
-// Direct unit tests for the component review §2.9 asked to be shared
-// (previously two byte-identical copies, `app/page.tsx`'s own
-// `TrackedTrainStatusBadge` and `app/journeys/page.tsx`'s
-// `RowStatusBadge`, plus a third place -- `/groups/[id]`'s shared-train
-// card -- that printed the raw `status` string with no wording at all).
+// Direct unit tests for the shared status badge (replacing two byte-identical
+// copies, `app/page.tsx`'s own `TrackedTrainStatusBadge` and
+// `app/journeys/page.tsx`'s `RowStatusBadge`, and a third place --
+// `/groups/[id]`'s shared-train card -- that printed the raw `status` string
+// with no wording at all).
 // The three call sites' own page tests already exercise this indirectly;
 // these pin the component's own branching once, independent of any page.
 describe('TrackedTrainStatusBadge', () => {

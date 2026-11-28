@@ -177,8 +177,7 @@ describe('StationDisruptionPage -- outage behaviour', () => {
     expect(screen.getByRole('link', { name: 'East Coast Main Line' })).toBeInTheDocument();
   });
 
-  // Design spec Decision 5 / plan Task 5: a backend outage keeps the
-  // last-known content on screen instead of blanking the page.
+  // A backend outage keeps the last-known content on screen instead of blanking the page.
   it('keeps rendering the last-known disruptions when the fetch fails', async () => {
     await renderPage();
     cleanup();
@@ -231,11 +230,9 @@ describe('StationDisruptionPage -- outage behaviour', () => {
 });
 
 describe('StationDisruptionPage -- line-coverage distinction', () => {
-  // The regression this task exists for: a station with zero line coverage
-  // must render honestly, not as though every covering line were confirmed
-  // fine -- see crates/api/src/routes/line_status.rs's
-  // get_stop_point_disruption, which now 404s (ApiNotFoundError) for this
-  // exact case instead of a `200 []` indistinguishable from good service.
+  // A station with zero line coverage must render honestly, not as though every covering line were
+  // confirmed fine: get_stop_point_disruption (crates/api/src/routes/line_status.rs) 404s
+  // (ApiNotFoundError) for this case instead of a `200 []` indistinguishable from good service.
   beforeEach(() => {
     __resetStaleCacheForTests();
     vi.stubGlobal('fetch', vi.fn());
@@ -281,9 +278,8 @@ describe('StationDisruptionPage -- line-coverage distinction', () => {
 });
 
 describe('StationDisruptionPage -- sample stats by operator', () => {
-  // Independent of the disruption-coverage tests above: this station has
-  // ordinary line coverage throughout, so only `getStationSampleStats`
-  // varies per test -- design spec Decision 9's three honest states.
+  // Independent of the disruption-coverage tests above: this station has ordinary line coverage
+  // throughout, so only `getStationSampleStats` varies per test (three honest states).
   beforeEach(() => {
     __resetStaleCacheForTests();
     vi.stubGlobal('fetch', vi.fn());
@@ -407,10 +403,8 @@ describe('StationDisruptionPage -- sample stats by operator', () => {
 });
 
 describe('StationDisruptionPage -- accessibility & facilities', () => {
-  // A fourth, independent coverage question again: this station has
-  // ordinary line coverage and ordinary sampling throughout, so only
-  // `getStationAccessibility` varies per test -- design spec Decision 9's
-  // three honest states.
+  // A fourth, independent coverage question: this station has ordinary line coverage and sampling
+  // throughout, so only `getStationAccessibility` varies per test (three honest states).
   beforeEach(() => {
     __resetStaleCacheForTests();
     vi.stubGlobal('fetch', vi.fn());
@@ -465,9 +459,8 @@ describe('StationDisruptionPage -- accessibility & facilities', () => {
     expect(screen.getByText('Step free:')).toBeInTheDocument();
     expect(screen.getByText('Yes')).toBeInTheDocument();
     expect(screen.getByText('Car parks')).toBeInTheDocument();
-    // review §3.5.2, re-verified end to end: the page's own h1 -> the
-    // section's h2 -> its now-promoted h3 group titles, with no level
-    // skipped in between.
+    // Heading levels end to end: the page's h1, the section's h2, then its promoted h3 group titles, with
+    // no level skipped in between.
     expect(screen.getByRole('heading', { level: 1, name: 'London Kings Cross (KGX)' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Accessibility & facilities' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Step-free access & assistance' })).toBeInTheDocument();
@@ -728,7 +721,7 @@ describe('StationDisruptionPage -- about and timetable prose', () => {
     const about = screen.getByRole('heading', { name: 'About London Kings Cross', level: 2 })
       .parentElement as HTMLElement;
     expect(about.textContent).toContain('London Kings Cross has 12 platforms.');
-    expect(about.textContent).toContain('The station information lists lifts.');
+    expect(about.textContent).toContain('Facilities listed: lifts.');
     expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '#about');
   });
 

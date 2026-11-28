@@ -28,7 +28,7 @@ const ONLY_MEMBER_NOTE = "You're the only member, so you can't leave without del
  * deletion prompt, with a note saying why, and deletes nothing until the
  * owner confirms that.
  *
- * `nextOwnerLabel` (review §3.2.1, design decision) names who inherits
+ * `nextOwnerLabel` names who inherits
  * ownership when the caller is an owner leaving a group that ISN'T sole
  * (`willDeleteGroup` false): `remove_member`'s owner branch
  * (`crates/api/src/data/groups.rs`) always transfers ownership to the

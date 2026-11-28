@@ -85,7 +85,7 @@ export function DataFreshnessInfo({ freshness }: { freshness: DataFreshness }) {
     >
       {/* Explicit `size="md"` (28px): matches Mantine's own `ActionIcon`
           default already in effect, spelled out so this control's
-          conformance with review §2.10's 24px touch-target floor doesn't
+          meeting the 24px touch-target floor doesn't
           silently depend on that default never changing. */}
       <ActionIcon variant="subtle" aria-label="Data freshness" size="md">
         <InfoIcon />

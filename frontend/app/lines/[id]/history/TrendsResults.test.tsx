@@ -182,10 +182,7 @@ describe('TrendsResults', () => {
     expect(points[0].delayRate).toBeNull();
   });
 
-  // Review §3.3/I10: the fuller mechanical explanation moved out of the
-  // always-visible paragraph into a collapsed disclosure -- this checks
-  // it's still there (nothing was dropped, just hidden by default), not
-  // gone.
+  // The fuller explanation lives in a collapsed disclosure; check it is still there, not dropped.
   it('collapses the fuller explanation behind a "How these rates are calculated" disclosure', async () => {
     vi.mocked(api.getLineDailyStats).mockResolvedValue([dailyRow({ day: '2026-08-01' })]);
     const { container } = renderWithMantine(

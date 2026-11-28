@@ -7,8 +7,7 @@ import type { OperatorSummary } from './types';
  * `SampleStatsCarrier` shape (`sampleAvailability`, optional `dataQuality`)
  * that has no single coherent value once several lines' independently-
  * varying availability/quality are merged into one rollup. See
- * docs/superpowers/plans/2026-09-22-operator-overview-phase3-operators-list-and-pinning-plan.md's
- * Judgment Call 3.
+ * docs/superpowers/plans/2026-09-22-operator-overview-phase3-operators-list-and-pinning-plan.md.
  *
  * The `"TfL"` special case matches `lib/sampleStats.ts`'s
  * `sampleUnavailableReason`'s own TfL wording exactly, for the same

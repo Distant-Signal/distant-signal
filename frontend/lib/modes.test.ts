@@ -63,8 +63,7 @@ describe('MODE_TO_COUNTRY / countryForMode / countryForReport', () => {
     // No real modeName maps to a non-Gb country today -- this exercises
     // the derivation logic itself against a synthetic table so it isn't
     // left untested until Ireland Tier C ships (see
-    // docs/superpowers/plans/2026-09-05-country-filtering-plan.md
-    // Judgment Call 2). The key is illustrative only, matching
+    // docs/superpowers/plans/2026-09-05-country-filtering-plan.md). The key is illustrative only, matching
     // docs/superpowers/plans/2026-09-05-ireland-rail-support-plan.md:196's
     // own "island-of-ireland-*" framing -- not a claim about a real value.
     const syntheticTable: Record<string, Country> = { 'island-of-ireland-nir': 'NorthernIreland' };

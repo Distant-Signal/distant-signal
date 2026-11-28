@@ -272,13 +272,9 @@ describe('LineDetailPage Edit/Delete visibility', () => {
   });
 });
 
-// Item 3: the detail page used to only link out to `/lines/[id]/history`
-// for the trend charts -- this embeds a rolling-24h half-hourly preview of
-// them directly via `HalfHourlyTrendsResults` (formerly `HourlyTrendsResults`,
-// before the bucket size was halved to 30 minutes), sharing `TrendsCharts`
-// (the actual chart-rendering leaf) with the history page's daily Trends
-// tab, per docs/superpowers/plans/2026-09-02-trend-chart-granularity.md
-// Task 13.
+// The detail page embeds a rolling-24h half-hourly preview of the trend charts via
+// `HalfHourlyTrendsResults`, sharing `TrendsCharts` (the chart-rendering leaf) with the history page's
+// daily Trends tab.
 describe('LineDetailPage embedded trends', () => {
   beforeEach(() => {
     vi.mocked(api.getLineStatus).mockResolvedValue([report('custom-my-commute', 'My Commute')]);
@@ -307,11 +303,9 @@ describe('LineDetailPage embedded trends', () => {
     );
   });
 
-  // The sane-fallback case that matters most for Task 1: a line that was
-  // just created has no `line_status_daily_stats` rows yet (the aggregator
-  // hasn't run a cycle for it), so this must degrade to the same honest
-  // empty state `TrendsResults` already shows on the full history page --
-  // not an error, not an indefinite loading state.
+  // A just-created line has no `line_status_daily_stats` rows yet (the aggregator hasn't run a cycle for
+  // it), so this must degrade to the same honest empty state `TrendsResults` shows on the full history
+  // page: not an error, not an indefinite loading state.
   it('shows the sane no-data-yet fallback for a line with no half-hourly stats -- e.g. one just created', async () => {
     vi.mocked(api.getLineHalfHourlyStats).mockResolvedValue([]);
     await renderPage();
@@ -321,12 +315,9 @@ describe('LineDetailPage embedded trends', () => {
     expect(screen.queryByTestId('line-chart')).not.toBeInTheDocument();
   });
 
-  // Review §2.11: both "Recent trends" Suspense boundaries used to fall
-  // back to a bare, unlabelled `Skeleton` -- no accessible name, nothing
-  // for a screen reader to announce while the fetch was still in flight.
-  // A `getLineHalfHourlyStats`/`getLineHalfHourlyCoverageStats` call that
-  // never resolves keeps both boundaries suspended for the life of the
-  // test, so their fallback content can be asserted on directly.
+  // Both "Recent trends" Suspense boundaries need a labelled, announced fallback, not a bare `Skeleton`.
+  // A `getLineHalfHourlyStats`/`getLineHalfHourlyCoverageStats` call that never resolves keeps both
+  // boundaries suspended for the life of the test, so their fallback content can be asserted on directly.
   it('shows a labelled, announced loading state while the half-hourly fetches are pending', async () => {
     vi.mocked(api.getLineHalfHourlyStats).mockReturnValue(new Promise(() => {}));
     vi.mocked(api.getLineHalfHourlyCoverageStats).mockReturnValue(new Promise(() => {}));
@@ -341,11 +332,8 @@ describe('LineDetailPage embedded trends', () => {
     }
   });
 
-  // Regression guard for Task 2 of
-  // docs/superpowers/plans/2026-09-03-half-hourly-coverage-trends-plan.md --
-  // asserts the wiring actually landed on this page, not just that
-  // HalfHourlyCoverageTrendsResults works in isolation
-  // (HalfHourlyCoverageTrendsResults.test.tsx already covers that).
+  // Asserts the "Full coverage" wiring landed on this page, not just that HalfHourlyCoverageTrendsResults
+  // works in isolation (HalfHourlyCoverageTrendsResults.test.tsx covers that).
   it('renders the "Full coverage" section underneath the sample-derived trend charts', async () => {
     vi.mocked(api.getLineHalfHourlyStats).mockResolvedValue([]);
     vi.mocked(api.getLineHalfHourlyCoverageStats).mockResolvedValue([
@@ -360,10 +348,8 @@ describe('LineDetailPage embedded trends', () => {
     expect(await screen.findAllByTestId('line-chart')).toHaveLength(2);
   });
 
-  // Task 3.4.5: the two "Not enough ... data" boxes used to read almost
-  // identically with nothing between them -- this pins that the "Full
-  // coverage" heading now precedes its own box even when empty, so the two
-  // sections are told apart.
+  // The "Full coverage" heading must precede its own box even when empty, so the two "Not enough ...
+  // data" boxes are told apart.
   it('shows the "Full coverage" empty-state fallback for a line with no full-coverage data yet -- e.g. every line today, since no producer exists', async () => {
     vi.mocked(api.getLineHalfHourlyStats).mockResolvedValue([]);
     vi.mocked(api.getLineHalfHourlyCoverageStats).mockResolvedValue([]);
@@ -374,14 +360,11 @@ describe('LineDetailPage embedded trends', () => {
   });
 });
 
-// Task 5 of docs/superpowers/sdd/2026-09-22-operator-overview-phase2-per-line-drilldown-plan/
-// -- wires LineTrainsResults into this page; renamed "Trains on this line"
-// and moved to the slim summary view on 2026-10-06
-// (docs/superpowers/specs/2026-10-06-line-page-trains-design.md). The
-// panel's own rendering is exercised in LineTrainsResults.test.tsx; what
-// matters here is that this page renders the panel, fetches it for a
-// catalogue line with the URL's parameters, and does neither for a TfL
-// line or a custom line -- both guaranteed 404s.
+// Wires LineTrainsResults into this page ("Trains on this line", the slim summary view; see
+// docs/superpowers/specs/2026-10-06-line-page-trains-design.md). The panel's own rendering is exercised
+// in LineTrainsResults.test.tsx; what matters here is that this page renders the panel, fetches it for a
+// catalogue line with the URL's parameters, and does neither for a TfL line or a custom line, both
+// guaranteed 404s.
 describe('LineDetailPage Trains on this line panel', () => {
   beforeEach(() => {
     vi.mocked(api.getAllLines).mockResolvedValue(lines);
@@ -583,8 +566,8 @@ describe('LineDetailPage -- a line with no status row yet', () => {
     // resolve to and stays bare -- a separate test below covers the
     // resolved-name case.
     expect(screen.getByText('Operators: SW')).toBeInTheDocument();
-    // Review §2.9: the raw TOML-enum token ("custom") must not reach the
-    // page -- `categoryLabel()` maps it to a human label.
+    // The raw TOML-enum token ("custom") must not reach the page; `categoryLabel()` maps it to a human
+    // label.
     expect(screen.getByText('Category: Custom line')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Edit line' })).toHaveAttribute('href', '/lines/custom-my-commute/edit');
     expect(screen.getByRole('button', { name: 'Delete line' })).toBeInTheDocument();
@@ -605,9 +588,8 @@ describe('LineDetailPage -- a line with no status row yet', () => {
     expect(screen.getByRole('heading', { name: 'Recent trends (last 24 hours)' })).toBeInTheDocument();
   });
 
-  // Review §2.9: an ATOC code like "SW" is meaningless to a passenger who
-  // knows "South Western Railway" -- this resolves it the same way
-  // `app/lines/page.tsx` and `app/stations/[crs]/page.tsx` already do.
+  // An ATOC code like "SW" means little to a passenger, so the page resolves it to a name, as
+  // `app/lines/page.tsx` and `app/stations/[crs]/page.tsx` do.
   it('resolves an operator code to its name via getAllTocs()', async () => {
     vi.mocked(api.getAllTocs).mockResolvedValueOnce([{ code: 'SW', name: 'South Western Railway' }]);
 

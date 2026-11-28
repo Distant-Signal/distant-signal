@@ -13,7 +13,7 @@ const log = createLogger('lib/siteOrigin');
  * component that renders the link) so the URL is correct and copyable/
  * shareable on the very first render -- no `useEffect`/`window.location`
  * round-trip, and no window where `origin === ''` and Share silently does
- * nothing (review §2.11).
+ * nothing.
  *
  * Prefers `NEXT_PUBLIC_SITE_URL` (one var, set once per deployment -- the
  * same "public URL env var" shape `NEXT_PUBLIC_RAILMCP_PUBLIC_URL` already

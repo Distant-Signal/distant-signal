@@ -200,7 +200,7 @@ describe('TrainJourney', () => {
     expect(screen.queryByText('May have arrived')).not.toBeInTheDocument();
   });
 
-  // Task 3.6.3: the top-level ETA badge (`JourneyDetails`, not
+  // The top-level ETA badge (`JourneyDetails`, not
   // `StatusMessage`'s own separate "May have arrived" Alert tested above)
   // must not go on reading "ETA {time}" in the present tense once the
   // server has flagged that time as stale -- see `EtaBadge.tsx`'s own doc
@@ -452,7 +452,7 @@ describe('TrainJourney', () => {
     );
     const table = screen.getByRole('table', { name: 'Journey timeline' });
     expect(table).toBeInTheDocument();
-    // JourneyProgress (Task 3 onward) also prints "Reading" as an
+    // JourneyProgress also prints "Reading" as an
     // always-visible origin label, so scope this assertion to the table
     // itself rather than the whole document.
     expect(within(table).getByText('Reading')).toBeInTheDocument();
@@ -533,11 +533,10 @@ describe('TrainJourney', () => {
         })}
       />,
     );
-    // JourneyDetails' live summary must still render (Finding 1 regression
-    // coverage). Matched specifically to the "Last reported:" line, not a
-    // bare `/Clapham Junction/` -- this fixture's one `journeyStops` entry
-    // has no confirmed `actualArrival`/`actualDeparture`, so Task 3.6.1's
-    // JourneyProgress caption ALSO names "Clapham Junction" (the
+    // JourneyDetails' live summary must still render. Matched specifically to the
+    // "Last reported:" line, not a bare `/Clapham Junction/` -- this fixture's one
+    // `journeyStops` entry has no confirmed `actualArrival`/`actualDeparture`, so
+    // JourneyProgress's caption ALSO names "Clapham Junction" (the
     // `lastReportedLocation`) below the diagram, and a bare substring match
     // would ambiguously match both.
     expect(screen.getByText(/Last reported: Clapham Junction/)).toBeInTheDocument();
@@ -547,7 +546,7 @@ describe('TrainJourney', () => {
     // ...alongside the timeline, not instead of it.
     const table = screen.getByRole('table', { name: 'Journey timeline' });
     expect(table).toBeInTheDocument();
-    // JourneyProgress (Task 3 onward) also prints "Reading" as an
+    // JourneyProgress also prints "Reading" as an
     // always-visible origin label, so scope this assertion to the table
     // itself rather than the whole document.
     expect(within(table).getByText('Reading')).toBeInTheDocument();
@@ -898,7 +897,7 @@ describe('TrainJourney journeyStops filtering (genuine calling points only)', ()
           status: 'en_route',
           // `baseState`'s own defaults (`pinOriginCrs: 'WAT'`,
           // `pinDestinationCrs: 'WOK'`) would otherwise seed the first/last
-          // FILTERED row from the tracked pin (Task 3.6.2's own fallback),
+          // FILTERED row from the tracked pin (its own fallback),
           // resolving a label there and defeating the "genuinely nothing
           // resolved" collapse this test is pinning -- override both to
           // `null` so this fixture is actually the fully-degenerate case.
@@ -927,7 +926,7 @@ describe('TrainJourney journeyStops filtering (genuine calling points only)', ()
   });
 });
 
-// Task 3.6.9: `app/train/[uid]/[date]/page.tsx`'s own `<h1>` already reads
+// `app/train/[uid]/[date]/page.tsx`'s own `<h1>` already reads
 // "Train {uid}" -- these three branches (cancelled/completed/en_route) are
 // the ones that otherwise print that exact same line again immediately
 // below it.

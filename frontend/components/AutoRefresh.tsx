@@ -17,8 +17,7 @@ import { REFRESH_INTERVAL_MS } from '@/lib/refresh';
  * (now `no-store`, refreshed instead by this interval), and
  * `RELATIVE_TIME_TICK_MS` in `LastUpdated.tsx`.
  *
- * The interval is paused while the document is hidden (design spec
- * Decision 4): polling a backgrounded tab every 30s spends the visitor's
+ * The interval is paused while the document is hidden: polling a backgrounded tab every 30s spends the visitor's
  * battery and the backend's capacity on data nobody is looking at, and
  * during an outage it also piles up failures nobody is there to see. */
 export function AutoRefresh() {
@@ -45,8 +44,7 @@ export function AutoRefresh() {
   // on the first run too would re-fetch a page the server rendered
   // milliseconds earlier, roughly doubling render load per full page load
   // -- including against an already-failing backend, which is the opposite
-  // of what pausing while hidden is for (design spec Decision 4, which
-  // says "on transitioning back to 'visible'"). The previous
+  // of what pausing while hidden is for. The previous
   // `{ autoInvoke: true }` did not do this: it only started the timer, it
   // never invoked the callback.
   const firstRun = useRef(true);

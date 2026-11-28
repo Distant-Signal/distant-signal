@@ -111,10 +111,10 @@ describe('sampleUnavailableReason', () => {
 });
 
 describe('sampleUnavailableReason with a dataQuality-less carrier (StationOperatorSampleStats-shaped)', () => {
-  // Widened signature (Decision 9): a per-operator station row has no
+  // Widened signature: a per-operator station row has no
   // `dataQuality` field at all -- TypeScript sees it as `undefined`, so the
   // `'tfl'` branch can never fire for it in practice. `'no-coverage'` is
-  // documented-unreachable through the real /sample-stats route (Decision 7),
+  // documented-unreachable through the real /sample-stats route,
   // but TypeScript can't enforce that invariant, so this proves the type
   // still accepts it structurally and renders *some* sensible string rather
   // than crashing.

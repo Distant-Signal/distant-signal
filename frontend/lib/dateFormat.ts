@@ -175,8 +175,8 @@ export function londonDayKey(value: string | Date): string {
 }
 
 /** One line, stated once per section (never once per row — a caption
- * repeated next to every timestamp would be noise, not information; see
- * review §2.12), next to a group of `formatDateTime`/`formatTime`-rendered
+ * repeated next to every timestamp would be noise, not information), next to a
+ * group of `formatDateTime`/`formatTime`-rendered
  * network-time values. It exists because those formatters pin
  * `timeZone: 'Europe/London'` regardless of the viewer's own locale/zone
  * (this module's header comment), which is invisible in the rendered

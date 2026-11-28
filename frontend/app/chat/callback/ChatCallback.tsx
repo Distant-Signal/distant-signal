@@ -102,25 +102,21 @@ type CallbackState = { kind: 'connecting' } | { kind: 'success' } | { kind: 'err
 
 /** `/chat/callback` -- the redirect target `distant-signal-mcp`'s own
  * `/authorize` sends the browser back to once the user has signed in
- * (client-side-tokens design doc, Decisions 1/3, Architecture step 3; since
+ * (since
  * 2026-09-29 that sign-in is the MCP service's own Authentik login, not
  * Distant Signal's retired `/connect-claude/authorize` consent bridge). Exchanges the `code` query param
  * for a bearer token via the MCP SDK's own `auth()` orchestrator
  * (`@modelcontextprotocol/sdk/client/auth.js`) -- the SAME function
  * `StreamableHTTPClientTransport` calls internally on a 401, reused here
  * directly for the one-time authorization-code exchange, driven by
- * `BrowserMcpOAuthProvider` (Task 7) so the resulting tokens land in
+ * `BrowserMcpOAuthProvider` so the resulting tokens land in
  * `sessionStorage` the same way either caller would leave them.
  *
- * Review §3.1.1: this used to keep "Connecting" as the heading in every
- * branch, including a failed one, and rendered the raw exchange error
- * (`err.message` -- anything the MCP SDK or the token endpoint felt like
- * throwing) as the page's only explanation, with no next step. The
- * heading now tracks the actual `CallbackState` (connecting -> success ->
- * error), and an error renders one plain, non-technical sentence plus a
- * primary way back into the app, with the raw message demoted to a
- * collapsed `<details>` for anyone who wants it (e.g. to paste into a bug
- * report) rather than presented as the primary explanation.
+ * The heading tracks the actual `CallbackState` (connecting -> success ->
+ * error). An error renders one plain, non-technical sentence plus a
+ * primary way back into the app, with the raw message (anything the MCP SDK
+ * or the token endpoint threw) demoted to a collapsed `<details>` for
+ * anyone who wants to paste it into a bug report.
  *
  * FE-2: `serverUrl` (the MCP server's public URL) comes from the server
  * wrapper in `page.tsx`, read at request time. It used to be a

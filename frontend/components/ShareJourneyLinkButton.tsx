@@ -19,7 +19,7 @@ function trackShareLinkCopied() {
 }
 
 /** The journey-detail-page "unlisted link" control -- a deliberate hybrid
- * of two existing precedents, per the plan's Task 4 brief
+ * of two existing precedents
  * (docs/superpowers/specs/2026-09-23-unlisted-links-design.md): the
  * Button-that-opens-a-Modal SHAPE is `ShareJourneyButton.tsx`'s own (this
  * page's action row is buttons, not cards, so there's nowhere for an

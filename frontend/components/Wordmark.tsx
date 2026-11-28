@@ -24,7 +24,7 @@ export function SignalMark({ size = 24 }: { size?: number }) {
 }
 
 /** The site's wordmark: the signal arm, then "Distant Signal" in bold
- * type (round 2 decision, 12 Oct 2026). Used in the nav bar; the link
+ * type. Used in the nav bar; the link
  * previews draw the same pair (`lib/previewImage.tsx`).
  *
  * 24px mark beside 16px/700 type: the nav bar's height is its tallest

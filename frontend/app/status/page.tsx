@@ -49,13 +49,10 @@ const COUNTRY_LABELS: Record<Country, string> = {
   RepublicOfIreland: 'Republic of Ireland',
 };
 
-/** Worst-first — the order the tiles below render in (2026-09-22 UX review
- * §2.2: `SEVERITY_GROUPS_BY_RANK` is ascending, so the strip read Good ->
- * Informational -> Planned -> Minor -> Severe, and a traveller asking "is
- * anything wrong?" reached the answer last). Reversing the single shared
- * rank order (rather than hand-listing the five groups here) means this
- * can't drift from `SEVERITY_GROUPS_BY_RANK`/`AllLinesTable`'s own filter
- * chip order if a group is ever added or reordered there. */
+/** Worst-first, the order the tiles render in: a traveller asking "is anything wrong?" should reach the
+ * answer first, but `SEVERITY_GROUPS_BY_RANK` is ascending (Good first). Reversing that shared rank order,
+ * rather than hand-listing the five groups, keeps this from drifting from it and from `AllLinesTable`'s
+ * filter chip order if a group is ever added or reordered there. */
 const SEVERITY_GROUPS_WORST_FIRST: readonly SeverityGroup[] = [...SEVERITY_GROUPS_BY_RANK].reverse();
 
 export default async function NetworkStatusPage() {
@@ -67,12 +64,9 @@ export default async function NetworkStatusPage() {
   );
   const overview = buildNetworkStatusOverview(allReports);
 
-  // Honest about which modes are actually present (2026-09-22 UX review
-  // §2.3: the subtitle said "across National Rail and TfL" even when TfL
-  // had zero lines tracked, directly contradicting the "By mode" card right
-  // below it). Falls back to naming both when the snapshot is itself empty
-  // (nothing to be dishonest about yet, and "across National Rail and TfL"
-  // is still the accurate description of what this page WOULD show).
+  // Honest about which modes are present: the subtitle must not say "across National Rail and TfL" when
+  // TfL has zero lines tracked, contradicting the "By mode" card below. Falls back to naming both when the
+  // snapshot is itself empty (nothing to be dishonest about yet).
   const activeModes = [
     overview.byMode.nationalRail.length > 0 ? 'National Rail' : null,
     overview.byMode.tfl.length > 0 ? 'TfL' : null,
@@ -103,11 +97,9 @@ export default async function NetworkStatusPage() {
           <TextLink href="/network/history">Network history and trends</TextLink>
           <FeedLink href={NETWORK_FEED_PATH} label="every line's status changes and incidents" />
         </Group>
-        {/* 2026-09-22 UX review §2.5: nothing on this page ever said when
-            the data was last updated, despite "right now" and being served
-            through `withStaleFallback` (so "right now" can legitimately be
-            several minutes old). Omitted entirely for an empty snapshot --
-            there is no real timestamp to show yet. */}
+        {/* The data is served through `withStaleFallback`, so "right now" can legitimately be several
+            minutes old: say when it was last updated. Omitted for an empty snapshot, where there is no
+            real timestamp to show yet. */}
         {overview.lastUpdated && <LastUpdated timestamp={overview.lastUpdated} />}
       </Stack>
 
@@ -135,11 +127,9 @@ export default async function NetworkStatusPage() {
         </SimpleGrid>
       </Stack>
 
-      {/* Self-hides below two countries present -- see this plan's Judgment
-          Call 6: `MODE_TO_COUNTRY` is still empty today (lib/modes.ts's own
-          doc comment), so every report is 'Gb' and a one-entry breakdown
-          would say nothing a visitor doesn't already know. Mirrors
-          AllLinesTable's own identical self-hiding country filter. */}
+      {/* Self-hides below two countries present: `MODE_TO_COUNTRY` is still empty today (lib/modes.ts's
+          own doc comment), so every report is 'Gb' and a one-entry breakdown would say nothing a visitor
+          doesn't already know. Mirrors AllLinesTable's own self-hiding country filter. */}
       {Object.keys(overview.byCountry).length > 1 && (
         <Stack gap="md">
           <SectionTitle>By country</SectionTitle>
@@ -155,27 +145,18 @@ export default async function NetworkStatusPage() {
   );
 }
 
-/** One of the five top-strip counters. Links to `/lines` pre-filtered to
- * this bucket (Task 4/5 make that filter real) -- the query param name and
- * values are `SeverityGroup` itself, so this link and `AllLinesTable`'s own
- * filter chips can never drift on what a value means. Page-local, not a new
- * `components/` file: this is the only page that renders a "count + label"
- * tile today, mirroring `app/page.tsx`'s own `RightNowModule` precedent for
- * staying local until a second page wants the same shape.
+/** One of the five top-strip counters. Links to `/lines` pre-filtered to this bucket: the query param name
+ * and values are `SeverityGroup` itself, so this link and `AllLinesTable`'s own filter chips can never
+ * drift on what a value means. Page-local, not a new `components/` file: this is the only page that
+ * renders a "count + label" tile, mirroring `app/page.tsx`'s `RightNowModule` in staying local until a
+ * second page wants the same shape.
  *
- * 2026-09-22 UX review §2.1: every tile was a `next/link` styled
- * `textDecoration: 'none'; color: 'inherit'` with no hover cue, no focus
- * ring, no chevron and no link colour -- five identical white cards on the
- * one page whose entire purpose is drill-down. `ClickableCard` gives each
- * tile the app's clickable-card treatment (`app/globals.css`): a hover/focus
- * border-colour change plus a visible focus ring, since Mantine's own focus
- * ring only ever applies to Mantine interactive components, not a bare
- * `<a>`. Sizes come from `tokens.statusTile`.
+ * `ClickableCard` gives each tile the app's clickable-card treatment (`app/globals.css`): a hover/focus
+ * border-colour change plus a visible focus ring, since Mantine's own focus ring only applies to Mantine
+ * interactive components, not a bare `<a>`. Sizes come from `tokens.statusTile`.
  *
- * Each linked tile's count is in its group's colour (`StatusTile`'s
- * `severity`), as the tiles had been until a 2026-10-09 change dropped
- * their coloured left borders: the style guide bans those accents, so the
- * colour now lives on the count itself. */
+ * Each linked tile's count is in its group's colour (`StatusTile`'s `severity`): the style guide bans
+ * coloured left-border accents, so the colour lives on the count itself. */
 function SeverityCounterTile({ group, count }: { group: SeverityGroup; count: number }) {
   const label = severityGroupLabel(group);
   if (count === 0) return <StatusTile count={0} label={label} severity={group} />;
@@ -190,19 +171,13 @@ function SeverityCounterTile({ group, count }: { group: SeverityGroup; count: nu
   );
 }
 
-/** The unbounded worst-lines-first list -- the same "affected lines, worst
- * first" content `app/page.tsx`'s `RightNowModule` shows, but without its
- * `RIGHT_NOW_LIMIT` cap (this plan's Judgment Call 7): this page's whole
- * point is the full picture, not a five-row teaser.
+/** The unbounded worst-lines-first list: the same "affected lines, worst first" content `app/page.tsx`'s
+ * `RightNowModule` shows, but without its `RIGHT_NOW_LIMIT` cap, since this page's point is the full
+ * picture, not a five-row teaser.
  *
- * 2026-09-22 UX review §2.1/§2.4: each row used to be a hand-rolled
- * `Group`+`Text`+`StatusBadge` wrapped in the same unstyled `<Link>` the
- * tiles above had, dropping `LineStatusCard`'s hover/focus affordance, its
- * shrink guard, its sample summary and its freshness line all at once. This
- * is the shared, documented primitive for exactly this "line status" card
- * shape (`app/page.tsx`'s "Your Lines"/`RightNowModule` both already use
- * it) -- reusing it here fixes both findings in one move rather than
- * re-implementing either by hand again. */
+ * Rows use `LineStatusCard`, the shared primitive for this "line status" card shape (`app/page.tsx`'s
+ * "Your Lines"/`RightNowModule` use it too), for its hover/focus affordance, shrink guard, sample summary
+ * and freshness line. */
 function WorstLinesSection({ worstFirst }: { worstFirst: LineStatusReport[] }) {
   return (
     <Stack gap="md">
@@ -234,20 +209,14 @@ function worstSeverityAcross(reports: LineStatusReport[]): number {
   }, 10);
 }
 
-/** One row of the mode/country breakdown: a label plus how many of its
- * lines are affected (not Good Service) out of how many total. Reused for
- * both the mode breakdown (National Rail/TfL) and the country breakdown
- * (GB/NI/RoI) -- both answer the exact same question ("how is this slice of
- * the network doing"), just sliced a different way.
+/** One row of the mode/country breakdown: a label plus how many of its lines are affected (not Good
+ * Service) out of how many total. Reused for both the mode breakdown (National Rail/TfL) and the country
+ * breakdown (GB/NI/RoI), which answer the same question sliced differently.
  *
- * 2026-09-22 UX review §2.3: zero lines in a slice says "No lines
- * tracked", with no badge: an empty set is not "all good service". Round 2
- * (item 3) made it a `StatusCard` like every other status card: the badge
- * is the worst severity actually present in the slice
- * (`worstSeverityAcross`), the same filled `StatusBadge` a line shows, and
- * the count of affected lines moved into the reason line, where it reads
- * as a sentence ("2 of 120 lines affected.") instead of an off-palette
- * "2 affected" pill. */
+ * Zero lines in a slice says "No lines tracked", with no badge: an empty set is not "all good service".
+ * Otherwise the badge is the worst severity actually present in the slice (`worstSeverityAcross`), the
+ * same filled `StatusBadge` a line shows, and the count of affected lines is in the reason line, where it
+ * reads as a sentence ("2 of 120 lines affected."). */
 function ModeCard({ label, reports }: { label: string; reports: LineStatusReport[] }) {
   if (reports.length === 0) {
     return <StatusCard title={label} reason="No lines tracked." />;

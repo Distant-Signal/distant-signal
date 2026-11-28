@@ -24,11 +24,11 @@ import { isUntrackedLeg, transitModeLabel } from './untrackedLeg';
  * names, so a value passes straight through). */
 export type StateTone = 'neutral' | 'good' | 'caution' | 'late' | 'early' | 'planned' | 'critical';
 
-/* The words of mid-journey changes (docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md
- * §8, §17.6): the break's title and one-line body, a suggestion's summary
+/* The words of mid-journey changes (docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md):
+ * the break's title and one-line body, a suggestion's summary
  * and its delay against the booked arrival, the suggestion-to-itinerary
- * mapping `POST .../replace` takes, and the fates of an earlier plan's
- * legs. Pure, so the banner, the sheet and the home card can't drift. */
+ * mapping `POST .../replace` takes, and the fates of the legs of an earlier
+ * plan. Pure, so the banner, the sheet and the home card can't drift. */
 
 /** What a break's title is made from. Any of it may be unknown. */
 export interface BreakTitleFacts {
@@ -295,7 +295,7 @@ export function suggestionLegBody(leg: ReplanSuggestionLeg): ItineraryLegBody {
   };
 }
 
-/** A fate's badge: what became of an earlier plan's leg. `null` for a leg
+/** A fate's badge: what became of a leg of an earlier plan. `null` for a leg
  * still planned, which needs no badge. */
 export function fateBadge(fate: RevisionLegFate): { label: string; tone: StateTone } | null {
   switch (fate) {
@@ -320,7 +320,7 @@ export const BOOKED_BADGE = { label: 'Booked', tone: 'planned' } as const satisf
   tone: StateTone;
 };
 
-/** A plan's heading: "Booked plan", "Changed plan", "Updated plan" (moved
+/** The heading for a plan: "Booked plan", "Changed plan", "Updated plan" (moved
  * on its own) or "Earlier plan restored". */
 export function revisionTitle(revision: Pick<Revision, 'reason'>): string {
   switch (revision.reason) {
@@ -335,7 +335,7 @@ export function revisionTitle(revision: Pick<Revision, 'reason'>): string {
   }
 }
 
-/** An earlier plan's leg in one line: "09:52 York to Edinburgh", or an
+/** A leg of an earlier plan in one line: "09:52 York to Edinburgh", or an
  * untracked leg's mode and places ("Walk, Euston to King's Cross"). A
  * train's operator follows when known: "09:52 York to Edinburgh, London
  * North Eastern Railway (GR)". */

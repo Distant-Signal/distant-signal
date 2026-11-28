@@ -298,6 +298,74 @@ class PagesWithoutMetadata(unittest.TestCase):
         self.assertEqual([finding.file for finding in found], ["app/b/page.tsx"])
 
 
+class ProcessHistoryComments(unittest.TestCase):
+    """A comment says why the code is there, not which review asked."""
+
+    def found(self, name: str, source: str) -> list[tuple[str, int]]:
+        """Return (file, line) for each finding in one file of `source`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            frontend = Path(tmp)
+            path = frontend / name
+            path.parent.mkdir(parents=True)
+            path.write_text(source, encoding="utf-8")
+            return [
+                (finding.file, finding.line)
+                for finding in copy.process_history_comments(frontend)
+            ]
+
+    def test_flags_process_wording_in_each_comment_style(self) -> None:
+        """Check line, block and JSX comments are all read."""
+        source = (
+            "const a = 1;\n"
+            "// Review §3.2: moved the link\n"
+            "/* Task 3.4.1: sort order */\n"
+            "const b = (\n"
+            "  <p>\n"
+            "    {/* per this plan's Judgment Call 6 */}\n"
+            "  </p>\n"
+            ");\n"
+            "/**\n"
+            " * Reworded in round 2.\n"
+            " */\n"
+        )
+        self.assertEqual(
+            self.found("components/A.tsx", source),
+            [("components/A.tsx", n) for n in (2, 3, 6, 10)],
+        )
+
+    def test_flags_css_comments(self) -> None:
+        """Check the stylesheet is read too."""
+        self.assertEqual(
+            self.found("app/globals.css", "a {}\n/* review §2.8 */\n"),
+            [("app/globals.css", 2)],
+        )
+
+    def test_ignores_plain_reasons_and_doc_pointers(self) -> None:
+        """Check a why, and a docs path with a section, pass."""
+        source = (
+            "// Safari drops the label when the field is empty.\n"
+            "// See docs/specs/regular-journeys.md section 4.\n"
+            "// docs/superpowers/specs/2026-09-02-frontend-ui-ux-review.md §F5\n"
+        )
+        self.assertEqual(self.found("lib/a.ts", source), [])
+
+    def test_ignores_the_same_words_outside_a_comment(self) -> None:
+        """Check strings, URLs and JSX text are not comments."""
+        source = (
+            'const a = "// Task 3 is next";\n'
+            "const b = `Review §3 ${a}`;\n"
+            'const c = "http://x.test/round 2";\n'
+            "const d = <p>Don't read this // Task 3</p>;\n"
+        )
+        self.assertEqual(self.found("lib/a.ts", source), [])
+
+    def test_skips_generated_files_and_other_roots(self) -> None:
+        """Check the generated types and non-source roots are left alone."""
+        text = "// Task 3.4.1\n"
+        self.assertEqual(self.found("lib/api-types.ts", text), [])
+        self.assertEqual(self.found("e2e/a.ts", text), [])
+
+
 class Main(unittest.TestCase):
     """The CLI's output and exit status."""
 

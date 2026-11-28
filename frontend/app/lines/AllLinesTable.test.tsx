@@ -281,9 +281,9 @@ describe('AllLinesTable', () => {
     expect(screen.getByText('South Western')).toBeInTheDocument();
   });
 
-  // Task 3.4.2: defaults to ascending by name, rather than the fixture's
-  // own insertion order (wcml, gwr, swr) -- 125 uncatalogued-looking rows
-  // with no sort applied was one of the review's own complaints.
+  // Defaults to ascending by name, rather than the fixture's own insertion
+  // order (wcml, gwr, swr) -- 125 rows with no sort applied look
+  // uncatalogued.
   it('defaults to ascending by name, and toggles on each click of the Name header', async () => {
     renderTable();
     const { fireEvent } = await import('@testing-library/react');
@@ -301,7 +301,7 @@ describe('AllLinesTable', () => {
     renderTable();
     const { fireEvent } = await import('@testing-library/react');
 
-    // Already ascending by name by default (Task 3.4.2) -- one click gets
+    // Already ascending by name by default -- one click gets
     // to descending by name.
     const nameHeader = screen.getByText(/^Name/);
     fireEvent.click(nameHeader); // now descending by name
@@ -313,7 +313,7 @@ describe('AllLinesTable', () => {
     expect(rowNames()).toEqual(['West Coast Main Line', 'Great Western Railway', 'South Western']);
   });
 
-  // Task 3.4.2: a plain, case-insensitive substring filter over the
+  // A plain, case-insensitive substring filter over the
   // already-client-side-loaded line names -- there is nothing to fetch
   // suggestions for, unlike the operator filter's server-sourced options.
   it('narrows rows by typing into "Find a line"', () => {
@@ -373,7 +373,7 @@ describe('AllLinesTable', () => {
   });
 });
 
-// Task 3.4.1: `swr` in the top-of-file fixture has no entry in `reports`
+// `swr` in the top-of-file fixture has no entry in `reports`
 // at all -- the real-world shape behind "the Status column is blank for
 // ~120 of ~125 rows" (a line with no `line_status` row yet, not a line
 // whose report just has an empty `lineStatuses`; see `worstStatus`, which

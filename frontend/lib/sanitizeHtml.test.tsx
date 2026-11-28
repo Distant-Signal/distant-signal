@@ -168,7 +168,7 @@ describe('sanitizeRichText', () => {
     expect(result).toContain('<ul><li>One</li></ul>');
   });
 
-  // review §3.5.9: an anchor whose visible text is just its own href reads
+  // An anchor whose visible text is just its own href reads
   // as noise ("https://www.nationalrail.co.uk/stations_destinations/
   // passenger-assist.aspx"), not a destination.
   describe('raw URL as link text', () => {
@@ -237,7 +237,7 @@ describe('sanitizeRichText', () => {
     });
   });
 
-  // review §3.5.8: a UK phone number written as plain text ("Call 0345 077
+  // A UK phone number written as plain text ("Call 0345 077
   // 4224 for assistance") is not tappable, unlike the same number rendered
   // through `renderContact`'s `tel:` link.
   describe('phone number linkification', () => {

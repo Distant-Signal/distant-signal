@@ -35,8 +35,7 @@ function connectorUrl(): string | null {
   return publicUrl ? mcpEndpointUrl(publicUrl) : null;
 }
 
-/** Option C's instructional page (embedded-chatbot-shared-foundation-and-
- * option-c plan, Task 9; the dual-mode design's Decision 6): the connector
+/** The connector instructions page: the connector
  * URL plus static instructions mirroring the documented Claude.ai flow.
  *
  * Since 2026-09-29 the MCP service is its own Authentik OIDC client, so
@@ -58,7 +57,7 @@ export default function ConnectClaudePage() {
         Claude looks the answers up in Distant Signal.
       </Text>
       {/* `grape` + `IconInfoCircle`-equivalent, not Mantine's default blue
-          -- review §3.1.6: the grape-theme spec reserves blue for `planned`
+          -- the grape-theme spec reserves blue for `planned`
           severity (`lib/severity.ts`'s `GROUP_COLOR`), and an unrelated
           informational Alert rendering in that same blue reads as if it
           were reporting a planned-closure-flavoured status. `InfoIcon` is

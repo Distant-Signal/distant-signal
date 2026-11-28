@@ -106,8 +106,8 @@ function matchedLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail
   };
 }
 
-// Matches `getJourneyByShareToken`'s own real, server-side guarantee
-// (Task 2): `isOwner` is always `false` and `shareLink` is always `null` on
+// Matches `getJourneyByShareToken`'s own real, server-side guarantee:
+// `isOwner` is always `false` and `shareLink` is always `null` on
 // the object it returns.
 function sharedJourney(overrides: Partial<JourneyDetail> = {}): JourneyDetail {
   return {

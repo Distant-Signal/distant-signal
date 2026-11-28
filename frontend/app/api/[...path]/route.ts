@@ -23,8 +23,8 @@ import { isPublicCacheCandidate, lockDown, publicCacheEnabled, publicCacheHeader
 // `FORWARDED_COOKIE_NAMES` below must reach `api` (so `/auth/session` and
 // `/auth/callback` can read whichever of the two the browser is holding --
 // NOT the whole incoming `Cookie` header verbatim; see that constant's own
-// doc comment for why only these two, added for the 2026-09-26 "Repeater
-// Signal" review's finding L5), and every `Set-Cookie` `api` sends back must
+// doc comment for why only these two: the browser's other cookies have no business reaching
+// the api), and every `Set-Cookie` `api` sends back must
 // reach the browser unmodified (so it can store the session cookie
 // `/auth/callback` and `/auth/logout` set). `/auth/login` and
 // `/auth/callback` also respond with `3xx` redirects that must be handed
@@ -39,8 +39,8 @@ import { isPublicCacheCandidate, lockDown, publicCacheEnabled, publicCacheHeader
 // existing, general-purpose authenticated-mutation scope (preferences,
 // custom lines, auth). `/Train/...` was added for individual train
 // tracking (`POST /Train/track`,
-// docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md
-// Decision 4) -- that route is mounted directly on the backend's root
+// docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md)
+// -- that route is mounted directly on the backend's root
 // router (`crates/api/src/main.rs`'s `.merge(routes::train::router())`),
 // not nested under `/public`, the same way `/StopPoint/...`/`/Line/...`
 // aren't. `/Journeys/...` was added the same way for journey tracking
@@ -332,10 +332,10 @@ async function proxyUpstream(req: NextRequest, path: string[]): Promise<NextResp
   // 'application/json' -- a browser's fetch(url, { body: formData }) sets
   // its own 'multipart/form-data; boundary=...' header, and axum's
   // Multipart extractor needs that exact boundary value to parse an
-  // uploaded file field at all (the ticket-upload routes this proxy must
-  // now support --
-  // docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md
-  // Correction 2). Every existing JSON caller (PinToggle, TrackTrainForm,
+  // uploaded file field at all (the ticket-upload routes this proxy
+  // supports, see
+  // docs/superpowers/specs/2026-08-29-journey-ticket-tracking-frontend-design.md).
+  // Every existing JSON caller (PinToggle, TrackTrainForm,
   // preferences, the OIDC flow) already sets its own
   // 'Content-Type': 'application/json' header on the request it sends to
   // this proxy, so this is inert for them -- the fallback below only

@@ -96,10 +96,9 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
  * token to a group preview (works whether or not the visitor is logged in
  * -- `getGroupJoinPreview` hits the backend's unauthenticated preview
  * route), then either shows the explicit Join button (already
- * authenticated) or a login button. `LoginControl` (review §2.16 -- this
- * used to be `LoginControl`, an underlined text link with far less visual
- * weight than the filled `JoinGroupButton` the authenticated branch below
- * renders, on the one page an invitee reaches *by definition* anonymous)
+ * authenticated) or a login button. `LoginControl` (a filled button, to match the
+ * `JoinGroupButton` the authenticated branch below renders, on the one page
+ * an invitee reaches *by definition* anonymous)
  * needs no extra plumbing to preserve this token through the OIDC redirect:
  * it captures the CURRENT page's own path via `usePathname()`
  * (`useLoginHref.ts`), and that path already IS `/groups/join/{token}` --
@@ -108,11 +107,11 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
  * `validate_return_to`'s existing return-to-any-same-origin-path
  * mechanism, `crates/api/src/auth.rs`).
  *
- * Review §4.6 / §3.2.3: an already-authenticated visitor who's already a
+ * An already-authenticated visitor who's already a
  * member -- most often the group's own owner, testing their own invite
- * link -- used to be offered "Join group" regardless, because this page
- * only ever called the unauthenticated preview above, which has no
- * concept of the CALLER's own membership. `consume_invite_link`
+ * link -- must not be offered "Join group", but the unauthenticated
+ * preview above has no concept of the CALLER's own membership.
+ * `consume_invite_link`
  * (`crates/api/src/data/groups.rs`) is idempotent (`ON CONFLICT DO
  * NOTHING`), so clicking it wouldn't have corrupted anything -- but
  * offering to "join" a group you're already in reads as broken, not

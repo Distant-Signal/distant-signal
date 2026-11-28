@@ -36,7 +36,7 @@ export function DownloadCalendarButton({ journeyId }: { journeyId: string }) {
       document.body.append(link);
       link.click();
       link.remove();
-      // Not in this task: WebKit has aborted a download whose blob URL was
+      // Not revoked here: WebKit has aborted a download whose blob URL was
       // revoked straight after `click()`.
       setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
     } catch {

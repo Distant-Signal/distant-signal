@@ -564,7 +564,7 @@ describe('RegularJourneyForm', () => {
     await screen.findByText(/Pick the one you usually take\./);
     expect(trainAt('08:03')).toBeChecked();
     expect(trainAt('08:18')).not.toBeChecked();
-    // The plan's other options apply; "prefer" only labels an option, so
+    // The other options in the plan apply; "prefer" only labels an option, so
     // it isn't asked for.
     const search = calls()[0]![0];
     expect(search).toContain('maxChanges=1');

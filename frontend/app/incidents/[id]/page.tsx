@@ -120,17 +120,16 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
   return (
     <Stack p="lg" gap="md">
-      {/* Review §3.3: the detail page was a dead end -- no back link or
-          breadcrumb, and the global nav was the only way out. This is the
+      {/* Without a back link the global nav is the only way out. This is the
           page most likely to be reached from a shared URL with no browser
           history to go back to. */}
       <TextLink href="/incidents" underline="always">
         Back to incidents
       </TextLink>
 
-      {/* Review §3.3: a ten-word Knowledgebase summary used to wrap to four
-          lines at full `h1` size before the badges even appeared, consuming
-          ~40% of the first mobile viewport. `size="h2"` plus a 3-line clamp
+      {/* A ten-word Knowledgebase summary would wrap to four lines at full
+          `h1` size before the badges even appeared, consuming ~40% of the
+          first mobile viewport. `size="h2"` plus a 3-line clamp
           shrinks that footprint; `title` keeps the full text one hover (or
           screen-reader "title" exposure) away for the rare case a summary
           is clamped. The badges/share row is intentionally its own `Group`
@@ -140,19 +139,15 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         {incident.summary}
       </Title>
 
-      {/* Review §3.3 ("small things"): the share `ActionIcon` used to sit
-          alone on its own row between the badge and the body, because the
-          old `Group justify="space-between"` wrapped once the `h1` spanned
-          the container -- the title lived in that same `Group`. Moving the
-          title out to its own element above (rather than reordering this
-          `Group`'s children) removes the thing that was forcing the wrap in
-          the first place, so this `justify="space-between"` (unchanged from
-          before) now reliably keeps the badges and the share button on one
+      {/* The title is its own element above rather than a child of this
+          `Group`: sharing the `Group` made it wrap once the `h1` spanned
+          the container, leaving the share `ActionIcon` alone on its own row.
+          With the title out, this `justify="space-between"` reliably keeps the badges and the share button on one
           row instead of wrapping the button onto its own. */}
       <Group justify="space-between">
         <Group gap="sm">
           {incident.isPlanned && <StateBadge tone="planned">Planned work</StateBadge>}
-          {/* Review §3.3's "at-a-glance strip": the archive rows' own
+          {/* The at-a-glance strip: the archive rows' own
               Active/Ended/Cleared badge, the same component, so a reader
               who has seen the archive recognises it immediately here. */}
           <IncidentStateBadge
@@ -166,10 +161,9 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         <ShareButton />
       </Group>
 
-      {/* Review §3.3: operators were previously discoverable only by
-          reading the free-text description -- `incident.operators` (in the
-          API response, and already rendered on every archive row) never
-          appeared on this page at all. `operatorLabel` resolves each ATOC
+      {/* Operators are otherwise discoverable only by reading the free-text
+          description, though `incident.operators` is in the API response and
+          rendered on every archive row. `operatorLabel` resolves each ATOC
           code through the same TOC-name lookup `app/lines/[id]/page.tsx`
           already uses, degrading to the bare code for one the reference
           table doesn't (yet) know. Hidden rather than rendered empty: an
@@ -186,14 +180,12 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
       {incident.affectedStations.length > 0 && (
         <Stack gap={4}>
-          {/* Review §3.3: labelled with names *and* codes now, not just a
-              bare CRS in a `title` tooltip nobody can see without hovering
-              -- review §2.9's "unlabelled CRS pills ... floating in the
-              page". `stationLabel` is the same "Name (CRS)"/bare-code
+          {/* Labelled with names *and* codes, not just a bare CRS in a `title`
+              tooltip nobody can see without hovering. `stationLabel` is the same "Name (CRS)"/bare-code
               fallback every other station reference on this app already
               uses. */}
           <SectionTitle>Affected stations</SectionTitle>
-          {/* Dimmed text, not pills (round 2): stations an item affects
+          {/* Dimmed text, not pills: stations an item affects
               are never badges. */}
           <Text c="dimmed">
             {incident.affectedStations.map((crs) => stationLabel(crs, stationNamesByCrs.get(crs))).join(', ')}
@@ -202,10 +194,9 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       )}
 
       <Stack gap={4}>
-        {/* Review §3.3 (a11y): "Validity"/"Currently affects"/"History" used
-            to be `Text fw={500}`, not real headings, so the document
-            outline was a lone `<h1>` and nothing else. They are now
-            `SectionTitle` `h2`s at the app-wide section size. */}
+        {/* a11y: "Validity"/"Currently affects"/"History" are real headings,
+            not `Text fw={500}`, so the document outline is more than a lone
+            `<h1>`. `SectionTitle` `h2`s at the app-wide section size. */}
         <SectionTitle>Validity</SectionTitle>
         {incident.validityPeriods.map((period, i) => (
           <Text key={i} size="sm" c="dimmed">
@@ -216,14 +207,11 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
       <Divider />
 
-      {/* Review §3.3's at-a-glance strip, second half: a cleared incident
-          with an "ongoing" validity period (common -- see the stale-incident
-          spec) used to still render "Currently affects" the same way a live
-          one does, which reads as a contradiction next to a "REAL-TIME"
-          badge nobody can reconcile with "cleared" unless they already know
-          what "not currently reported on any tracked line" means. Once
-          cleared, this whole section says so instead of listing lines that
-          are, definitionally, no longer meaningfully "current". */}
+      {/* A cleared incident with an "ongoing" validity period (common -- see
+          the stale-incident spec) would still render "Currently affects" the
+          way a live one does, which reads as a contradiction next to a
+          "REAL-TIME" badge. Once cleared, this whole section says so instead
+          of listing lines that are, definitionally, no longer "current". */}
       {/* An "Ended" incident (the Knowledgebase feed stopped listing it
           without clearing it) is no more "current" than a cleared one, so
           it gets the same treatment, with the words the badge carries. */}
@@ -271,10 +259,9 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
       <Stack gap="xs">
         <SectionTitle>History</SectionTitle>
-        {/* Review §3.3: the detail-page spec assumed history "always has at
-            least the first-seen snapshot", but a freshly ingested incident
-            can be caught between ingest and its first change -- and the
-            fixture demonstrates it does happen. */}
+        {/* History does not always have the first-seen snapshot: a freshly
+            ingested incident can be caught between ingest and its first
+            change. */}
         {incident.history.length === 0 ? (
           <Text size="sm" c="dimmed">
             No changes recorded since this incident was first seen.

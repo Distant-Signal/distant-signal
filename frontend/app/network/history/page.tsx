@@ -59,21 +59,14 @@ export default async function NetworkHistoryPage({
 
   return (
     <Stack p="lg" gap="md">
-      {/* Points at `/status`, not `/lines`: `/status` is the page that now
-          links HERE (2026-09-22 UX review, C2 -- this back-link used to
-          name a parent that had never heard of this route), and it is the
-          same network-wide question asked about right now rather than
-          over time. */}
+      {/* Points at `/status`, not `/lines`: `/status` links here and asks the same network-wide question
+          about right now rather than over time. */}
       <TextLink href="/status" underline="always">
         Back to network status
       </TextLink>
-      {/* Review M11/§3.5: matches "History: {name}" -- the pattern both
-          `/lines/[id]/history` and `/operators/[code]/history` already use
-          -- rather than the one-off "Network history" this page shipped
-          with. */}
+      {/* Same title pattern as the line and operator history pages. */}
       <Title order={1}>Network history</Title>
-      {/* Review [OH] §3.4/I11: same "say the scope" line the operator
-          history page carries under its own title. */}
+      {/* Says the scope, like the operator history page does under its own title. */}
       <Text c="dimmed" size="sm">
         Every National Rail line (TfL not included)
       </Text>

@@ -152,8 +152,8 @@ describe('TextLink', () => {
     expect(screen.getByText('Find a train').tagName).toBe('SPAN');
   });
 
-  // Review §2.16 "auth controls are inconsistently sized": `size` is new,
-  // and left undefined by default so it changes no existing call site.
+  // `size` is left undefined by default so it changes no existing call site
+  // (auth controls were inconsistently sized).
   it("leaves the font size at Text's own default when no size is given", () => {
     renderWithMantine(<TextLink href="/lines">All Lines</TextLink>);
     expect(screen.getByText('All Lines')).not.toHaveStyle({ '--text-fz': 'var(--mantine-font-size-sm)' });

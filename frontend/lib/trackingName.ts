@@ -60,8 +60,8 @@ export function trackedTrainRouteLabel(train: TrackedTrainRouteInput): string {
  *
  * Never persisted -- always computed fresh from fields already on the
  * caller's own wire object, at render time. See
- * docs/superpowers/specs/2026-09-05-custom-tracking-names-design.md's
- * Decision 3 for why a stored-at-creation default would go stale the
+ * docs/superpowers/specs/2026-09-05-custom-tracking-names-design.md
+ * for why a stored-at-creation default would go stale the
  * moment a pre-match pin's destination or a slow-to-load station name
  * resolves later. */
 export function trackedTrainDisplayName(

@@ -16,10 +16,9 @@ vi.mock('@mantine/hooks', async (importOriginal) => ({
   useNetwork: () => network,
 }));
 
-// ConnectivityMonitor now reads the current route (review §2.16, form-page
-// copy) via `usePathname()`, which throws "invariant expected app router to
-// be mounted" outside a real Next.js App Router tree, same as every other
-// component in this app that calls it.
+// ConnectivityMonitor reads the current route via `usePathname()`, which throws "invariant expected app
+// router to be mounted" outside a real Next.js App Router tree, same as every other component in this
+// app that calls it.
 let pathname = '/stations';
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
@@ -79,8 +78,7 @@ describe('ConnectivityMonitor', () => {
     expect(screen.queryByText(BANNER)).not.toBeInTheDocument();
   });
 
-  // The two-strikes regression test (design spec Decision 2): one failed
-  // freshness fetch is a blip and must not flash a banner.
+  // The two-strikes regression test: one failed freshness fetch is a blip and must not flash a banner.
   it('shows no banner after a single backend failure', () => {
     renderMonitor(failure());
     expect(screen.queryByText(BANNER)).not.toBeInTheDocument();
@@ -104,7 +102,7 @@ describe('ConnectivityMonitor', () => {
     act(() => observe(failure()));
     expect(screen.getByText(BANNER)).toBeInTheDocument();
 
-    // One success clears it immediately (design spec Decision 2).
+    // One success clears it immediately.
     act(() => observe(success()));
     expect(screen.queryByText(BANNER)).not.toBeInTheDocument();
 
@@ -142,10 +140,9 @@ describe('ConnectivityMonitor', () => {
     expect(status).toHaveTextContent(BANNER);
   });
 
-  // Review §2.12/§5: "showing the last update" must name an actual time,
-  // not remain an unverifiable claim. The banner body should carry the
-  // formatted `observedAt` of the last render that was actually reachable,
-  // not just the generic fallback copy.
+  // "showing the last update" must name an actual time, not remain an unverifiable claim: the banner body
+  // should carry the formatted `observedAt` of the last render that was actually reachable, not just the
+  // generic fallback copy.
   it('names the last known-good time in the offline banner body', () => {
     const goodAt = '2026-08-19T18:41:00.000Z';
     renderMonitor({ backendReachable: true, observedAt: goodAt });
@@ -169,9 +166,8 @@ describe('ConnectivityMonitor', () => {
     expect(status).toHaveTextContent('Showing the last update.');
   });
 
-  // Review §2.16: "showing the update from {time}"/"showing the last
-  // update" is untrue on a route whose whole content is a form -- there was
-  // never any live data on screen to have last updated.
+  // "showing the update from {time}"/"showing the last update" is untrue on a route whose whole content
+  // is a form: there was never any live data on screen to have last updated.
   describe('on a form route', () => {
     it.each(['/track', '/trains', '/lines/new', '/lines/some-line/edit'])(
       'shows entry-safety copy instead of "showing the last update" on %s',
@@ -240,8 +236,7 @@ describe('ConnectivityMonitor', () => {
     expect(new Set(seen).size).toBe(1);
   });
 
-  // Review §2.16: on a 390px phone the unconstrained `Notification` shrank
-  // to ~200px and its body wrapped onto four lines.
+  // On a 390px phone the unconstrained `Notification` shrank to ~200px and its body wrapped onto four lines.
   it('caps the fixed banner wrapper width so it cannot shrink-wrap on a narrow viewport', () => {
     renderMonitor(failure());
     act(() => observe(failure()));

@@ -176,10 +176,10 @@ export function IssueList({
   const severityOptions = Array.from(new Set(statuses.map((status) => status.statusSeverity)))
     .sort((a, b) => severityRank(b) - severityRank(a))
     .map((severity) => ({ value: String(severity), label: severityBadgeLabel(severity) }));
-  // Review §2.14: only offer a Source chip for a source actually present in
-  // THIS loaded report, rather than every source `DATA_QUALITY_LABELS`
-  // knows about network-wide -- a two-source report showing all five
-  // possible chips implied narrowing that was never actually available.
+  // Only offer a Source chip for a source actually present in THIS loaded
+  // report, rather than every source `DATA_QUALITY_LABELS` knows about
+  // network-wide: showing all five for a two-source report implied narrowing
+  // that was never available.
   // `DATA_QUALITY_LABELS`' own key order is preserved (filtering, not
   // rebuilding, its entries) so this doesn't reshuffle the row.
   const presentSources = new Set(statuses.map((status) => status.dataQuality));
@@ -241,17 +241,13 @@ export function IssueList({
   // service reading and a real disruption still needs the full list.
   //
   // This has to sit after every hook call in the component (useId/useMemo/
-  // useState above), not "immediately after the statuses/linesByStatus
-  // memos" as originally sketched — Task 10's `severityFilter`/
-  // `sourceFilter`/`activeFilter` state and the `buckets` memo all sit
-  // between those memos and here now, and an early return before them
-  // would call a different number of hooks depending on `allGood`, which
-  // breaks React's Rules of Hooks. Confirmed by reproduction: rerendering
-  // the same mounted instance across an all-good/mixed transition (which
-  // `router.refresh()` can do without remounting, since Client Components
-  // preserve state across a Server Component refresh) throws "Rendered
-  // fewer/more hooks than expected." Placing the check after the last hook
-  // call and before the first plain (non-hook) derived value keeps every
+  // useState above): an early return before them would call a different number
+  // of hooks depending on `allGood`, which breaks React's Rules of Hooks.
+  // Rerendering the same mounted instance across an all-good/mixed transition
+  // (which `router.refresh()` can do without remounting, since Client
+  // Components preserve state across a Server Component refresh) throws
+  // "Rendered fewer/more hooks than expected." Placing the check after the last
+  // hook call and before the first plain (non-hook) derived value keeps every
   // hook unconditional while still skipping all of the chrome below.
   const allGood = statuses.length > 0 && statuses.every((status) => isGoodSeverity(status.statusSeverity));
   if (allGood) {
@@ -484,7 +480,7 @@ export function IssueList({
                     </Text>
                   )}
                   {/* Provenance (sampled or full coverage), so dimmed text,
-                      not a fourth badge (round 2). Decision 2's confident
+                      not a fourth badge. The confident
                       tooltip still attaches per status. */}
                   <Tooltip label={coverageProvenanceNote(status) ?? ''} disabled={!coverageProvenanceNote(status)}>
                     <Text size="xs" c="dimmed">

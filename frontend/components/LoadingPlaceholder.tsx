@@ -8,8 +8,8 @@ import { LoadingText } from './LoadingText';
  *
  * A bare Mantine `Skeleton` is an empty `div` -- a screen reader gets
  * nothing at all from it, and a sighted user gets a grey box with no word
- * saying it is loading rather than broken. The style guide's loading rule
- * (and the collated UX review) asks for exactly this shape instead, the
+ * saying it is loading rather than broken. The style guide's loading rule asks
+ * for exactly this shape instead, the
  * same one `/lines/[id]`'s own trends/trains fallbacks already use.
  *
  * `height` draws a single full-width skeleton (charts use 320px); pass

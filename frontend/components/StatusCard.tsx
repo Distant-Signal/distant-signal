@@ -3,7 +3,7 @@ import { Card, Group, Stack, Text } from '@mantine/core';
 import { CardTitleLink, ClickableCard } from './ClickableCard';
 import { tokens } from '@/lib/theme';
 
-/** The one status card (round 2, item 3): a name, its status badge, the
+/** The one status card: a name, its status badge, the
  * reason, then the card's own details and an optional footer. Used for
  * lines (`LineStatusCard`), operators (`OperatorStatusCard`) and the
  * /status mode breakdown, on Status, Lines, Operators and the home page.

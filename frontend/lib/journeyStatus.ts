@@ -94,15 +94,14 @@ function legIsSkipped(leg: JourneyLegDetail): boolean {
 
 /** Classifies one leg. Delay threshold is `delayMinutes > 0`, matching
  * `TrainJourney.tsx`'s own existing per-leg delay badge exactly (not the
- * notifier's separate 15-minute escalation threshold) -- see this plan's
- * Judgment Call 4.
+ * notifier's separate 15-minute escalation threshold).
  *
  * The `legIsSkipped` arm sits directly under the cancellation arm and
  * ABOVE the delay/awaiting/good arms, so its `LEG_STATUS_RANK` position
  * and its position in this branch chain agree: a running, punctual train
  * that is no longer calling at the traveller's own station used to fall
  * straight through to `'good'` and roll the whole journey up as "On
- * track" (2026-09-22 UX review, I13). A CANCELLED train still wins --
+ * track". A CANCELLED train still wins --
  * "this train isn't running" subsumes "this train isn't stopping". */
 export function legStatusGroup(leg: JourneyLegDetail): LegStatusGroup {
   if (isUntrackedLeg(leg)) {

@@ -44,11 +44,11 @@ function sharedTrainFrom(searchParams: Record<string, string | string[] | undefi
 
 const log = createLogger('app/journeys/shared/[token]');
 
-/** `/journeys/shared/{token}` -- the unlisted-share-link landing page
- * (2026-09-23 unlisted-links plan, Task 6): resolves an unlisted share
- * token to a `JourneyDetail` via `getJourneyByShareToken` (Task 3, genuinely
+/** `/journeys/shared/{token}` -- the unlisted-share-link landing page:
+ * resolves an unlisted share
+ * token to a `JourneyDetail` via `getJourneyByShareToken` (genuinely
  * unauthenticated -- no cookie required) and renders it read-only through
- * `JourneyDetailView` (Task 5). Follows the exact shape
+ * `JourneyDetailView`. Follows the exact shape
  * `app/groups/join/[token]/page.tsx` already uses for its own token
  * resolution: an invalid/expired/revoked token gets its own explanatory
  * "Link not found" copy, never a bare `notFound()` -- the same reasoning
@@ -57,7 +57,7 @@ const log = createLogger('app/journeys/shared/[token]');
  * visitor).
  *
  * `journey.isOwner` on the object `getJourneyByShareToken` returns is always
- * `false` server-side (Task 2's own guarantee) -- `JourneyDetailView`
+ * `false` server-side -- `JourneyDetailView`
  * already hides every owner-only affordance
  * (`AddJourneyLegButton`/`ShareJourneyButton`/`ShareJourneyLinkButton`/
  * `SaveAsTemplateButton`, `JourneyLegCard`'s "Change train"/candidate
@@ -304,8 +304,8 @@ export default async function SharedJourneyPage({
   const fetchedAt = new Date().toISOString();
   // `JourneyDetailView` requires `origin` to build `ShareJourneyLinkButton`'s
   // link -- but that button only ever renders when `journey.isOwner` is
-  // true, which `getJourneyByShareToken` never returns (Task 2's own
-  // guarantee, see the doc comment above), so this value is never actually
+  // true, which `getJourneyByShareToken` never returns (see the doc
+  // comment above), so this value is never actually
   // read on this page. Resolved anyway, same unconditional pattern
   // `app/journeys/[id]/page.tsx` uses for its own identical prop, for the
   // same reason given there: a cheap header/env read, and keeping it

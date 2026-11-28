@@ -9,13 +9,9 @@ import type { TrackedRowStatus } from '@/lib/trackedRowStatus';
 import type { ListCancellation } from '@/lib/types';
 import { UNTRACKED_STATUS_LABEL } from '@/lib/untrackedLeg';
 
-// 2026-09-22 UX review finding M22/2.11: "On track" here and "On time" on
-// `TrainJourney.tsx`'s own per-leg delay badge (and `JourneyTimeline.tsx`'s
-// per-stop one) named the identical state two different ways, one line
-// apart on `journey-168-desktop.png`. "On time" is the app's own more
-// established term for this state -- it's what both of those other,
-// pre-existing badges already say -- so this rollup badge aligns to it
-// rather than the other way round.
+// "On track" here and "On time" on `TrainJourney.tsx`'s per-leg delay badge (and
+// `JourneyTimeline.tsx`'s per-stop one) would name the same state two ways.
+// "On time" is the established term, so this rollup badge uses it.
 const LABEL: Record<JourneySummaryGroup, string> = {
   // An untracked leg's clock-only state (spec 2026-10-20 §2.2). It only
   // heads a journey with no train legs (`LEG_STATUS_RANK`).
@@ -121,9 +117,9 @@ function isCancelledGroup(group: JourneySummaryGroup | TrackedRowStatus['kind'])
 
 /** The badge for an ALREADY-CLASSIFIED status group -- the one place a
  * `JourneySummaryGroup` becomes a label and a colour. No `Tooltip`: it
- * would only restate the badge's own visible text (2026-09-22 UX review,
- * M17) and a `Tooltip` on a non-focusable `Badge` is keyboard-unreachable
- * anyway. Re-exported from `JourneyStatusBadge.tsx`, its old home.
+ * would only restate the badge's own visible text, and a `Tooltip` on a
+ * non-focusable `Badge` is keyboard-unreachable anyway. Re-exported from
+ * `JourneyStatusBadge.tsx`, its old home.
  *
  * With a `cancellation` (the row's one train's, DS-181), a "Cancelled" or
  * "Part cancelled" group is worded from it (`CancelledRowBadge`). */

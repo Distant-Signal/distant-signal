@@ -64,8 +64,7 @@ describe('withStaleFallback', () => {
     await expect(withStaleFallback('k', () => Promise.reject(err))).rejects.toBe(err);
   });
 
-  // The regression test for Correction 2, and the most important case in
-  // this file. /Line/Mode/{mode}/Status and /Line/{ids}/Status filter
+  // The most important case in this file. /Line/Mode/{mode}/Status and /Line/{ids}/Status filter
   // private custom lines by owner (crates/api/src/routes/line_status.rs),
   // so an unscoped cache would serve one visitor's private line to
   // another during an outage -- a cross-user data leak, not a staleness

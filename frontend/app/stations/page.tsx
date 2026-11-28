@@ -38,15 +38,10 @@ export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPT
   path: '/stations',
 });
 
-/** review §3.5.13: the plan's own cheapest option for a page that was
- * otherwise empty below the search form -- a handful of major termini as
- * plain links, rather than the pinned-stations/localStorage-recents
- * options it also floats (both need per-user or per-browser state this
- * server component has no cheap way to reach; a future pass can add
- * either without touching this one). Not exhaustive and not meant to be --
- * eight of the UK's busiest interchange stations, so a reader with no
- * particular station in mind has somewhere to go besides a blank search
- * box. */
+/** A handful of major termini as plain links, so a page that is otherwise empty below the search form gives
+ * a reader with no particular station in mind somewhere to go. Not exhaustive: eight of the UK's busiest
+ * interchange stations. (Pinned stations or recents would need per-user or per-browser state this server
+ * component can't cheaply reach.) */
 const MAJOR_STATIONS: { crs: string; name: string }[] = [
   { crs: 'KGX', name: 'London Kings Cross' },
   { crs: 'PAD', name: 'London Paddington' },

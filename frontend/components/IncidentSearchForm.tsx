@@ -398,7 +398,7 @@ export function IncidentSearchForm({
           { label: 'Cleared', value: 'cleared' },
         ]}
       />
-      {/* Review §2.14: the raw-feed caveat is said once, as the wrapper's
+      {/* The raw-feed caveat is said once, as the wrapper's
           description. The feed has no documented "major"/"minor" meaning
           for priority, so it stays visibly unprocessed. */}
       <InputWrapper

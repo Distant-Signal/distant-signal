@@ -48,8 +48,8 @@ import { isUntrackedLeg, UNTRACKED_STATUS_LABEL } from '@/lib/untrackedLeg';
 import { groupCollapsibleLegs, isInertWalkLeg, journeyCollapsedLabel, shownLegs } from '@/lib/legCollapse';
 import { CollapsedLegs } from './CollapsedLegs';
 
-/** The page's name for the journey (2026-09-22 UX review finding M18: never
- * the generic "Tracked journey"), by the one journey-naming rule in
+/** The page's name for the journey (never the generic "Tracked journey"), by
+ * the one journey-naming rule in
  * `lib/journeyName.ts`: the custom name, else the first leg's origin to the
  * LAST leg's destination and the first leg's date, exactly what the Track
  * list row shows for the same journey. Names are the server-resolved
@@ -73,17 +73,15 @@ export function journeyNameInput(journey: JourneyDetail): JourneyNameInput {
 }
 
 /** One short status phrase per leg, for the multi-leg rollup summary line
- * below (2026-09-22 UX review finding I12/2.6). Deliberately NOT built on
+ * below. Deliberately NOT built on
  * `lib/journeyStatus.ts::legStatusGroup` -- that function picks a single
  * WORST-status label per leg for ranking purposes (and, per that module's
- * own doc comment, is the one piece of this fix intentionally left
- * untouched here), where this wants the same plain facts
+ * own doc comment, left as is), where this wants the same plain facts
  * (`JourneyStatusBadge`'s own header badge already reduces the whole
  * journey to its single worst leg) restated per leg instead of collapsed
  * to one. "on time", not "on track" -- aligned with `JourneyTimeline.tsx`/
  * `TrainJourney.tsx`'s own existing per-stop/per-leg delay badges, the
- * same M22/2.11 terminology fix `JourneyStatusBadge.tsx`'s own label map
- * makes. */
+ * same terminology `JourneyStatusBadge.tsx`'s own label map uses. */
 function legSummaryPhrase(leg: JourneyLegDetail): string {
   if (isUntrackedLeg(leg)) return UNTRACKED_STATUS_LABEL[leg.untrackedStatus ?? 'planned'].toLowerCase();
   if (leg.trackedTrainState === null) return 'needs a train picked';
@@ -168,9 +166,8 @@ function NextLegNotes({ next }: { next: JourneyLegDetail }) {
   );
 }
 
-/** The reusable body of `/journeys/[id]` -- extracted verbatim (2026-09-23
- * unlisted-links plan, Task 5) from `app/journeys/[id]/page.tsx` so a
- * later `/journeys/shared/[token]` page (Task 6, same plan) can render the
+/** The reusable body of `/journeys/[id]`, extracted from
+ * `app/journeys/[id]/page.tsx` so `/journeys/shared/[token]` can render the
  * identical journey detail view for an anonymous share-link viewer, minus
  * the page-specific "Back to journeys" link -- there is
  * nothing for an anonymous viewer to go back to, so that link stays
@@ -213,14 +210,11 @@ export function JourneyDetailView({
    * owner's, while the api's calendar feed is on). */
   calendarDownload?: boolean;
 }) {
-  // Review §2.5/M16: "Add a leg" used to be offered at the same visual
-  // weight as the status badge even while the CURRENT leg still needs a
-  // train picked -- there is nothing to chain a new leg onto yet, and it
-  // competed for attention with the one action that actually matters on
-  // this page. Hidden until the last leg is matched. Both helpers now live
-  // in `lib/journeyLegChaining.ts`, shared with `JourneyCreationFlow.tsx`'s
-  // own inline "Add a leg" during initial creation -- see that module's own
-  // doc comment for why this moved out of being private to this page.
+  // "Add a leg" is hidden until the last leg is matched: while the CURRENT leg
+  // still needs a train there is nothing to chain a new leg onto, and it would
+  // compete for attention with the one action that matters. Both helpers live
+  // in `lib/journeyLegChaining.ts`, shared with `JourneyCreationFlow.tsx`'s own
+  // inline "Add a leg" during initial creation.
   const priorDestinationCrs = journeyPriorDestinationCrs(journey);
   const priorArrival = journeyPriorArrival(journey);
   const priorPlaceName = journeyPriorDestinationName(journey);
@@ -322,8 +316,8 @@ export function JourneyDetailView({
           )}
           {journey.isOwner && <DeleteJourneyButton journeyId={journey.publicId} />}
           {/* Deliberately NOT gated on journey.isOwner -- see
-              docs/superpowers/plans/2026-09-22-reusable-journeys-phaseA-track-again-plan.md's
-              Judgment Call 7. Placed last so the owner-only controls
+              docs/superpowers/plans/2026-09-22-reusable-journeys-phaseA-track-again-plan.md.
+              Placed last so the owner-only controls
               above stay visually adjacent to each other. */}
           <TrackJourneyAgainButton journey={journey} viaShareLink={viaShareLink} />
         </Group>
@@ -371,10 +365,10 @@ export function JourneyDetailView({
           {journeyDefaultName(name)}
         </Text>
       )}
-      {/* 2026-09-22 UX review finding I12/2.6: the header badge above shows
-          only the single WORST leg's status -- `LEG_STATUS_RANK` puts
-          `unmatched` above `delayed`, so "Needs a train picked" from one
-          leg fully hid a real 22-minute delay on another, matched leg.
+      {/* The header badge above shows only the single WORST leg's status --
+          `LEG_STATUS_RANK` puts `unmatched` above `delayed`, so "Needs a train
+          picked" from one leg would fully hide a real delay on another,
+          matched leg.
           This line restates every leg's own status so a delay is never
           invisible above the fold. Single-leg journeys skip this line --
           the header badge already says the whole story when there's only
@@ -444,16 +438,11 @@ export function JourneyDetailView({
         const shownPosition = shown.indexOf(leg);
         const next = groups[groupIndex + 1];
         return (
-          // 2026-09-22 UX review finding I12/2.6: "the journey is not drawn
-          // as a chain" -- two cards with a bare 16px gap and no
-          // relationship between them. The "Leg N of M" label (multi-leg
-          // journeys only -- a single-leg journey has nothing to number)
-          // plus the connector after every leg but the last are what turn a
-          // list of unrelated cards into one readable journey.
-          // `id="leg-{id}"` (2026-09-22 UX review finding I15/2.3): the
-          // scroll target `JourneyStatusBadge`'s own anchor points at when
-          // the worst status is `unmatched` -- see that component's doc
-          // comment.
+          // "Leg N of M" label (multi-leg journeys only -- a single-leg journey
+          // has nothing to number) plus the connector after every leg but the
+          // last make the cards read as one chain rather than unrelated boxes.
+          // `id="leg-{id}"` is the scroll target `JourneyStatusBadge`'s own
+          // anchor points at when the worst status is `unmatched`.
           <Stack key={legRef(leg)} id={`leg-${legRef(leg)}`} gap={4}>
             {multiLeg && (
               <Text size="xs" fw={700} c="dimmed" tt="uppercase">

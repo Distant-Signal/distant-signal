@@ -84,9 +84,8 @@ describe('IncidentDetailPage', () => {
     expect(screen.getByText('Signal failure at Woking')).toBeInTheDocument();
     expect(screen.getByText('Delays expected')).toBeInTheDocument();
     expect(screen.getByText('WOK, WAT')).toBeInTheDocument();
-    // Review §2.9: bare CRS pills with nothing on the page to say what
-    // they are -- this heading is what makes them read as station
-    // identifiers rather than three floating, unexplained letters.
+    // Without this heading, bare CRS pills would read as three floating,
+    // unexplained letters rather than station identifiers.
     expect(screen.getByText('Affected stations')).toBeInTheDocument();
   });
 
@@ -96,7 +95,7 @@ describe('IncidentDetailPage', () => {
     expect(screen.queryByText('Affected stations')).not.toBeInTheDocument();
   });
 
-  // Review §2.9: "fetched" is the poller's own word, not a passenger's.
+  // "Fetched" is the poller's own word, not a passenger's.
   it("labels the fetch timestamp in reader-facing terms, not the poller's own word", async () => {
     vi.mocked(api.getIncident).mockResolvedValue(detail());
     renderWithMantine(await IncidentDetailPage({ params: Promise.resolve({ id: '12345' }) }));
@@ -166,20 +165,18 @@ describe('IncidentDetailPage', () => {
     expect(screen.getByText('First seen')).toBeInTheDocument();
   });
 
-  // Review §2.12: the timezone note appears once for the whole "First
-  // seen"/"Last updated from National Rail" section, not once per
-  // timestamp, even though the page also shows several other timestamps
-  // (validity periods, history entries) that are not this note's target
-  // section.
+  // The timezone note appears once for the whole "First seen"/"Last
+  // updated from National Rail" section, not once per timestamp, even
+  // though the page also shows several other timestamps (validity periods,
+  // history entries) that are not this note's target section.
   it('states the UK-local-time note exactly once, next to First seen/Last updated', async () => {
     vi.mocked(api.getIncident).mockResolvedValue(detail());
     renderWithMantine(await IncidentDetailPage({ params: Promise.resolve({ id: '12345' }) }));
     expect(screen.getAllByText('Times in UK local time')).toHaveLength(1);
   });
 
-  // Review §3.3: the detail page was a dead end -- no back link or
-  // breadcrumb, and this is the page most likely to be reached from a
-  // shared URL with no browser history to go back to.
+  // This page is most likely reached from a shared URL with no browser
+  // history to go back to, so it needs its own back link.
   it('renders a back link to the incident archive', async () => {
     vi.mocked(api.getIncident).mockResolvedValue(detail());
     renderWithMantine(await IncidentDetailPage({ params: Promise.resolve({ id: '12345' }) }));
@@ -189,9 +186,8 @@ describe('IncidentDetailPage', () => {
     expect(back).not.toHaveTextContent('←');
   });
 
-  // Review §3.3's "at-a-glance strip": the page previously rendered neither
-  // `incident.operators` nor `incident.isCleared` at all, even though both
-  // are already public and already shown on the archive rows.
+  // The at-a-glance strip shows `incident.operators` and
+  // `incident.isCleared`, both already public and shown on the archive rows.
   describe('the at-a-glance strip (review §3.3)', () => {
     it('shows an Active badge for a live incident and a Cleared one for a cleared incident', async () => {
       vi.mocked(api.getIncident).mockResolvedValue(detail({ isCleared: false }));
@@ -291,10 +287,9 @@ describe('IncidentDetailPage', () => {
       expect(screen.queryByText(/^Operators:/)).not.toBeInTheDocument();
     });
 
-    // Review §2.9: bare CRS pills ("KGX", "EUS") floating in the page with
-    // nothing to say what they are. Now labelled "Name (CRS)" -- the same
-    // fallback contract `stationLabel` uses everywhere else in this app --
-    // rather than just a hover-only `title` tooltip.
+    // Labelled "Name (CRS)" -- the same fallback contract `stationLabel`
+    // uses everywhere else in this app -- rather than bare CRS pills
+    // ("KGX", "EUS") or a hover-only `title` tooltip.
     it('names each affected station with its resolved name and code, as text', async () => {
       vi.mocked(api.getStationName).mockImplementation(async (crs) => (crs === 'WOK' ? 'Woking' : null));
       vi.mocked(api.getIncident).mockResolvedValue(detail({ affectedStations: ['WOK', 'WAT'] }));
@@ -304,19 +299,18 @@ describe('IncidentDetailPage', () => {
     });
   });
 
-  // Review §3.3: "History" used to render as a heading with nothing under
-  // it whenever `incident.history` was empty -- the detail-page spec
-  // assumed at least a first-seen snapshot always exists, but a freshly
-  // ingested incident can be caught between ingest and its first change.
+  // A freshly ingested incident can be caught between ingest and its first
+  // change, so `incident.history` can be empty: "History" must not render
+  // as a bare heading.
   it('renders a fallback message when history is empty, instead of a bare heading', async () => {
     vi.mocked(api.getIncident).mockResolvedValue(detail({ history: [] }));
     renderWithMantine(await IncidentDetailPage({ params: Promise.resolve({ id: '12345' }) }));
     expect(screen.getByText('No changes recorded since this incident was first seen.')).toBeInTheDocument();
   });
 
-  // Review §3.3 (a11y): "Validity", "Currently affects", "History" and
-  // "Affected stations" used to be `Text fw={500}`, not real headings --
-  // the document outline was a lone `<h1>` and nothing else.
+  // a11y: "Validity", "Currently affects", "History" and "Affected
+  // stations" must be real headings, or the document outline is a lone
+  // `<h1>` and nothing else.
   it('renders the section captions as real headings, not styled text', async () => {
     vi.mocked(api.getIncident).mockResolvedValue(detail());
     renderWithMantine(await IncidentDetailPage({ params: Promise.resolve({ id: '12345' }) }));

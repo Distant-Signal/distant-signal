@@ -575,7 +575,7 @@ describe('TextLink underline affordance', () => {
   });
 
   it('draws a continuous underline rather than skipping ink at word boundaries', () => {
-    // Review §2.8: the browser default of lifting the line over each
+    // The browser default of lifting the line over each
     // word's ascenders/descenders reads as a gapped, dashed-looking
     // underline on a multi-word link.
     const rule = /a\[data-text-link\]\s*\{[^}]*\}/.exec(css);

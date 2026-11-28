@@ -31,8 +31,7 @@ export const pinTooFarMessage = `That departure is too far ahead. Trains can be 
  * against (rows carry a CRS code, never a station name). A `null` row
  * destination (CIF only) never matches an *active* filter: "unknown" is
  * not "assume it matches". See
- * docs/superpowers/specs/2026-09-04-track-a-train-picker-refactor-design.md
- * Decision 1. */
+ * docs/superpowers/specs/2026-09-04-track-a-train-picker-refactor-design.md. */
 export function matchesDestination(rowDestinationCrs: string | null, destinationCrs: string): boolean {
   const trimmed = destinationCrs.trim();
   if (!CRS_PATTERN.test(trimmed)) return true;
@@ -43,8 +42,7 @@ export function matchesDestination(rowDestinationCrs: string | null, destination
  * field at all (the CIF SCHEDULE feed doesn't carry one), so call sites
  * for CIF rows never call this at all, exempting those rows from the
  * Operator filter entirely rather than having them always fail it (which
- * would silently defeat the whole point of the CIF fallback). See the
- * design doc's Decision 1, "CIF/Operator schema asymmetry". */
+ * would silently defeat the whole point of the CIF fallback). */
 export function matchesOperator(rowOperator: string, operator: string): boolean {
   const trimmed = operator.trim();
   if (!OPERATOR_PATTERN.test(trimmed)) return true;
@@ -199,7 +197,7 @@ export type ScheduleDepartureRow = Api.ScheduleDepartureRow;
 
 /** `'unavailable'` replaces the old `'not-sampled'` name: it now means
  * neither the LDBWS live board NOR the CIF-derived timetable had data for
- * this station -- see Decision 3/5.
+ * this station.
  *
  * Each CIF row carries the `serviceDate` of the bucket it was fetched from
  * (`CifPickerRow`). */

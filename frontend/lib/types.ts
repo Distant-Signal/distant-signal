@@ -349,8 +349,8 @@ export type UntrackedLegFields = Loose<
   >
 >;
 
-/* Mid-journey changes (docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md
- * §7, §8, §17.6): breaks, suggestions and the plan's revisions. */
+/* Mid-journey changes (docs/superpowers/specs/2026-10-22-mid-journey-changes-design.md):
+ * breaks, suggestions and the revisions of a plan. */
 
 /** What the planner was asked: `cause` of `GET .../alternatives` and of
  * `POST .../replace`. */
@@ -359,9 +359,7 @@ export type ReplaceRequest = Api.ReplaceRequest;
 export type AcceptSuggestionRequest = Api.AcceptSuggestionRequest;
 
 // ---------------------------------------------------------------------------
-// Chat (embedded-chatbot-option-b-client-side-tokens plan) -- ChatPanel's
-// own browser-side tool-calling loop, not a server-side orchestrator
-// (that was removed, see that plan's Task 5).
+// Chat -- ChatPanel's own browser-side tool-calling loop, not a server-side orchestrator.
 // ---------------------------------------------------------------------------
 
 /** Mirrors `distant-signal-mcp`'s own `StationRef`

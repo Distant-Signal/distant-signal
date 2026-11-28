@@ -34,9 +34,7 @@ async function renderPage(searchParams: { from?: string; to?: string; range?: st
 }
 
 describe('NetworkHistoryPage', () => {
-  // Review M11/§3.5: matches the "History: {name}" pattern both
-  // `/lines/[id]/history` and `/operators/[code]/history` already use,
-  // rather than the one-off "Network history" this page shipped with.
+  // Same title pattern the line and operator history pages use.
   it('titles the page "Network history", matching "{name} history" on the line and operator pages', async () => {
     vi.mocked(api.getHistoryRetention).mockResolvedValue(retention);
     vi.mocked(api.getNetworkDailyStats).mockResolvedValue([]);

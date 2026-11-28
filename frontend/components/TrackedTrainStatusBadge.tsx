@@ -63,8 +63,7 @@ export function TrackedTrainStatusBadge({
   // status exists yet for either. Once resolved, the journey status plus a
   // delay badge takes over. No "active only" filter and no attempt to
   // distinguish a genuinely-finished journey from one that's merely gone
-  // quiet -- per Decision 1/Finding 1 of the tracked-train design spec, the
-  // backend can't honestly support that distinction today.
+  // quiet -- the backend can't honestly support that distinction today.
   if (train.resolutionStatus !== 'resolved') {
     return (
       <StateBadge tone={train.resolutionStatus === 'unresolved' ? 'critical' : 'neutral'}>

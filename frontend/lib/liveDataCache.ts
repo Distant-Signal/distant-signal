@@ -2,8 +2,7 @@ import { createHash } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { ApiForbiddenError, ApiNotFoundError, ApiUnauthorizedError } from '@/lib/api';
 
-/** 10 minutes. Justification (the implementation plan's Resolved open
- * questions #2): 20 AutoRefresh cycles, so unambiguously past any transient
+/** 10 minutes. Justification: 20 AutoRefresh cycles, so unambiguously past any transient
  * blip; an order of magnitude shorter than getStationName's 1-hour window,
  * which is for data that "changes on the order of years"; and inside the
  * 5-15 minute scale on which rail disruption meaningfully evolves, so a
@@ -48,8 +47,7 @@ async function scopedKey(key: string): Promise<string> {
  * be wrong rather than merely stale. Only the generic Error case --
  * network failure, 5xx, timeout -- triggers the substitution.
  *
- * Deliberately NOT applied to session-, mutation- or write-adjacent data.
- * See the design spec's Decision 5. */
+ * Deliberately NOT applied to session-, mutation- or write-adjacent data. */
 export async function withStaleFallback<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const mapKey = await scopedKey(key);
   try {

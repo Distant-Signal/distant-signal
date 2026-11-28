@@ -8,22 +8,22 @@ import { isGoodSeverity } from '@/lib/severity';
 import type { OperatorSummary } from '@/lib/types';
 import { StatusCard } from './StatusCard';
 
-/** The "Worst of N lines · {name}" qualifier under the reason text (2026-09-22
- * UX review [OH] §2.3/I11): a rollup's reason is one line's own text
+/** The "Worst of N lines · {name}" qualifier under the reason text: a rollup's
+ * reason is one line's own text
  * presented as the whole operator's status, with nothing saying it's the
  * worst of several or which one -- ScotRail's card was the clearest case,
  * one Fife Circle closure standing in for the whole operator. Linking the
  * named line to its own (unclamped) status page also gives a reader stuck
  * behind the reason's `lineClamp={3}` ellipsis somewhere to read the rest,
  * the same "click-through is the read-more" property `LineStatusCard`
- * already has (§2.2's other complaint about this card).
+ * already has.
  *
  * Degrades gracefully when `worstLineId`/`worstLineName` are absent (an
  * older API payload, or -- per `lib/types.ts`'s own doc comment -- a
  * theoretically un-rolled-out backend): still states the scope ("Worst of 4
  * lines") without a name or a link, rather than rendering nothing. Says "N
  * lines, all running normally" instead of "Worst of N" when nothing is
- * actually wrong, per the review's own recommended copy -- "worst of" reads
+ * actually wrong -- "worst of" reads
  * as an accusation when every line is Good Service. */
 function RollupScopeLine({ operator }: { operator: OperatorSummary }) {
   const lineCount = operator.lineIds.length;
@@ -56,28 +56,19 @@ function RollupScopeLine({ operator }: { operator: OperatorSummary }) {
 /** Mirrors `LineStatusCard`'s shape (worst-status badge, reason, sample
  * summary, last-updated) -- deliberately NOT wrapped in a `Link` the way
  * `LineStatusCard` links to `/lines/{id}`: there is no
- * `/operators/[code]` detail page in this phase for a WHOLE-CARD click to
- * go to (see
- * docs/superpowers/plans/2026-09-22-operator-overview-phase3-operators-list-and-pinning-plan.md's
- * Judgment Call 7). Used by both `/operators`' list page and the
+ * `/operators/[code]` detail page for a WHOLE-CARD click to go to. Used by both `/operators`' list page and the
  * homepage's "Your Operators" section -- the same reuse `LineStatusCard`
  * already gets across the homepage's "Your Lines" section, the one other
  * place a status card like this renders.
  *
  * The footer DOES carry an explicit "History" link to
- * `/operators/{code}/history` (2026-09-22 UX review, C2). That route
- * shipped with no inbound `href` anywhere in the app -- a repo-wide grep
- * found none outside its own `basePath` constant -- while its own
- * back-link said "Back to operators", implying a forward path that did
- * not exist. An explicit action row rather than a card-wide link is the
- * half of the review's I1 recommendation that applies to a card which
- * still does not navigate as a whole: a card that does not navigate gains
- * an explicit action instead of a link-shaped body.
+ * `/operators/{code}/history`: nothing else in the app links to that route,
+ * and its own back-link says "Back to operators". An explicit action row rather
+ * than a card-wide link suits a card which does not navigate as a whole.
  *
  * `aria-label` names the operator, not just "History": `/operators`
  * renders one of these per operator, and a screen-reader user listing
- * links must not hear "History" nine times over (the same per-row
- * accessible-name rule the review's I26/P3 states). */
+ * links must not hear "History" nine times over. */
 export function OperatorStatusCard({
   operator,
   pinned,
@@ -91,19 +82,16 @@ export function OperatorStatusCard({
   /** Whether the pin star renders at all. Defaults to `true` -- every
    * existing call site (the `/operators` list, and the homepage's own
    * "Your Operators" section) keeps pinning available, since it is the
-   * only way to pin/unpin an operator at all. Homepage review M9 ("only
-   * one of the three card types carries a pin control") is resolved the
-   * other direction there: `LineStatusCard` (the homepage's "Your Lines"
-   * card) has no pin control of its own to add one to without a much
-   * larger change, so parity is restored by giving THIS card the same
-   * option to go without one, not by inventing pinning for the other. */
+   * only way to pin/unpin an operator at all. `LineStatusCard` (the homepage's
+   * "Your Lines" card) has no pin control of its own, so parity is restored by
+   * letting THIS card go without one, not by adding pinning to the other. */
   showPin?: boolean;
   /** When set and equal to `operator.worstLineId`, the line actually
    * driving this rollup is already shown elsewhere on the same page (e.g.
    * the homepage's "Your Lines" section, a few hundred pixels above "Your
    * Operators") -- collapses the repeated reason text into a short
-   * cross-reference instead of printing the same disruption a second time
-   * (review M10). Left `undefined` (the default) everywhere else, since
+   * cross-reference instead of printing the same disruption a second time.
+   * Left `undefined` (the default) everywhere else, since
    * `/operators`' own list page has no earlier section to be a duplicate
    * of. */
   dedupedLineId?: string | undefined;

@@ -475,7 +475,7 @@ describe('sanitization, over every real string', () => {
   });
 });
 
-/** C1 regression guard (2026-09-17 whole-branch review): `dedupeAcrossSection`
+/** Regression guard: `dedupeAcrossSection`
  * used to fingerprint a node's bare rendered content only, with no label and
  * no key. Every boolean field renders as the identical `{kind:'text',
  * text:'Yes'}` (or `'No'`) leaf, so every boolean after the first `true`/
@@ -486,19 +486,17 @@ describe('sanitization, over every real string', () => {
  * disabled travellers. The fix folds a field's own label into its
  * signature, so only a field that repeats someone else's label *and*
  * content -- the actual cross-feed overlap this function exists for
- * (review §3.5.4: `staffAssistance`/`helpAndSupport`'s "Help points"/"Staff
+ * (`staffAssistance`/`helpAndSupport`'s "Help points"/"Staff
  * help" sentences, which lose their label under Pattern E and so still
  * collide on content alone, on purpose) -- is ever removed.
  *
  * Scoped to boolean-rendered facts specifically (a leaf `text` node whose
  * text is exactly `Yes` or `No` -- see the `typeof value === 'boolean'`
- * branch this module's string renderer takes), matching C1's own required
- * test. A *labelled* non-boolean fact (e.g. a generic "Number of spaces"
+ * branch this module's string renderer takes). A *labelled* non-boolean fact (e.g. a generic "Number of spaces"
  * sub-field reused under two unrelated top-level keys that both happen to
  * be `0`) can still coincidentally collide on label+content; that narrower,
- * pre-existing edge case is not what C1 reported and is left alone here to
- * avoid a much larger, riskier change (per-node ancestor-path signatures)
- * that isn't what the review asked for. */
+ * pre-existing edge case is left alone here to avoid a much larger, riskier
+ * change (per-node ancestor-path signatures). */
 describe('dedupeAcrossSection does not drop distinctly-labelled boolean facts (review C1)', () => {
   interface BooleanFact {
     label: string;

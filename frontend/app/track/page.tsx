@@ -62,14 +62,10 @@ export default async function TrackPage({
   // `?origin=a&origin=b`) -- fall back to the first value rather than
   // letting `.toUpperCase()` throw on an array.
   const originParam = Array.isArray(origin) ? origin[0] : origin;
-  // Review §2.1/I21: previously nothing in the app could link straight to
-  // window mode -- it lived only in `TrackTrainForm`'s own `useState`, not
-  // URL-addressable at all (unlike `?origin=` just above, which already had
-  // this exact pattern). `?mode=window` is now redundant with the default
-  // below but left working unchanged for any existing link or bookmark
-  // relying on it. (`JourneyLegCard`'s "Edit search" used to link here;
-  // it now re-searches the leg in place, because this page starts a new
-  // journey.)
+  // `?mode=window` mirrors `?origin=` just above: the mode is URL-addressable rather than living only in
+  // `TrackTrainForm`'s `useState`. It is now redundant with the default below but stays working for
+  // existing links and bookmarks. (`JourneyLegCard`'s "Edit search" used to link here; it now re-searches
+  // the leg in place, because this page starts a new journey.)
   //
   // Product decision (2026-09-24): "Search a time window" is now the
   // DEFAULT mode for this page -- most visitors don't already know a
@@ -113,20 +109,14 @@ export default async function TrackPage({
   return (
     <Stack p="lg" gap="md">
       <Title order={1}>Track a train</Title>
-      {/* Review §2.1/I21: the mode-aware "Pin a specific train…"/"Not sure
-          which train yet?" sentence now lives inside `TrackTrainForm`
-          itself, where it can react to the client-side mode toggle -- a
-          visitor who switches modes without reloading the page used to
-          keep seeing copy that only described pick mode. */}
-      {/* Review §2.16: `TrackTrainForm`'s own "Track this train" button is
-          shown to every visitor, logged in or not (the Tier-2 "show the
-          control, gate on the real 401" pattern `useNeedsLogin.ts`
-          documents), which gives no hint up front that saving a pin needs
-          an account -- same complaint the review makes of the anonymous pin
-          star (§3.4). Unconditional rather than gated on `getSession()`: it
-          stays true for a logged-in visitor too, and this route mounts a
-          client form regardless, so there is no static-rendering property
-          to preserve the way `/lines/new`'s own comment protects. */}
+      {/* The mode-aware "Pin a specific train" / "Not sure which train yet?" sentence lives inside
+          `TrackTrainForm`, where it can react to the client-side mode toggle. */}
+      {/* `TrackTrainForm`'s "Track this train" button is shown to every visitor, logged in or not (the
+          Tier-2 "show the control, gate on the real 401" pattern `useNeedsLogin.ts` documents), which gives
+          no up-front hint that saving a pin needs an account. Unconditional rather than gated on
+          `getSession()`: it stays true for a logged-in visitor too, and this route mounts a client form
+          regardless, so there is no static-rendering property to preserve the way `/lines/new`'s own
+          comment protects. */}
       <Text size="sm" c="dimmed">
         Tracking a train needs a Distant Signal account. You&apos;ll be sent to log in when you save if you aren&apos;t
         already logged in.

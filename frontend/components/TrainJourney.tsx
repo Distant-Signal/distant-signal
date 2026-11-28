@@ -18,9 +18,8 @@ import { trainPosition } from '@/lib/trainPosition';
 import { mayStillBeWaiting } from '@/lib/waitingForReport';
 
 /** Renders one train's journey through every state the backend can
- * return, per
- * docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md
- * Decision 3's original table, revised by
+ * return, as laid out in
+ * docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md and revised by
  * docs/superpowers/specs/2026-09-08-journey-timetable-overlay-design.md:
  * the scheduled timetable (`state.journeyStops`) is now the PRIMARY,
  * always-shown structure whenever it's available (i.e. whenever
@@ -32,13 +31,12 @@ import { mayStillBeWaiting } from '@/lib/waitingForReport';
  * `JourneyDetails`'s live-summary content (ETA badge, last-reported
  * location, overall delay, next calling point) renders ALONGSIDE
  * `JourneyTimeline`, not instead of it, whenever `resolutionStatus ===
- * 'resolved'` -- per the design doc §4's requirement that the existing
- * top-level `EtaBadge`/"Last reported" summary stay visible even for the
+ * 'resolved'`, so the top-level `EtaBadge`/"Last reported" summary stays visible even for the
  * common case of a resolved, en_route train that also has `journeyStops`.
  * `JourneyTimeline` renders additionally whenever `journeyStops` is
  * non-null, independent of `JourneyDetails`.
  *
- * `suppressTrainUidHeading` (Task 3.6.9): `app/train/[uid]/[date]/page.tsx`'s
+ * `suppressTrainUidHeading`: `app/train/[uid]/[date]/page.tsx`'s
  * own `<h1>` already reads "Train {uid}" verbatim, and several
  * `StatusMessage` branches below print that exact same "Train {trainUid}"
  * line immediately under it -- a real duplicate, not just visually
@@ -64,9 +62,9 @@ export function TrainJourney({
   trainDetail?: TrainDetail | null | undefined;
   suppressTrainUidHeading?: boolean | undefined;
   /** CRS codes of stops on the journey-view leg this train is bound to
-   * that a live Darwin sample reports as skipped today (§5.2) --
+   * that a live Darwin sample reports as skipped today --
    * `undefined` for every caller outside the journey view, which has no
-   * leg-scoped skip concept (Judgment Call 7). Threaded straight through
+   * leg-scoped skip concept. Threaded straight through
    * to `JourneyTimeline`. */
   skippedCrs?: string[] | undefined;
   /** The journey-view leg's own origin CRS, where the traveller boards --
@@ -75,15 +73,14 @@ export function TrainJourney({
    * `JourneyProgress` shows only those and `JourneyTimeline` collapses the
    * rest. */
   legOriginCrs?: string | null | undefined;
-  /** The journey-view leg's own destination CRS (2026-09-22 UX review
-   * finding I16/2.7) -- `undefined` for every caller outside the journey
+  /** The journey-view leg's own destination CRS -- `undefined` for every caller outside the journey
    * view, same posture as `skippedCrs`. Threaded straight through to
    * `JourneyTimeline`'s `legDestinationCrs`, see that prop's own doc
    * comment. */
   legDestinationCrs?: string | null | undefined;
 }) {
   // See `JourneyTimeline.tsx`'s own doc comment on `JourneyEndpointNames`
-  // (Task 3.6.2) -- the tracked pin's own origin/destination, always known
+  // -- the tracked pin's own origin/destination, always known
   // even when a particular calling point's TIPLOC->CRS->name join didn't
   // resolve. Computed once here and threaded to both `JourneyProgress` and
   // `JourneyTimeline` so the two can never show a different label for the
@@ -452,25 +449,13 @@ function StatusMessage({
       {trainUidLine}
       {pinSummary}
       {mayHaveArrived && (
-        // Task 3.6.12 asked this Alert to read `--mantine-color-yellow-light`/
-        // `-light-color` explicitly so `variant="light"` "survives into
-        // dark" -- it already does, unmodified: `color="yellow"
-        // variant="light"` is exactly what makes Mantine's own
-        // `defaultVariantColorsResolver` resolve to those two custom
-        // properties (verified against
-        // node_modules/@mantine/core's own resolver, not assumed), in
-        // both schemes. Checked the dark scheme's own stock values by
-        // hand (`@mantine/core/styles.css`): background
-        // `rgba(115,60,0,1)` against text `--mantine-color-yellow-0`
-        // (`#fff9db`) is ~8.3:1 by the WCAG relative-luminance formula --
-        // comfortably above AA, not the "washed out" case this task
-        // otherwise fixes for the four LIGHT-scheme badge/alert pairings
-        // in `app/globals.css` (whose own `-light-color` overrides are
-        // deliberately scoped to `[data-mantine-color-scheme='light']`
-        // only, because dark already inverts to a safe pairing there
-        // too). No override added here: doing so without a live
-        // re-measurement risked replacing an already-good pairing with a
-        // guessed one.
+        // `color="yellow" variant="light"` makes Mantine's `defaultVariantColorsResolver`
+        // resolve to `--mantine-color-yellow-light`/`-light-color` in both schemes, so
+        // the light variant survives into dark unmodified. The dark pairing (background
+        // `rgba(115,60,0,1)` on `--mantine-color-yellow-0`, `#fff9db`) is ~8.3:1 by the
+        // WCAG relative-luminance formula, well above AA, so no override is needed
+        // (the `-light-color` overrides in `app/globals.css` are scoped to the light
+        // scheme only).
         <Alert color="yellow" title="May have arrived" variant="light">
           This journey may have arrived at its destination, but this is an inference, not a confirmed status from
           Network Rail.
@@ -580,26 +565,20 @@ function JourneyDetails({ state }: { state: TrainJourneyState }) {
       {state.delayMinutes !== null && (
         <Group gap={6}>
           <Text size="sm">Delay:</Text>
-          {/* `tt="none"` (Task 3.6.12): Mantine's default Badge text is
-              uppercase at 11px -- review §5.12 measured this specific
-              badge's contrast as borderline (~3.5:1) at that size, and
-              WCAG's relaxed "large text" 3:1 threshold only applies at
-              18.66px bold or larger, nowhere near this badge. Dropping
-              the transform doesn't change the underlying hex contrast
-              ratio, but it's the cheaper of the two review-sanctioned
-              fixes (the other being a size bump) and removes uppercase's
-              own separate legibility cost (thinner apparent stroke
-              contrast from losing ascenders/descenders) on top of it. */}
+          {/* `tt="none"`: Mantine's default Badge text is uppercase at 11px, and this
+              badge's contrast is borderline (~3.5:1) at that size. WCAG's relaxed "large
+              text" 3:1 threshold only applies at 18.66px bold or larger. Dropping the
+              transform doesn't change the hex contrast ratio but removes uppercase's own
+              legibility cost. */}
           <DelayBadge delayMinutes={state.delayMinutes} />
         </Group>
       )}
       {state.nextCallingPoint && <Text size="sm">Next calling point: {state.nextCallingPoint}</Text>}
-      {/* `mayHaveArrived`/`destinationCrs`/`destinationName` (Task 3.6.3):
-          see `EtaBadge.tsx`'s own doc comment. Same `scheduleDestinationName
-          ?? scheduleDestinationCrs` precedence `StatusMessage` already uses
-          twice above for "destination" -- not `pinDestination*`, which is
-          only what the user originally typed and may not be this train's
-          real terminus. */}
+      {/* `mayHaveArrived`/`destinationCrs`/`destinationName`: see `EtaBadge.tsx`'s own doc comment.
+          Same `scheduleDestinationName ?? scheduleDestinationCrs` precedence
+          `StatusMessage` already uses twice above for "destination" -- not
+          `pinDestination*`, which is only what the user originally typed and may
+          not be this train's real terminus. */}
       <EtaBadge
         etaNext={state.etaNext}
         etaSource={state.etaSource}

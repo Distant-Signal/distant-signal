@@ -162,8 +162,7 @@ describe('JourneyLegCard', () => {
     vi.unstubAllGlobals();
   });
 
-  // 2026-09-22 UX review finding I16/2.7: the leg's own route+time, not
-  // the train's headcode, is the card's title.
+  // The leg's own route+time, not the train's headcode, is the card's title.
   it('titles a matched leg by its own route and departure time, not the train headcode', () => {
     renderWithMantine(<JourneyLegCard journeyId="167" leg={baseLeg()} isOwner isOnlyLeg={false} />);
     expect(screen.getByText(byVisibleText('London Kings Cross (KGX) to York (YRK) · 17:00'))).toBeInTheDocument();
@@ -239,11 +238,9 @@ describe('JourneyLegCard', () => {
     expect(screen.queryByText(/^Train /)).not.toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review finding I14/2.4, later corrected: "Change train"
-  // and "Remove leg" are INDEPENDENT actions, not a ternary. A matched,
-  // windowed leg must get BOTH -- before this fix it only ever got
-  // "Change train", leaving most legs on most journeys (anything created
-  // via the time-window search flow) with no way to be removed outright.
+  // "Change train" and "Remove leg" are INDEPENDENT actions, not a ternary. A
+  // matched, windowed leg must get BOTH, so a leg created via the time-window
+  // search flow can still be removed outright.
   it('shows both "Change train" AND "Remove leg" for a matched, windowed, owner-viewed leg', () => {
     renderWithMantine(
       <JourneyLegCard
@@ -351,9 +348,8 @@ describe('JourneyLegCard', () => {
         isOnlyLeg={false}
       />,
     );
-    // 2026-09-22 UX review finding 2.9: "YRK to NCL, 2026-09-22" (a raw ISO
-    // date) is gone -- the open leg now uses the same `formatDate` the
-    // matched card's own title does ("22 Sep 2026", not "2026-09-22").
+    // The open leg uses the same `formatDate` the matched card's own title does
+    // ("22 Sep 2026"), not a raw ISO date ("2026-09-22").
     const title = screen.getByText(byVisibleText('YRK to NCL, 22 Sep 2026'));
     expect(screen.queryByText(/2026-09-22/)).not.toBeInTheDocument();
     // The "needs action" card is tinted in grape, the app's action colour,
@@ -365,9 +361,8 @@ describe('JourneyLegCard', () => {
     expect(screen.queryByText('Searching for a train to track — pick one below.')).not.toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review finding I18: "the window the user just typed is
-  // never shown back to them" -- an open leg's own departAfter/etc. used
-  // to be silently dropped from the card entirely.
+  // The window the user typed is shown back to them: an open leg's own
+  // departAfter/etc. must appear on the card.
   it("shows the leg's own search window on an open leg", () => {
     renderWithMantine(
       <JourneyLegCard
@@ -386,13 +381,12 @@ describe('JourneyLegCard', () => {
     expect(screen.getByText('Departing at or after 18:00 · arriving at or before 21:30')).toBeInTheDocument();
   });
 
-  // 2026-09-22 UX review addendum: with both bounds on the SAME side set
-  // (e.g. depart-after + depart-before, no arrive bound at all), the naive
-  // per-field join used to repeat the verb back to back -- "Departing at
-  // or after 19:00 · departing at or before 21:00" -- which reads like a
-  // copy-paste bug. Each of the seven realistic depart/arrive bound
-  // combinations is exercised here (the pre-existing test above already
-  // covers the eighth: a depart+arrive mix).
+  // With both bounds on the SAME side set (e.g. depart-after + depart-before,
+  // no arrive bound at all), the per-field join must not repeat the verb back to
+  // back -- "Departing at or after 19:00 · departing at or before 21:00" reads
+  // like a copy-paste bug. Each of the seven realistic depart/arrive bound
+  // combinations is exercised here (the test above covers the eighth: a
+  // depart+arrive mix).
   it.each([
     {
       name: 'only depart-after',
@@ -637,11 +631,9 @@ describe('JourneyLegCard (open leg)', () => {
     );
   });
 
-  // Review §2.3/I15: the open-leg card is the one that needs the user to
-  // do something -- it used to be visually indistinguishable from a plain
-  // white box. A left accent border now flags it, on both the owner and
-  // non-owner branches (only the OWNER can act, but both are states that
-  // need a train picked).
+  // The open-leg card is the one that needs the user to do something, so a
+  // left accent border flags it, on both the owner and non-owner branches
+  // (only the OWNER can act, but both are states that need a train picked).
   it('gives the open-leg card a left accent border, unlike a plain card', async () => {
     vi.stubGlobal(
       'fetch',

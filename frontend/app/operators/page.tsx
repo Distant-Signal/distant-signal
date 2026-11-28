@@ -20,8 +20,7 @@ export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPT
 });
 
 // Fails closed to "nothing pinned" on a preferences-fetch failure, the
-// exact shape a 401 already returns (design spec Decision 5) -- same
-// posture as app/lines/page.tsx's own NO_PREFERENCES.
+// exact shape a 401 already returns, same as app/lines/page.tsx's NO_PREFERENCES.
 const NO_PREFERENCES: Preferences = {
   pinnedLines: [],
   pinnedStations: [],
@@ -30,14 +29,10 @@ const NO_PREFERENCES: Preferences = {
   bankHolidayDivision: null,
 };
 
-/** Worst-first, then alphabetical -- the same sort `app/page.tsx`'s "Your
- * Operators" section already applies to the caller's own pinned subset
- * (review M7/§2.6: this list was alphabetical only, unlike every other
- * worst-first surface in the app, "fine at nine operators, not at the
- * 25-40 the homepage source describes"). Kept here as this page's own copy
- * rather than a shared export, since `app/page.tsx`'s version is typed
- * against its own local sort callback shape and there is no third caller
- * yet to justify factoring one out. */
+/** Worst-first, then alphabetical, the same sort `app/page.tsx`'s "Your Operators" section applies to the
+ * caller's pinned subset. Kept as this page's own copy rather than a shared export, since `app/page.tsx`'s
+ * version is typed against its own local sort callback shape and there is no third caller yet to justify
+ * factoring one out. */
 function worstFirst(operators: OperatorSummary[]): OperatorSummary[] {
   return [...operators].sort((a, b) => {
     const rankDiff = severityRank(b.worstSeverity) - severityRank(a.worstSeverity);
@@ -70,11 +65,8 @@ export default async function OperatorsPage({
     <Stack p="lg" gap="xl">
       <Stack gap={4}>
         <Title order={1}>Operators</Title>
-        {/* Review M7/§2.6: `/stations` opens with a one-sentence
-            description under its own `<h1>`; this page went straight from
-            title to cards. Echoes this page's own `<meta description>`
-            rather than inventing separate wording, so the two can't drift
-            apart. */}
+        {/* One-sentence description under the `<h1>`, as `/stations` has. Echoes this page's own
+            `<meta description>` so the two can't drift apart. */}
         <Text c="dimmed">
           Each operator&apos;s worst line status and today&apos;s delays and cancellations, worst first.
         </Text>

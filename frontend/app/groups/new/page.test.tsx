@@ -22,18 +22,15 @@ describe('NewGroupPage', () => {
     expect(screen.getByRole('button', { name: 'Create group' })).toBeInTheDocument();
   });
 
-  // Review §3.2.6: the page said nothing about what happens after
-  // submitting -- CreateGroupForm immediately rotates the new group's
-  // first invite link and navigates to its detail page, but none of that
-  // was visible to someone filling in the form.
+  // CreateGroupForm immediately rotates the new group's first invite link
+  // and navigates to its detail page, so the page has to say so up front.
   it('explains that an invite link follows group creation', () => {
     renderWithMantine(<NewGroupPage />);
     expect(screen.getByText("You'll get an invite link to share as soon as it's created.")).toBeInTheDocument();
   });
 
-  // Review §3.2.8, deliberately on top of Task 1.1's root-cause `<main>`
-  // fix, not instead of it: a one-field form stretching the full content
-  // width reads as unfinished.
+  // On top of the `<main>` width fix: a one-field form stretching the full
+  // content width reads as unfinished.
   it('caps the content width at 480px', () => {
     renderWithMantine(<NewGroupPage />);
     const stack = screen.getByRole('heading', { name: 'Create a group', level: 1 }).closest('.mantine-Stack-root');

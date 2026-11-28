@@ -307,7 +307,7 @@ function JourneysHeader({
 
 /** One row of `GET /Journeys/mine`, linking to `/journeys/{id}` -- the
  * page the user was pushed to when they created it, and until this row
- * existed the only way back to it (2026-09-22 UX review, C1).
+ * existed the only way back to it.
  *
  * Named by `lib/journeyName.ts`, the one journey-naming rule: the custom
  * name, else the whole journey's route (first leg's origin to LAST leg's
@@ -318,7 +318,7 @@ function JourneysHeader({
  *
  * Built on `StatusRow` rather than a hand-rolled
  * `Group justify="space-between"`, for the shrink-safe title/trailing
- * behaviour the primitive encodes (review P2) -- the same reason
+ * behaviour the primitive encodes -- the same reason
  * `ScheduleRow` is built on it. */
 function JourneyListRow({
   journey,
@@ -432,13 +432,12 @@ function TrackedTrainListRow({ train, status }: { train: TrackedTrainListItem; s
                 }
                 trailing={<TrackedRowStatusBadge status={status} />}
               />
-              {/* Task 3.6.8: `displayName` (`trackedTrainDisplayName`)
-                    already falls back to `${route}, ${when}` -- the exact
-                    same `when` string -- whenever no custom name is set,
-                    so printing this dimmed line unconditionally repeated
-                    the date/time on screen twice for every train without
-                    one. It's only new information once a custom name has
-                    replaced the default title above. */}
+              {/* `displayName` (`trackedTrainDisplayName`) already falls back
+                    to `${route}, ${when}` -- the exact same `when` string --
+                    whenever no custom name is set, so this dimmed line
+                    would print the date/time twice. It's only new
+                    information once a custom name has replaced the default
+                    title above. */}
               {train.customName && (
                 <Text size="sm" c="dimmed">
                   {when}
@@ -447,12 +446,10 @@ function TrackedTrainListRow({ train, status }: { train: TrackedTrainListItem; s
             </Stack>
           }
           trailing={
-            // Task 3.6.7: one overflow kebab instead of a standalone
-            // "Rename" button with no "stop tracking" affordance at all on
-            // this row (that action previously only existed on the detail
-            // page) -- also relieves Task 1.5's space contest on this same
-            // trailing slot, which otherwise stacks the status badge
-            // alongside an ever-growing set of per-row controls.
+            // One overflow kebab rather than a standalone "Rename" button:
+            // it also carries "stop tracking", and keeps this trailing slot
+            // from stacking the status badge alongside a growing set of
+            // per-row controls.
             //
             // The Menu/trigger composition itself lives in
             // TrackedTrainRowMenu (a Client Component): this page is a
@@ -530,7 +527,7 @@ function SharedTrainListRow({ row, status }: { row: MergedSharedTrain; status: T
     <Frame>
       <Stack gap={4}>
         <StatusRow align="flex-start" title={heading} trailing={<TrackedRowStatusBadge status={status} />} />
-        {/* Task 3.6.8: same fix as the caller's own row above -- `heading`
+        {/* Same as the caller's own row above -- `heading`
             already falls back to `${route}, ${when}` whenever this
             sharer never set a custom name, so print the dimmed line only
             when a custom name replaced it in the heading. */}

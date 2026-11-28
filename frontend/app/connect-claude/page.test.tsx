@@ -66,7 +66,7 @@ describe('/connect-claude', () => {
     expect(screen.queryByRole('button', { name: 'Copy connector URL' })).not.toBeInTheDocument();
   });
 
-  // Review §3.1.6.
+  // The URL is long enough that selecting it by hand is fiddly.
   it('offers a "Copy connector URL" button for the long connector URL', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     stubClipboard(writeText);

@@ -42,13 +42,13 @@ describe('StationAccessibilitySection', () => {
     expect(screen.getByText('Staff assistance')).toBeInTheDocument();
     expect(screen.getByText('Available 06:00-23:00')).toBeInTheDocument();
     expect(screen.getByText('Car parks')).toBeInTheDocument();
-    // review §3.5.5: a collection this short (one item) is shown directly,
+    // A collection this short (one item) is shown directly,
     // not hidden behind a disclosure.
     expect(screen.getByText('120')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  // review §3.5.5: once a collection is large enough to collapse, its
+  // Once a collection is large enough to collapse, its
   // control names what there are several of, not just how many.
   it('names what the items are, not just how many, once a collection is large enough to collapse', () => {
     renderWithMantine(
@@ -86,15 +86,14 @@ describe('StationAccessibilitySection', () => {
     expect(screen.getByRole('heading', { name: 'Accessibility & facilities' })).toBeInTheDocument();
   });
 
-  // review §3.5.2: the section's four group titles and per-key labels were
-  // bold `<p>`s -- a 4,500px section with exactly one heading (the
-  // section's own h2). Promoted to real `h3`/`h4` headings, holding visual
-  // size via `size` so this is a semantic-only change. Regression coverage
-  // this task explicitly calls for: `getByRole('heading', { level: 3 })`
-  // assertions, and a check that the section's own h1 -> h2 -> h3 -> h4
-  // chain never skips a level (axe's `heading-order`, which this test
-  // stands in for at the component level -- `e2e/accessibility.spec.ts`
-  // covers the same page end to end).
+  // The section's four group titles and per-key labels were bold `<p>`s -- a
+  // 4,500px section with exactly one heading (the section's own h2). They are
+  // real `h3`/`h4` headings, holding visual size via `size`, so this is a
+  // semantic-only change. Covered by `getByRole('heading', { level: 3 })`
+  // assertions, and a check that the section's own h1 -> h2 -> h3 -> h4 chain
+  // never skips a level (axe's `heading-order`, which this test stands in for at
+  // the component level -- `e2e/accessibility.spec.ts` covers the same page end
+  // to end).
   it('promotes group titles to h3 and key labels to h4, with no skipped level', () => {
     renderWithMantine(
       <StationAccessibilitySection
@@ -425,7 +424,7 @@ describe('StationAccessibilitySection, pattern rendering', () => {
         }}
       />,
     );
-    // review §3.5.5: a single item is shown directly, no click required.
+    // A single item is shown directly, no click required.
     expect(screen.getByText('Platform 3')).toBeInTheDocument();
     const items = screen.getAllByRole('listitem');
     expect(items.map((item) => item.textContent)).toEqual([
@@ -483,7 +482,7 @@ describe('StationAccessibilitySection, pattern rendering', () => {
       'href',
       'mailto:lost.property@example.com',
     );
-    // review §3.5.9: the link text is the raw URL itself, so it is
+    // The link text is the raw URL itself, so it is
     // rewritten to the host name -- the full URL survives in `href` and
     // `title`, just not repeated as the visible text.
     const website = screen.getByRole('link', { name: 'example.com (opens in a new tab)' });
@@ -514,7 +513,7 @@ describe('StationAccessibilitySection, pattern rendering', () => {
         }}
       />,
     );
-    // review §3.5.5: a single item is shown directly, no click required.
+    // A single item is shown directly, no click required.
     expect(screen.getByText('Lift, Concourse to Overbridge')).toBeInTheDocument();
     const list = container.querySelector('ul');
     expect(list).not.toBeNull();
@@ -530,7 +529,7 @@ describe('StationAccessibilitySection, pattern rendering', () => {
     // An array of objects with no `name` matches none of B/D/F. Nothing in
     // the 31 real payloads reaches it, but the wire type is `unknown` and
     // this branch is what stops such a value disappearing. Only two items,
-    // so the outer list itself is shown directly (review §3.5.5) -- each
+    // so the outer list itself is shown directly -- each
     // item's own "Raw data" disclosure is what this test is really about.
     renderWithMantine(
       <StationAccessibilitySection

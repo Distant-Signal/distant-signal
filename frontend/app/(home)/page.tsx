@@ -22,7 +22,6 @@ import { withStaleFallback } from '@/lib/liveDataCache';
 import { DISPLAYED_MODES_PARAM, MERGED_TFL_LINE_IDS } from '@/lib/modes';
 import { LineStatusCard } from '@/components/LineStatusCard';
 import { PinnedTramLineCard } from '@/components/PinnedTramLineCard';
-import { LoginControl } from '@/components/LoginControl';
 import { OperatorStatusCard } from '@/components/OperatorStatusCard';
 import { TextLink } from '@/components/TextLink';
 import { StateBadge } from '@/components/StateBadge';
@@ -111,8 +110,8 @@ export const metadata: Metadata = {
 
 // The exact shape getPreferences() already returns for a 401, named so the
 // fallback below is typed as `Preferences` rather than inferred with
-// `never[]` members. Per-user data fails closed during an outage (design
-// spec Decision 5) instead of being stale-served.
+// `never[]` members. Per-user data fails closed during an outage instead of
+// being stale-served.
 const NO_PREFERENCES: Preferences = {
   pinnedLines: [],
   pinnedStations: [],
@@ -139,10 +138,9 @@ function worstSeverityAcrossReports(reports: LineStatusReport[]): number {
  * several affected lines the same way `sampleStatsAcrossReports` extended
  * `firstSampleStats`.
  *
- * Decision 3's "pinned-station dashboard row" case: extends the same
- * fullCoverageStats-first precedence `representativeStatus` itself already
- * applies per-line, one level further, across every report this dashboard
- * row spans. */
+ * Used for a pinned-station dashboard row: the same fullCoverageStats-first
+ * precedence `representativeStatus` applies per line, across every report
+ * the row spans. */
 function representativeStatusAcrossReports(reports: LineStatusReport[]): LineStatus | undefined {
   const perReportRepresentatives = reports.map((r) => representativeStatus(r.lineStatuses));
   const withFullCoverage = perReportRepresentatives.find((s) => s?.fullCoverageStats);
@@ -174,24 +172,12 @@ async function AnonymousHome({ reports }: { reports: Promise<LineStatusReport[]>
     <Stack p="lg" gap="xl">
       {origin !== null && <JsonLd data={homeJsonLd(origin)} />}
       <Stack gap="xs">
-        {/* Review §3.1.7: on mobile this used to repeat "Distant
-            Signal" -- once as the nav brand, again as this page's own
-            `<h1>` a little further down -- reading as duplicated
-            branding above the fold. Re-measured after Task 1.2's nav
-            collapse (which is what this task was sequenced after): the
-            nav no longer wraps to a multi-row header on a phone, so
-            the gap between the two is smaller than it once was, but
-            the duplication itself is unchanged -- the nav still says
-            "Distant Signal" and this heading did too, both still
-            visible without scrolling. The `<h1>` stays, for the
-            document outline and for a link-unfurler bot with no nav to
-            read a name from; only its TEXT changes, to something the
-            nav doesn't already say -- the tagline immediately below
-            keeps the rest of the pitch. */}
+        {/* The h1 says something the nav's brand doesn't, rather than
+            repeating "Distant Signal" above the fold; it stays for the
+            document outline and for link unfurlers that see no nav. */}
         <Title order={1}>Live UK rail status</Title>
         <Text c="dimmed">
-          Live UK rail line status, train tracking and Delay Repay support. Pin the lines, stations and operators you
-          care about once you&apos;re logged in.
+          Line status, train tracking and Delay Repay help, with your pinned lines once you log in.
         </Text>
       </Stack>
 
@@ -215,18 +201,8 @@ async function AnonymousHome({ reports }: { reports: Promise<LineStatusReport[]>
       <Group gap="lg">
         <TextLink href="/lines">Browse all lines</TextLink>
         <TextLink href="/stations">Look up a station</TextLink>
-        {/* Review M8: the anonymous homepage is the only place that can
-            advertise the operators list exists to a visitor who hasn't
-            logged in yet -- added alongside the other two quick links it
-            already carries, in the same position "Browse operators"
-            takes in the logged-in "Your Operators" section below. */}
+        {/* The only place a logged-out visitor learns the operators list exists. */}
         <TextLink href="/operators">Browse operators</TextLink>
-        {/* Proactive, not reactive -- session is already in hand on this
-            page (see this task's own Step 1), so there's no reason to
-            wait for a failed pin click the way PinToggle does elsewhere.
-            §Policy's Tier-2 "proactive where session is already fetched"
-            refinement. */}
-        <LoginControl underline="always">Log in to pin your lines, stations and operators</LoginControl>
       </Group>
       <Suspense fallback={null}>
         <AnonymousCredits reports={reports} />
@@ -273,14 +249,13 @@ async function SessionHome() {
   // so it's safe to fire unconditionally alongside the other two rather
   // than gating it on `session.authenticated` first -- same treatment
   // `preferences` already gets below (fetched even for the anonymous
-  // branch, which simply doesn't use it). Per
-  // docs/superpowers/specs/2026-09-01-tracked-trains-home-page-design.md
-  // Decision 3.
+  // branch, which simply doesn't use it). See
+  // docs/superpowers/specs/2026-09-01-tracked-trains-home-page-design.md.
   const [preferences, allReports, myTrackedTrains, sharedCustomLines, allOperators, myJourneys] = await Promise.all([
     // Fails closed to "nothing pinned" -- the exact shape getPreferences
     // already returns for a 401 -- rather than being stale-served: this is
-    // per-user data, and the design spec's Decision 5 excludes per-user
-    // state from the stale cache on correctness grounds. Losing the pinned
+    // per-user data, which is kept out of the stale cache on correctness
+    // grounds. Losing the pinned
     // sections for the duration of an outage is materially better than
     // losing the whole page, which is what an unguarded throw here did.
     getPreferences().catch(() => NO_PREFERENCES),
@@ -303,8 +278,7 @@ async function SessionHome() {
     getSharedGroupCustomLines().catch(() => null),
     // Same public, unauthenticated, cheap-to-fetch-in-full list
     // `/operators` itself fetches (~25-40 rows) -- filtered down to the
-    // caller's own pins below, rather than a per-code batch fetch. See
-    // this plan's Judgment Call 6.
+    // caller's own pins below, rather than a per-code batch fetch.
     //
     // Gated on `session.authenticated`: the anonymous branch below never
     // renders "Your Operators" (or anything else pinned-operator-shaped)
@@ -516,19 +490,16 @@ async function SessionHome() {
   // it. `pinnedLineReports` is exactly the set that section will render.
   // Named rather than inlined at its one prior call site: also reused below
   // to de-duplicate "Your Operators" against lines already shown in "Your
-  // Lines" a few hundred pixels above it (review M10).
+  // Lines" a few hundred pixels above it.
   const pinnedLineIds = new Set(pinnedLineReports.map((report) => report.id));
   const sharedLines: MergedSharedCustomLine[] = mergeSharedCustomLines(sharedCustomLines ?? [], pinnedLineIds);
   const reportByLineId = new Map(allReports.map((report) => [report.id, report]));
 
-  // Review §3.1.4: both empty states below used to pair a "Browse all
-  // lines"/"Look up a station" link beside their section heading with an
-  // IDENTICAL link ~40px below it, inside the "you haven't pinned
-  // anything" sentence -- a dashboard that reads as a stack of duplicated
-  // prompts rather than one useful action per section. The heading-level
-  // link now only renders once its section actually has something to
-  // browse PAST (pinned rows already on screen); an empty section keeps
-  // just the one link, inline in its own sentence.
+  // Each empty state keeps one link, inline in its "you haven't pinned
+  // anything" sentence: a second identical "Browse all lines"/"Look up a
+  // station" link beside the heading would read as a stack of duplicated
+  // prompts. The heading-level link only renders once its section has
+  // pinned rows on screen to browse PAST.
   const pinnedLineCount = pinnedLineReports.length + pinnedTramLines.length;
   const allPinnedSectionsEmpty =
     pinnedLineCount === 0 && pinnedStationEntries.length === 0 && pinnedOperatorSummaries.length === 0;
@@ -678,13 +649,12 @@ async function SessionHome() {
                 key={operator.code}
                 operator={operator}
                 pinned
-                // Review M9: `LineStatusCard` (the "Your Lines" card just
-                // above) has no pin control of its own -- rather than the
-                // dashboard teaching two different rules for two
-                // same-shaped cards, this card goes without one here too;
+                // `LineStatusCard` (the "Your Lines" card just above) has no
+                // pin control of its own, so this card goes without one too
+                // rather than teaching two rules for same-shaped cards;
                 // unpinning stays available from `/operators` itself.
                 showPin={false}
-                // Review M10: when the line actually driving this
+                // When the line actually driving this
                 // operator's rollup is already a card in "Your Lines"
                 // above, collapse the repeated reason into a short
                 // cross-reference instead of printing the same disruption
@@ -714,7 +684,7 @@ async function SessionHome() {
 
           `!allPinnedSectionsEmpty`: when Stations and Operators also have
           nothing pinned, this module already rendered once, at the very top
-          of the page (review §3.1.4) -- this is its ordinary spot for the
+          of the page -- this is its ordinary spot for the
           narrower case where Lines is empty but Stations or Operators is
           not. */}
       {!allPinnedSectionsEmpty && pinnedLineCount === 0 && <RightNowModule summary={rightNow} />}

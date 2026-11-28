@@ -36,18 +36,12 @@ export function useDeparturePicker(
   // an already-valid pre-filled origin shows "Checking for departures"
   // on the very first paint rather than flashing the `picker === null`
   // "couldn't load" sentence for one render before the effect below runs.
-  // Per docs/superpowers/specs/2026-09-04-track-a-train-picker-refactor-design.md
-  // Decision 5.
   const [pickerLoading, setPickerLoading] = useState(() => CRS_PATTERN.test(initialOrigin.trim()));
 
   // Fetch the live departures picker whenever the origin resolves to a
-  // syntactically valid CRS -- same same-origin `/api/*` proxy pattern
-  // `searchStations`/`searchTocs` already use (client-safe, no `baseUrl()`
-  // import). Per docs/superpowers/specs/2026-09-03-trip-search-design.md
-  // Decision 4. Falls back to the CIF-derived schedule-departures picker on
-  // a 404, per
-  // docs/superpowers/specs/2026-09-04-whole-network-trip-search-design.md
-  // Decision 3.
+  // syntactically valid CRS, through the same-origin `/api/*` proxy that
+  // `searchStations`/`searchTocs` use (client-safe, no `baseUrl()` import).
+  // Falls back to the CIF-derived schedule-departures picker on a 404.
   useEffect(() => {
     if (!originValid) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the picker when its input stops being valid, before any fetch
@@ -63,11 +57,8 @@ export function useDeparturePicker(
       .then((res) => {
         if (res.status === 404) {
           // Fallback ONLY on 404 -- an LDBWS network blip or 500 must NOT
-          // silently swap in the CIF picker; `!res.ok` still maps to `null`
-          // exactly as today, leaving the picker absent rather than
-          // switching sources on an error condition. Per
-          // docs/superpowers/specs/2026-09-04-whole-network-trip-search-design.md
-          // Decision 3.
+          // silently swap in the CIF picker; `!res.ok` still maps to `null`,
+          // leaving the picker absent rather than switching sources on an error.
           return fetchCifPickerRows(crs, controller.signal).then((rows) => {
             setPickerLoading(false);
             setPicker(rows === 'unavailable' || rows === null ? rows : { source: 'cif', rows });
@@ -98,17 +89,14 @@ export function useDeparturePicker(
   return { picker, loading: pickerLoading };
 }
 
-/** The picker container's content, in the priority order documented in
- * docs/superpowers/specs/2026-09-04-track-a-train-picker-refactor-design.md
- * Decision 4 -- exactly one of six mutually-exclusive states, checked
- * top to bottom. Rows are filtered by `matchesDestination`/
- * `matchesOperator` (Decision 1), and additionally by
- * `matchesScheduledDeparture` (both sources -- see that function's own
- * doc comment) before rendering; a source whose *unfiltered* result was
- * already empty (state 5 below) is distinguished from one that had rows
- * but none survived filtering (the two new sentences inside the
- * `'ldbws'`/`'cif'` branches) -- different honest meanings, different
- * copy.
+/** The picker container's content: exactly one of six mutually-exclusive
+ * states, checked top to bottom. Rows are filtered by `matchesDestination`/
+ * `matchesOperator` and, for both sources, by `matchesScheduledDeparture`
+ * (see that function's own doc comment) before rendering; a source whose
+ * *unfiltered* result was already empty (state 5 below) is distinguished from
+ * one that had rows but none survived filtering (the two filtered-out
+ * sentences inside the `'ldbws'`/`'cif'` branches) -- different honest
+ * meanings, different copy.
  *
  * Neither row-list branch below is wrapped in a `ScrollArea`, and that is
  * load-bearing. Both used to be (`<ScrollArea mah={220}
@@ -266,9 +254,8 @@ export function DeparturePicker({
       </>
     );
   }
-  // picker.source === 'cif' -- Operator never filters this source
-  // (Decision 1's CIF/Operator asymmetry): `matchesOperator` is simply
-  // never called here.
+  // picker.source === 'cif' -- Operator never filters this source:
+  // `matchesOperator` is simply never called here.
   const filtered = picker.rows.filter(
     (row) =>
       matchesDestination(row.destinationCrs, destinationCrs) &&
@@ -298,8 +285,7 @@ export function DeparturePicker({
                     working time (`cifDepartureDateTime`). */}
                     {row.publicDeparture ?? row.scheduled}
                     {/* `stationLabel` -- same "Name (CODE)", bare-code-fallback
-                    convention as everywhere else in this app (item 5,
-                    2026-09-22 UX review follow-up): this used to always
+                    convention as everywhere else in this app. It used to always
                     show the raw code alone. */}
                     {row.destinationCrs ? ` · ${stationLabel(row.destinationCrs, row.destinationName)}` : ''}
                   </Text>

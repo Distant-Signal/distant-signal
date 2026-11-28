@@ -54,16 +54,14 @@ export type DeleteTrainButtonHandle = ConfirmActionButtonHandle;
  * catch the `401` specifically and show a login prompt, never the raw
  * backend rejection text.
  *
- * Task 3.6.7: relabelled "Delete" -> "Stop tracking" throughout (the
- * trigger, the modal's own confirm button, and its `aria-label`) -- users
- * don't delete a train from Network Rail, they stop tracking it; the
- * modal's own title ("Stop tracking this train?") already said so, only
- * the buttons hadn't caught up. The red outline + confirm-modal shape is
- * otherwise unchanged.
+ * Labelled "Stop tracking" (trigger, confirm button and `aria-label`): users
+ * don't delete a train from Network Rail, they stop tracking it, as the
+ * modal's title says. The red outline + confirm-modal shape is otherwise
+ * unchanged.
  *
  * `hideTrigger` renders no button at all, and `ref` exposes `{ open }`
  * (`ConfirmActionButton`'s handle): the Journeys page's row offers this as a
- * `Menu.Item` in an overflow kebab (Task 3.6.7) rather than a second
+ * `Menu.Item` in an overflow kebab rather than a second
  * free-standing button. `TrackedTrainRowMenu` renders this component as a
  * sibling of `<Menu>`, never inside `<Menu.Dropdown>`: Mantine's `Popover`
  * closes on the same click that opens the modal and hid a nested modal's

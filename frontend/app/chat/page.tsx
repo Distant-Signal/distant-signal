@@ -18,7 +18,7 @@ import { DataCredits, TRAIN_CREDITS } from '@/components/DataCredits';
 // `getSessionOrLoggedOut()`'s backing `api` service only exists at runtime.
 export const revalidate = 0;
 
-/** `/chat` -- the embedded chat UI (embedded-chatbot-option-b plan, Task 5).
+/** `/chat` -- the embedded chat UI.
  * Open to every logged-in user (since 2026-10-14; it used to be limited to
  * an SSO group). Each user brings their own Anthropic key, held in their
  * own browser, so the chat costs Distant Signal no model spend. A logged-out

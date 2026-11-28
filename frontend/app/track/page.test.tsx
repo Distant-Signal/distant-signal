@@ -37,16 +37,14 @@ describe('TrackPage', () => {
     expect(screen.getByText(/Not sure which train yet\?/)).toBeInTheDocument();
   });
 
-  // Review §2.16: the "Track this train" button above is shown to every
-  // visitor, logged in or not, with nothing hinting that saving a pin needs
-  // an account -- this note is that hint.
+  // The "Track this train" button is shown to every visitor, logged in or not; this note hints that
+  // saving a pin needs an account.
   it('hints that tracking a train needs an account', async () => {
     renderWithMantine(await TrackPage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByText(/needs a Distant Signal account/)).toBeInTheDocument();
   });
 
-  // Review §2.1/I21: previously nothing in the app could link straight to
-  // window mode. `?mode=window` mirrors the existing `?origin=` pattern.
+  // `?mode=window` mirrors the existing `?origin=` pattern, so window mode is link-addressable.
   it('starts the form in window mode for ?mode=window', async () => {
     renderWithMantine(await TrackPage({ searchParams: Promise.resolve({ mode: 'window' }) }));
 

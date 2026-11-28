@@ -27,18 +27,16 @@ describe('GroupsPage', () => {
     expect(link).toHaveAttribute('href', '/api/auth/login?return_to=%2Fgroups');
   });
 
-  // Review §2.16: this used to be an underlined text link -- promoted to a
-  // filled button so the anonymous visitor's one action here has the same
-  // visual weight as the "Create group" action an authenticated visitor
-  // sees in its place.
+  // A filled button rather than an underlined text link, so the anonymous
+  // visitor's one action here has the same visual weight as the "Create
+  // group" action an authenticated visitor sees in its place.
   it('renders the login action as a filled button-styled link, not a plain text link', async () => {
     vi.mocked(getMyGroups).mockResolvedValue(null);
     renderWithMantine(await GroupsPage());
     expect(screen.getByRole('link', { name: 'Log in to see your groups' })).toHaveClass('mantine-Button-root');
   });
 
-  // Review §3.2.8, deliberately on top of Task 1.1's root-cause `<main>`
-  // fix, not instead of it: a list of short name/badge rows stretching the
+  // On top of the `<main>` width fix: a list of short name/badge rows stretching the
   // full content width reads as sparse rather than deliberate.
   it('caps the content width at 640px', async () => {
     vi.mocked(getMyGroups).mockResolvedValue([]);
@@ -74,9 +72,8 @@ describe('GroupsPage', () => {
     expect(screen.getByText('1 member')).toBeInTheDocument();
   });
 
-  // Review §3.2.5: the card used to be a bare `<Link>` with
-  // `textDecoration: 'none'; color: 'inherit'` and no other signal that it
-  // was clickable besides the cursor.
+  // A bare `<Link>` with no underline or colour would give no signal that
+  // the card is clickable besides the cursor.
   it('makes each group a clickable card named by the group, with no arrow glyph', async () => {
     vi.mocked(getMyGroups).mockResolvedValue([{ id: 'grp-1', name: 'Family', role: 'owner', memberCount: 3 }]);
     renderWithMantine(await GroupsPage());

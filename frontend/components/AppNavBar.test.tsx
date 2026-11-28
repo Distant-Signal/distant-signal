@@ -242,9 +242,8 @@ describe('AppNavBar', () => {
       expect(within(await screen.findByRole('dialog')).queryByRole('link', { name: 'Groups' })).toBeNull();
     });
 
-    // Review §3.1.3: /chat was undiscoverable -- reachable only by typing
-    // the URL directly. The drawer is the only nav surface below `md`, so
-    // it has to carry Chat too, not just the account menu.
+    // /chat was otherwise reachable only by typing the URL. The drawer is the only nav surface below
+    // `md`, so it has to carry Chat too, not just the account menu.
     it('adds Chat for every logged-in visitor', async () => {
       renderWithMantine(<AppNavBar session={loggedIn} freshness={freshness} />);
       openDrawer();

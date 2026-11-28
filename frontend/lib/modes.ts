@@ -42,18 +42,17 @@ export const MERGED_TFL_LINE_IDS: readonly string[] = [
  * (`NorthernIreland`/`RepublicOfIreland`) exactly, with `Gb` added as the
  * implicit "not tagged Ireland" default rather than a fourth variant
  * anywhere in `common::` -- see
- * docs/superpowers/specs/2026-09-05-country-filtering-design.md Decision 1
- * and Decision 2 for why GB is never an explicit backend tag. */
+ * docs/superpowers/specs/2026-09-05-country-filtering-design.md
+ * for why GB is never an explicit backend tag. */
 export type Country = 'Gb' | 'NorthernIreland' | 'RepublicOfIreland';
 
 /** Maps a `LineStatusReport.modeName` to the country it belongs to.
  * Deliberately empty today: every mode this app can currently emit a
  * report for (`DISPLAYED_MODES`, above) is GB, and GB is never listed here
  * explicitly -- a `modeName` absent from this table is `Gb` by
- * construction (see Decision 2). This table gains entries only once a
+ * construction. This table gains entries only once a
  * real non-GB poller exists and its real `modeName` value(s) are known --
- * see docs/superpowers/specs/2026-09-05-country-filtering-design.md
- * Decision 3 and §8 Open Question 2, and
+ * see docs/superpowers/specs/2026-09-05-country-filtering-design.md and
  * docs/superpowers/plans/2026-09-05-ireland-rail-support-plan.md:196 for
  * why `island-of-ireland-*` is illustrative, not a committed value, and
  * must not be guessed at here. Mirrors `MERGED_TFL_LINE_IDS`'s own shape:
@@ -64,8 +63,7 @@ export const MODE_TO_COUNTRY: Record<string, Country> = {};
 /** Derives a country from a raw `modeName` string. `table` defaults to the
  * real `MODE_TO_COUNTRY` but is overridable so this derivation can be unit
  * tested against a synthetic mapping before any real non-GB `modeName`
- * exists (see the design spec's Judgment Call 2 in
- * docs/superpowers/plans/2026-09-05-country-filtering-plan.md) --
+ * exists (see docs/superpowers/plans/2026-09-05-country-filtering-plan.md) --
  * production call sites should never pass `table` explicitly. */
 export function countryForMode(modeName: string, table: Record<string, Country> = MODE_TO_COUNTRY): Country {
   // Signal Box Audit, flib Low finding: "prototype-key lookups can render a

@@ -226,8 +226,8 @@ describe('stationFacts and factSentences', () => {
     expect(facts.facilities).toEqual(['lifts', 'accessible toilets', 'cycle storage', 'a bus link']);
     expect(factSentences('Abbey Wood', facts)).toEqual([
       'Abbey Wood has 4 platforms.',
-      'Its step-free access category is A: compliant step-free access to all platforms.',
-      'The station information lists lifts, accessible toilets, cycle storage and a bus link.',
+      'Step-free access category A: compliant step-free access to all platforms.',
+      'Facilities listed: lifts, accessible toilets, cycle storage and a bus link.',
     ]);
   });
 

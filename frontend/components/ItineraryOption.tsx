@@ -173,8 +173,8 @@ function liveNote(live: TripPlanLegLive | null | undefined): string {
 
 /** One selectable itinerary card -- design spec §5.3's "route-summary
  * display for both `'fastest'` and `'options'` responses." Disabled with an
- * explanatory message when the itinerary has no train leg at all (this
- * plan's own Judgment Call 4 -- there is nothing a `POST /Journeys` call
+ * explanatory message when the itinerary has no train leg at all (there is
+ * nothing a `POST /Journeys` call
  * could create for a walk with no train on either side of it). */
 export function ItineraryOption({
   itinerary,
@@ -204,7 +204,7 @@ export function ItineraryOption({
   waypointStops?: TripPlanWaypointSatisfied[] | undefined;
   /** The station groups, to name a group a via or stop satisfied. */
   groups?: StationGroup[] | undefined;
-  /** The plan's TfL stop ends and their candidates (`TripPlanResponse`'s
+  /** The TfL stop ends of the plan and their candidates (`TripPlanResponse`'s
    * `access`), for how many stops an access ride rides. */
   stopAccess?: TripPlanResponse['access'];
   /** Names a train, bus or ferry leg's operator (`leg.operator`, an ATOC

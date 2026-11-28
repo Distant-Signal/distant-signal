@@ -140,7 +140,7 @@ describe('LeaveGroupButton', () => {
     expect(screen.queryByText('Delete this group?')).not.toBeInTheDocument();
   });
 
-  // Review §3.2.1: ownership transfer is the one consequence of leaving a
+  // Ownership transfer is the one consequence of leaving a
   // departing owner would not otherwise guess -- every other member just
   // sees the group carry on unaffected.
   it('names the successor when nextOwnerLabel is set', async () => {

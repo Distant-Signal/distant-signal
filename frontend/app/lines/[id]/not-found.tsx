@@ -3,11 +3,9 @@ import { TextLink } from '@/components/TextLink';
 import { LoginControl } from '@/components/LoginControl';
 import { getSessionOrLoggedOut } from '@/lib/api';
 
-// Task 3.4.10: an async Server Component, same as any other route file --
-// Next.js's special `not-found.tsx` supports this the same way `page.tsx`
-// does, it just receives no route params. `getSession()`'s use of
-// `next/headers` `cookies()` opts this segment into dynamic rendering the
-// same way it already does for every other page here that calls it.
+// An async Server Component like any other route file; `not-found.tsx` just receives no route params.
+// `getSession()`'s use of `next/headers` `cookies()` opts this segment into dynamic rendering, as it
+// does for every other page here that calls it.
 export default async function LineNotFound() {
   // Anonymous vs. signed-in changes what this page offers: a session that
   // lapsed while looking at an owner-only route (e.g. `/lines/[id]/edit`)

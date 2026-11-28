@@ -7,7 +7,7 @@ import type { ChartPoint } from './chartPoint';
 
 // Placeholder, not a validated number -- mirrors TrendsResults.tsx's own
 // SPARSE_DATA_FLOOR_CYCLES, but deliberately its OWN constant, not a
-// shared one: the design doc's Decision 4 explicitly leaves this
+// shared one: the design doc explicitly leaves this
 // uncalibrated ("not designed to a specific number here"), and the two
 // floors are calibrated against different underlying cadences (LDBWS poll
 // coverage vs. a future full-coverage consumer's own resolution cadence,
@@ -37,7 +37,7 @@ export function toCoverageChartPoints(stats: LineDailyCoverageStats[]): ChartPoi
   });
 }
 
-/** Decision 4's daily full-coverage series -- a second, separate chart
+/** The daily full-coverage series -- a second, separate chart
  * section rendered alongside (not replacing) `TrendsResults`' existing
  * sample-derived one. Always resolves an empty array today, since no
  * full-coverage producer exists yet to populate
@@ -49,14 +49,12 @@ export function toCoverageChartPoints(stats: LineDailyCoverageStats[]): ChartPoi
  * half-hourly route/table exist (for symmetry with the existing
  * daily/half-hourly pair, and so a future producer has both available
  * immediately), but a second, definitely-still-empty half-hourly chart
- * surface adds nothing a viewer can act on today. See this repo's
- * 2026-09-03 full-coverage-metrics-scaffolding plan's own Non-goals. */
+ * surface adds nothing a viewer can act on today. See
+ * docs/superpowers/plans/2026-09-03-full-coverage-metrics-scaffolding-plan.md. */
 export async function CoverageTrendsResults({ id, from, to }: { id: string; from: string; to: string }) {
-  // 2026-09-22 UX review §5.1's own recommendation, applied here too:
-  // `TrendsResults`/`LineTrainsResults` both "resolve to real markup
-  // rather than throw" so a fetch failure is scoped to their own panel;
-  // this component previously had no such guard, so an outage here would
-  // propagate past this route's `<Suspense>` (which catches suspension,
+  // Like `TrendsResults`/`LineTrainsResults`, this resolves to real markup
+  // rather than throw, so a fetch failure is scoped to its own panel;
+  // otherwise an outage here would propagate past this route's `<Suspense>` (which catches suspension,
   // not errors) straight to the global error boundary, blanking the whole
   // page -- title, "Back to line" link, Period control and both tabs --
   // over a failure in one secondary chart. Both TabsPanels are mounted at
@@ -92,8 +90,7 @@ export async function CoverageTrendsResults({ id, from, to }: { id: string; from
           exist here (every scheduled service is in view by construction),
           so this copy states that plainly instead of carrying over a hedge
           that no longer applies. See
-          docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md
-          Decision 4. */}
+          docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md. */}
       <Text size="sm" c="dimmed">
         Rates shown cover every scheduled service on this line, cross-referenced against real train-movement data, not a
         sample of live departures at a handful of stations.

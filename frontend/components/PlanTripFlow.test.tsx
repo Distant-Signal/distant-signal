@@ -586,7 +586,7 @@ describe('PlanTripFlow', () => {
   });
 
   it("sends the train leg's own origin/destination, not the segment's, for a leg that boards/alights mid-route", async () => {
-    // The plan's own Birmingham->Glasgow/Crewe->Preston example, made
+    // A Birmingham->Glasgow/Crewe->Preston example, made
     // concrete: a single segment advertised as BHM -> GLC whose one
     // itinerary's train leg actually boards at Crewe and alights at
     // Preston (a transfer leg before/after the train leg in a real
@@ -706,7 +706,7 @@ describe('PlanTripFlow', () => {
   it('shows a "needs no train" message and never calls POST /Journeys for a plan with no train legs to track', async () => {
     // A plan whose segments carry no itinerary the visitor could ever
     // select (`ItineraryOption` disables the radio for any itinerary with
-    // no train leg at all -- Judgment Call 4) can't be reached by picking a
+    // no train leg at all) can't be reached by picking a
     // train-less itinerary through the UI. The one way `allSegmentsSelected`
     // is honestly satisfied with zero train legs is a plan with NO segments
     // at all (vacuously "every segment has a selection") -- a genuine,

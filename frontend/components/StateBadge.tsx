@@ -33,7 +33,7 @@ export const STATE_TONE_COLOR: Record<StateTone, MantineColor> = {
   action: 'grape',
 };
 
-/** The one badge for a thing's state (round 2, item 3): light variant,
+/** The one badge for a thing's state: light variant,
  * sentence case, coloured by `tone`. A line's severity is `StatusBadge`
  * (filled) instead, and AI-shaped content is `AiGeneratedBadge`; a row
  * shows at most one of each, in that order (`BadgeRow`).

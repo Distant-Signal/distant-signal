@@ -50,8 +50,8 @@ export type McpCredentialScope = 'all' | 'client' | 'tokens' | 'verifier' | 'dis
  *
  * Implements the MCP SDK's own `OAuthClientProvider` interface
  * (`@modelcontextprotocol/sdk/client/auth.js`) so both the SDK's exported
- * `auth()` orchestrator (Task 8's callback route) and
- * `StreamableHTTPClientTransport`'s own `authProvider` option (Task 10's
+ * `auth()` orchestrator (the callback route) and
+ * `StreamableHTTPClientTransport`'s own `authProvider` option (in
  * `ChatPanel.tsx`) can drive it directly -- no hand-rolled redirect/
  * exchange/store sequence needed. */
 export class BrowserMcpOAuthProvider implements OAuthClientProvider {

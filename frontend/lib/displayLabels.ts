@@ -8,8 +8,7 @@ import { ownValue } from './ownValue';
  * (`crates/api/src/routes/lines.rs`'s `to_line_summary`) for `tube`/`dlr`/
  * `overground`/`elizabeth-line`/`tram`, and the literal string `"custom"`
  * for a user-created line. None of those raw tokens is something a
- * passenger wrote or would recognise -- review §2.9's "internal codes ...
- * reach user-facing copy" finding named this field by name. Falls back to
+ * passenger wrote or would recognise. Falls back to
  * the raw token itself for anything unlisted (a category this table
  * hasn't caught up with yet), same fallback contract as `stationLabel`. */
 const CATEGORY_LABELS: Record<string, string> = {
@@ -254,7 +253,7 @@ export function changesBadge(itinerary: TripPlanItinerary): { total: number; lab
 
 /** Where an access ride is boarded or left when that is another stop area
  * of the station ("Board at Paddington (H&C Line)."), or `undefined` when
- * it uses the plan's own stops. */
+ * it uses the itinerary's own stops. */
 export function accessStopsNote(access: TripPlanAccessLeg): string | undefined {
   const parts = [
     access.boardStop?.name.trim() ? `Board at ${access.boardStop.name.trim()}.` : null,

@@ -138,7 +138,7 @@ describe('legStatusGroup', () => {
     expect(legStatusGroup(leg)).toBe('delayed');
   });
 
-  // 2026-09-22 UX review, I13: `legStatusGroup` read only `status` and
+  // `legStatusGroup` read only `status` and
   // `delayMinutes`, so a punctual train that had stopped calling at the
   // traveller's own station rolled the whole journey up as "On track".
   it('classifies an on-time en_route train whose leg DESTINATION is skipped as skipped, not good', () => {

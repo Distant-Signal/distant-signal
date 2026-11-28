@@ -369,8 +369,7 @@ describe('AddJourneyLegButton', () => {
     expect(screen.getByRole('button', { name: 'Add leg' })).not.toHaveAttribute('aria-disabled');
   });
 
-  // Review §2.2/I17: states the rule up front rather than only via a
-  // disabled button with no explanation.
+  // States the rule up front rather than only via a disabled button with no explanation.
   it('shows the at-least-one-of-four hint in window mode', async () => {
     renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));
@@ -378,8 +377,7 @@ describe('AddJourneyLegButton', () => {
     expect(await screen.findByText('At least one of the four times below is required.')).toBeInTheDocument();
   });
 
-  // Review §2.2/M14: same "no visible earliest > latest check" gap
-  // TrackTrainForm's own window fields had.
+  // Same "no visible earliest > latest check" gap that TrackTrainForm's window fields had.
   it('disables submit when the latest departure is before the earliest departure', async () => {
     renderWithMantine(<AddJourneyLegButton journeyId="1" priorDestinationCrs="WAT" />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a leg' }));

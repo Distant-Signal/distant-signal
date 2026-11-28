@@ -88,8 +88,7 @@ export const metadata: Metadata = pageMetadata(METADATA_TITLE, METADATA_DESCRIPT
 
 // The exact shape getPreferences() already returns for a 401, named so the
 // fallback below is typed as `Preferences` rather than inferred with
-// `never[]` members. Per-user data fails closed during an outage (design
-// spec Decision 5) instead of being stale-served.
+// `never[]` members. Per-user data fails closed during an outage instead of being stale-served.
 const NO_PREFERENCES: Preferences = {
   pinnedLines: [],
   pinnedStations: [],
@@ -115,8 +114,7 @@ export default async function AllLinesPage({
   const [lines, preferences, reports, tocs, viewerIsAnonymous, transitNetworks, irelandOn] = await Promise.all([
     withStaleFallback('allLines', () => getAllLines()),
     // Per-user, so it fails closed to "nothing pinned" (the shape a 401
-    // already returns) rather than being stale-served -- design spec
-    // Decision 5.
+    // already returns) rather than being stale-served.
     getPreferences().catch(() => NO_PREFERENCES),
     // Deliberately the same cache key as app/page.tsx: it is the same
     // request, so the two pages should share one entry.
@@ -124,15 +122,10 @@ export default async function AllLinesPage({
     // Hour-cached reference data used only to label rows; an empty list
     // degrades the table's operator column rather than the whole page.
     getAllTocs().catch(() => []),
-    // Task 3.4.13: only used to hint the pin star that pinning needs an
-    // account. A failed session check degrades to "treat as anonymous" --
-    // an extra hint shown to someone who is in fact logged in is harmless,
-    // where hiding a real hint from an anonymous visitor is the failure
-    // this feature exists to fix. `getSessionOrLoggedOut()` (`lib/api.ts`)
-    // is what does that degrading now -- it logs the failure first, and
-    // already resolves (never rejects) to the logged-out shape, so this
-    // needs no `.catch()` of its own the way the old direct `getSession()`
-    // call did.
+    // Only used to hint the pin star that pinning needs an account. A failed session check degrades to
+    // "treat as anonymous": a spurious hint for a logged-in user is harmless, hiding it from an anonymous
+    // one is not. `getSessionOrLoggedOut()` (`lib/api.ts`) logs the failure and resolves to the logged-out
+    // shape, so no `.catch()` is needed here.
     getSessionOrLoggedOut().then((session) => !session.authenticated),
     // The tram networks we show ([] by default, and on failure): linked
     // here because the inline nav bar has no room for them.

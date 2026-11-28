@@ -87,7 +87,7 @@ export function optionLabelText(
   }
 }
 
-/** The names of a plan's TfL stop ends (DS-135), by stop id, from its
+/** The names of the TfL stop ends of a plan (DS-135), by stop id, from its
  * top-level `access` (`Uxbridge (Tube)`), and of every tram station its
  * transit legs and walks name (`Piccadilly (Metrolink)`): a stop id is
  * not a station code `getStationNames` can resolve. */
@@ -323,20 +323,19 @@ export class TripPlanError extends Error {
   }
 }
 
-/** Calls `GET /api/Trips/plan` (the same-origin proxy, Task 1) and returns
+/** Calls `GET /api/Trips/plan` (the same-origin proxy) and returns
  * the parsed response, or throws [`TripPlanError`] with the backend's own
  * plain-text error body as its message -- both `400` (bad CRS/results
  * value) and `404` (no CIF data published for this date yet) are real,
- * distinct, user-actionable outcomes (this plan's own Review Focus), so
+ * distinct, user-actionable outcomes, so
  * the caller can render each differently rather than one generic failure
  * message.
  *
  * Every OTHER status (a 500, a gateway timeout, an unreachable backend, ...)
  * is not a backend-authored, user-actionable message -- it can be Next's own
  * raw proxy error text (an HTML error page fragment, a stack trace line),
- * which `PlanTripFlow` would otherwise show verbatim in its alert (Signal
- * Box Audit, flib Low finding: "non-400/404 error bodies are shown to the
- * user verbatim"). That looks broken and can leak implementation details, so
+ * which `PlanTripFlow` would otherwise show verbatim in its alert. That
+ * looks broken and can leak implementation details, so
  * those statuses get a generic, honest message instead -- the raw body is
  * still logged to the console for debugging, just not shown to the visitor. */
 export async function fetchTripPlan(query: TripPlanQuery): Promise<TripPlanResponse> {

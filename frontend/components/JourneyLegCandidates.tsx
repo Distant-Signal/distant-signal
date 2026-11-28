@@ -37,7 +37,7 @@ const FILTER_DEBOUNCE_MS = 250;
 /** One row of `GET /Journeys/{id}/legs/{id}/candidates` -- the shared
  * calling-point row (`render::calling_point_departure_json`) PLUS the
  * leg-scoped fields `crates/api/src/routes/journeys.rs::leg_candidate_json`
- * adds on top of it (2026-09-22 UX review, C4).
+ * adds on top of it.
  *
  * The distinction is the whole point. `originCrs`/`destinationCrs`/
  * `destinationArrival` describe the TRAIN's own route -- for a
@@ -152,9 +152,8 @@ export function JourneyLegCandidates({
   // usual train, when it is among the trains found, goes first on its own.
   const usualUid = useUsualTrainFor(legId);
 
-  // Operator/TOC filter -- design doc's journey-leg-operator-filter plan,
-  // Task 6. `operator` is the field's value: the picked code, or the raw
-  // typed text (`OperatorField`);
+  // Operator/TOC filter. `operator` is the field's value: the picked code, or
+  // the raw typed text (`OperatorField`);
   // `committedOperator` is the DEBOUNCED, trimmed-and-uppercased value that
   // actually drives the candidates fetch, so a fast typist doesn't fire one
   // request per keystroke. Reuses `TrackTrainForm.tsx`'s window-mode
@@ -217,7 +216,7 @@ export function JourneyLegCandidates({
       cancelled = true;
     };
     // `committedOperator` joins `journeyId`/`legId` as a full reset trigger,
-    // same as this plan's Task 6 brief requires: a changed filter drops any
+    // so a changed filter drops any
     // existing rows/`nextCursor` and searches again from page 1, exactly
     // like a fresh `journeyId`/`legId` mount already does. `needsLoginState`
     // is deliberately excluded: it's a fresh object from `useNeedsLogin()`
@@ -352,20 +351,14 @@ export function JourneyLegCandidates({
     }
     return (
       <>
-        {/* Review §2.5/M15: the intro line this list used to inherit from its
-            caller ("Searching for a train to track — pick one below") was
-            near-identical to the loading state above, for the opposite
-            situation — an unbounded "still working" tone on a list that has
-            already finished and is just waiting to be picked from. Also
-            answers "what happens when I click", which used to be invisible
-            until after the (irreversible-looking) click: a picked leg can
-            still be changed later via "Change train" (`JourneyLegCard.tsx`).
-            Counts rows LOADED so far, same as the count would read on a
-            single-page result before pagination existed -- on a window with
-            more than one page this undercounts the true total until "Load
-            more" is pressed, which reads as "at least this many", never as a
-            wrong number, the same posture `TrainSearchForm.tsx` takes by
-            simply not stating a total at all. */}
+        {/* The intro line says the list is ready to pick from (not the "still
+            working" tone of the loading state above) and answers "what happens
+            when I click": a picked leg can still be changed later via "Change
+            train" (`JourneyLegCard.tsx`). Counts rows LOADED so far, so on a
+            window with more than one page this undercounts the true total until
+            "Load more" is pressed, which reads as "at least this many", never as
+            a wrong number, the same posture `TrainSearchForm.tsx` takes by simply
+            not stating a total at all. */}
         <Text size="sm" c="dimmed">
           {results.rows.length === 0
             ? "No trains match your search, but these leave earlier. Pick the one you'll be on. You can change it later."
@@ -484,7 +477,7 @@ function legArrival(row: CandidateRow): string | undefined {
  * station the traveller boards at) as the row's time, the train's
  * destination, the leg's arrival at the traveller's own destination (with
  * a "+1" for an overnight leg), live status, and the train's identity and
- * origin as the dimmed second line (2026-09-22 UX review, C4). The
+ * origin as the dimmed second line. The
  * destination links to the train's page; the pick button sits in the
  * row's actions slot, beside the link rather than inside it.
  *

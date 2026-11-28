@@ -73,9 +73,7 @@ describe('GranularityControl', () => {
       { scroll: false },
     );
   });
-  // 2026-09-22 UX review, I9/P4: this control shipped with no
-  // `aria-label`, no `aria-labelledby` and no visible label, directly
-  // beneath a "Period" control that has all three.
+  // This control once had no accessible name, unlike the sibling Period control above it.
   it('names its radiogroup, the same way the sibling Period control does', () => {
     renderWithMantine(
       <GranularityControl

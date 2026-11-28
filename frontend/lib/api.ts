@@ -374,9 +374,9 @@ export async function getLineStatusHistory(id: string, from: string, to: string)
   });
 }
 
-/** `GET /Line/{id}/Stats/{from}/to/{to}` -- the new daily rollup route.
+/** `GET /Line/{id}/Stats/{from}/to/{to}` -- the daily rollup route.
  * `from`/`to` are `YYYY-MM-DD` calendar days (the route's own path segments
- * are `NaiveDate`, not RFC3339 instants -- see the backend plan's Task 4).
+ * are `NaiveDate`, not RFC3339 instants).
  * Same public, no-store, cookie-forwarding shape as
  * `getLineStatusHistory` -- and for the same reason: the backend gates a
  * `custom-` line id on the caller's session, so without the forward the
@@ -394,14 +394,9 @@ export async function getLineDailyStats(id: string, from: string, to: string): P
  * `to` are passed straight through as RFC3339 instants (no `londonDayKey`
  * conversion) -- the route's own path segments are `DateTime<Utc>`, not
  * `NaiveDate`, since a 30-minute bucket has no calendar-day analog to
- * round-trip through (Decision 6 of
- * docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md,
- * written for the original 1-hour bucket -- the reasoning is unchanged at
- * 30 minutes). Same public, no-store, cookie-forwarding shape as
- * `getLineDailyStats`/`getLineStatusHistory`. Originally
- * `getLineHourlyStats` calling `/Stats/Hourly/...`; renamed alongside the
- * backend route when the bucket size was halved -- see git history for
- * the hourly-era version. */
+ * round-trip through (docs/superpowers/specs/2026-09-02-trend-chart-granularity-design.md).
+ * Same public, no-store, cookie-forwarding shape as
+ * `getLineDailyStats`/`getLineStatusHistory`. */
 export async function getLineHalfHourlyStats(id: string, from: string, to: string): Promise<LineHalfHourlyStats[]> {
   return fetchJson<LineHalfHourlyStats[]>(
     `${baseUrl()}/Line/${encodeURIComponent(id)}/Stats/HalfHourly/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}`,
@@ -410,8 +405,7 @@ export async function getLineHalfHourlyStats(id: string, from: string, to: strin
 }
 
 /** `GET /Line/{id}/Stats/Hourly/{from}/to/{to}` -- the 1-hour sub-daily
- * rollup route (Decision 2 of
- * docs/superpowers/specs/2026-09-05-configurable-trend-granularity-design.md).
+ * rollup route (docs/superpowers/specs/2026-09-05-configurable-trend-granularity-design.md).
  * Same RFC3339-instant/public/no-store/cookie-forwarding shape as
  * `getLineHalfHourlyStats`. */
 export async function getLineHourlyStats(id: string, from: string, to: string): Promise<LineHourlyStats[]> {
@@ -431,11 +425,10 @@ export async function getLineSixHourlyStats(id: string, from: string, to: string
 }
 
 /** `GET /Line/{id}/Stats/Coverage/{from}/to/{to}` -- the full-coverage
- * sibling of `getLineDailyStats` (Decision 4). Same `YYYY-MM-DD`/no-store/
+ * sibling of `getLineDailyStats`. Same `YYYY-MM-DD`/no-store/
  * cookie-forwarding shape. Always resolves `[]` today: no full-coverage
  * producer exists yet to populate `line_status_daily_coverage_stats`. See
- * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md
- * Decision 4. */
+ * docs/superpowers/specs/2026-09-03-full-coverage-metrics-transition-design.md. */
 export async function getLineDailyCoverageStats(
   id: string,
   from: string,
@@ -449,9 +442,9 @@ export async function getLineDailyCoverageStats(
 
 /** `GET /Line/{id}/Stats/Coverage/HalfHourly/{from}/to/{to}` -- the
  * full-coverage sibling of `getLineHalfHourlyStats`. Added for backend
- * symmetry with the daily route above (Decision 4); no frontend chart
+ * symmetry with the daily route above; no frontend chart
  * consumes it yet -- see `CoverageTrendsResults.tsx`'s own doc comment for
- * why only the daily series has a chart in this pass. */
+ * why only the daily series has a chart. */
 export async function getLineHalfHourlyCoverageStats(
   id: string,
   from: string,
@@ -510,8 +503,7 @@ export async function getOperatorSixHourlyStats(
 }
 
 /** `GET /public/network/stats/{from}/to/{to}` -- the whole-network
- * (catalogue National Rail lines only -- see this plan's Judgment Call 5
- * for why TfL lines never contribute) daily Trends rollup. */
+ * (catalogue National Rail lines only; TfL lines never contribute) daily Trends rollup. */
 export async function getNetworkDailyStats(from: string, to: string): Promise<NetworkDailyStats[]> {
   return fetchJson<NetworkDailyStats[]>(
     `${baseUrl()}/public/network/stats/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}`,
@@ -699,8 +691,7 @@ export async function getAllOperators(): Promise<OperatorSummary[]> {
  * only needs one operator's rollup (e.g. the operator history page's line
  * count). Unauthenticated, same as `getAllOperators`. Throws
  * `ApiNotFoundError` on a 404 -- an unknown code, or a real `tocs` code with
- * zero currently-matching lines (Judgment Call 4, same omission as the
- * list). */
+ * zero currently-matching lines (same omission as the list). */
 export async function getOperator(code: string): Promise<OperatorSummary> {
   const url = `${baseUrl()}/public/operators/${encodeURIComponent(code)}`;
   return fetchJson<OperatorSummary>(url, { cache: 'no-store' });
@@ -718,7 +709,7 @@ export async function getAllTocs(): Promise<Suggestion[]> {
 
 /** Deliberately collapses a `401` into `ApiNotFoundError` alongside the
  * genuine `404`, unlike `getTrackedTrainById`/`getTrackedTrainByUidAndDate`
- * below -- Decision 8 in the design spec. On `/lines/[id]`, "not logged in"
+ * below. On `/lines/[id]`, "not logged in"
  * and "logged in but not the owner" should render identically (both just a
  * 404): this is a public catalogue page most visitors have no reason to
  * think they own, unlike the single-purpose tracked-train page, so there's

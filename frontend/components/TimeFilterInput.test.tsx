@@ -66,7 +66,7 @@ describe('TimeFilterInput', () => {
     expect(field()).toHaveAttribute('step', '60');
   });
 
-  // Task 3.6.13: a native time input's displayed segments (12h + AM/PM vs
+  // A native time input's displayed segments (12h + AM/PM vs
   // 24h) follow its own effective `lang`, not the page's -- an en-US
   // browser language rendered a 12-hour "--:-- --" skeleton on this
   // otherwise all-24h UK site. `lang="en-GB"` pins it to a 24h-clock

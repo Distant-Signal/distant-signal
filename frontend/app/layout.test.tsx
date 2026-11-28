@@ -43,14 +43,13 @@ describe('viewport.colorScheme', () => {
 describe('metadata.appleWebApp', () => {
   it('sets statusBarStyle to black-translucent and explicitly disables capable -- no title', () => {
     // Exact-shape check, not just a `.statusBarStyle` field check: this is
-    // the one place this plan's Global Constraints must hold structurally
+    // the one place this must hold structurally
     // -- `title` must never be added alongside this, and `capable` must be
     // explicitly `false` (not omitted): Next's own `resolveAppleWebApp`
     // defaults `capable` to `true` whenever `appleWebApp` is set at all
     // and no `capable` key is present, which would silently emit the
-    // discouraged `mobile-web-app-capable` tag this plan's Global
-    // Constraints reject -- omitting the key is not equivalent to
-    // rejecting the tag here.
+    // discouraged `mobile-web-app-capable` tag -- omitting the key
+    // is not equivalent to rejecting the tag here.
     expect(metadata.appleWebApp).toEqual({ capable: false, statusBarStyle: 'black-translucent' });
   });
 });
@@ -103,7 +102,7 @@ describe('backend reachability threading', () => {
   });
 
   it('passes the freshness straight into the nav bar rather than streaming it', () => {
-    // Correction 1's load-bearing structural change: a streamed freshness
+    // The load-bearing structural point: a streamed freshness
     // fetch resolves after RootLayout has returned, so its outcome could
     // never reach a sibling. It is therefore awaited and handed to
     // <AppNavBar> as a plain prop -- including on the Suspense fallback

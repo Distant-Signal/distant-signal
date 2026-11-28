@@ -9,13 +9,11 @@ import { StateBadge } from './StateBadge';
  * always shown as a distinct badge alongside the time, never collapsed
  * into one number -- extending this app's existing `dataQuality`
  * provenance-surfacing philosophy (`StatusBadge`/`LineStatus.dataQuality`)
- * to ETAs, per
- * docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md
- * Decision 3.
+ * to ETAs (docs/superpowers/specs/2026-08-29-train-tracking-frontend-design.md).
  *
- * The non-Darwin badge used to read "NETWORK RAIL PROPAGATED" -- jargon
- * ("propagated") on the most-read line of both train pages (review §2.9).
- * The short label now says what it means in plain terms; the precise
+ * The non-Darwin badge avoids the jargon of "NETWORK RAIL PROPAGATED" on the
+ * most-read line of both train pages. The short label says what it means in
+ * plain terms; the precise
  * technical description survives in two places for anyone who wants it:
  * the `Tooltip` (sighted, on hover/focus) and a `VisuallyHidden` span
  * (screen readers, unconditionally -- a `Tooltip`'s content isn't reliably
@@ -24,7 +22,7 @@ import { StateBadge } from './StateBadge';
  * not nested inside it, so the badge's own visible text stays a single
  * plain string rather than a string interleaved with hidden content.
  *
- * `mayHaveArrived` (Task 3.6.3): the present-tense "ETA {time}" badge
+ * `mayHaveArrived`: the present-tense "ETA {time}" badge
  * above reads as live/current, but once the server's own
  * `may_have_arrived` heuristic (`crates/api/src/data/journey.rs`) has
  * fired, that time is actually the STALE estimate that tripped it -- no

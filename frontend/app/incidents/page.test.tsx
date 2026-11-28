@@ -19,7 +19,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
   return { ...actual, getAllLines: vi.fn(), getAllTocs: vi.fn() };
 });
 
-// `IncidentSearchForm` (review §3.3) now runs its own search on mount, so
+// `IncidentSearchForm` runs its own search on mount, so
 // rendering this page always fires a `fetch` -- stubbed here the same way
 // `IncidentSearchForm.test.tsx` stubs it, rather than letting the real
 // global `fetch` reject on a relative URL every time this page renders.

@@ -16,9 +16,9 @@ import { trackFeature } from '@/lib/usageAnalytics';
  * and this click, the same narrow race `DeleteTrainButton`'s own doc
  * comment already names.
  *
- * Review §3.2.3: also treats a `409` as success, routing to the group
+ * Also treats a `409` as success, routing to the group
  * exactly like the normal 200 path, rather than surfacing it as an error
- * alert. The caller (`app/groups/join/[token]/page.tsx`) now probes
+ * alert. The caller (`app/groups/join/[token]/page.tsx`) probes
  * membership up front and swaps this button out entirely for an "Open
  * group" link once it knows the visitor is already a member, so the
  * backend itself never actually returns a `409` here today

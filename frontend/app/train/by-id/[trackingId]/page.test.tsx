@@ -28,9 +28,8 @@ const notFoundMock = vi.fn(() => {
 const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
-// usePathname()/useSearchParams() stubbed for the same reason as
-// AuthStatus.test.tsx -- the login-error branch now
-// renders LoginControl (Task 1).
+// usePathname()/useSearchParams() stubbed for the same reason as AuthStatus.test.tsx: the login-error
+// branch renders LoginControl.
 vi.mock('next/navigation', () => ({
   notFound: () => notFoundMock(),
   redirect: (url: string) => redirectMock(url),
@@ -91,9 +90,8 @@ describe('TrackedTrainByIdPage error handling', () => {
     // No canonical uid/date URL exists for this outcome -- nothing to
     // redirect to.
     expect(redirectMock).not.toHaveBeenCalled();
-    // Task 3.6.10: never the raw internal `trackingId` as a "train name"
-    // pre-auth -- this route can't disclose anything more than "someone
-    // tracks a train here" before the visitor logs in as its owner.
+    // Never the raw internal `trackingId` as a "train name" pre-auth: this route can't disclose more than
+    // "someone tracks a train here" before the visitor logs in as its owner.
     expect(screen.getByRole('heading', { name: 'Log in to see this tracked train' })).toBeInTheDocument();
     expect(screen.queryByText(/Tracking Train 42/)).not.toBeInTheDocument();
   });
@@ -206,9 +204,8 @@ describe('TrackedTrainByIdPage success path', () => {
     expect(screen.queryByRole('link', { name: /Real Time Trains/ })).not.toBeInTheDocument();
   });
 
-  // Review §2.12: same LastUpdated caption + UK-time note as the sibling
-  // `/train/[uid]/[date]` page, for the local (non-redirected) render path
-  // this page still owns for an unresolved train.
+  // Same LastUpdated caption + UK-time note as the sibling `/train/[uid]/[date]` page, for the local
+  // (non-redirected) render path this page still owns for an unresolved train.
   it('shows a LastUpdated caption with the real auto-refresh cadence and UK-time note', async () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(trackedTrainState());
     await renderPage();
@@ -217,9 +214,8 @@ describe('TrackedTrainByIdPage success path', () => {
     expect(screen.getByText(/Times in UK local time/)).toBeInTheDocument();
   });
 
-  // Task 2: once resolved with a real trainUid, this page's whole job is to
-  // hand off to the canonical /train/{uid}/{date} URL rather than rendering
-  // owner content locally.
+  // Once resolved with a real trainUid, this page hands off to the canonical /train/{uid}/{date} URL
+  // rather than rendering owner content locally.
   it('redirects to the canonical /train/{uid}/{date} URL once resolved', async () => {
     vi.mocked(api.getTrackedTrainById).mockResolvedValue(
       trackedTrainState({ resolutionStatus: 'resolved', trainUid: 'W12345', serviceDate: '2026-09-08' }),

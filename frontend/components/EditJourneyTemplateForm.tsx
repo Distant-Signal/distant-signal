@@ -142,11 +142,11 @@ function keysToDaysOfWeek(keys: string[]): number | null {
 /** The template detail page's leg editor -- §6 item 3: "edit
  * origin/destination/windows per leg." Submits the WHOLE leg list on
  * every Save (`PUT /JourneyTemplates/{id}`, a full-resource replace, not
- * a per-leg patch — see the Phase B plan's Judgment Calls 1/4), so
+ * a per-leg patch), so
  * add/remove/edit are all plain client-side array operations until Save
  * is pressed; nothing is persisted mid-edit. Also renders the
  * recurrence controls (day-of-week picker, match-mode chooser, Pause
- * toggle) added in Phase C.
+ * toggle).
  *
  * The remove-leg control is a plain, text-labeled `Button`, not an
  * `ActionIcon`+icon -- `@tabler/icons-react` is not a dependency of this

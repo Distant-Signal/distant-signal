@@ -45,10 +45,10 @@ describe('EtaBadge', () => {
     expect(darwinText).not.toBe(trustText);
   });
 
-  // Review §2.9: "propagated" is jargon, so the visible badge no longer
-  // says it -- but the precise technical term must still reach anyone who
-  // needs it: sighted users via the Tooltip, everyone else via this
-  // always-present (but visually hidden) text.
+  // "propagated" is jargon, so the visible badge no longer says it -- but the
+  // precise technical term must still reach anyone who needs it: sighted users
+  // via the Tooltip, everyone else via this always-present (but visually
+  // hidden) text.
   it('keeps the precise "propagated" technical description available to screen readers', () => {
     renderWithMantine(<EtaBadge etaNext="2026-08-28T18:41:00Z" etaSource="trust-propagated" />);
     expect(
@@ -56,8 +56,8 @@ describe('EtaBadge', () => {
     ).toBeInTheDocument();
   });
 
-  // Task 3.6.3: a stale ETA under a "may have arrived" alert must not still
-  // read as a live, present-tense time.
+  // A stale ETA under a "may have arrived" alert must not still read as a
+  // live, present-tense time.
   describe('mayHaveArrived', () => {
     it('renders "Was due at {station} {time} (no arrival report received)" instead of the present-tense badge', () => {
       renderWithMantine(

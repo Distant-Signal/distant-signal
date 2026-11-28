@@ -7,8 +7,7 @@ import { useMounted } from '@mantine/hooks';
  * RootLayout alongside AutoRefresh/ColorSchemeMeta -- the same
  * established "root-scope side effect, no new provider" shape those two
  * already use. See
- * docs/superpowers/specs/2026-09-02-pwa-service-worker-design.md
- * Decision 4.
+ * docs/superpowers/specs/2026-09-02-pwa-service-worker-design.md.
  *
  * register('/sw.js') with no explicit `scope` option is deliberate, not
  * an omission -- registering from a root-level path gives the service

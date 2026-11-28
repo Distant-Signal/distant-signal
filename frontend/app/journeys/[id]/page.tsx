@@ -48,19 +48,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
 }
 
-/** `/journeys/[id]` -- design doc §4. One card per leg. No editable
- * header, no skip badge, no platform column -- all explicitly deferred,
- * see this plan's own Non-goals for the reasoning behind each. A
- * share-to-group button DOES exist (Task 8), and so does an unlisted
- * share-LINK button (`ShareJourneyLinkButton`, docs/superpowers/sdd/
- * 2026-09-23-unlisted-links-plan Task 4) -- but both only for the
+/** `/journeys/[id]` -- one card per leg. No editable
+ * header, no skip badge, no platform column. A
+ * share-to-group button DOES exist, and so does an unlisted
+ * share-LINK button (`ShareJourneyLinkButton`) -- but both only for the
  * journey's owner (`journey.isOwner`) -- a non-owning group member
  * reaches this page via `journey_readable_by`'s group-shared read path
  * and gets neither button nor the leg-level owner-only controls
  * (`JourneyLegCard`'s own `isOwner` gating). The actual rendering (header,
  * status badge, owner-only actions, leg cards, connectors) lives in
- * `components/JourneyDetailView.tsx` (2026-09-23 unlisted-links plan, Task
- * 5) -- extracted so a later `/journeys/shared/[token]` page can reuse it
+ * `components/JourneyDetailView.tsx` -- extracted so a later `/journeys/shared/[token]` page can reuse it
  * for an anonymous share-link viewer; only the "Back to journeys"
  * link below stays specific to this page, since that anonymous
  * viewer has no "my trains" to go back to. */
@@ -115,9 +112,8 @@ export default async function JourneyDetailPage({
   // every request -- so "the instant this request's own `getJourney()`
   // call returned" genuinely IS when every fact on this page (the delay
   // figure, the last-reported location, every leg's status) was current
-  // as of, not an invented number. 2026-09-22 UX review finding I24/2.12:
-  // nothing on this page previously said when "22m late" was measured,
-  // and a journey page is MORE time-critical than a single train page --
+  // as of, not an invented number. Without it nothing on this page says
+  // when "22m late" was measured, and a journey page is MORE time-critical than a single train page --
   // a stale leg-1 ETA silently invalidates a leg-2 pick.
   const fetchedAt = new Date().toISOString();
   // Only actually used by `ShareJourneyLinkButton` (owner-only, rendered
@@ -156,10 +152,9 @@ export default async function JourneyDetailPage({
   return (
     <Stack p="lg" gap="md">
       {/* The way back out. This page is reached by a `router.push` from
-          the create flow and had no breadcrumb at all, so closing the tab
-          lost the journey unless the user had memorised `/journeys/169`
-          (2026-09-22 UX review, C1). `/journeys` now lists journeys, so
-          this link has a real destination. */}
+          the create flow, so there is no breadcrumb and closing the tab
+          lost the journey unless the user had memorised `/journeys/169`.
+          `/journeys` lists journeys, so this link has a real destination. */}
       <TextLink href="/journeys" underline="always">
         Back to journeys
       </TextLink>

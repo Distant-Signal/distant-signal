@@ -6,8 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
  * path + query string. Extracted out of `LoginControl.tsx` (see that file's own
  * doc comment on why a URL fragment can never be captured this way) so
  * `LoginPromptModal` doesn't duplicate or reimplement this three-line
- * calculation — see
- * docs/superpowers/specs/2026-09-02-modal-login-prompt-design.md Decision 1. */
+ * calculation (see docs/superpowers/specs/2026-09-02-modal-login-prompt-design.md). */
 export function useLoginHref(): string {
   const pathname = usePathname();
   const search = useSearchParams().toString();

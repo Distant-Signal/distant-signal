@@ -35,7 +35,7 @@ const DISCLOSURE_STYLES = {
  * §8.2): collapsed, and read from `GET .../revisions` only when opened.
  * Each plan before the current one lists its legs with what became of
  * them ("Cancelled", "Missed", "Not used"), the booked plan badged
- * "Booked", and "Go back to this plan" while its trains still work. */
+ * "Booked", and a go-back action while its trains still work. */
 export function EarlierPlans({ journeyId, revisionCount }: { journeyId: string; revisionCount: number }) {
   const [revisions, setRevisions] = useState<Revision[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,7 +99,7 @@ export function EarlierPlans({ journeyId, revisionCount }: { journeyId: string; 
 }
 
 /** One earlier plan: its heading and when it was made, its legs with
- * their fates, and "Go back to this plan" when it can be. */
+ * their fates, and a go-back action when it can be. */
 function EarlierPlan({ journeyId, revision }: { journeyId: string; revision: Revision }) {
   const operatorNames = useOperatorNames();
   const router = useRouter();

@@ -8,8 +8,8 @@ export interface StatusRowProps {
    * plain-string title call sites (`HomeJourneyRow`, `HomeTrainRow`,
    * `SharedCustomLineSummaryRow`, `SharedTrainRow`,
    * `TrackedTrainListRow`'s inner row), NOT `LineStatusCard.tsx`'s own
-   * `fw={600}` — that card isn't built on `StatusRow` and this task
-   * doesn't touch it, so there's no live caller that wants 600 here. Pass
+   * `fw={600}` — that card isn't built on `StatusRow`, so there's no live caller
+   * that wants 600 here. Pass
    * a pre-built node instead (e.g. a `Link`-wrapped `Text`, as
    * `SharedCustomLineRow` needs) when the title itself has to be
    * interactive or otherwise isn't a bare string; in that case this

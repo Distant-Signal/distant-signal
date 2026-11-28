@@ -128,8 +128,7 @@ describe('OperatorStatusCard', () => {
     expect(updatedElements).toHaveLength(0);
   });
 
-  // 2026-09-22 UX review, C2: `/operators/[code]/history` shipped with no
-  // inbound href anywhere in the app.
+  // `/operators/[code]/history` needs an inbound href somewhere in the app.
   it("links to this operator's history page", () => {
     renderWithMantine(<OperatorStatusCard operator={operator} pinned={false} />);
     const link = screen.getByRole('link', { name: 'History for Virgin Trains' });

@@ -86,10 +86,9 @@ describe('JoinGroupPage', () => {
     expect(await screen.findByRole('link', { name: 'Log in to join Family' })).toBeInTheDocument();
   });
 
-  // Review §2.16: the anonymous CTA on this page -- the join step *is* the
-  // login step here -- used to be an underlined text link where the
-  // authenticated branch (the case above) shows a filled `Button`. It's now
-  // promoted to the same filled treatment.
+  // The anonymous CTA on this page -- the join step *is* the login step
+  // here -- gets the same filled treatment as the authenticated branch's
+  // `Button` (the case above), not an underlined text link.
   it('renders the anonymous login action as a filled button-styled link, not a plain text link', async () => {
     vi.mocked(getGroupJoinPreview).mockResolvedValue({ groupId: 'grp-1', groupName: 'Family', memberCount: 3 });
     vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
@@ -133,7 +132,7 @@ describe('JoinGroupPage', () => {
     expect(screen.getByText('1 member already in this group.', { exact: false })).toBeInTheDocument();
   });
 
-  // Review §4.6 / §3.2.3: an already-authenticated visitor who's already a
+  // An already-authenticated visitor who's already a
   // member -- most often the group's own owner testing their own invite
   // link -- gets "You're already in {name}" and an "Open group" action
   // instead of a confusing "Join group" offer.

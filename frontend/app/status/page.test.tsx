@@ -57,8 +57,7 @@ describe('NetworkStatusPage', () => {
     ]);
     renderWithMantine(await NetworkStatusPage());
 
-    // Only 'severe' is nonzero here -- the other four groups' tiles must not
-    // be links at all (2026-09-22 UX review §2.1's own recommendation).
+    // Only 'severe' is nonzero here, so the other four groups' tiles must not be links at all.
     expect(screen.queryByRole('link', { name: /good service/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /informational/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /planned/i })).not.toBeInTheDocument();
@@ -74,7 +73,7 @@ describe('NetworkStatusPage', () => {
       report({ id: 'a', name: 'A', lineStatuses: [status({ statusSeverity: 2 })] }), // severe
     ]);
     renderWithMantine(await NetworkStatusPage());
-    // The tile labels, in sentence case like every label (round 2).
+    // The tile labels, in sentence case like every label.
     const labels = [...document.querySelectorAll('[data-status-tile] .statusTile__label')].map((el) => el.textContent);
     expect(labels).toEqual(['Severe disruption', 'Minor disruption', 'Planned', 'Informational', 'Good service']);
   });

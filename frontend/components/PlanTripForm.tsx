@@ -122,30 +122,21 @@ const searchWaypoints = withGroupSuggestions(searchPlannerLocations);
 /** The input side of "Plan a route for me" (design spec §5.3) -- collects
  * origin, destination, ordered optional waypoints, a date, an optional
  * earliest-departure time, and a fastest/options preference, then hands a
- * ready-to-fetch [`TripPlanQuery`] to its caller (`PlanTripFlow`, Task 5).
+ * ready-to-fetch [`TripPlanQuery`] to its caller (`PlanTripFlow`).
  * Mirrors `TrackTrainForm.tsx`'s own station-autocomplete and
- * `SegmentedControl` conventions rather than reinventing them -- see this
- * task's own Step 1.
+ * `SegmentedControl` conventions rather than reinventing them.
  *
- * `searching` (final-review fix I2, later closed by the whole-branch
- * review's own deferred double-submit-guard finding): `GET /Trips/plan`
- * can take several seconds (a full day of schedule connections, run
- * through pathfinding), so the submit button needs real in-flight
- * feedback -- `PlanTripFlow` (the only caller) passes its own `searching`
- * state through, and this component reflects it in both the button's
- * label AND, now, its `disabled` state. `PlanTripFlow`'s own monotonic
- * request-id guard already made a second, overlapping search harmless
- * data-correctness-wise (a stale response can never clobber a newer one),
- * but left the button clickable while a search was in flight, so rapid
- * re-clicking still fired one real `GET /Trips/plan` per click -- wasted
- * backend pathfinding work, not a correctness bug, but real work all the
- * same. Disabling on `searching` too closes that gap the same way
- * `TrainSearchForm.tsx`'s own `canSearch` (gated on `!searching`) and
- * `JourneyLegCandidates.tsx`'s per-row `disabled={picking !== null}`
- * button already do for their own in-flight actions: a second click while
- * one is outstanding is a genuine no-op, not a state update the
- * request-id guard just discards after the backend has already done the
- * work. */
+ * `searching`: `GET /Trips/plan` can take several seconds (a full day of
+ * schedule connections, run through pathfinding), so the submit button needs
+ * real in-flight feedback -- `PlanTripFlow` (the only caller) passes its own
+ * `searching` state through, and this component reflects it in both the
+ * button's label AND its `disabled` state. `PlanTripFlow`'s own monotonic
+ * request-id guard already makes an overlapping search harmless (a stale
+ * response can never clobber a newer one), but rapid re-clicking would still
+ * fire one real `GET /Trips/plan` per click, wasting backend pathfinding work.
+ * Disabling on `searching` closes that gap the way `TrainSearchForm.tsx`'s
+ * `canSearch` (gated on `!searching`) and `JourneyLegCandidates.tsx`'s per-row
+ * `disabled={picking !== null}` do for their own in-flight actions. */
 export function PlanTripForm({
   onSubmit,
   searching = false,
@@ -515,8 +506,8 @@ export function PlanTripForm({
           suppressHydrationWarning
         />
       </Group>
-      {/* I3: mirrors `TrackTrainForm.tsx`'s own `modeLabelId` +
-          `aria-labelledby` fix for its mode toggle (2026-09-22 UX review) --
+      {/* Mirrors `TrackTrainForm.tsx`'s own `modeLabelId` +
+          `aria-labelledby` fix for its mode toggle --
           without a visible `Text` label wired as the name, a screen reader
           announced this as an unnamed "radiogroup". */}
       <Text id={resultsLabelId} size="xs" fw={600} c="dimmed">

@@ -14,7 +14,7 @@ import {
 // Mocks the Anthropic SDK and MCP Client rather than hitting real network
 // -- this loop's own control flow (drain text deltas, drain tool results
 // between iterations, yield `done`) is what's under test here, not the
-// real API integration (that's Task 11's Playwright coverage's job).
+// real API integration (that's the Playwright coverage's job).
 //
 // `Client` is constructed with `new` by chatTurn.ts, so its mock
 // implementation must be a `function` (not an arrow): since Vitest 4, a

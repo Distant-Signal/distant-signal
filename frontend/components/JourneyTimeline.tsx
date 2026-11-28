@@ -27,7 +27,7 @@ import { StateBadge } from './StateBadge';
 import { LegStopsDisclosure } from './LegStopsDisclosure';
 import type { LegStopRange } from '@/lib/legStopRange';
 
-/** The tracked pin's origin/destination display names (Task 3.6.2) --
+/** The tracked pin's origin/destination display names --
  * always derivable from `TrainJourneyState.pinOriginCrs`/`pinOriginName`/
  * `pinDestinationCrs`/`pinDestinationName` even when the server-side
  * TIPLOC->CRS->name join (`crates/api/src/data/journey.rs`) couldn't
@@ -78,9 +78,9 @@ export function JourneyTimeline({
   stops: JourneyStop[];
   endpointNames?: JourneyEndpointNames | undefined;
   /** CRS codes of stops on THIS leg that a live Darwin sample reports as
-   * no longer being called at today (§5.2) -- optional, `undefined` for
+   * no longer being called at today -- optional, `undefined` for
    * every caller outside the journey view (single-train tracking has no
-   * leg-scoped skip concept, per Judgment Call 7). At most two entries in
+   * leg-scoped skip concept). At most two entries in
    * practice (a leg's own origin and/or destination), but this accepts a
    * plain list rather than two named booleans so `JourneyStopRow` doesn't
    * need to know which end it's rendering. */
@@ -110,7 +110,7 @@ export function JourneyTimeline({
   trainPositionIndex?: number | undefined;
 }) {
   const total = stops.length;
-  // Genuinely degenerate case (Task 3.6.2 point 4): every stop -- including
+  // Genuinely degenerate case: every stop -- including
   // the two endpoints, even after seeding them from the pin -- has nothing
   // to display. Rendering N rows of "Stop 1"/"Stop 2"/... would look like a
   // real, if terse, timetable; it isn't one, so this collapses to a single
@@ -128,15 +128,13 @@ export function JourneyTimeline({
     );
   }
 
-  // 2026-09-22 UX review finding I21/M21/2.10: Delay and Platform are
-  // empty on EVERY row of every journey in the review's screenshots --
-  // Platform genuinely is origin-only by design (`PlatformBadge`'s own doc
-  // comment on the last cell below), and Delay is `null` per stop whenever
-  // the backend hasn't got a per-stop diff yet even though the train's own
-  // overall delay is known. Two permanently-blank columns read as "broken"
-  // and cost real width on a 390px card (I5/2.8) -- hide either column
-  // outright when NO row in this stop list has anything to show in it,
-  // rather than rendering an always-empty header cell down every row.
+  // Delay and Platform can be empty on EVERY row: Platform is origin-only by
+  // design (`PlatformBadge`'s own doc comment on the last cell below), and Delay
+  // is `null` per stop whenever the backend has no per-stop diff yet even though
+  // the train's own overall delay is known. Two permanently-blank columns read
+  // as "broken" and cost real width on a 390px card -- hide either column
+  // outright when NO row in this stop list has anything to show in it, rather
+  // than rendering an always-empty header cell down every row.
   const showDelayColumn = stops.some((stop) => stop.delayMinutes !== null);
   // `displayPlatform` (DS-127) includes a booked, not yet confirmed
   // platform, so the column shows from the start; an older response has
@@ -313,7 +311,7 @@ export function resolvedStopLabel(
 /** The calling-point display name for a `JourneyStop`: its resolved name,
  * falling back to the bare CRS code, falling back (at the first/last row
  * only) to the tracked pin's own origin/destination name -- always known
- * even when the timetable data isn't (Task 3.6.2) -- and finally to a
+ * even when the timetable data isn't -- and finally to a
  * by-INDEX placeholder ("Stop 3"), never the old "Unknown location"
  * string: a server-side TIPLOC/CRS join failure is real and rare now (see
  * `crates/api/src/data/journey.rs`'s `tiploc_key` doc comment), not
@@ -423,16 +421,13 @@ function JourneyStopRow({
   const estimated = skipped || isSkippedOnLeg || cancelled ? null : (stop.estimatedDeparture ?? stop.estimatedArrival);
   const reached = actual !== null;
   const caption = skipped ? skipCaption(stop.skipSource) : null;
-  // 2026-09-22 UX review finding I16/2.7: the train's own `Origin`/
-  // `Terminate` kind already bolds its two ends, but on a multi-leg
-  // journey the TRAVELLER's own destination for THIS leg can be an
-  // ordinary `Intermediate` row further up the train's route (a York
-  // passenger on a KGX->Edinburgh service) -- indistinguishable, before
-  // this, from every other intermediate stop. `isLegDestination` bolds it
-  // regardless of `stop.kind` and adds the marker below; rows past it are
-  // real information (the rest of the TRAIN's journey) but not what this
-  // leg's own traveller needs to read first, so they're dimmed rather than
-  // removed.
+  // The train's own `Origin`/`Terminate` kind already bolds its two ends, but on
+  // a multi-leg journey the TRAVELLER's own destination for THIS leg can be an
+  // ordinary `Intermediate` row further up the train's route (a York passenger
+  // on a KGX->Edinburgh service). `isLegDestination` bolds it regardless of
+  // `stop.kind` and adds the marker below; rows past it are real information
+  // (the rest of the TRAIN's journey) but not what this leg's own traveller
+  // needs to read first, so they're dimmed rather than removed.
   const bold = stop.kind === 'Origin' || stop.kind === 'Terminate' || isLegDestination;
 
   return (

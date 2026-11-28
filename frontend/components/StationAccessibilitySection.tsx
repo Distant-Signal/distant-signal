@@ -74,7 +74,7 @@ export interface StationAccessibilitySectionProps {
  * because the accessible name still *contains* the visible label verbatim
  * -- "Car parks: 1 item" starts a voice-control match on "1 item" just as
  * well. */
-/** Review §3.5.5's chrome-stripping direction: no border, no background, no
+/** Chrome-stripped: no border, no background, no
  * extra horizontal padding, so the control sits flush in the text column at
  * its label's own indent rather than reading as a divider/card. The
  * `landmark-unique` reasoning in this component's own doc comment (below)
@@ -108,7 +108,7 @@ function Disclosure({
   );
 }
 
-/** review §3.5.5: the on-screen control text names WHAT there are several
+/** The on-screen control text names WHAT there are several
  * of ("13 toilet locations"), not just how many ("13 items") -- the
  * question a reader actually has before deciding whether to open it.
  * `noun`, when given, is the field's own humanized label; lowercased so it
@@ -120,15 +120,13 @@ function describeCount(count: number, noun?: string): string {
   return `${count} ${noun ? noun.toLowerCase() : count === 1 ? 'item' : 'items'}`;
 }
 
-/** review §3.5.5: a collection this short is not worth hiding behind a
- * disclosure at all -- "which lift serves platform 8" is exactly the
- * question a reader has, and making them click through unlabelled chrome to
- * find out is the itself the defect. Six of the section's nine disclosures
- * are three items or fewer. Never true for the pluralised "N items" wording
- * `describeCount` produces (this fires on the count itself, before that
- * wording exists) -- and a single item never reaches an accordion either,
- * satisfying the plan's separate "never render '1 item' as an accordion"
- * requirement as a consequence of the same threshold. */
+/** A collection this short is not worth hiding behind a disclosure at all --
+ * "which lift serves platform 8" is exactly the question a reader has, and
+ * making them click through unlabelled chrome to find out is itself the defect.
+ * Six of the section's nine disclosures are three items or fewer. Never true for
+ * the pluralised "N items" wording `describeCount` produces (this fires on the
+ * count itself, before that wording exists) -- and a single item never reaches
+ * an accordion either, so "1 item" is never rendered as one. */
 const INLINE_ITEM_THRESHOLD = 3;
 
 /** A rich-text note longer than this many characters of plain text (about
@@ -140,10 +138,9 @@ const LONG_NOTE_CHARS = 280;
 /** The tick/cross in front of a Pattern A availability line.
  *
  * `aria-hidden`, and never the only carrier of the fact: the words
- * "Available" / "Not available" always sit beside it (design §4.2). No
+ * "Available" / "Not available" always sit beside it. No
  * axe rule can check that -- an icon with no accessible name is not a
- * violation, it is just silent -- so the component's own test asserts it
- * (§8's "two rules it still cannot enforce").
+ * violation, it is just silent -- so the component's own test asserts it.
  *
  * Inline SVG rather than a glyph or an icon package, matching
  * `InfoIcon.tsx`'s reasoning: `@tabler/icons-react` is not a dependency,
@@ -152,7 +149,7 @@ const LONG_NOTE_CHARS = 280;
  *
  * `stroke="currentColor"` picks up `--ds-color-good-icon`/
  * `--ds-color-bad-icon` (`app/globals.css`) from the wrapping `<span>`'s
- * inline `color` -- review §3.5.6's "colour the glyph", matching
+ * inline `color`, matching
  * `StatusBadge`'s own green/red resolution. Colour is applied ONLY here,
  * never to the adjacent text: the icon is decorative reinforcement, and
  * this component's own test (`states availability in words, with the icon
@@ -291,10 +288,9 @@ function AccessibilityNodeView({
   switch (node.kind) {
     case 'text':
     case 'sentence': {
-      // review §3.5.6: a plain boolean field (`wheelchairsAvailable: true`)
-      // used to print as a bare "Yes"/"No" word -- one visual language for
-      // a fact that, everywhere else in this section, gets the tick/cross
-      // + colour treatment a `facility`'s own availability line uses.
+      // A plain boolean field (`wheelchairsAvailable: true`) gets the same
+      // tick/cross + colour treatment a `facility`'s own availability line uses,
+      // rather than a bare "Yes"/"No" word.
       // `primitiveText` (`stationAccessibility.ts`) is the only producer of
       // these two exact strings on a `text`-kind node, so matching on them
       // here unifies the two renderings without a new node kind, and
@@ -436,7 +432,7 @@ function AccessibilityNodeView({
           ))}
         </Stack>
       );
-      // review §3.5.5: a handful of items is shown directly, not hidden
+      // A handful of items is shown directly, not hidden
       // behind a disclosure -- see `INLINE_ITEM_THRESHOLD`'s own comment.
       if (visible.length <= INLINE_ITEM_THRESHOLD) return items;
       return (
@@ -475,7 +471,7 @@ function AccessibilityNodeView({
       if (node.href.startsWith('mailto:')) {
         return <EmailLink address={node.href.slice('mailto:'.length)} />;
       }
-      // review §3.5.9: an anchor whose visible text is just its own href
+      // An anchor whose visible text is just its own href
       // ("https://www.nationalrail.co.uk/...") reads as noise, not a
       // destination -- swap in the host, keep the full URL reachable via
       // `title`. Only when the two are exactly identical, so an
@@ -518,8 +514,7 @@ interface RenderableGroup {
   heading: string;
   entries: RenderableEntry[];
   // Trivially-unavailable facility keys, humanized, folded into one
-  // dimmed line instead of each claiming a full icon+bold-label row
-  // (review §3.5.6).
+  // dimmed line instead of each claiming a full icon+bold-label row.
   notAvailable: string[];
 }
 
@@ -538,10 +533,9 @@ function renderableGroups(data: StationAccessibilityData): RenderableGroup[] {
   return ACCESSIBILITY_CATEGORIES.map((category) => {
     // A key whose value renders to nothing at all (an empty object, an
     // empty array, an object whose every own value was null) is skipped
-    // outright rather than printing a label with blank space under it --
-    // Decision 7's "don't invent a row for data that isn't there", one
-    // level below the group it applies to. Load-bearing: `null` is
-    // pervasive in this feed (design §2.5).
+    // outright rather than printing a label with blank space under it: don't
+    // invent a row for data that isn't there. Load-bearing: `null` is
+    // pervasive in this feed.
     const rawEntries: RenderableEntry[] = category.keys
       .filter((key) => hasRenderableValue(data[key]))
       .map((key) => ({ key, node: renderAccessibilityValue(data[key], key) }))
@@ -568,7 +562,7 @@ function renderableGroups(data: StationAccessibilityData): RenderableGroup[] {
  * Rendering follows
  * docs/superpowers/specs/2026-09-16-structured-accessibility-rendering-design.md,
  * which replaced the original spec's generic raw-JSON-fallback renderer
- * (Decision 6) on the strength of a 31-station survey of real payloads:
+ * on the strength of a 31-station survey of real payloads:
  * seven confirmed structural patterns, dispatched on shape rather than on
  * key name, with a narrower labelled-key/value fallback and `JSON.stringify`
  * only as a last resort. Everything else about the feature -- the twelve-key
@@ -578,7 +572,7 @@ function renderableGroups(data: StationAccessibilityData): RenderableGroup[] {
  *
  * Heading is deliberately "Accessibility & facilities", not bare
  * "Accessibility", so it reads unambiguously as physical-access information
- * (Decision 8) -- this codebase separately uses "accessibility" for WCAG
+ * (this codebase separately uses "accessibility" for WCAG
  * audits, and this component's own name/copy are the only mitigations for
  * that collision; the wire type name (`StationAccessibilityData`) is
  * deliberately left alone.
@@ -587,7 +581,7 @@ function renderableGroups(data: StationAccessibilityData): RenderableGroup[] {
  * and `'empty'` (`200 {}`: the row exists but published none of the twelve
  * allowlisted keys) are two genuinely different facts and get two
  * different sentences -- never collapsed into one "no data" message. */
-/** The key facts (review §3.5.3, round 2): the handful a reader most often
+/** The key facts: the handful a reader most often
  * scrolls the whole section to find, as a definition list rather than a
  * row of grey pills, so each fact is a term and its value to a screen
  * reader too. `<div>` groups each pair, which HTML allows inside `<dl>`, so
@@ -622,13 +616,12 @@ export function StationAccessibilitySection({ result }: StationAccessibilitySect
   const nothingPublished = result.coverage === 'empty' || (result.coverage === 'present' && groups.length === 0);
 
   return (
-    // review §3.5.10: this section's prose (rich-text notes, opening-hours
-    // lists) previously ran the whole ~1,100px page container, well past
-    // the ~50-75 characters a line reads comfortably at. 70ch applies to
-    // the section as a whole rather than per text node -- every child here
-    // is a single text column already, so one wrapper does the job the
-    // design asks for without touching every `Text`/`Typography` site
-    // individually.
+    // This section's prose (rich-text notes, opening-hours lists) would
+    // otherwise run the whole ~1,100px page container, well past the ~50-75
+    // characters a line reads comfortably at. 70ch applies to the section as a
+    // whole rather than per text node -- every child here is a single text
+    // column already, so one wrapper does the job without touching every
+    // `Text`/`Typography` site individually.
     <Stack gap="xs" maw="70ch">
       <SectionTitle>Accessibility &amp; facilities</SectionTitle>
       {result.coverage === 'unavailable' && (
@@ -640,7 +633,7 @@ export function StationAccessibilitySection({ result }: StationAccessibilitySect
       <KeyFacts facts={keyFacts} />
       {groups.map((group) => (
         <Stack key={group.heading} gap={4}>
-          {/* review §3.5.2: promoted from a bold `<p>` to a real heading --
+          {/* Promoted from a bold `<p>` to a real heading --
               four of these under the section's own `h2`, twelve (well,
               fewer now several keys are grouped rather than each claiming
               its own line -- see the `entry.node.kind !== 'facility'`
@@ -668,7 +661,7 @@ export function StationAccessibilitySection({ result }: StationAccessibilitySect
               <AccessibilityNodeView node={entry.node} label={humanizeKey(entry.key)} path={humanizeKey(entry.key)} />
             </Stack>
           ))}
-          {/* review §3.5.6: several simply-unavailable facilities folded
+          {/* Several simply-unavailable facilities folded
               into one dimmed line instead of each claiming a full
               icon+bold-label row of its own. */}
           {group.notAvailable.length > 0 && (

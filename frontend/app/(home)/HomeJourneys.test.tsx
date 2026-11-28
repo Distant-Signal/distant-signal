@@ -690,7 +690,7 @@ describe('UpcomingJourneysTeaser (logged out)', () => {
     const section = screen.getByRole('region', { name: 'Upcoming journeys' });
     expect(within(section).getByRole('heading', { level: 2, name: 'Upcoming journeys' })).toBeInTheDocument();
     const subheading = within(section).getByRole('heading', { level: 3, name: 'Track a journey to see it here' });
-    const text = within(section).getByText(/platform changes for every leg/);
+    const text = within(section).getByText(/connection warnings for every leg/);
     const login = within(section).getByRole('link', { name: 'Log in or sign up' });
     expect(subheading.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(text.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

@@ -67,8 +67,8 @@ function baseLeg(overrides: Partial<JourneyLegDetail> = {}): JourneyLegDetail {
 }
 
 describe('JourneyStatusBadge', () => {
-  // 2026-09-22 UX review finding I15/2.3: the badge now says HOW MANY
-  // legs are unmatched, and is a same-page anchor to the FIRST one.
+  // The badge says HOW MANY legs are unmatched, and is a same-page anchor to
+  // the FIRST one.
   it('shows "1 leg needs a train" and links to that leg when exactly one is unmatched', () => {
     renderWithMantine(
       <JourneyStatusBadge
@@ -147,7 +147,7 @@ describe('JourneyStatusBadge', () => {
     expect(container.querySelectorAll('.mantine-Badge-root')).toHaveLength(0);
   });
 
-  // Review §2.5/M17: no `Tooltip` wrapper repeating the badge's own visible
+  // No `Tooltip` wrapper repeating the badge's own visible
   // text -- it added nothing for a sighted user and was unreachable by
   // keyboard (a bare `Badge` isn't a focusable tooltip trigger). Mantine's
   // `Tooltip` only mounts its floating content on hover/focus, so the

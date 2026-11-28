@@ -62,17 +62,9 @@ export function GranularityControl({
 
   return (
     <Stack gap={4}>
-      {/* Visible label + `aria-labelledby`, and `color="grape"`, copied
-          from the "Period" control this one sits directly beneath
-          (`HistoryRangePicker.tsx`). Before this, a screen-reader user
-          reached an unnamed radiogroup and heard three bare options, and
-          a sighted user's only hint was the dimmed helper text BELOW the
-          control -- which explains an ABSENT option before naming the
-          present ones (2026-09-22 UX review, I9/P4). The two controls also
-          read as two unrelated widgets while one was grape-filled and the
-          other white-on-grey; they are two settings of one chart, so they
-          now share one idiom (09-17 §2.13 asked for this; only the Period
-          half had been done). */}
+      {/* Visible label + `aria-labelledby` and `color="grape"`, matching the "Period" control above
+          (`HistoryRangePicker.tsx`): a screen-reader user otherwise reaches an unnamed radiogroup, and
+          the two controls are settings of one chart so they share one look. */}
       <Text id={granularityLabelId} size="xs" fw={600} c="dimmed">
         Granularity
       </Text>

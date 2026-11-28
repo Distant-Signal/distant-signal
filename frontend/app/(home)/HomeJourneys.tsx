@@ -558,8 +558,7 @@ export function UpcomingJourneysTeaser() {
           <Stack gap="xs" maw={640}>
             <SectionTitle order={3}>Track a journey to see it here</SectionTitle>
             <Text c="dimmed" size="sm">
-              Live delays and platform changes for every leg, a warning when a connection is at risk, other trains if it
-              breaks, and help claiming Delay Repay.
+              Live delays and connection warnings for every leg, plus help claiming Delay Repay.
             </Text>
           </Stack>
           {/* `maw` keeps the LEG-1 consent note, once published, from

@@ -792,7 +792,7 @@ describe('IssueList', () => {
     expect(screen.queryByText(/^All \(/)).not.toBeInTheDocument();
   });
 
-  // Review §2.14: filter chrome vs. content imbalance. The chips sit behind
+  // The chips sit behind
   // one "Filters" button (the shared ListFilterBar, without its search or
   // stickiness); the tabs stay inline beside it.
   describe('the Filters button', () => {
@@ -889,8 +889,8 @@ describe('IssueList', () => {
     });
   });
 
-  // Review §2.14: a two-source report showing all five possible Source
-  // chips implied narrowing that was never actually on offer.
+  // A two-source report must not show all five possible Source chips, which
+  // would imply narrowing that was never on offer.
   describe('Source chips reflect only sources present in the report', () => {
     it('offers exactly the distinct sources present, not every possible source', () => {
       // `all` carries knowledgebase (minorNow), planned (severePlanned) and
