@@ -14,16 +14,17 @@ import { GET, HEAD, POST } from './route';
 const PUBLIC_1H = 'public, max-age=3600';
 const SESSION = 'distant_signal_session=abc123';
 
-function req(path: string[], init?: ConstructorParameters<typeof NextRequest>[1]): NextRequest {
-  return new NextRequest(`http://localhost:3000/api/${path.join('/')}`, init);
+function req(path: string[], init?: ConstructorParameters<typeof NextRequest>[1], search = ''): NextRequest {
+  return new NextRequest(`http://localhost:3000/api/${path.join('/')}${search}`, init);
 }
 
 function call(
   handler: typeof GET,
   path: string[],
   init?: ConstructorParameters<typeof NextRequest>[1],
+  search = '',
 ): Promise<Response> {
-  return handler(req(path, init), { params: Promise.resolve({ path }) });
+  return handler(req(path, init, search), { params: Promise.resolve({ path }) });
 }
 
 function headerMap(res: Response): Record<string, string> {
@@ -224,6 +225,57 @@ describe('/api/[...path] proxy public cache policy', () => {
         expect(res.headers.get('cache-control')).toBe('private, no-store');
         expect(res.headers.get('vary')).toBeNull();
       }
+    });
+
+    describe('the station board', () => {
+      const board = ['stations', 'PAD', 'board'];
+      const BOARD_CC = 'public, s-maxage=20, stale-while-revalidate=30';
+
+      it('is public for 20 seconds for an anonymous GET, even with an unrelated cookie', async () => {
+        upstream(200, { 'Cache-Control': BOARD_CC });
+        const res = await call(GET, board, { headers: { cookie: 'theme=dark' } }, '?limit=8');
+        expect(res.headers.get('cache-control')).toBe('public, s-maxage=20');
+        expect(vi.mocked(fetch).mock.calls[0]![0].toString()).toBe(
+          'http://test-api:8080/public/stations/PAD/board?limit=8',
+        );
+      });
+
+      it('is private for a signed-in request', async () => {
+        upstream(200, { 'Cache-Control': BOARD_CC });
+        const res = await call(GET, board, { headers: { cookie: SESSION } }, '?limit=8');
+        expect(res.headers.get('cache-control')).toBe('private, no-store');
+      });
+
+      it('is private, still served, for a query the policy does not recognise', async () => {
+        upstream(200, { 'Cache-Control': BOARD_CC });
+        const res = await call(GET, board, undefined, '?limit=8&cb=123');
+        expect(res.status).toBe(200);
+        expect(res.headers.get('cache-control')).toBe('private, no-store');
+      });
+
+      it('never caches the 404 of a switched-off board, or a 400', async () => {
+        for (const status of [404, 400]) {
+          upstream(status, { 'Cache-Control': BOARD_CC }, 'nope');
+          const res = await call(GET, board);
+          expect(res.status).toBe(status);
+          expect(res.headers.get('cache-control')).toBe('private, no-store');
+        }
+      });
+
+      it('caps a long api lifetime at 60 seconds', async () => {
+        upstream(200, { 'Cache-Control': 'public, s-maxage=3600' });
+        const res = await call(GET, board);
+        expect(res.headers.get('cache-control')).toBe('public, s-maxage=60');
+      });
+
+      it('does not reach the api through /api/public/stations/..., so that path is not cached', async () => {
+        upstream(404, {}, 'nope');
+        const res = await call(GET, ['public', 'stations', 'PAD', 'board']);
+        expect(res.headers.get('cache-control')).toBe('private, no-store');
+        expect(vi.mocked(fetch).mock.calls[0]![0].toString()).toBe(
+          'http://test-api:8080/public/public/stations/PAD/board',
+        );
+      });
     });
 
     it('locks the errors the proxy makes itself', async () => {

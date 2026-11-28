@@ -59,10 +59,37 @@ them). Each is justified, in the code, by ds-api's own anonymous
 | `/api/transit/rail-links` | `public, max-age=3600` |
 | `/api/Trips/station-groups`, `/api/Trips/operator-groups` | `public, max-age=3600` |
 | `/api/Trips/operators` | `public, max-age=300` |
+| `/api/stations/{crs}/board` | `public, s-maxage=20, stale-while-revalidate=30` |
+
+The station board is the one entry with a path parameter and a query rule:
+
+- The parameter is one upper-case CRS (`[A-Z]{3}`); anything else in that
+  slot is not a candidate. Only `/api/stations/{crs}/board` reaches the api's
+  `/public/stations/{crs}/board`; `/api/public/stations/...` becomes
+  `/public/public/...`, which the api 404s, and is locked.
+- Its data is the timetable and Darwin's live times: no user data, identical
+  for every caller, so a cookie only makes the request a non-candidate (as
+  everywhere), it never changes the answer.
+- The api ignores unknown query keys, so `?cb=1`, `?cb=2` would be a fresh
+  cache key each and a way past the cache. A board request is a candidate only
+  when its raw query is the empty string or `limit` (1 to 30), `date`
+  (`YYYY-MM-DD`) and `operator` (ascending two-character codes, at most 30),
+  each at most once and unencoded. Any other query is still served, as
+  `private, no-store`. The key space is therefore bounded: 17,576 CRS codes,
+  30 limits, the date window, operator sets in one spelling.
+- The lifetime is the api's `s-maxage=20`, re-emitted as `public, s-maxage=20`
+  (no `max-age`, so browsers do not keep it; `stale-while-revalidate` is not
+  re-emitted, like every directive the policy does not know), under a
+  per-entry ceiling of 60 seconds instead of 3600.
+- A 404 (the api's switch off, or no timetable for the day) or 400 is not 200
+  or 304, so it is `private, no-store`: nothing negative is cached.
+- No browser code calls this route today: the station page's server
+  component calls the api directly (`getStationBoard`, `revalidate: 20`). The
+  entry only matters for a future client fetch.
 
 Not listed on purpose: live reads (departures, status, trains: the api sets
 no `Cache-Control`), `/auth/*`, journeys, groups, account, notifications,
-calendar, feeds, search routes and anything with a path parameter. Add a
+calendar, feeds, search routes and any other path parameter. Add a
 path only after reading its handler in ds-api: no auth extractor, and a
 response that cannot vary by caller. `lib/proxyPublicCache.test.ts` pins
 the list.
