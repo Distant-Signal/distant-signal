@@ -289,6 +289,12 @@ export default function PrivacyPage() {
           picture, and does not store either.
         </Text>
         <Text>
+          When you log in with Microsoft, Microsoft tells our login service your Microsoft account ID and your display
+          name. Our login service keeps these. Microsoft login is for personal Microsoft accounts. Our login service
+          does not ask for or keep your email address or profile picture, and does not receive or use your Microsoft
+          contacts, files, mail or calendar.
+        </Text>
+        <Text>
           Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
           for your account, your username and display name, and your access groups. Distant Signal does not store your
           profile picture. Each time you log in it also saves the access key the provider gives it (and a key to renew

@@ -164,6 +164,20 @@ describe('PrivacyPage login service', () => {
     expect(text).not.toMatch(/if you log in with Discord, your Discord account ID/);
   });
 
+  it('says what Microsoft tells our login service and what it keeps', () => {
+    vi.stubEnv('LEGAL_PAGES_PREVIEW', 'true');
+    renderWithMantine(<PrivacyPage />);
+    const text = retentionText('Logging in');
+    expect(text).toMatch(
+      /When you log in with Microsoft, Microsoft tells our login service your Microsoft account ID and your display name\. Our login service keeps these\./,
+    );
+    expect(text).toMatch(/Microsoft login is for personal Microsoft accounts/);
+    expect(text).toMatch(
+      /does not ask for or keep your email address or profile picture, and does not receive or use your Microsoft contacts, files, mail or calendar/,
+    );
+    expect(text).not.toMatch(/asks Microsoft for/);
+  });
+
   it('says deleting the account leaves the login service account, and how to have it deleted', () => {
     render();
     const text = retentionText('Your rights');
