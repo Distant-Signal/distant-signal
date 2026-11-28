@@ -631,6 +631,7 @@ export const LOGGED_OUT_SESSION: SessionInfo = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
 };
 
 /** The one place `getSession()`'s failure mode is turned into a UI-safe

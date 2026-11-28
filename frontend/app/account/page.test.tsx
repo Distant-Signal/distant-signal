@@ -28,6 +28,7 @@ describe('AccountPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -49,6 +50,7 @@ describe('AccountPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -71,6 +73,7 @@ describe('AccountPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());
@@ -91,6 +94,7 @@ describe('AccountPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await AccountPage());

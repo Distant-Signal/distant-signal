@@ -36,6 +36,7 @@ const loggedOut = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 } as const;
 const loggedIn = {
@@ -50,6 +51,7 @@ const loggedIn = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 } as const;
 

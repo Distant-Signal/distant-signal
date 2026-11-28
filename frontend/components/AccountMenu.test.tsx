@@ -277,3 +277,120 @@ describe('AccountMenu, personal API tokens', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/account/personal-tokens', { method: 'DELETE' }));
   });
 });
+
+describe('AccountMenu, log out everywhere', () => {
+  const END_SESSION_URL = 'https://sso.example.invalid/application/o/ds/end-session/';
+  const assign = vi.fn();
+
+  function endSessionResponse(url: unknown = END_SESSION_URL) {
+    return new Response(JSON.stringify({ endSessionUrl: url }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  async function openConfirmation() {
+    openMenu();
+    fireEvent.click(await menuItem('Log out everywhere'));
+    return screen.findByRole('button', { name: 'Confirm log out everywhere' });
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+    vi.stubGlobal('location', { assign });
+    assign.mockClear();
+    refresh.mockClear();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('is hidden unless the session says the api offers it', async () => {
+    const { unmount } = renderWithMantine(<AccountMenu label="Ada" destinations={destinations} />);
+    openMenu();
+    await menuItem('Log out other sessions');
+    expect(screen.queryByRole('menuitem', { name: 'Log out everywhere', hidden: true })).not.toBeInTheDocument();
+    unmount();
+
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere={false} />);
+    openMenu();
+    await menuItem('Log out other sessions');
+    expect(screen.queryByRole('menuitem', { name: 'Log out everywhere', hidden: true })).not.toBeInTheDocument();
+  });
+
+  it('offers it beside logging out other sessions and asks first', async () => {
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere />);
+    const confirm = await openConfirmation();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'This logs you out of Distant Signal on every device and ends the login session on this browser. Apps you connected, such as an assistant, will need to be connected again.',
+      ),
+    ).toBeInTheDocument();
+    expect(confirm).toHaveTextContent('Log out everywhere');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
+  it('cancelling sends nothing', async () => {
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere />);
+    await openConfirmation();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Confirm log out everywhere' })).toBeNull());
+    expect(fetch).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('on success clears the browser account data and navigates to the end-session url', async () => {
+    sessionStorage.setItem('ds-mcp-oauth:tokens', '{"access_token":"t"}');
+    sessionStorage.setItem('ds-anthropic-api-key', 'sk-ant-x');
+    vi.mocked(fetch).mockResolvedValue(endSessionResponse());
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere />);
+    fireEvent.click(await openConfirmation());
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(END_SESSION_URL));
+    expect(fetch).toHaveBeenCalledWith('/api/auth/logout-everywhere', { method: 'POST' });
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
+    expect(sessionStorage.getItem('ds-anthropic-api-key')).toBeNull();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['an http url', 'http://sso.example.invalid/end-session/'],
+    ['a javascript url', 'javascript:alert(1)'],
+    ['a relative url', '/end-session/'],
+    ['a url with a password', 'https://user:pw@sso.example.invalid/end-session/'],
+    ['a null url', null],
+  ])('never navigates to %s: it refreshes into the logged-out state instead', async (_name, url) => {
+    sessionStorage.setItem('ds-mcp-oauth:tokens', '{"access_token":"t"}');
+    vi.mocked(fetch).mockResolvedValue(endSessionResponse(url));
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere />);
+    fireEvent.click(await openConfirmation());
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(assign).not.toHaveBeenCalled();
+    // The api ended every session already, so the browser's secrets go too.
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).toBeNull();
+  });
+
+  it('shows the failure copy and keeps the browser data when the api refuses', async () => {
+    sessionStorage.setItem('ds-mcp-oauth:tokens', '{"access_token":"t"}');
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500 }));
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere />);
+    fireEvent.click(await openConfirmation());
+
+    expect(await screen.findByText("Couldn't log out everywhere. Try again.")).toBeInTheDocument();
+    expect(assign).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('ds-mcp-oauth:tokens')).not.toBeNull();
+  });
+
+  it('shows the failure copy on a network error', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+    renderWithMantine(<AccountMenu label="Ada" destinations={destinations} canLogOutEverywhere />);
+    fireEvent.click(await openConfirmation());
+
+    expect(await screen.findByText("Couldn't log out everywhere. Try again.")).toBeInTheDocument();
+    expect(assign).not.toHaveBeenCalled();
+  });
+});

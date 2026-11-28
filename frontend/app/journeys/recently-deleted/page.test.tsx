@@ -29,6 +29,7 @@ const loggedIn: SessionInfo = {
   id: 'user-1',
   name: 'Ada',
   recentlyDeletedEnabled: true,
+  logoutEverywhereEnabled: false,
 };
 
 describe('RecentlyDeletedPage', () => {

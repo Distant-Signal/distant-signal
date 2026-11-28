@@ -87,6 +87,7 @@ const sessionInfo: SessionInfo = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 };
 
