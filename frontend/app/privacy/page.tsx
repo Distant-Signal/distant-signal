@@ -287,6 +287,11 @@ export default function PrivacyPage() {
           login service does not ask the provider for your email address and does not store one.
         </Text>
         <Text>
+          When you log in with Google, Google tells our login service your Google account ID and your name. Our login
+          service keeps these. It asks Google for only your name and account ID, not your email address or profile
+          picture, and does not store either.
+        </Text>
+        <Text>
           Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
           for your account, your username and display name, your access groups and, if you log in with Discord, your
           Discord account ID. Distant Signal does not store your profile picture. It also keeps the access key the
@@ -524,9 +529,10 @@ export default function PrivacyPage() {
           <ListItem>
             To delete your account and its data, use <strong>{ACCOUNT_DELETE_LABEL}</strong> on the same page. Deleting
             your Distant Signal account does not delete your Discord, Google or Microsoft account, or your account on
-            our login service. You can remove Distant Signal&apos;s access in that provider&apos;s account settings.
-            Removing access there does not delete what our login service has already kept; email us for that. To have
-            your login service account deleted, email <ContactEmail />.
+            our login service. You can remove Distant Signal&apos;s access in that provider&apos;s account settings. For
+            Google, this is the third-party access page in your Google account. Removing access there does not delete
+            what our login service has already kept; email us for that. To have your login service account deleted,
+            email <ContactEmail />.
           </ListItem>
           <ListItem>
             For anything else, or if you cannot log in, email <ContactEmail />. We reply within one month. For a complex
