@@ -122,6 +122,7 @@ function journeyStatusPhrase(legs: JourneyLegDetail[]): string {
     severe: 'cancelled',
     partCancelled: 'part cancelled',
     connectionAtRisk: 'at risk of missing a connection',
+    connectionTight: 'with a short change time',
     connectionMissed: 'missing a connection',
   };
   return PHRASE[summary.group];

@@ -38,6 +38,7 @@ const LABEL: Record<JourneySummaryGroup, string> = {
   // Some train legs cancelled, not all (2026-10-21 journey summary).
   partCancelled: 'Part cancelled',
   connectionAtRisk: 'Tight connection',
+  connectionTight: 'Short change time',
   connectionMissed: 'Connection missed',
 };
 
@@ -70,6 +71,9 @@ const TONE: Record<JourneySummaryGroup, StateTone> = {
   partCancelled: 'critical',
   // Yellow like "Delayed": still possible, at risk.
   connectionAtRisk: 'caution',
+  // Yellow too: the change may still work, as the next train has not left.
+  // Its words, not its colour, say how it differs from a thin margin.
+  connectionTight: 'caution',
   // Orange like a late train or a skipped stop: the plan no longer works.
   connectionMissed: 'late',
 };

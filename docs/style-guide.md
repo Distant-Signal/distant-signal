@@ -1026,8 +1026,11 @@ bar (a `header`, not a `nav`), the 8px Button-sm metrics and the grape wash.
   `lib/journeyStatus.ts`), on the Journeys list, the journey page header and
   the home page alike. On time or late is the final arrival: the last
   train leg's delay at its destination. An earlier leg's delay shows only
-  on that leg (and in the per-leg line), or as "Tight connection" (yellow)
-  or "Connection missed" (orange) when it threatens the change. Any
+  on that leg (and in the per-leg line), or as "Tight connection" (yellow, thin
+  margin), "Short change time" (yellow, under the usual change time but
+  the next train hasn't left, so never worded as missed) or "Connection
+  missed" (orange, the next train has gone) when it threatens the change.
+  A state the app doesn't know reads as "Tight connection". Any
   cancelled train leg flags the journey: "Cancelled" when all are, "Part
   cancelled" (red) otherwise, beside the final delay badge, so a journey
   that lost a train but arrived on time reads "Part cancelled" "On time".

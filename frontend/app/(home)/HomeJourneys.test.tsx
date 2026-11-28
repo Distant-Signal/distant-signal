@@ -202,6 +202,21 @@ describe('CurrentJourneyCard', () => {
     expect(screen.getByText('Tight connection')).toBeInTheDocument();
   });
 
+  it('headlines a tight change in words that do not say missed', () => {
+    const base = journey();
+    const legs = base.detail.legs.map((l, i) =>
+      i === 1 ? { ...l, connection: { gapMinutes: 3, minimumChangeMinutes: 5, state: 'tight' as const } } : l,
+    );
+    renderWithMantine(
+      <CurrentJourneyCard
+        journey={{ ...base, detail: { ...base.detail, legs } }}
+        now={new Date('2026-09-17T10:00:00Z')}
+      />,
+    );
+    expect(screen.getByText('Short change time')).toBeInTheDocument();
+    expect(screen.queryByText(/miss/i)).not.toBeInTheDocument();
+  });
+
   it('notes when the next change relies on the next train running late, until that train has left', () => {
     const base = journey();
     const legs = base.detail.legs.map((l, i) =>
