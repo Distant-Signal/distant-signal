@@ -1,4 +1,4 @@
 # The api image the frontend's types, OpenAPI copy and e2e come from (repo
 # split spec §5.3): `uv run scripts/sync-api-types.py pin --latest` bumps it
 # and rewrites frontend/lib/api-types.ts and openapi-v1.json from it.
-ghcr.io/distant-signal/images/api:build.46157016378-47b356797063761c9e6c8fafac8bd33dac295103@sha256:6ba0254801ed358ef5dce26ce96351cf146f67b82a98df1f0a8fb0741415ef2c
+ghcr.io/distant-signal/images/api:build.46167016902-1e420e404b1284750152c28b85ab7dcb18b4a77e@sha256:4775771e05f3a05332625a260d702516c0c0e59c355cf3c1e4d02e7b381f2d52
