@@ -309,7 +309,6 @@ test.describe('add a leg', () => {
     await to.press('Tab');
     await expect(to).toHaveValue('London Kings Cross (KGX)');
     await expect(dialog.getByText('Must be a 3-letter station code')).toHaveCount(0);
-    await expect(dialog.getByText('Only trains reaching KGX at or after this time.')).toBeVisible();
 
     await dialog.getByRole('button', { name: 'Add leg' }).click();
     await expect.poll(() => legBodies.length).toBe(1);

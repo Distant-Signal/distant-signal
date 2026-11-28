@@ -456,26 +456,21 @@ export function AddJourneyLegButton({
               {/* States the at-least-one-of-four rule up front, as `TrackTrainForm`'s window fields do,
                   rather than leaving it to a disabled button with no explanation. */}
               <Text size="sm">At least one of the four times below is required.</Text>
-              {/* Matches `TrackTrainForm`'s four descriptions verbatim ("leaving X"/"reaching Y" rather
-                  than the bare "departing"/"arriving"): one phrasing for one rule across the app. */}
               <Group grow align="flex-start">
                 <TimeFilterInput
                   clockHint
                   label="Earliest departure (optional)"
                   name="earliest departure"
-                  description={
-                    `Only trains leaving ${resolvedOrigin ?? 'the origin'} at or after this time.` +
-                    (priorArrival ? ` Your last leg arrives at ${priorArrival.time}.` : '')
-                  }
+                  description={priorArrival ? `Your last leg arrives at ${priorArrival.time}.` : undefined}
                   value={departFrom}
                   onChange={setDepartFrom}
                   onIncompleteChange={(v) => setIncompleteTimes((c) => ({ ...c, departFrom: v }))}
                   error={null}
                 />
                 <TimeFilterInput
+                  clockHint
                   label="Latest departure (optional)"
                   name="latest departure"
-                  description={`Only trains leaving ${resolvedOrigin ?? 'the origin'} at or before this time.`}
                   value={departTo}
                   onChange={setDepartTo}
                   onIncompleteChange={(v) => setIncompleteTimes((c) => ({ ...c, departTo: v }))}
@@ -486,7 +481,6 @@ export function AddJourneyLegButton({
                 <TimeFilterInput
                   label="Earliest arrival (optional)"
                   name="earliest arrival"
-                  description={`Only trains reaching ${resolvedDestination ?? 'the destination'} at or after this time.`}
                   value={arriveFrom}
                   onChange={setArriveFrom}
                   onIncompleteChange={(v) => setIncompleteTimes((c) => ({ ...c, arriveFrom: v }))}
@@ -496,10 +490,9 @@ export function AddJourneyLegButton({
                   label="Latest arrival (optional)"
                   name="latest arrival"
                   description={
-                    `Only trains reaching ${resolvedDestination ?? 'the destination'} at or before this time.` +
-                    (beforeLegId !== null && nextLegStart?.departure
-                      ? ` Your next leg leaves at ${nextLegStart.departure.time}.`
-                      : '')
+                    beforeLegId !== null && nextLegStart?.departure
+                      ? `Your next leg leaves at ${nextLegStart.departure.time}.`
+                      : undefined
                   }
                   value={arriveTo}
                   onChange={setArriveTo}

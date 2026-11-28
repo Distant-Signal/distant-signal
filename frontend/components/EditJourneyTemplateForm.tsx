@@ -437,16 +437,15 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
               clockHint
               label="Earliest departure (optional)"
               name={`leg-${index}-depart-from`}
-              description="Only trains leaving at or after this time."
               value={leg.departFrom}
               onChange={(v) => updateLeg(leg.key, { departFrom: v })}
               onIncompleteChange={(v) => setLegIncomplete(leg.key, 'departFrom', v)}
               error={null}
             />
             <TimeFilterInput
+              clockHint
               label="Latest departure (optional)"
               name={`leg-${index}-depart-to`}
-              description="Only trains leaving at or before this time."
               value={leg.departTo}
               onChange={(v) => updateLeg(leg.key, { departTo: v })}
               onIncompleteChange={(v) => setLegIncomplete(leg.key, 'departTo', v)}
@@ -457,7 +456,6 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
             <TimeFilterInput
               label="Earliest arrival (optional)"
               name={`leg-${index}-arrive-from`}
-              description="Only trains reaching the destination at or after this time."
               value={leg.arriveFrom}
               onChange={(v) => updateLeg(leg.key, { arriveFrom: v })}
               onIncompleteChange={(v) => setLegIncomplete(leg.key, 'arriveFrom', v)}
@@ -466,7 +464,6 @@ export function EditJourneyTemplateForm({ template }: { template: JourneyTemplat
             <TimeFilterInput
               label="Latest arrival (optional)"
               name={`leg-${index}-arrive-to`}
-              description="Only trains reaching the destination at or before this time."
               value={leg.arriveTo}
               onChange={(v) => updateLeg(leg.key, { arriveTo: v })}
               onIncompleteChange={(v) => setLegIncomplete(leg.key, 'arriveTo', v)}

@@ -74,12 +74,11 @@ export function LegSearchForm({
   const set = (patch: Partial<LegSearchDraft>) => setDraft((current) => ({ ...current, ...patch }));
   const stationError = (field: 'origin' | 'destination', code: string | null) =>
     touched[field] && draft[field].trim() !== '' && code === null ? 'Must be a 3-letter station code' : null;
-  const time = (field: TimeField, label: string, description: string, clockHint = false) => (
+  const time = (field: TimeField, label: string, clockHint = false) => (
     <TimeFilterInput
       clockHint={clockHint}
       label={label}
       name={label.replace(' (optional)', '').toLowerCase()}
-      description={description}
       value={draft[field]}
       onChange={(value) => set({ [field]: value })}
       onIncompleteChange={(value) => setIncomplete((current) => ({ ...current, [field]: value }))}
@@ -115,29 +114,12 @@ export function LegSearchForm({
       />
       <Text size="sm">At least one of the four times below is required.</Text>
       <Group grow align="flex-start">
-        {time(
-          'departAfter',
-          'Earliest departure (optional)',
-          `Only trains leaving ${origin ?? 'the origin'} at or after this time.`,
-          true,
-        )}
-        {time(
-          'departBefore',
-          'Latest departure (optional)',
-          `Only trains leaving ${origin ?? 'the origin'} at or before this time.`,
-        )}
+        {time('departAfter', 'Earliest departure (optional)', true)}
+        {time('departBefore', 'Latest departure (optional)', true)}
       </Group>
       <Group grow align="flex-start">
-        {time(
-          'arriveAfter',
-          'Earliest arrival (optional)',
-          `Only trains reaching ${destination ?? 'the destination'} at or after this time.`,
-        )}
-        {time(
-          'arriveBefore',
-          'Latest arrival (optional)',
-          `Only trains reaching ${destination ?? 'the destination'} at or before this time.`,
-        )}
+        {time('arriveAfter', 'Earliest arrival (optional)')}
+        {time('arriveBefore', 'Latest arrival (optional)')}
       </Group>
       <LegFilterFields filters={filters} onChange={setFilters} origin={origin} destination={destination} />
       <Group gap="xs">

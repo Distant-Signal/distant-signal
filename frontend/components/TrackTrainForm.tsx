@@ -668,16 +668,15 @@ export function TrackTrainForm({
                 clockHint
                 label="Earliest departure (optional)"
                 name="earliest departure"
-                description={`Only trains leaving ${originValid ? originCrs.trim().toUpperCase() : 'the origin above'} at or after this time.`}
                 value={departFrom}
                 onChange={setDepartFrom}
                 onIncompleteChange={(v) => setWindowIncompleteTimes((c) => ({ ...c, departFrom: v }))}
                 error={null}
               />
               <TimeFilterInput
+                clockHint
                 label="Latest departure (optional)"
                 name="latest departure"
-                description={`Only trains leaving ${originValid ? originCrs.trim().toUpperCase() : 'the origin above'} at or before this time.`}
                 value={departTo}
                 onChange={setDepartTo}
                 onIncompleteChange={(v) => setWindowIncompleteTimes((c) => ({ ...c, departTo: v }))}
@@ -688,7 +687,6 @@ export function TrackTrainForm({
               <TimeFilterInput
                 label="Earliest arrival (optional)"
                 name="earliest arrival"
-                description={`Only trains reaching ${destinationValid ? destinationCrs.trim().toUpperCase() : 'the destination above'} at or after this time.`}
                 value={arriveFrom}
                 onChange={setArriveFrom}
                 onIncompleteChange={(v) => setWindowIncompleteTimes((c) => ({ ...c, arriveFrom: v }))}
@@ -697,7 +695,6 @@ export function TrackTrainForm({
               <TimeFilterInput
                 label="Latest arrival (optional)"
                 name="latest arrival"
-                description={`Only trains reaching ${destinationValid ? destinationCrs.trim().toUpperCase() : 'the destination above'} at or before this time.`}
                 value={arriveTo}
                 onChange={setArriveTo}
                 onIncompleteChange={(v) => setWindowIncompleteTimes((c) => ({ ...c, arriveTo: v }))}

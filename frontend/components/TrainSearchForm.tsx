@@ -589,6 +589,7 @@ export function TrainSearchForm({
         </Stack>
         <Stack gap={6}>
           <TimeFilterInput
+            clockHint
             label={`Latest ${timeNoun} (optional)`}
             name={`latest ${timeNoun}`}
             value={toTime}
