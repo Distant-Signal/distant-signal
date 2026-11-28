@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { cleanup, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import StationDisruptionPage, { generateMetadata } from './page';
 import { StationBrowseIndex } from '../StationBrowse';
@@ -32,6 +32,10 @@ vi.mock('@/lib/api', async () => {
     getTransitRailLinks: vi.fn(),
   };
 });
+
+// An async server component cannot render in jsdom; its own test renders it
+// (components/FoldedRecentlyCleared.test.tsx).
+vi.mock('@/components/FoldedRecentlyCleared', () => ({ FoldedRecentlyCleared: () => null }));
 
 // `withStaleFallback` (lib/liveDataCache.ts) reads the session cookie via
 // `next/headers` to scope its cache per visitor, and there is no Next
@@ -235,6 +239,116 @@ describe('StationDisruptionPage -- outage behaviour', () => {
       }
       expect(api.getStationBoard).toHaveBeenCalledTimes(4);
       for (const call of vi.mocked(api.getStationBoard).mock.calls) expect(call).toEqual(['KGX', 10]);
+    });
+
+    describe('folded sections', () => {
+      const FOLDS = ['About London Kings Cross', 'Trains from London Kings Cross today', 'Sample stats by operator'];
+
+      beforeEach(() => {
+        vi.mocked(api.getStationBoard).mockResolvedValue(board);
+        vi.mocked(api.getStationAccessibility).mockResolvedValue({ platformFacilities: { numberOfPlatforms: 12 } });
+        vi.mocked(api.getStationDayTimetable).mockResolvedValue(timetablePage([timetableRow()]));
+        vi.mocked(api.getStationSampleStats).mockResolvedValue([]);
+        window.location.hash = '';
+      });
+
+      afterEach(() => {
+        window.location.hash = '';
+      });
+
+      it('folds the lower sections closed, as real disclosure buttons, with the content still in the page', async () => {
+        await renderPage();
+        for (const name of [...FOLDS, 'Accessibility & facilities']) {
+          const button = screen.getByRole('button', { name });
+          expect(button).toHaveAttribute('aria-expanded', 'false');
+          expect(button).toHaveAttribute('aria-controls');
+          expect(button.closest('h2')).not.toBeNull();
+        }
+        // Closed, but in the HTML for a crawler: nothing is fetched on open.
+        expect(document.getElementById('about')).toHaveTextContent('12 platforms');
+        expect(document.getElementById('about')).not.toBeVisible();
+        expect(document.getElementById('timetable')).toHaveTextContent('Cambridge');
+        expect(document.getElementById('stats')).toHaveTextContent('Sample stats by operator');
+        expect(document.getElementById('accessibility')).toBeInTheDocument();
+      });
+
+      it('keeps the disruptions, the line cards and the board visible', async () => {
+        await renderPage();
+        expect(screen.getByRole('link', { name: 'East Coast Main Line' })).toBeVisible();
+        expect(document.getElementById('disruptions')).toBeVisible();
+        expect(screen.getByRole('table', { name: 'Departures from London Kings Cross' })).toBeVisible();
+      });
+
+      it('opens and closes a section from its button', async () => {
+        await renderPage();
+        const button = screen.getByRole('button', { name: 'About London Kings Cross' });
+        fireEvent.click(button);
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+        fireEvent.click(button);
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+      });
+
+      it('opens the section a page-link click targets', async () => {
+        await renderPage();
+        const onThisPage = screen.getByRole('navigation', { name: 'On this page' });
+        const targets: [string, string][] = [
+          ['About', 'About London Kings Cross'],
+          ['Trains today', 'Trains from London Kings Cross today'],
+          ['Stats', 'Sample stats by operator'],
+          ['Accessibility & facilities', 'Accessibility & facilities'],
+        ];
+        for (const [link, section] of targets) {
+          fireEvent.click(within(onThisPage).getByRole('link', { name: link }));
+          expect(screen.getByRole('button', { name: section })).toHaveAttribute('aria-expanded', 'true');
+        }
+      });
+
+      it('opens the section the URL hash targets, on load and on a hash change', async () => {
+        window.location.hash = '#accessibility';
+        await renderPage();
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: 'Accessibility & facilities' })).toHaveAttribute(
+            'aria-expanded',
+            'true',
+          ),
+        );
+        expect(screen.getByRole('button', { name: 'About London Kings Cross' })).toHaveAttribute(
+          'aria-expanded',
+          'false',
+        );
+        window.location.hash = '#timetable';
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: 'Trains from London Kings Cross today' })).toHaveAttribute(
+            'aria-expanded',
+            'true',
+          ),
+        );
+      });
+
+      it('adds no fold for a section that is not there', async () => {
+        vi.mocked(api.getStationAccessibility).mockResolvedValue({});
+        vi.mocked(api.getStationDayTimetable).mockRejectedValue(new ApiNotFoundError('no schedule'));
+        await renderPage();
+        expect(screen.getByRole('button', { name: 'Sample stats by operator' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^About/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: /^Trains from/ })).toBeNull();
+      });
+    });
+
+    it('leaves every section unfolded, with no disclosure buttons, when the api has no board', async () => {
+      vi.mocked(api.getStationAccessibility).mockResolvedValue({ platformFacilities: { numberOfPlatforms: 12 } });
+      vi.mocked(api.getStationDayTimetable).mockResolvedValue(timetablePage([timetableRow()]));
+      await renderPage();
+      expect(screen.queryByRole('button', { name: /^(About|Trains from|Sample stats|Accessibility)/ })).toBeNull();
+      for (const name of [
+        'About London Kings Cross',
+        'Trains from London Kings Cross today',
+        'Sample stats by operator',
+        'Accessibility & facilities',
+      ]) {
+        expect(screen.getByRole('heading', { name, level: 2 })).toBeVisible();
+      }
+      expect(document.getElementById('about')).toBeVisible();
     });
 
     it('renders the page as before, with no board section or error text, when the api has none', async () => {

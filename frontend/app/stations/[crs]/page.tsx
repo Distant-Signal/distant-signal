@@ -1,4 +1,4 @@
-import { Fragment, Suspense, cache } from 'react';
+import { Fragment, Suspense, cache, type ReactNode } from 'react';
 import { Stack, Title, Text, Group, Divider } from '@mantine/core';
 import { SectionTitle } from '@/components/SectionTitle';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -30,6 +30,8 @@ import { StationTramLinks } from '@/components/TransitRailLinks';
 import { NationalRailCredit } from '@/components/NationalRailCredit';
 import { DataCredits, lineCredits } from '@/components/DataCredits';
 import { RecentlyCleared } from '@/components/RecentlyCleared';
+import { FoldedRecentlyCleared } from '@/components/FoldedRecentlyCleared';
+import { StationFold } from '@/components/StationFold';
 import { worstStatus, severityRank } from '@/lib/severity';
 import { dedupeStationIssues } from '@/lib/stationIssues';
 import { representativeStatus, formatSampleSummary } from '@/lib/sampleStats';
@@ -271,6 +273,12 @@ async function previewDisruptionState(crs: string): Promise<StationDisruptionSta
   }
 }
 
+/** A section, folded under its own heading while the departures board is
+ * showing (it pushes the rest of the page down), as it always was otherwise. */
+function Foldable({ folded, title, children }: { folded: boolean; title: string; children: ReactNode }) {
+  return folded ? <StationFold title={title}>{children}</StationFold> : <>{children}</>;
+}
+
 export default async function StationDisruptionPage({
   params,
   searchParams,
@@ -358,11 +366,14 @@ export default async function StationDisruptionPage({
   const stationName = lookup.outcome === 'found' ? lookup.name : null;
   const facts = accessibilityResult.coverage === 'present' ? stationFacts(accessibilityResult.data) : null;
 
+  const hasAbout = stationName !== null && facts !== null && factSentences(stationName, facts).length > 0;
+  // With the board on top, the sections below it fold: they open from the
+  // "On this page" row and from a URL hash (`StationFold`).
+  const folded = board !== null;
+
   // The "On this page" row: the sections that exist for this station.
   const pageLinks = [
-    ...(stationName !== null && facts !== null && factSentences(stationName, facts).length > 0
-      ? [{ href: '#about', label: 'About' }]
-      : []),
+    ...(hasAbout ? [{ href: '#about', label: 'About' }] : []),
     { href: '#disruptions', label: 'Disruptions' },
     ...(stationName !== null && timetable !== null ? [{ href: '#timetable', label: 'Trains today' }] : []),
     { href: '#stats', label: 'Stats' },
@@ -437,7 +448,11 @@ export default async function StationDisruptionPage({
 
       {/* Prose from the station's own data, server-rendered; the named stations only (a bare code would say
           less than the heading). */}
-      {stationName !== null && <StationAbout name={stationName} facts={facts} />}
+      {stationName !== null && (
+        <Foldable folded={folded && hasAbout} title={`About ${stationName}`}>
+          <StationAbout name={stationName} facts={facts} />
+        </Foldable>
+      )}
 
       {/* Two different absences, said honestly rather than collapsed into
           one cheerful "no disruptions" that would just as easily describe a
@@ -481,19 +496,25 @@ export default async function StationDisruptionPage({
         {/* Info only, placed through the same lines as the disruptions
             above; hidden when empty. */}
         <Suspense fallback={null}>
-          <RecentlyCleared scope={{ station: crs }} now={now} showLines />
+          {folded ? (
+            <FoldedRecentlyCleared crs={crs} now={now} />
+          ) : (
+            <RecentlyCleared scope={{ station: crs }} now={now} showLines />
+          )}
         </Suspense>
       </Stack>
 
       {stationName !== null && (
         <>
           {timetable !== null && <Divider />}
-          <StationTimetableSection
-            crs={crs}
-            name={stationName}
-            timetable={timetable}
-            nameOf={(code) => tocNameByCode.get(code)}
-          />
+          <Foldable folded={folded && timetable !== null} title={`Trains from ${stationName} today`}>
+            <StationTimetableSection
+              crs={crs}
+              name={stationName}
+              timetable={timetable}
+              nameOf={(code) => tocNameByCode.get(code)}
+            />
+          </Foldable>
         </>
       )}
 
@@ -501,28 +522,30 @@ export default async function StationDisruptionPage({
           disruption section above, keyed by LDBWS live-sampling coverage rather than line-status-catalogue
           coverage. Three honest states, mirroring the disruption section's own coverage-vs-empty split. */}
       <Divider />
-      <Stack gap="xs" id="stats">
-        <SectionTitle>Sample stats by operator</SectionTitle>
-        {sampleStatsResult.coverage === 'not-sampled' && (
-          <Text c="dimmed">This station isn&apos;t part of our live departure sampling.</Text>
-        )}
-        {sampleStatsResult.coverage === 'sampled' && sampleStatsResult.operatorStats.length === 0 && (
-          <Text c="dimmed">No live departures currently recorded at this station.</Text>
-        )}
-        {sampleStatsResult.coverage === 'sampled' &&
-          sampleStatsResult.operatorStats.map((entry) => (
-            <Group key={entry.operator} justify="space-between" wrap="nowrap" gap="sm">
-              <Text size="sm">{tocNameByCode.get(entry.operator) ?? entry.operator}</Text>
-              <Text size="xs" c="dimmed">
-                {formatSampleSummary(entry)}
-              </Text>
-            </Group>
-          ))}
-        {/* LEG-23: these figures come from National Rail's live departure
+      <Foldable folded={folded} title="Sample stats by operator">
+        <Stack gap="xs" id="stats">
+          <SectionTitle>Sample stats by operator</SectionTitle>
+          {sampleStatsResult.coverage === 'not-sampled' && (
+            <Text c="dimmed">This station isn&apos;t part of our live departure sampling.</Text>
+          )}
+          {sampleStatsResult.coverage === 'sampled' && sampleStatsResult.operatorStats.length === 0 && (
+            <Text c="dimmed">No live departures currently recorded at this station.</Text>
+          )}
+          {sampleStatsResult.coverage === 'sampled' &&
+            sampleStatsResult.operatorStats.map((entry) => (
+              <Group key={entry.operator} justify="space-between" wrap="nowrap" gap="sm">
+                <Text size="sm">{tocNameByCode.get(entry.operator) ?? entry.operator}</Text>
+                <Text size="xs" c="dimmed">
+                  {formatSampleSummary(entry)}
+                </Text>
+              </Group>
+            ))}
+          {/* LEG-23: these figures come from National Rail's live departure
             boards (LDBWS), so the National Rail credit sits right under
             them. */}
-        {sampleStatsResult.coverage === 'sampled' && <NationalRailCredit />}
-      </Stack>
+          {sampleStatsResult.coverage === 'sampled' && <NationalRailCredit />}
+        </Stack>
+      </Foldable>
 
       <Divider />
       {/* No board here: departures live on the train search. The id stays
@@ -536,9 +559,11 @@ export default async function StationDisruptionPage({
           reference row for this CRS at all. Headed "Accessibility & facilities" rather than bare
           "Accessibility", which in this codebase means WCAG. */}
       <Divider />
-      <div id="accessibility">
-        <StationAccessibilitySection result={accessibilityResult} />
-      </div>
+      <Foldable folded={folded} title="Accessibility & facilities">
+        <div id="accessibility">
+          <StationAccessibilitySection result={accessibilityResult} />
+        </div>
+      </Foldable>
       {/* The station's information is Knowledgebase Stations' and its
           lines' status is worked out from Darwin and TRUST (or is TfL's):
           the credits sit under the last of it. */}
