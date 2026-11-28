@@ -28,6 +28,7 @@ const LOGGED_OUT = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 };
 const LOGGED_IN = {
@@ -42,6 +43,7 @@ const LOGGED_IN = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 };
 

@@ -103,6 +103,7 @@ beforeEach(() => {
     calendarFeedEnabled: false,
     webhooksEnabled: false,
     recentlyDeletedEnabled: false,
+    logoutEverywhereEnabled: false,
     analyticsOptIn: false,
   });
   vi.mocked(api.getPreferences).mockResolvedValue({
@@ -153,6 +154,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -192,6 +194,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await resolveAsync(await DashboardPage()));
@@ -211,6 +214,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -246,6 +250,7 @@ describe('DashboardPage', () => {
             calendarFeedEnabled: false,
             webhooksEnabled: false,
             recentlyDeletedEnabled: false,
+            logoutEverywhereEnabled: false,
             analyticsOptIn: false,
           }
         : {
@@ -260,6 +265,7 @@ describe('DashboardPage', () => {
             calendarFeedEnabled: false,
             webhooksEnabled: false,
             recentlyDeletedEnabled: false,
+            logoutEverywhereEnabled: false,
             analyticsOptIn: false,
           },
     );
@@ -288,6 +294,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -330,6 +337,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -370,6 +378,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -402,6 +411,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -441,6 +451,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -485,6 +496,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -514,6 +526,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -545,6 +558,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -576,6 +590,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -613,6 +628,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -645,6 +661,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -674,6 +691,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -704,6 +722,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -744,6 +763,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -774,6 +794,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -809,6 +830,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -840,6 +862,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1012,6 +1035,7 @@ describe('DashboardPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1052,6 +1076,7 @@ describe('DashboardPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1094,6 +1119,7 @@ describe('DashboardPage -- outage behaviour', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockRejectedValue(new Error('500'));
@@ -1117,6 +1143,7 @@ describe('DashboardPage -- outage behaviour', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getLineStatusForMode).mockResolvedValue([report()]);
@@ -1140,6 +1167,7 @@ describe('DashboardPage -- outage behaviour', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1182,6 +1210,7 @@ describe('DashboardPage -- pinned station line-coverage distinction', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -1277,6 +1306,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
     calendarFeedEnabled: false,
     webhooksEnabled: false,
     recentlyDeletedEnabled: false,
+    logoutEverywhereEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1302,6 +1332,7 @@ describe('DashboardPage -- Lines shared with you section', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     vi.mocked(api.getSharedGroupCustomLines).mockResolvedValue([sharedLine()]);
@@ -1455,6 +1486,7 @@ describe('DashboardPage -- Your Operators section', () => {
     calendarFeedEnabled: false,
     webhooksEnabled: false,
     recentlyDeletedEnabled: false,
+    logoutEverywhereEnabled: false,
     analyticsOptIn: false,
   };
 
@@ -1542,6 +1574,7 @@ describe('DashboardPage -- Your Operators section', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     // This mock's call count accumulates across every earlier test in this
@@ -1673,6 +1706,7 @@ describe('DashboardPage -- journey sections', () => {
     calendarFeedEnabled: false,
     webhooksEnabled: false,
     recentlyDeletedEnabled: false,
+    logoutEverywhereEnabled: false,
     analyticsOptIn: false,
   };
 

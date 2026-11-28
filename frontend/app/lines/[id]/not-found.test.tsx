@@ -37,6 +37,7 @@ function session(authenticated: boolean) {
     calendarFeedEnabled: false,
     webhooksEnabled: false,
     recentlyDeletedEnabled: false,
+    logoutEverywhereEnabled: false,
     analyticsOptIn: false,
   };
 }
@@ -86,6 +87,7 @@ describe('LineNotFound', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
     renderWithMantine(await LineNotFound());

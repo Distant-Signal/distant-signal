@@ -78,6 +78,7 @@ describe('JoinGroupPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -103,6 +104,7 @@ describe('JoinGroupPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -124,6 +126,7 @@ describe('JoinGroupPage', () => {
       calendarFeedEnabled: false,
       webhooksEnabled: false,
       recentlyDeletedEnabled: false,
+      logoutEverywhereEnabled: false,
       analyticsOptIn: false,
     });
 
@@ -151,6 +154,7 @@ describe('JoinGroupPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockResolvedValue({
@@ -191,6 +195,7 @@ describe('JoinGroupPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
 
@@ -213,6 +218,7 @@ describe('JoinGroupPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new ApiUnauthorizedError('401'));
@@ -238,6 +244,7 @@ describe('JoinGroupPage', () => {
         calendarFeedEnabled: false,
         webhooksEnabled: false,
         recentlyDeletedEnabled: false,
+        logoutEverywhereEnabled: false,
         analyticsOptIn: false,
       });
       vi.mocked(getGroup).mockRejectedValue(new Error('API request to /Groups/grp-1 failed: 503'));

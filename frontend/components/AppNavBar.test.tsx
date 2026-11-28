@@ -41,6 +41,7 @@ const loggedOut: SessionInfo = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 };
 const loggedIn: SessionInfo = {
@@ -55,6 +56,7 @@ const loggedIn: SessionInfo = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 };
 

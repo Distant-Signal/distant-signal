@@ -6,6 +6,7 @@ import { Avatar, Menu, UnstyledButton } from '@mantine/core';
 import { ConfirmActionButton, type ConfirmActionButtonHandle } from './ConfirmActionButton';
 import { useLogout } from './useLogout';
 import { useLogoutOtherSessions } from './useLogoutOtherSessions';
+import { finishLogoutEverywhere, requestLogoutEverywhere } from '@/lib/logoutEverywhere';
 import type { NavDestination } from '@/lib/navLinks';
 
 /** The authenticated visitor's account control: an avatar in the nav bar
@@ -63,6 +64,7 @@ export function AccountMenu({
   label,
   destinations,
   canRevokeTokens = false,
+  canLogOutEverywhere = false,
 }: {
   /** The visitor's display name, already resolved to something
    * non-blank by `AuthStatus` — this component never sees the raw
@@ -74,9 +76,13 @@ export function AccountMenu({
    * session says personal API tokens are on. A token outlives every
    * logout, so ending them is its own action. */
   canRevokeTokens?: boolean;
+  /** Offer "Log out everywhere": the session says the api has it on
+   * (`logoutEverywhereEnabled`). Absent or false hides it. */
+  canLogOutEverywhere?: boolean;
 }) {
   const { logout, loggingOut } = useLogout();
   const revokeTokensRef = useRef<ConfirmActionButtonHandle>(null);
+  const logoutEverywhereRef = useRef<ConfirmActionButtonHandle>(null);
   const {
     logoutOtherSessions,
     loggingOut: loggingOutOtherSessions,
@@ -154,6 +160,13 @@ export function AccountMenu({
           >
             {logoutOtherSessionsError ? "Couldn't log out other sessions. Try again." : 'Log out other sessions'}
           </Menu.Item>
+          {/* Ends every session on every device, this one included, and the
+            provider's login session on this browser: it opens a
+            confirmation, rendered outside the menu below, and the
+            confirmed request navigates the browser away. */}
+          {canLogOutEverywhere && (
+            <Menu.Item onClick={() => logoutEverywhereRef.current?.open()}>Log out everywhere</Menu.Item>
+          )}
           {/* Personal API tokens survive every logout (spec decision 2), so
             ending them all sits here, beside ending the other sessions. It
             opens a confirmation, rendered outside the menu below. */}
@@ -171,6 +184,22 @@ export function AccountMenu({
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
+      {canLogOutEverywhere && (
+        <ConfirmActionButton
+          ref={logoutEverywhereRef}
+          hideTrigger
+          label="Log out everywhere"
+          actionName="log out everywhere"
+          title="Log out everywhere?"
+          request={requestLogoutEverywhere}
+          onSuccess={(router, response) => finishLogoutEverywhere(() => router.refresh(), response)}
+          failure={['log out', 'everywhere']}
+          unauthorizedMessage="You're already logged out."
+        >
+          This logs you out of Distant Signal on every device and ends the login session on this browser. Apps you
+          connected, such as an assistant, will need to be connected again.
+        </ConfirmActionButton>
+      )}
       {canRevokeTokens && (
         <ConfirmActionButton
           ref={revokeTokensRef}

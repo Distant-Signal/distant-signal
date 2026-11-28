@@ -27,6 +27,7 @@ const loggedOut: SessionInfo = {
   calendarFeedEnabled: false,
   webhooksEnabled: false,
   recentlyDeletedEnabled: false,
+  logoutEverywhereEnabled: false,
   analyticsOptIn: false,
 };
 
@@ -88,6 +89,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -117,6 +119,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -139,6 +142,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -166,6 +170,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -188,6 +193,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -210,6 +216,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,
@@ -233,6 +240,7 @@ describe('AuthStatus', () => {
           calendarFeedEnabled: false,
           webhooksEnabled: false,
           recentlyDeletedEnabled: false,
+          logoutEverywhereEnabled: false,
           analyticsOptIn: false,
         }}
       />,

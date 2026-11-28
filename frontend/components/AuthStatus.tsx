@@ -52,6 +52,7 @@ export function AuthStatus({ session }: { session: SessionInfo }) {
       label={label}
       destinations={accountMenuDestinations()}
       canRevokeTokens={session.personalTokensEnabled}
+      canLogOutEverywhere={session.logoutEverywhereEnabled}
     />
   );
 }
