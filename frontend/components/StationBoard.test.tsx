@@ -218,11 +218,12 @@ describe('StationBoard', () => {
         departure({ uid: 'P1', platform: '1', platformStatus: 'confirmed' }),
         departure({ uid: 'P2', platform: '2', platformStatus: 'expected' }),
         departure({ uid: 'P3', platform: '3', platformStatus: 'booked' }),
+        departure({ uid: 'P6', platform: '6', platformStatus: 'likely' as never }),
         departure({ uid: 'P4', platformStatus: 'toBeAnnounced' }),
         departure({ uid: 'P5', platformStatus: 'none' }),
       ]),
     );
-    const [, confirmed, expected, booked, tba, none] = screen.getAllByRole('row');
+    const [, confirmed, expected, booked, likely, tba, none] = screen.getAllByRole('row');
     const box = (row: HTMLElement) => row.querySelector('[class*="platformBox"]');
 
     expect(confirmed!).toHaveTextContent('Platform 1');
@@ -236,6 +237,11 @@ describe('StationBoard', () => {
 
     expect(booked!).toHaveTextContent('Platform 3, booked');
     expect(box(booked!)!.className).toMatch(/booked/);
+
+    expect(likely!).toHaveTextContent('Platform 6, likely');
+    expect(box(likely!)!.className).toMatch(/likely/);
+    expect(visibleText(likely!)).toContain('likely');
+    expect(likely!).not.toHaveTextContent('confirmed');
 
     expect(visibleText(tba!)).toContain('To be announced');
     expect(box(tba!)).toBeNull();
