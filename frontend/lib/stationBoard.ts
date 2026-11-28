@@ -25,14 +25,29 @@ export type BoardPlatform =
 
 export type BoardStatusKind = 'onTime' | 'delayed' | 'cancelled' | 'booked';
 
-/** The status in words (`text` for the eye, `spoken` for a screen reader,
- * which gets "minutes" for "min"), with the cancellation reason as
- * secondary text. The icon is picked from `kind`. */
+export type BoardStatusTone = 'good' | 'neutral' | 'mild' | 'late' | 'severe';
+
+/** From this many minutes late a delayed row also says so in words under
+ * the expected time. */
+export const VERY_LATE_MINUTES = 15;
+
+/** The status in words. `text` is what the eye reads ("On time", "Exp 10:09",
+ * "Cancelled"), `marker` the "+1" that follows an expected time on a later
+ * day, and `spoken` the full sentence for a screen reader ("Expected 10:09,
+ * 3 minutes late"). `detail` is secondary text under it: how late a very
+ * late train is, or a cancellation's reason. The icon is picked from
+ * `kind`. */
 export interface BoardStatus {
   kind: BoardStatusKind;
+  /** The colour family, from the severity palette: on time `good`, booked
+   * `neutral`, 1 to 9 minutes late (or late by an unknown amount) `mild`,
+   * 10 to 29 `late`, 30 or more and cancelled `severe`. Colour only
+   * reinforces the words and the icon. */
+  tone: BoardStatusTone;
   text: string;
+  marker: { short: string; spoken: string } | null;
   spoken: string;
-  reason: string | null;
+  detail: string | null;
 }
 
 export interface BoardRowView {
@@ -40,8 +55,6 @@ export interface BoardRowView {
   scheduled: BoardTime;
   /** Cancelled: the booked time is struck through. */
   struck: boolean;
-  /** "Exp 10:09" when the live time differs from the booked one. */
-  expected: BoardTime | null;
   destination: string;
   operator: string | null;
   platform: BoardPlatform;
@@ -74,43 +87,86 @@ export function boardPlatform(row: StationBoardDeparture): BoardPlatform {
   }
 }
 
-export function boardStatus(row: StationBoardDeparture): BoardStatus {
+function minutesWord(minutes: number): string {
+  return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+}
+
+/** Whether the live time is a different one from the booked time. */
+function expectedDiffers(row: StationBoardDeparture): boolean {
+  return row.expected !== null && (row.expected !== row.scheduled || (row.expectedDayOffset ?? 0) !== row.dayOffset);
+}
+
+function statusWords(row: StationBoardDeparture): Omit<BoardStatus, 'tone'> {
   if (row.isCancelled || row.status === 'cancelled') {
-    return { kind: 'cancelled', text: 'Cancelled', spoken: 'Cancelled', reason: row.cancelReason };
+    return { kind: 'cancelled', text: 'Cancelled', marker: null, spoken: 'Cancelled', detail: row.cancelReason };
   }
   switch (row.status) {
     case 'delayed': {
-      const minutes = row.delayMinutes;
-      if (minutes === null || minutes <= 0) {
-        return { kind: 'delayed', text: 'Delayed', spoken: 'Delayed', reason: null };
+      const minutes = row.delayMinutes !== null && row.delayMinutes > 0 ? row.delayMinutes : null;
+      if (row.expected !== null && expectedDiffers(row)) {
+        // The expected time is the status: the delay is in the words for a
+        // screen reader, and in text only once it is large.
+        const marker = dayOffsetMarker(row.expectedDayOffset);
+        const expected = marker ? `${row.expected} ${marker.spoken}` : row.expected;
+        return {
+          kind: 'delayed',
+          text: `Exp ${row.expected}`,
+          marker,
+          spoken: minutes === null ? `Expected ${expected}` : `Expected ${expected}, ${minutesWord(minutes)} late`,
+          detail: minutes !== null && minutes >= VERY_LATE_MINUTES ? `${minutes} min late` : null,
+        };
+      }
+      if (minutes === null) {
+        return { kind: 'delayed', text: 'Delayed', marker: null, spoken: 'Delayed', detail: null };
       }
       return {
         kind: 'delayed',
-        text: `Delayed ${minutes} min`,
-        spoken: `Delayed ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`,
-        reason: null,
+        text: `${minutes} min late`,
+        marker: null,
+        spoken: `${minutesWord(minutes)} late`,
+        detail: null,
       };
     }
     case 'onTime':
-      return { kind: 'onTime', text: 'On time', spoken: 'On time', reason: null };
+      return { kind: 'onTime', text: 'On time', marker: null, spoken: 'On time', detail: null };
     case 'booked':
       // No live data: never a claim of punctuality.
-      return { kind: 'booked', text: 'Booked', spoken: 'Booked', reason: null };
+      return { kind: 'booked', text: 'Booked', marker: null, spoken: 'Booked', detail: null };
   }
+}
+
+/** From this many minutes late the status reads as late, not just delayed,
+ * and from `SEVERELY_LATE_MINUTES` as severe, as a cancellation does. */
+export const LATE_MINUTES = 10;
+export const SEVERELY_LATE_MINUTES = 30;
+
+function tone(row: StationBoardDeparture, kind: BoardStatusKind): BoardStatusTone {
+  switch (kind) {
+    case 'onTime':
+      return 'good';
+    case 'booked':
+      return 'neutral';
+    case 'cancelled':
+      return 'severe';
+    case 'delayed': {
+      const minutes = row.delayMinutes ?? 0;
+      if (minutes >= SEVERELY_LATE_MINUTES) return 'severe';
+      return minutes >= LATE_MINUTES ? 'late' : 'mild';
+    }
+  }
+}
+
+export function boardStatus(row: StationBoardDeparture): BoardStatus {
+  const words = statusWords(row);
+  return { ...words, tone: tone(row, words.kind) };
 }
 
 export function boardRow(row: StationBoardDeparture, index: number): BoardRowView {
   const status = boardStatus(row);
-  const differs =
-    row.expected !== null && (row.expected !== row.scheduled || (row.expectedDayOffset ?? 0) !== row.dayOffset);
   return {
     key: `${row.serviceDate}-${row.uid}-${row.scheduled}-${index}`,
     scheduled: boardTime(row.scheduled, row.dayOffset),
     struck: status.kind === 'cancelled',
-    expected:
-      row.expected !== null && differs && status.kind !== 'cancelled'
-        ? boardTime(row.expected, row.expectedDayOffset)
-        : null,
     destination: row.destinationName ?? row.destinationCrs ?? 'Unknown destination',
     operator: row.operatorName ?? row.operator,
     platform: boardPlatform(row),

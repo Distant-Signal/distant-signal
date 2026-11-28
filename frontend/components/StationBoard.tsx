@@ -144,27 +144,32 @@ function PlatformCell({ platform }: { platform: BoardPlatform }) {
 }
 
 function StatusCell({ status }: { status: BoardStatus }) {
-  const negative = status.kind === 'delayed' || status.kind === 'cancelled';
+  const plain = status.spoken === status.text && status.marker === null;
   return (
-    <div className={classes.status}>
-      <StatusIcon kind={status.kind} />
-      <div>
-        <span className={negative ? classes.statusNegative : undefined}>
-          {status.text === status.spoken ? (
-            status.text
-          ) : (
-            <>
-              <span aria-hidden="true">{status.text}</span>
-              <VisuallyHidden>{status.spoken}</VisuallyHidden>
-            </>
-          )}
-        </span>
-        {status.reason !== null && (
-          <Text size="xs" c="dimmed" component="span" display="block">
-            {status.reason}
-          </Text>
+    <div className={classes.status} data-tone={status.tone}>
+      <span className={classes.statusLine}>
+        <StatusIcon kind={status.kind} />
+        {plain ? (
+          status.text
+        ) : (
+          <>
+            <span aria-hidden="true">
+              {status.text}
+              {status.marker && <span className={classes.nextDay}>{status.marker.short}</span>}
+            </span>
+            <VisuallyHidden>{status.spoken}</VisuallyHidden>
+          </>
         )}
-      </div>
+      </span>
+      {status.detail !== null && (
+        <span
+          className={
+            status.kind === 'cancelled' ? `${classes.statusDetail} ${classes.statusReason}` : classes.statusDetail
+          }
+        >
+          {status.detail}
+        </span>
+      )}
     </div>
   );
 }
@@ -233,18 +238,11 @@ export function StationBoard({
           </TableThead>
           <TableTbody>
             {view.rows.map((row) => (
-              <TableTr key={row.key}>
+              <TableTr key={row.key} className={row.status.kind === 'cancelled' ? classes.rowCancelled : undefined}>
                 <TableTd className={classes.time}>
                   <span className={row.struck ? classes.struck : undefined}>
                     <Time time={row.scheduled} />
                   </span>
-                  {row.expected !== null && (
-                    <span className={classes.expected}>
-                      <span aria-hidden="true">Exp </span>
-                      <VisuallyHidden>Expected </VisuallyHidden>
-                      <Time time={row.expected} />
-                    </span>
-                  )}
                 </TableTd>
                 <TableTd className={classes.destination}>
                   {row.destination}
@@ -258,7 +256,7 @@ export function StationBoard({
                 <TableTd>
                   <PlatformCell platform={row.platform} />
                 </TableTd>
-                <TableTd>
+                <TableTd className={classes.statusCell}>
                   <StatusCell status={row.status} />
                 </TableTd>
               </TableTr>
