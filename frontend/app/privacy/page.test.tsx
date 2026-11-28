@@ -139,6 +139,10 @@ describe('PrivacyPage login service and Discord account ID', () => {
     expect(text).toMatch(/a copy of your Discord profile picture/);
     expect(text).toMatch(/does not ask the provider for your email address and does not store one/);
     expect(text).toMatch(
+      /When you log in with Google, Google tells our login service your Google account ID and your name/,
+    );
+    expect(text).toMatch(/asks Google for only your name and account ID, not your email address or profile picture/);
+    expect(text).toMatch(
       /It gives Distant Signal an ID for your account, your username and display name, your access groups and, if you log in with Discord, your Discord account ID\. Distant Signal does not store your profile picture/,
     );
     expect(text).toMatch(
@@ -160,6 +164,7 @@ describe('PrivacyPage login service and Discord account ID', () => {
       /does not delete your Discord, Google or Microsoft account, or your account on our login service/,
     );
     expect(text).toMatch(/Distant Signal's access in that provider's account settings/);
+    expect(text).toMatch(/For Google, this is the third-party access page in your Google account/);
     expect(text).toMatch(
       /Removing access there does not delete what our login service has already kept; email us for that/,
     );
