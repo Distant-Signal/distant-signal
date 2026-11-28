@@ -186,7 +186,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Technical logs and IP addresses',
-      what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service. Our login service also logs your browser details and approximate location when you log in.',
+      what: 'Your IP address, the pages you request and when, handled by our network provider (Cloudflare), our servers and our login service. Our login service also logs your IP address and browser details when you log in.',
       why: 'To keep the service secure, prevent abuse, limit how many requests one address can make, and fix faults.',
       basis: LEGITIMATE_INTERESTS,
       retention: `Our server logs are kept for up to 31 days. Our login service keeps its event logs for ${LEGAL_CONFIG.SSO_LOG_RETENTION}. Cloudflare keeps its logs under its own policy.`,
@@ -284,15 +284,17 @@ export default function PrivacyPage() {
           You log in through our own login service, which is used only for Distant Signal and is run by us. When you log
           in with Discord, Discord tells our login service your Discord account ID, username and display name. Our login
           service keeps these, and a copy of your Discord profile picture (a small image, and its web address). Our
-          login service does not store your email address.
+          login service does not ask the provider for your email address and does not store one.
         </Text>
         <Text>
           Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
           for your account, your username and display name, your access groups and, if you log in with Discord, your
-          Discord account ID. Distant Signal does not store your profile picture. Our login service keeps a log of
-          logins and other account activity, including your IP address, browser details, approximate location and
-          internet provider, and deletes it after {LEGAL_CONFIG.SSO_LOG_RETENTION}. Its database is also backed up each
-          day.
+          Discord account ID. Distant Signal does not store your profile picture. It also keeps the access key the
+          provider gave it when you logged in, and a key to renew it if the provider gives one. Nothing uses them. They
+          are deleted if your login service account is deleted. Our login service keeps a log of logins and other
+          account activity, including your IP address, browser details, approximate location and internet provider, and
+          deletes it after {LEGAL_CONFIG.SSO_LOG_RETENTION}. It keeps your account until you ask us to delete it (see
+          Your rights). Its database is also backed up each night. The copies are encrypted and kept for 7 days.
         </Text>
         <Text>
           When we moved logging in to this service, we copied the Discord account ID of each existing account from the

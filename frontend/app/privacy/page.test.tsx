@@ -137,14 +137,17 @@ describe('PrivacyPage login service and Discord account ID', () => {
     expect(text).toMatch(/used only for Distant Signal and is run by us/);
     expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
     expect(text).toMatch(/a copy of your Discord profile picture/);
-    expect(text).toMatch(/Our login service does not store your email address/);
+    expect(text).toMatch(/does not ask the provider for your email address and does not store one/);
     expect(text).toMatch(
       /It gives Distant Signal an ID for your account, your username and display name, your access groups and, if you log in with Discord, your Discord account ID\. Distant Signal does not store your profile picture/,
     );
     expect(text).toMatch(
       /IP address, browser details, approximate location and internet provider, and deletes it after /,
     );
-    expect(text).toMatch(/Its database is also backed up each day/);
+    expect(text).toMatch(/keeps the access key the provider gave it when you logged in, and a key to renew it/);
+    expect(text).toMatch(/Nothing uses them\. They are deleted if your login service account is deleted/);
+    expect(text).toMatch(/keeps your account until you ask us to delete it \(see Your rights\)/);
+    expect(text).toMatch(/backed up each night\. The copies are encrypted and kept for 7 days/);
     expect(text).toMatch(
       /copied the Discord account ID of each existing account from the login service we used before/,
     );
