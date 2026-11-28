@@ -96,13 +96,13 @@ function PlatformCell({ platform }: { platform: BoardPlatform }) {
   if (platform.kind === 'platform') {
     return (
       <>
-        <span className={classes.platformBox} aria-hidden="true">
+        <span className={`${classes.platformBox} ${classes[platform.status]}`} aria-hidden="true">
           {platform.label}
         </span>
         <VisuallyHidden>{platform.spoken}</VisuallyHidden>
-        {platform.booked && (
+        {platform.note && (
           <span className={classes.platformNote} aria-hidden="true">
-            booked
+            {platform.note}
           </span>
         )}
       </>

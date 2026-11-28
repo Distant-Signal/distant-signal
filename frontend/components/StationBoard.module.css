@@ -62,11 +62,29 @@
 .platformBox {
   display: inline-block;
   min-width: 2.25rem;
-  padding: 2px 8px;
-  border: 1px solid var(--mantine-color-default-border);
+  padding: 0 6px;
+  border: 2px solid var(--mantine-color-text);
   border-radius: var(--mantine-radius-sm);
   font-weight: 700;
   text-align: center;
+}
+
+/* Three states told apart by the outline as well as the word under it:
+ * confirmed is a solid, full-strength box; expected a dashed one in the
+ * quieter (dimmed) colour; booked a solid one in that colour, unbolded. */
+.confirmed {
+  border-style: solid;
+}
+
+.expected {
+  border-style: dashed;
+  border-color: var(--mantine-color-dimmed);
+}
+
+.booked {
+  border-style: solid;
+  border-color: var(--mantine-color-dimmed);
+  font-weight: 400;
 }
 
 .platformNote {

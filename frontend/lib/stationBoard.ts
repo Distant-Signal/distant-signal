@@ -13,9 +13,13 @@ export interface BoardTime {
 }
 
 /** What the platform cell says. `booked` is the timetable's platform with
- * no live word, so it is marked and never read as a confirmed one. */
+ * no live word and `expected` one that is not yet confirmed (or may still
+ * change): each carries its word, for the eye and a screen reader, so
+ * neither is read as a confirmed platform. */
+export type BoardPlatformStatus = 'confirmed' | 'expected' | 'booked';
+
 export type BoardPlatform =
-  | { kind: 'platform'; label: string; spoken: string; booked: boolean }
+  | { kind: 'platform'; label: string; spoken: string; status: BoardPlatformStatus; note: string | null }
   | { kind: 'toBeAnnounced'; text: string }
   | { kind: 'none'; spoken: string };
 
@@ -59,12 +63,9 @@ export function boardPlatform(row: StationBoardDeparture): BoardPlatform {
         kind: 'platform',
         label: platform,
         spoken:
-          row.platformStatus === 'booked'
-            ? `Platform ${platform}, booked`
-            : row.platformStatus === 'expected'
-              ? `Platform ${platform}, expected`
-              : `Platform ${platform}`,
-        booked: row.platformStatus === 'booked',
+          row.platformStatus === 'confirmed' ? `Platform ${platform}` : `Platform ${platform}, ${row.platformStatus}`,
+        status: row.platformStatus,
+        note: row.platformStatus === 'confirmed' ? null : row.platformStatus,
       };
     case 'toBeAnnounced':
       return { kind: 'toBeAnnounced', text: 'To be announced' };
