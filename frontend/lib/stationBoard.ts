@@ -183,6 +183,25 @@ function tone(row: BoardRowSource, kind: BoardStatusKind): BoardStatusTone {
   }
 }
 
+/** The glyph that goes with a status. The shape is the cue, apart from the
+ * colour: a tick on time, a clock booked, a triangle for a delay, an
+ * octagon for a delay of 30 minutes or more, a cross cancelled. The words
+ * beside it carry the meaning; the icon is decorative. */
+export type BoardStatusIcon = 'check' | 'clock' | 'warning' | 'severe' | 'cross';
+
+export function statusIcon(status: Pick<BoardStatus, 'kind' | 'tone'>): BoardStatusIcon {
+  switch (status.kind) {
+    case 'onTime':
+      return 'check';
+    case 'booked':
+      return 'clock';
+    case 'cancelled':
+      return 'cross';
+    case 'delayed':
+      return status.tone === 'severe' ? 'severe' : 'warning';
+  }
+}
+
 export function boardStatus(row: BoardRowSource): BoardStatus {
   const words = statusWords(row);
   return { ...words, tone: tone(row, words.kind) };
@@ -264,7 +283,9 @@ export function boardView(board: StationBoard, fallbackName: string, operatorLab
     heading: operatorLabel === null ? base : `${base}, ${operatorLabel}`,
     empty:
       operatorLabel === null
-        ? `No more ${noun} listed for today.`
+        ? arrivals
+          ? 'No arrivals are scheduled at this station right now.'
+          : 'No departures are scheduled from this station right now.'
         : `No more ${noun} listed for ${operatorLabel} today.`,
     rows: arrivals ? (board.arrivals ?? []).map(arrivalRow) : board.departures.map(boardRow),
     updated: `Updated ${formatTime(board.generatedAt)}`,

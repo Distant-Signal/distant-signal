@@ -105,6 +105,11 @@ export class ApiForbiddenError extends Error {}
  * (2026-10-06). */
 export class ApiUnavailableError extends Error {}
 
+/** Thrown when the API responds 400: it understood the route but rejected a
+ * parameter (an unknown `operator` code on the station board, say), so a
+ * caller can retry without it. */
+export class ApiBadRequestError extends Error {}
+
 function baseUrl(): string {
   const url = process.env.API_BASE_URL;
   if (!url) {
@@ -121,6 +126,7 @@ function errorForResponse(url: string, response: Response): Error {
   const message = `API request to ${redactTokens(url)} failed: ${response.status} ${response.statusText}`;
   if (response.status === 404) return new ApiNotFoundError(message);
   if (response.status === 401) return new ApiUnauthorizedError(message);
+  if (response.status === 400) return new ApiBadRequestError(message);
   if (response.status === 403) return new ApiForbiddenError(message);
   if (response.status === 503) return new ApiUnavailableError(message);
   return new Error(message);

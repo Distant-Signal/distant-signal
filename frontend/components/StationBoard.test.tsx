@@ -208,6 +208,10 @@ describe('StationBoard', () => {
     expect(tones).toEqual(['good', 'mild', 'late', 'severe', 'severe', 'neutral']);
     expect(visibleText(rows[1]!)).toContain('Exp 10:10');
     expect(rows[0]!.querySelector('svg')).not.toBeNull();
+    expect(rows[1]!.querySelector('[data-icon="warning"]')).not.toBeNull();
+    expect(rows[2]!.querySelector('[data-icon="warning"]')).not.toBeNull();
+    expect(rows[3]!.querySelector('[data-icon="severe"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(rows[3]!.querySelector('[data-icon="warning"]')).toBeNull();
     expect(rows[4]!.querySelector('[data-icon="cross"]')).not.toBeNull();
     expect(rows[5]!.querySelector('[data-icon="clock"]')).not.toBeNull();
     expect(rows[4]!.className).toMatch(/rowCancelled/);
@@ -274,7 +278,7 @@ describe('StationBoard', () => {
   it('says so, not an empty table, when no more trains are listed', () => {
     renderBoard(board([]));
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.getByText('No more departures listed for today.')).toBeInTheDocument();
+    expect(screen.getByText('No departures are scheduled from this station right now.')).toBeInTheDocument();
   });
 
   describe('operator filter', () => {
@@ -389,7 +393,7 @@ describe('StationBoard arrivals and the board switch', () => {
 
   it('says there are no arrivals, with and without an operator', () => {
     const { unmount } = renderBoard(arrivalsBoard([]));
-    expect(screen.getByText('No more arrivals listed for today.')).toBeInTheDocument();
+    expect(screen.getByText('No arrivals are scheduled at this station right now.')).toBeInTheDocument();
     unmount();
     renderBoard(arrivalsBoard([]), { operator: 'GW', operators: TWO_OPERATORS });
     expect(screen.getByText('No more arrivals listed for Great Western Railway today.')).toBeInTheDocument();

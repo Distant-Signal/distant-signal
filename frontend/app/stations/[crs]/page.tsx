@@ -15,6 +15,7 @@ import {
   getTransitRailLinks,
   getPreviewStopPointDisruption,
   ApiNotFoundError,
+  ApiBadRequestError,
 } from '@/lib/api';
 import { withStaleFallback } from '@/lib/liveDataCache';
 import { LineStatusRow, LineStatusRowItem, LineStatusRowList } from '@/components/LineStatusRow';
@@ -202,12 +203,36 @@ async function fetchStationBoard(
   kind: BoardKind = 'departures',
 ): Promise<StationBoardData | null> {
   try {
-    if (kind === 'arrivals') return await getStationBoard(crs, STATION_BOARD_LIMIT, operator, 'arrivals');
-    return await (operator === undefined
-      ? getStationBoard(crs, STATION_BOARD_LIMIT)
-      : getStationBoard(crs, STATION_BOARD_LIMIT, operator));
+    return await requestStationBoard(crs, operator, kind);
   } catch {
     return null;
+  }
+}
+
+/** One board request, throwing as `getStationBoard` does. */
+async function requestStationBoard(crs: string, operator: string | undefined, kind: BoardKind) {
+  if (kind === 'arrivals') return getStationBoard(crs, STATION_BOARD_LIMIT, operator, 'arrivals');
+  return operator === undefined
+    ? getStationBoard(crs, STATION_BOARD_LIMIT)
+    : getStationBoard(crs, STATION_BOARD_LIMIT, operator);
+}
+
+/** The board for an operator filter. The api answers 400 to an operator code
+ * it does not know (`?operator=ZZ`); the board is then fetched once more
+ * without it and shown unfiltered, with the picker on "All operators",
+ * rather than losing the whole board. `operator` is the one the board is
+ * really filtered to. */
+async function fetchStationBoardFor(
+  crs: string,
+  operator: string | undefined,
+  kind: BoardKind,
+): Promise<{ board: StationBoardData | null; operator: string | null }> {
+  if (operator === undefined) return { board: await fetchStationBoard(crs, undefined, kind), operator: null };
+  try {
+    return { board: await requestStationBoard(crs, operator, kind), operator };
+  } catch (error) {
+    if (!(error instanceof ApiBadRequestError)) return { board: null, operator };
+    return { board: await fetchStationBoard(crs, undefined, kind), operator: null };
   }
 }
 
@@ -301,7 +326,7 @@ export default async function StationDisruptionPage({
 }) {
   const { crs } = await params;
   const query = await searchParams;
-  const operator = parseOperatorParam(query?.operator);
+  const requestedOperator = parseOperatorParam(query?.operator);
   const boardKind = parseBoardParam(query?.board);
   if (crs === STATION_INDEX_SEGMENT) return <StationBrowseIndex />;
   if (isStationBrowseSegment(crs)) return <StationLetterPage letter={crs} />;
@@ -325,7 +350,7 @@ export default async function StationDisruptionPage({
     tramLinks,
     origin,
     timetable,
-    board,
+    boardResult,
   ] = await Promise.all([
     fetchStationDisruptions(crs),
     // Per-user, so it fails closed to "nothing pinned" (the shape a 401
@@ -347,8 +372,9 @@ export default async function StationDisruptionPage({
     // run alongside the reads above so it adds no round trip.
     fetchStationTimetable(crs),
     // The departures board; `null` when the api has none (see the function).
-    fetchStationBoard(crs, operator ?? undefined, boardKind),
+    fetchStationBoardFor(crs, requestedOperator ?? undefined, boardKind),
   ]);
+  const { board, operator } = boardResult;
   // A filtered board only lists its own operator, so the picker's choices
   // come from the unfiltered one (the same cached read the board makes
   // without a filter).
