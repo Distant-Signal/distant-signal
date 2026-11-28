@@ -36,15 +36,12 @@ import { withAbsoluteTitle } from '@/lib/pageMetadata';
 // (`usage_daily`, daily totals, 13 months, consent; GPC and DNT honoured).
 // Keep both rows in step with crates/api/src/usage_events.rs and
 // docs/personal-data-retention.md (both in Distant-Signal/ds-api).
-// Login service and Discord account ID (DS-301): public login moves to a
-// login service of its own (ds-sso, Ranma-Config
-// docs/specs/ds-public-auth-idp.md), and the api keeps `users.discord_id`
-// so an account survives the change of `sub` (ds-api docs/connected-apps.md,
-// "Account continuity"). The "Logging in" section is worded for after that
-// cut-over; this text has to be in place before the Discord ids are loaded.
-// Google and Microsoft sign-in (DS-638): worded "if you log in with ...", so
-// it is true whether or not those sources are enabled yet. The Discord id is
-// Discord-only; those users get no such key.
+// Login service (DS-301, DS-638): public login moved to a login service of its
+// own (ds-sso, Ranma-Config docs/specs/ds-public-auth-idp.md). The api no
+// longer reads or stores the Discord account ID (users.discord_id is cleared),
+// so the "Logging in" section says the copies were used once and deleted.
+// Google and Microsoft are worded "if you log in with ...", so that is true
+// whether or not those sources are enabled yet.
 // ============================================================================
 
 // Reads the legal-pages flags per request (see lib/legal.ts).
@@ -91,8 +88,8 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
   return [
     {
       title: 'Your account',
-      what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in. If you log in with Discord, also your Discord account ID: the number Discord gives your account, not your Discord username.',
-      why: 'To create and run your account. If you log in with Discord, we use your Discord account ID only to recognise your account if our login service gives you a new ID, so you keep your journeys and settings.',
+      what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in.',
+      why: 'To create and run your account.',
       basis: CONTRACT,
       retention:
         retention.inactiveAccountDays > 0
@@ -293,19 +290,19 @@ export default function PrivacyPage() {
         </Text>
         <Text>
           Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
-          for your account, your username and display name, your access groups and, if you log in with Discord, your
-          Discord account ID. Distant Signal does not store your profile picture. Each time you log in it also saves the
-          access key the provider gives it (and a key to renew it, if the provider gives one). Nothing uses them. It
-          removes them every night, so they are held for up to about 24 hours, and also deletes them if your login
-          service account is deleted. Our login service keeps a log of logins and other account activity, including your
-          IP address, browser details, approximate location and internet provider, and deletes it after{' '}
-          {LEGAL_CONFIG.SSO_LOG_RETENTION}. It keeps your account until you ask us to delete it (see Your rights). Its
-          database is also backed up each night. The copies are encrypted and kept for 7 days.
+          for your account, your username and display name, and your access groups. Distant Signal does not store your
+          profile picture. Each time you log in it also saves the access key the provider gives it (and a key to renew
+          it, if the provider gives one). Nothing uses them. It removes them every night, so they are held for up to
+          about 24 hours, and also deletes them if your login service account is deleted. Our login service keeps a log
+          of logins and other account activity, including your IP address, browser details, approximate location and
+          internet provider, and deletes it after {LEGAL_CONFIG.SSO_LOG_RETENTION}. It keeps your account until you ask
+          us to delete it (see Your rights). Its database is also backed up each night. The copies are encrypted and
+          kept for 7 days.
         </Text>
         <Text>
-          When we moved logging in to this service, we copied the Discord account ID of each existing account from the
-          login service we used before. That lets your first login through the new service open your existing account,
-          with everything in it, rather than a new empty one.
+          When we moved logging in to this service, we used the Discord account ID of each existing account from the
+          login service we used before, once, to link your first login through the new service to your existing account,
+          with everything in it, rather than a new empty one. We have now deleted the copies we held.
         </Text>
       </LegalSection>
 

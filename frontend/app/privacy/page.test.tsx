@@ -110,10 +110,9 @@ describe('PrivacyPage assistant connection', () => {
   });
 });
 
-// DS-301: the move of public login to a login service of its own. The api
-// keeps the Discord account ID (users.discord_id) for account continuity,
-// so the notice has to say so before the ids are loaded.
-describe('PrivacyPage login service and Discord account ID', () => {
+// DS-301: the move of public login to a login service of its own. The api no
+// longer holds the Discord account ID, so the notice must not say it does.
+describe('PrivacyPage login service', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -123,15 +122,14 @@ describe('PrivacyPage login service and Discord account ID', () => {
     renderWithMantine(<PrivacyPage />);
   }
 
-  it('lists the Discord account ID in the account data and says what it is for', () => {
+  it('no longer lists a Discord account ID in the account data', () => {
     render();
     const text = retentionText('Your account');
-    expect(text).toMatch(/If you log in with Discord, also your Discord account ID/);
-    expect(text).toMatch(/not your Discord username/);
-    expect(text).toMatch(/If you log in with Discord, we use your Discord account ID only to recognise your account/);
+    expect(text).not.toMatch(/Discord/);
+    expect(text).toMatch(/Why: To create and run your account\./);
   });
 
-  it('describes the login service and the copy of Discord account IDs from the previous one', () => {
+  it('describes the login service and says the copied Discord account IDs are deleted', () => {
     render();
     const text = retentionText('Logging in');
     expect(text).toMatch(/used only for Distant Signal and is run by us/);
@@ -143,7 +141,7 @@ describe('PrivacyPage login service and Discord account ID', () => {
     );
     expect(text).toMatch(/asks Google for only your name and account ID, not your email address or profile picture/);
     expect(text).toMatch(
-      /It gives Distant Signal an ID for your account, your username and display name, your access groups and, if you log in with Discord, your Discord account ID\. Distant Signal does not store your profile picture/,
+      /It gives Distant Signal an ID for your account, your username and display name, and your access groups\. Distant Signal does not store your profile picture/,
     );
     expect(text).toMatch(
       /IP address, browser details, approximate location and internet provider, and deletes it after /,
@@ -160,8 +158,10 @@ describe('PrivacyPage login service and Discord account ID', () => {
     expect(text).toMatch(/keeps your account until you ask us to delete it \(see Your rights\)/);
     expect(text).toMatch(/backed up each night\. The copies are encrypted and kept for 7 days/);
     expect(text).toMatch(
-      /copied the Discord account ID of each existing account from the login service we used before/,
+      /we used the Discord account ID of each existing account from the login service we used before, once, to link your first login/,
     );
+    expect(text).toMatch(/We have now deleted the copies we held/);
+    expect(text).not.toMatch(/if you log in with Discord, your Discord account ID/);
   });
 
   it('says deleting the account leaves the login service account, and how to have it deleted', () => {
