@@ -63,6 +63,13 @@ The classes and what is expected of the second request:
 | proxied catalogue reads | `/api/stations/index`, `/api/transit/networks` | HIT once cached (proposal 4) |
 | public line status | `/Line/Mode/tube/Status` | HIT once cached (proposal 2) |
 
+The station board (`/api/stations/{crs}/board`) is on the proxy's public-cache
+allowlist but not in this script: no browser fetches it yet. When one does, it
+should show `public, s-maxage=20` and a HIT within 20 seconds of a MISS; a
+cookie request, a 404 (board switched off) and any query other than `limit`,
+`date` and `operator` are `private, no-store`. The reasoning is in
+[api-proxy-public-cache.md](api-proxy-public-cache.md).
+
 ## What the results mean
 
 - **PASS**: the second request matched the expectation.

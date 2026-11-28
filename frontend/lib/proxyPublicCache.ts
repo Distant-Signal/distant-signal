@@ -27,6 +27,10 @@
  *    `MAX_PUBLIC_CACHE_SECONDS`. Anything else on a candidate falls back to
  *    rule 2.
  * 4. A public response carries no `Set-Cookie`.
+ * 5. An entry with a query rule is a candidate only for a query the rule
+ *    accepts, checked on the raw string, so an unknown key (a cache-buster
+ *    the api ignores), a repeated key or an alternative encoding can never
+ *    mint a new cache key.
  *
  * Cloudflare ignores `Vary` (beyond `Accept-Encoding`), so the Cache Rule in
  * front must itself skip requests carrying the session cookie; this policy
@@ -52,8 +56,56 @@ export const MAX_PUBLIC_CACHE_SECONDS = 3600;
 /** One proxied path that may be publicly cached: the `/api/...` segments
  * (exact, case-sensitive, no wildcards, no path parameters) and why. */
 export interface PublicCacheEntry {
+  /** Exact segments; `CRS_SEGMENT` stands for one upper-case CRS code. */
   readonly segments: readonly string[];
   readonly why: string;
+  /** The raw query string (with its `?`, or empty) the entry accepts. Absent:
+   * any query, as the catalogue routes take at most `?network=`. */
+  readonly acceptsQuery?: (search: string) => boolean;
+  /** A lower ceiling (seconds) than `MAX_PUBLIC_CACHE_SECONDS`, for a
+   * short-lived route. */
+  readonly maxSeconds?: number;
+}
+
+/** The one path parameter an entry may have: a station's CRS code, three
+ * upper-case letters (the form every frontend link uses). */
+export const CRS_SEGMENT = ':crs';
+const CRS_PATTERN = /^[A-Z]{3}$/;
+
+/** The station board's query (`GET /public/stations/{crs}/board`): only the
+ * api's own `limit`, `date` and `operator`, each at most once, each in the
+ * canonical spelling, checked on the raw string. The api ignores unknown
+ * keys, so without this a cache-buster (`?x=1`, `?x=2`...) would be a new
+ * cache key per request and a way around the cache to the api's database.
+ * Anything else is merely not cached, never refused. */
+export function boardQueryIsCanonical(search: string): boolean {
+  if (search === '' || search === '?') return true;
+  if (!search.startsWith('?')) return false;
+  const seen = new Set<string>();
+  for (const pair of search.slice(1).split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq === -1) return false;
+    const key = pair.slice(0, eq);
+    const value = pair.slice(eq + 1);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    if (key === 'limit') {
+      // 1 to 30 (the api clamps above, 400s below).
+      if (!/^[1-9]\d?$/.test(value) || Number(value) > 30) return false;
+    } else if (key === 'date') {
+      if (!/^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value)) return false;
+    } else if (key === 'operator') {
+      // ATOC codes, comma-separated, strictly ascending: one spelling per
+      // set, so the order cannot split the key.
+      const codes = value.split(',');
+      if (codes.length > 30) return false;
+      if (!codes.every((code) => /^[A-Z0-9]{2}$/.test(code))) return false;
+      if (codes.some((code, i) => i > 0 && (codes[i - 1] ?? '') >= code)) return false;
+    } else {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -130,6 +182,16 @@ export const PUBLIC_CACHE_ALLOWLIST: readonly PublicCacheEntry[] = [
     segments: ['Trips', 'operators'],
     why: 'api: public, max-age=300 (PLANNER_OPERATORS_CACHE_CONTROL), no auth extractor',
   },
+  {
+    // routes/station_board.rs: `GET /public/stations/{crs}/board`, no auth
+    // extractor, no user data, the same for everyone. Reached as
+    // `/api/stations/{crs}/board` (the proxy prepends `/public`). 404 while
+    // the api's switch is off and 400 for a bad query: both locked by rule 3.
+    segments: ['stations', CRS_SEGMENT, 'board'],
+    why: 'api: public, s-maxage=20, stale-while-revalidate=30; anonymous, identical for every caller',
+    acceptsQuery: boardQueryIsCanonical,
+    maxSeconds: 60,
+  },
 ];
 
 type Env = Record<string, string | undefined>;
@@ -150,19 +212,35 @@ export function carriesCredentials(headers: Headers): boolean {
   return cookie.includes(SESSION_COOKIE_NAME) || cookie.includes(LOGIN_STATE_COOKIE_NAME);
 }
 
-function onAllowlist(path: readonly string[]): boolean {
-  return PUBLIC_CACHE_ALLOWLIST.some(
-    (entry) => entry.segments.length === path.length && entry.segments.every((segment, i) => segment === path[i]),
+function entryFor(path: readonly string[]): PublicCacheEntry | undefined {
+  return PUBLIC_CACHE_ALLOWLIST.find(
+    (entry) =>
+      entry.segments.length === path.length &&
+      entry.segments.every((segment, i) =>
+        segment === CRS_SEGMENT ? CRS_PATTERN.test(path[i] ?? '') : segment === path[i],
+      ),
   );
+}
+
+/** The lifetime ceiling (seconds) for an allowlisted path. */
+export function publicCacheCeilingFor(path: readonly string[]): number {
+  return entryFor(path)?.maxSeconds ?? MAX_PUBLIC_CACHE_SECONDS;
 }
 
 /** Whether a request may have a publicly cacheable response (rule 1). Compares
  * the decoded catch-all segments one by one, so an encoded `%2F` inside one
  * segment can never spell an allowlisted path. */
-export function isPublicCacheCandidate(method: string, path: readonly string[], headers: Headers): boolean {
+export function isPublicCacheCandidate(
+  method: string,
+  path: readonly string[],
+  headers: Headers,
+  search = '',
+): boolean {
   if (method !== 'GET' && method !== 'HEAD') return false;
   if (carriesCredentials(headers)) return false;
-  return onAllowlist(path);
+  const entry = entryFor(path);
+  if (entry === undefined) return false;
+  return entry.acceptsQuery === undefined || entry.acceptsQuery(search);
 }
 
 /** The lifetimes in a `Cache-Control` value, or null when it is not a clean
@@ -207,13 +285,17 @@ export interface PublicCacheHeaders {
 /** Rule 3: the public headers for a candidate's upstream response, or null
  * when it must be locked down instead. Only 200 and 304 qualify, so no error
  * response is ever public. */
-export function publicCacheHeadersFor(status: number, upstream: Headers): PublicCacheHeaders | null {
+export function publicCacheHeadersFor(
+  status: number,
+  upstream: Headers,
+  ceiling = MAX_PUBLIC_CACHE_SECONDS,
+): PublicCacheHeaders | null {
   if (status !== 200 && status !== 304) return null;
   const lifetimes = publicLifetimes(upstream.get('cache-control'));
   if (lifetimes === null) return null;
   const parts = ['public'];
-  if (lifetimes.maxAge !== undefined) parts.push(`max-age=${Math.min(lifetimes.maxAge, MAX_PUBLIC_CACHE_SECONDS)}`);
-  if (lifetimes.sMaxAge !== undefined) parts.push(`s-maxage=${Math.min(lifetimes.sMaxAge, MAX_PUBLIC_CACHE_SECONDS)}`);
+  if (lifetimes.maxAge !== undefined) parts.push(`max-age=${Math.min(lifetimes.maxAge, ceiling)}`);
+  if (lifetimes.sMaxAge !== undefined) parts.push(`s-maxage=${Math.min(lifetimes.sMaxAge, ceiling)}`);
   return {
     cacheControl: parts.join(', '),
     vary: upstream.get('vary'),

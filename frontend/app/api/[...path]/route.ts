@@ -7,7 +7,13 @@ import { recordApiBuild } from '@/lib/buildMix';
 import { MIN_BUILD_HEADER } from '@/lib/buildEpoch';
 import { configuredMinBuild } from '@/lib/minBuild';
 import { createLogger } from '@/lib/logger';
-import { isPublicCacheCandidate, lockDown, publicCacheEnabled, publicCacheHeadersFor } from '@/lib/proxyPublicCache';
+import {
+  isPublicCacheCandidate,
+  lockDown,
+  publicCacheCeilingFor,
+  publicCacheEnabled,
+  publicCacheHeadersFor,
+} from '@/lib/proxyPublicCache';
 
 // Client Components can't read `API_BASE_URL` (server-only env var, not
 // inlined into the browser bundle unless prefixed `NEXT_PUBLIC_`), so
@@ -287,7 +293,7 @@ async function proxyUpstream(req: NextRequest, path: string[]): Promise<NextResp
   // header is among those relayed below, so neither reaches the api.
   recordApiBuild(req.headers.get(BUILD_ID_HEADER), req.headers.get('sec-fetch-site'));
   const cachePolicyOn = publicCacheEnabled();
-  const cacheCandidate = cachePolicyOn && isPublicCacheCandidate(req.method, path, req.headers);
+  const cacheCandidate = cachePolicyOn && isPublicCacheCandidate(req.method, path, req.headers, req.nextUrl.search);
   // Every response the proxy generates itself is private, flag or no flag.
   const locked = (res: NextResponse): NextResponse => {
     lockDown(res.headers);
@@ -544,7 +550,9 @@ async function proxyUpstream(req: NextRequest, path: string[]): Promise<NextResp
   // (publicCacheHeadersFor); it then carries the api's validators and `Vary`
   // and no `Set-Cookie`. Every other response is private, and keeps its
   // `Set-Cookie`s as before.
-  const publicHeaders = cacheCandidate ? publicCacheHeadersFor(response.status, response.headers) : null;
+  const publicHeaders = cacheCandidate
+    ? publicCacheHeadersFor(response.status, response.headers, publicCacheCeilingFor(path))
+    : null;
   if (cachePolicyOn) {
     if (publicHeaders === null) {
       lockDown(responseHeaders);

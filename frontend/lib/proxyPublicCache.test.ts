@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  CRS_SEGMENT,
   MAX_PUBLIC_CACHE_SECONDS,
   PUBLIC_CACHE_ALLOWLIST,
+  boardQueryIsCanonical,
   carriesCredentials,
   isPublicCacheCandidate,
+  publicCacheCeilingFor,
   publicCacheEnabled,
   publicCacheHeadersFor,
   publicLifetimes,
@@ -38,13 +41,15 @@ describe('PUBLIC_CACHE_ALLOWLIST', () => {
       'Trips/station-groups',
       'Trips/operator-groups',
       'Trips/operators',
+      'stations/:crs/board',
     ]);
   });
 
-  it('has no wildcard, parameter or empty segment, and a reason for each entry', () => {
+  it('has no wildcard or empty segment, only the CRS parameter, and a reason for each entry', () => {
     for (const entry of PUBLIC_CACHE_ALLOWLIST) {
       expect(entry.why.length).toBeGreaterThan(0);
       for (const segment of entry.segments) {
+        if (segment === CRS_SEGMENT) continue;
         expect(segment).toMatch(/^[A-Za-z0-9-]+$/);
       }
     }
@@ -81,16 +86,21 @@ describe('isPublicCacheCandidate', () => {
 
   it('accepts GET and HEAD of every allowlisted path with no credentials', () => {
     for (const entry of PUBLIC_CACHE_ALLOWLIST) {
-      expect(isPublicCacheCandidate('GET', entry.segments, anon)).toBe(true);
-      expect(isPublicCacheCandidate('HEAD', entry.segments, anon)).toBe(true);
+      const path = entry.segments.map((segment) => (segment === CRS_SEGMENT ? 'PAD' : segment));
+      expect(isPublicCacheCandidate('GET', path, anon)).toBe(true);
+      expect(isPublicCacheCandidate('HEAD', path, anon)).toBe(true);
     }
   });
 
   it('rejects every allowlisted path when a session cookie or Authorization is present', () => {
     for (const entry of PUBLIC_CACHE_ALLOWLIST) {
-      expect(isPublicCacheCandidate('GET', entry.segments, new Headers({ cookie: 'distant_signal_session=abc' }))).toBe(
-        false,
-      );
+      expect(
+        isPublicCacheCandidate(
+          'GET',
+          entry.segments.map((s) => (s === CRS_SEGMENT ? 'PAD' : s)),
+          new Headers({ cookie: 'distant_signal_session=abc' }),
+        ),
+      ).toBe(false);
       expect(isPublicCacheCandidate('GET', entry.segments, new Headers({ authorization: 'Bearer x' }))).toBe(false);
     }
   });
@@ -115,6 +125,94 @@ describe('isPublicCacheCandidate', () => {
 
   it('does not let a decoded slash inside one segment spell an allowlisted path', () => {
     expect(isPublicCacheCandidate('GET', ['stations/index'], anon)).toBe(false);
+  });
+});
+
+describe('the station board entry', () => {
+  const anon = new Headers();
+  const board = (crs: string): string[] => ['stations', crs, 'board'];
+
+  it('matches one upper-case CRS and nothing else in that slot', () => {
+    expect(isPublicCacheCandidate('GET', board('PAD'), anon)).toBe(true);
+    for (const bad of ['pad', 'PADD', 'PA', 'P1D', '', 'PA%2F', 'index', 'codes']) {
+      expect(isPublicCacheCandidate('GET', board(bad), anon)).toBe(false);
+    }
+    expect(isPublicCacheCandidate('GET', ['stations', 'PAD'], anon)).toBe(false);
+    expect(isPublicCacheCandidate('GET', ['stations', 'PAD', 'board', 'x'], anon)).toBe(false);
+    expect(isPublicCacheCandidate('GET', ['stations', 'PAD', 'departures'], anon)).toBe(false);
+    expect(isPublicCacheCandidate('GET', ['public', 'stations', 'PAD', 'board'], anon)).toBe(false);
+  });
+
+  it('is never a candidate for a signed-in request or a non-GET', () => {
+    expect(isPublicCacheCandidate('GET', board('PAD'), new Headers({ cookie: 'distant_signal_session=x' }))).toBe(
+      false,
+    );
+    expect(isPublicCacheCandidate('POST', board('PAD'), anon)).toBe(false);
+  });
+
+  it('accepts the api query in its canonical spelling', () => {
+    for (const search of [
+      '',
+      '?',
+      '?limit=8',
+      '?limit=30&date=2026-11-28',
+      '?date=2026-11-28&operator=GW',
+      '?limit=1&operator=GW,SW,XC',
+    ]) {
+      expect(boardQueryIsCanonical(search)).toBe(true);
+      expect(isPublicCacheCandidate('GET', board('PAD'), anon, search)).toBe(true);
+    }
+  });
+
+  it('refuses a query that could mint a new cache key for the same answer', () => {
+    for (const search of [
+      '?x=1',
+      '?limit=8&x=1',
+      '?limit=8&limit=9',
+      '?limit=0',
+      '?limit=31',
+      '?limit=08',
+      '?limit=abc',
+      '?limit=',
+      '?%6Cimit=8',
+      '?limit=%38',
+      '?date=2026-13-01',
+      '?date=2026-11-28T00:00',
+      '?operator=gw',
+      '?operator=SW,GW',
+      '?operator=GW,GW',
+      '?operator=GW%2CSW',
+      '?operator=GWR',
+      '?limit',
+      'limit=8',
+    ]) {
+      expect(boardQueryIsCanonical(search)).toBe(false);
+      expect(isPublicCacheCandidate('GET', board('PAD'), anon, search)).toBe(false);
+    }
+    const codes = (n: number): string =>
+      Array.from({ length: n }, (_, i) => `A${String.fromCharCode(65 + i)}`).join(',');
+    expect(boardQueryIsCanonical(`?operator=${codes(26)}`)).toBe(true);
+    const thirtyOne = `${codes(26)},B0,B1,B2,B3,B4`;
+    expect(boardQueryIsCanonical(`?operator=${thirtyOne}`)).toBe(false);
+  });
+
+  it('caps its lifetime at 60 seconds, the rest at the global ceiling', () => {
+    expect(publicCacheCeilingFor(board('PAD'))).toBe(60);
+    expect(publicCacheCeilingFor(['lines'])).toBe(MAX_PUBLIC_CACHE_SECONDS);
+    const got = publicCacheHeadersFor(
+      200,
+      new Headers({ 'Cache-Control': 'public, s-maxage=20, stale-while-revalidate=30' }),
+      60,
+    );
+    expect(got?.cacheControl).toBe('public, s-maxage=20');
+    expect(
+      publicCacheHeadersFor(200, new Headers({ 'Cache-Control': 'public, s-maxage=3600' }), 60)?.cacheControl,
+    ).toBe('public, s-maxage=60');
+  });
+
+  it('never caches a 404 (the api switch off) or a 400', () => {
+    const cc = new Headers({ 'Cache-Control': 'public, s-maxage=20' });
+    for (const status of [400, 404, 429, 503]) expect(publicCacheHeadersFor(status, cc, 60)).toBeNull();
   });
 });
 
