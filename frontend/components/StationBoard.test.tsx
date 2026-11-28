@@ -40,9 +40,17 @@ function board(departures: StationBoardDeparture[], extra: Partial<Board> = {}):
   };
 }
 
-function renderBoard(data: Board) {
-  return renderWithMantine(<StationBoard board={data} crs="PAD" fallbackName="London Paddington" />);
+function renderBoard(
+  data: Board,
+  extra: { operator?: string | null; operators?: { value: string; label: string }[] } = {},
+) {
+  return renderWithMantine(<StationBoard board={data} crs="PAD" fallbackName="London Paddington" {...extra} />);
 }
+
+const TWO_OPERATORS = [
+  { value: 'GW', label: 'Great Western Railway' },
+  { value: 'XC', label: 'CrossCountry' },
+];
 
 describe('StationBoard', () => {
   const rows = [
@@ -175,5 +183,38 @@ describe('StationBoard', () => {
     renderBoard(board([]));
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.getByText('No more departures listed for today.')).toBeInTheDocument();
+  });
+
+  describe('operator filter', () => {
+    it('is a labelled select and a Show button in a GET form, with every operator and All operators', () => {
+      renderBoard(board(rows), { operators: TWO_OPERATORS });
+      const select = screen.getByRole('combobox', { name: 'Operator' });
+      expect(select).toHaveAttribute('name', 'operator');
+      expect(select).toHaveValue('');
+      expect(
+        within(select)
+          .getAllByRole('option')
+          .map((o) => o.textContent),
+      ).toEqual(['All operators', 'Great Western Railway', 'CrossCountry']);
+      const form = select.closest('form');
+      expect(form).toHaveAttribute('method', 'get');
+      expect(form).toHaveAttribute('action', '/stations/PAD#board');
+      expect(within(form as HTMLElement).getByRole('button', { name: 'Show' })).toHaveAttribute('type', 'submit');
+    });
+
+    it('is hidden when the board has fewer than two operators', () => {
+      renderBoard(board(rows), { operators: [TWO_OPERATORS[0]!] });
+      expect(screen.queryByRole('combobox', { name: 'Operator' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show' })).toBeNull();
+    });
+
+    it('names the chosen operator in the heading, selects it, and says so when it has no rows', () => {
+      renderBoard(board([]), { operator: 'GW', operators: TWO_OPERATORS });
+      expect(
+        screen.getByRole('heading', { name: 'Departures from London Paddington, Great Western Railway' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Operator' })).toHaveValue('GW');
+      expect(screen.getByText('No more departures listed for Great Western Railway today.')).toBeInTheDocument();
+    });
   });
 });

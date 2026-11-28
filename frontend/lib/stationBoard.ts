@@ -118,6 +118,37 @@ export function boardRow(row: StationBoardDeparture, index: number): BoardRowVie
   };
 }
 
+/** `?operator=`: one ATOC code, two upper-case letters. Anything else (junk,
+ * lower case, a list, empty) is no filter. */
+export function parseOperatorParam(raw: string | string[] | undefined): string | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value !== undefined && /^[A-Z]{2}$/.test(value) ? value : null;
+}
+
+export interface OperatorOption {
+  value: string;
+  label: string;
+}
+
+/** The operators on a board's rows, once each and sorted by name. */
+export function operatorOptions(departures: readonly StationBoardDeparture[]): OperatorOption[] {
+  const byCode = new Map<string, string>();
+  for (const row of departures) {
+    if (row.operator !== null && !byCode.has(row.operator)) {
+      byCode.set(row.operator, row.operatorName ?? row.operator);
+    }
+  }
+  return [...byCode]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value));
+}
+
+/** The picker is for a board with a choice to make; a filtered board keeps
+ * it so the visitor can get back to all operators. */
+export function showOperatorFilter(options: readonly OperatorOption[], operator: string | null): boolean {
+  return options.length >= 2 || operator !== null;
+}
+
 export interface BoardView {
   heading: string;
   rows: BoardRowView[];
@@ -129,10 +160,10 @@ export interface BoardView {
 
 /** The board as the page shows it. `fallbackName` is the station's own name
  * for a board that carries none. */
-export function boardView(board: StationBoard, fallbackName: string): BoardView {
+export function boardView(board: StationBoard, fallbackName: string, operatorLabel: string | null = null): BoardView {
   const name = board.name ?? fallbackName;
   return {
-    heading: `Departures from ${name}`,
+    heading: operatorLabel === null ? `Departures from ${name}` : `Departures from ${name}, ${operatorLabel}`,
     rows: board.departures.map(boardRow),
     updated: `Updated ${formatTime(board.generatedAt)}`,
     attribution: board.attribution.map((entry) => entry.text),

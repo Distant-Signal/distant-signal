@@ -1,10 +1,30 @@
-import { Stack, Table, TableTbody, TableTd, TableTh, TableThead, TableTr, Text, VisuallyHidden } from '@mantine/core';
+import {
+  Button,
+  Group,
+  NativeSelect,
+  Stack,
+  Table,
+  TableTbody,
+  TableTd,
+  TableTh,
+  TableThead,
+  TableTr,
+  Text,
+  VisuallyHidden,
+} from '@mantine/core';
 import { CheckIcon } from './CheckIcon';
 import { NationalRailCredit } from './NationalRailCredit';
 import { SectionTitle } from './SectionTitle';
 import { TextLink } from './TextLink';
 import { WarningIcon } from './WarningIcon';
-import { boardView, type BoardPlatform, type BoardStatus, type BoardTime } from '@/lib/stationBoard';
+import {
+  boardView,
+  showOperatorFilter,
+  type BoardPlatform,
+  type BoardStatus,
+  type BoardTime,
+  type OperatorOption,
+} from '@/lib/stationBoard';
 import { stationDeparturesHref } from '@/lib/stationDepartures';
 import type { StationBoard as StationBoardData } from '@/lib/types';
 import classes from './StationBoard.module.css';
@@ -157,19 +177,47 @@ export function StationBoard({
   board,
   crs,
   fallbackName,
+  operator = null,
+  operators = [],
 }: {
   board: StationBoardData;
   crs: string;
   fallbackName: string;
+  /** The ATOC code the board is filtered to, if any. */
+  operator?: string | null;
+  /** The operators the visitor can pick from (see `operatorOptions`). */
+  operators?: OperatorOption[];
 }) {
-  const view = boardView(board, fallbackName);
+  const operatorLabel = operator === null ? null : (operators.find((o) => o.value === operator)?.label ?? operator);
+  const view = boardView(board, fallbackName, operatorLabel);
   const headingId = 'station-board-heading';
   const credits = view.attribution.filter((text) => !text.includes('NationalRail'));
   return (
     <Stack gap="xs" id="board" component="section" aria-labelledby={headingId}>
       <SectionTitle id={headingId}>{view.heading}</SectionTitle>
+      {showOperatorFilter(operators, operator) && (
+        // A plain GET form, so it works without JavaScript.
+        <form method="get" action={`/stations/${crs}#board`}>
+          <Group align="flex-end" gap="xs" wrap="nowrap">
+            <NativeSelect
+              name="operator"
+              label="Operator"
+              data={[{ value: '', label: 'All operators' }, ...operators]}
+              defaultValue={operator ?? ''}
+              classNames={{ root: classes.filterField, input: classes.filterControl }}
+            />
+            <Button type="submit" variant="default" className={classes.filterControl}>
+              Show
+            </Button>
+          </Group>
+        </form>
+      )}
       {view.rows.length === 0 ? (
-        <Text c="dimmed">No more departures listed for today.</Text>
+        <Text c="dimmed">
+          {operatorLabel === null
+            ? 'No more departures listed for today.'
+            : `No more departures listed for ${operatorLabel} today.`}
+        </Text>
       ) : (
         <Table className={classes.table} aria-label={view.heading}>
           <TableThead>

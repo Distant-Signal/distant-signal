@@ -878,8 +878,9 @@ const STATION_BOARD_TIMEOUT_MS = 3_000;
  * `ApiNotFoundError` while the api's switch is off and when the station has
  * no timetable for the day; the station page treats every failure the same
  * way and simply leaves the board out. */
-export async function getStationBoard(crs: string, limit: number): Promise<StationBoard> {
+export async function getStationBoard(crs: string, limit: number, operator?: string): Promise<StationBoard> {
   const params = new URLSearchParams({ limit: String(limit) });
+  if (operator !== undefined) params.set('operator', operator);
   return fetchJson<StationBoard>(
     `${baseUrl()}/public/stations/${encodeURIComponent(crs)}/board?${params.toString()}`,
     { next: { revalidate: STATION_BOARD_REVALIDATE_SECONDS } },

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { boardPlatform, boardRow, boardStatus, boardView } from './stationBoard';
+import {
+  boardPlatform,
+  boardRow,
+  boardStatus,
+  boardView,
+  operatorOptions,
+  parseOperatorParam,
+  showOperatorFilter,
+} from './stationBoard';
 import type { StationBoard, StationBoardDeparture } from './types';
 
 function departure(overrides: Partial<StationBoardDeparture> = {}): StationBoardDeparture {
@@ -147,5 +155,54 @@ describe('boardView', () => {
 
   it('falls back to the station name the page knows', () => {
     expect(boardView({ ...board, name: null }, 'London Paddington').heading).toBe('Departures from London Paddington');
+  });
+});
+
+describe('operator filter', () => {
+  it('reads only a two-letter upper-case code from the query', () => {
+    expect(parseOperatorParam('GW')).toBe('GW');
+    expect(parseOperatorParam(['SW', 'GW'])).toBe('SW');
+    for (const bad of [undefined, '', 'gw', 'G', 'GWR', 'G1', 'GW,SW', ' GW', 'GW\n']) {
+      expect(parseOperatorParam(bad)).toBeNull();
+    }
+  });
+
+  it('lists each operator on the rows once, sorted by name', () => {
+    const options = operatorOptions([
+      departure({ operator: 'GW', operatorName: 'Great Western Railway' }),
+      departure({ operator: 'SW', operatorName: 'South Western Railway' }),
+      departure({ operator: 'GW', operatorName: 'Great Western Railway' }),
+      departure({ operator: 'XC', operatorName: null }),
+      departure({ operator: null, operatorName: null }),
+      departure({ operator: 'GR', operatorName: 'LNER' }),
+    ]);
+    expect(options).toEqual([
+      { value: 'GW', label: 'Great Western Railway' },
+      { value: 'GR', label: 'LNER' },
+      { value: 'SW', label: 'South Western Railway' },
+      { value: 'XC', label: 'XC' },
+    ]);
+  });
+
+  it('shows the picker for two operators or a filtered board, not for one', () => {
+    const one = [{ value: 'GW', label: 'Great Western Railway' }];
+    expect(showOperatorFilter(one, null)).toBe(false);
+    expect(showOperatorFilter([], null)).toBe(false);
+    expect(showOperatorFilter([...one, { value: 'SW', label: 'South Western Railway' }], null)).toBe(true);
+    expect(showOperatorFilter(one, 'GW')).toBe(true);
+  });
+
+  it('puts the operator in the heading', () => {
+    const board: StationBoard = {
+      crs: 'PAD',
+      name: 'London Paddington',
+      serviceDate: '2026-11-28',
+      generatedAt: '2026-11-28T10:00:07Z',
+      departures: [],
+      attribution: [],
+    };
+    expect(boardView(board, 'PAD', 'Great Western Railway').heading).toBe(
+      'Departures from London Paddington, Great Western Railway',
+    );
   });
 });
