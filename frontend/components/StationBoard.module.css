@@ -1,0 +1,91 @@
+/* The station board: time, destination, platform, status. The operator sits
+   under the destination on a phone and has its own column from `sm`. */
+
+.table {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  vertical-align: top;
+}
+
+.time {
+  white-space: nowrap;
+}
+
+.struck {
+  text-decoration: line-through;
+}
+
+.expected {
+  display: block;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+.nextDay {
+  margin-left: 1px;
+  font-size: 0.7em;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.destination {
+  overflow-wrap: anywhere;
+}
+
+.operator {
+  display: block;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+/* The phone's operator line and the desktop's column: one shown at a time,
+   so neither is read twice. */
+.operatorColumn {
+  display: none;
+}
+
+@media (min-width: 48em) {
+  .operatorColumn {
+    display: table-cell;
+  }
+
+  .operatorInline {
+    display: none;
+  }
+}
+
+.platformBox {
+  display: inline-block;
+  min-width: 2.25rem;
+  padding: 2px 8px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.platformNote {
+  display: block;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.statusIcon {
+  flex: none;
+  margin-top: 3px;
+}
+
+.statusNegative {
+  font-weight: 600;
+}

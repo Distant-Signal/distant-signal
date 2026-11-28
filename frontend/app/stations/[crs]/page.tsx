@@ -11,6 +11,7 @@ import {
   getStationAccessibility,
   getAllTocs,
   getStationDayTimetable,
+  getStationBoard,
   getTransitRailLinks,
   getPreviewStopPointDisruption,
   ApiNotFoundError,
@@ -46,6 +47,9 @@ import {
   type StationFacts,
   type TimetableSummary,
 } from '@/lib/stationSummary';
+import { StationBoard } from '@/components/StationBoard';
+import { STATION_BOARD_LIMIT } from '@/lib/stationBoard';
+import type { StationBoard as StationBoardData } from '@/lib/types';
 import { StationAbout, StationTimetableSection } from '@/components/StationAbout';
 import { stationDeparturesHref } from '@/lib/stationDepartures';
 import { JsonLd, structuredDataOrigin } from '@/components/JsonLd';
@@ -177,6 +181,19 @@ const fetchStationTimetable = cache(async (crs: string): Promise<TimetableSummar
   }
 });
 
+/** The station's departures board, or `null` for every way it can be
+ * missing: the api's switch is off (404), the station has no timetable for
+ * the day (404), the api is slow or down. The board is an extra, so the page
+ * then renders exactly as it did without it, with no empty section and no
+ * error text. Not stale-served: an old board would be a wrong one. */
+async function fetchStationBoard(crs: string): Promise<StationBoardData | null> {
+  try {
+    return await getStationBoard(crs, STATION_BOARD_LIMIT);
+  } catch {
+    return null;
+  }
+}
+
 /** The station's facilities and accessibility facts for its prose and
  * description, from the hour-cached accessibility read. `null` when there
  * is none (no row, an empty one, an outage). */
@@ -276,6 +293,7 @@ export default async function StationDisruptionPage({ params }: { params: Promis
     tramLinks,
     origin,
     timetable,
+    board,
   ] = await Promise.all([
     fetchStationDisruptions(crs),
     // Per-user, so it fails closed to "nothing pinned" (the shape a 401
@@ -296,6 +314,8 @@ export default async function StationDisruptionPage({ params }: { params: Promis
     // Today's timetable facts, cached for an hour (see the function);
     // run alongside the reads above so it adds no round trip.
     fetchStationTimetable(crs),
+    // The departures board; `null` when the api has none (see the function).
+    fetchStationBoard(crs),
   ]);
   const heading = lookup.outcome === 'found' ? `${lookup.name} (${crs})` : crs;
   // The page shows no departures itself: "Departures" goes to the train
@@ -328,7 +348,7 @@ export default async function StationDisruptionPage({ params }: { params: Promis
     { href: '#disruptions', label: 'Disruptions' },
     ...(stationName !== null && timetable !== null ? [{ href: '#timetable', label: 'Trains today' }] : []),
     { href: '#stats', label: 'Stats' },
-    { href: departuresHref, label: 'Departures' },
+    { href: board !== null ? '#board' : departuresHref, label: 'Departures' },
     { href: '#accessibility', label: 'Accessibility & facilities' },
   ];
 
@@ -379,6 +399,15 @@ export default async function StationDisruptionPage({ params }: { params: Promis
           </Fragment>
         ))}
       </Group>
+
+      {/* Departures first: what most visitors came for. Only when the api
+          answered with a board. */}
+      {board !== null && (
+        <>
+          <StationBoard board={board} crs={crs} fallbackName={stationName ?? crs} />
+          <Divider />
+        </>
+      )}
 
       <StationTramLinks links={tramLinks} />
 

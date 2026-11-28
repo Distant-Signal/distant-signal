@@ -6,7 +6,13 @@ import { StationBrowseIndex } from '../StationBrowse';
 import * as api from '@/lib/api';
 import { ApiNotFoundError } from '@/lib/api';
 import { __resetStaleCacheForTests } from '@/lib/liveDataCache';
-import type { LineStatusReport, StationOperatorSampleStats, TrainSearchPage, TrainSearchResult } from '@/lib/types';
+import type {
+  StationBoard,
+  LineStatusReport,
+  StationOperatorSampleStats,
+  TrainSearchPage,
+  TrainSearchResult,
+} from '@/lib/types';
 import { visibleText } from '@/test/routeText';
 import type { JsonValue } from '@/lib/api-types';
 
@@ -22,6 +28,7 @@ vi.mock('@/lib/api', async () => {
     getStationAccessibility: vi.fn(),
     getAllTocs: vi.fn(),
     getStationDayTimetable: vi.fn(),
+    getStationBoard: vi.fn(),
     getTransitRailLinks: vi.fn(),
   };
 });
@@ -126,6 +133,8 @@ describe('StationDisruptionPage -- outage behaviour', () => {
   beforeEach(() => {
     __resetStaleCacheForTests();
     vi.mocked(api.getStationDayTimetable).mockRejectedValue(new ApiNotFoundError('no schedule'));
+    // The board's switch is off by default: the api answers 404.
+    vi.mocked(api.getStationBoard).mockRejectedValue(new ApiNotFoundError('station board is off'));
     vi.stubGlobal('fetch', vi.fn());
     vi.mocked(api.getStationName).mockResolvedValue('London Kings Cross');
     vi.mocked(api.getPreferences).mockResolvedValue({
@@ -145,6 +154,77 @@ describe('StationDisruptionPage -- outage behaviour', () => {
   it('offers to plan a journey from this station, pre-filling it as the origin', async () => {
     await renderPage();
     expect(screen.getByRole('link', { name: 'Plan a journey from here' })).toHaveAttribute('href', '/plan?origin=KGX');
+  });
+
+  describe('departures board', () => {
+    const board: StationBoard = {
+      crs: 'KGX',
+      name: 'London Kings Cross',
+      serviceDate: '2026-11-28',
+      generatedAt: '2026-11-28T10:00:07Z',
+      departures: [
+        {
+          uid: 'G12345',
+          serviceDate: '2026-11-28',
+          scheduled: '10:06',
+          dayOffset: 0,
+          expected: '10:09',
+          expectedDayOffset: 0,
+          destinationCrs: 'EDB',
+          destinationName: 'Edinburgh',
+          operator: 'GR',
+          operatorName: 'LNER',
+          headcode: '1S23',
+          platform: '4',
+          platformStatus: 'confirmed',
+          status: 'delayed',
+          delayMinutes: 3,
+          isCancelled: false,
+          cancelReason: null,
+        },
+      ],
+      attribution: [
+        {
+          licence: 'LicenseRef-RDM-Data-Sharing-Agreement',
+          text: 'powered by NationalRail (Train Information Services Ltd)',
+        },
+      ],
+    };
+
+    it('puts the board first, ahead of the disruptions, when the api has one', async () => {
+      vi.mocked(api.getStationBoard).mockResolvedValue(board);
+      await renderPage();
+      const section = screen.getByRole('region', { name: 'Departures from London Kings Cross' });
+      expect(within(section).getByRole('table', { name: 'Departures from London Kings Cross' })).toBeInTheDocument();
+      expect(within(section).getByRole('link', { name: 'Later trains' })).toHaveAttribute(
+        'href',
+        '/trains?station=KGX',
+      );
+      const disruptions = document.getElementById('disruptions');
+      expect(section.compareDocumentPosition(disruptions as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const onThisPage = screen.getByRole('navigation', { name: 'On this page' });
+      expect(within(onThisPage).getByRole('link', { name: 'Departures' })).toHaveAttribute('href', '#board');
+      expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10);
+    });
+
+    it('renders the page as before, with no board section or error text, when the api has none', async () => {
+      for (const failure of [new ApiNotFoundError('off'), new Error('boom')]) {
+        vi.mocked(api.getStationBoard).mockRejectedValue(failure);
+        await renderPage();
+        expect(screen.queryByRole('region', { name: /Departures from/ })).toBeNull();
+        expect(screen.queryByRole('table', { name: /Departures from/ })).toBeNull();
+        expect(screen.queryByText('Later trains')).toBeNull();
+        expect(document.getElementById('board')).toBeNull();
+        expect(screen.queryByText(/Couldn't/)).toBeNull();
+        const onThisPage = screen.getByRole('navigation', { name: 'On this page' });
+        expect(within(onThisPage).getByRole('link', { name: 'Departures' })).toHaveAttribute(
+          'href',
+          '/trains?station=KGX',
+        );
+        expect(screen.getByRole('link', { name: 'See departures from London Kings Cross' })).toBeInTheDocument();
+        cleanup();
+      }
+    });
   });
 
   it('links the tram stops to change to, and nothing while there are none', async () => {

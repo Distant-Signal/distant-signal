@@ -36,6 +36,7 @@ import type {
   LineTrainsSummary,
   LineDirection,
   TrainSearchPage,
+  StationBoard,
   TrainSearchDates,
   TrainSearchOperator,
   PlannerOperatorCatalogue,
@@ -862,6 +863,28 @@ export async function getStationDayTimetable(crs: string, date: string, limit: n
   return fetchJson<TrainSearchPage>(`${baseUrl()}/public/trains/search?${params.toString()}`, {
     next: { revalidate: STATION_TIMETABLE_REVALIDATE_SECONDS },
   });
+}
+
+/** How long the station page's board is cached: the api answers with
+ * `s-maxage=20`, so this is the same twenty seconds. */
+export const STATION_BOARD_REVALIDATE_SECONDS = 20;
+
+/** The station board's own, short deadline: the board is an extra on the
+ * station page, so a slow answer must never hold the page back. */
+const STATION_BOARD_TIMEOUT_MS = 3_000;
+
+/** `GET /public/stations/{crs}/board` -- the station's next departures with
+ * live times and platforms laid over the timetable. Throws
+ * `ApiNotFoundError` while the api's switch is off and when the station has
+ * no timetable for the day; the station page treats every failure the same
+ * way and simply leaves the board out. */
+export async function getStationBoard(crs: string, limit: number): Promise<StationBoard> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<StationBoard>(
+    `${baseUrl()}/public/stations/${encodeURIComponent(crs)}/board?${params.toString()}`,
+    { next: { revalidate: STATION_BOARD_REVALIDATE_SECONDS } },
+    STATION_BOARD_TIMEOUT_MS,
+  );
 }
 
 /** `GET /public/trains/search/operators` -- every operator code the train
