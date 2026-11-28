@@ -8,6 +8,7 @@ import { AccountSettingsLoginPrompt } from './AccountSettingsLoginPrompt';
 import { AppearanceSection } from './AppearanceSection';
 import { BankHolidaysSection } from './BankHolidaysSection';
 import { CalendarFeedSection } from './CalendarFeedSection';
+import { ChangeTimeSection } from './ChangeTimeSection';
 import { TimeAwaySection } from './TimeAwaySection';
 import { ClaudeKeySection } from './ClaudeKeySection';
 import { NotificationsSection } from './NotificationsSection';
@@ -37,6 +38,7 @@ export const metadata: Metadata = {
  *   when not.
  * - Account-backed, logged in only: `NotificationsSection`,
  *   `BankHolidaysSection` (whose bank holidays regular journeys skip),
+ *   `ChangeTimeSection` (extra minutes to change trains, DS-757),
  *   `TimeAwaySection` (dates none of their regular journeys runs on),
  *   `CalendarFeedSection` (the opt-in calendar link, only while the api
  *   has it on),
@@ -81,6 +83,7 @@ export default async function PreferencesPage() {
         <>
           <NotificationsSection />
           {preferences && <BankHolidaysSection initial={preferences.bankHolidayDivision} />}
+          {preferences && <ChangeTimeSection initial={preferences.changeExtraMinutes ?? 0} />}
           {timeAway && <TimeAwaySection initial={timeAway} />}
           {calendarFeed && <CalendarFeedSection initialActive={calendarFeed.active} />}
           <ClaudeKeySection />

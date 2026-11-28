@@ -127,6 +127,13 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
       retention: `Tracked trains and journeys: until you delete them or delete your account${travel}.${deleted}${regular} Regular journeys: until you delete them or delete your account. Time away: until the day after it ends, or until you delete it or your account.`,
     },
     {
+      title: 'Your extra time to change trains',
+      what: 'Your extra time to change trains setting, a number of minutes, if you set one.',
+      why: 'To flag journeys where the time between trains is too short for you.',
+      basis: CONTRACT,
+      retention: 'Until you change it or delete your account.',
+    },
+    {
       title: 'Tickets',
       what: "Ticket details you add to a journey's train: the ticket type, whether it is only valid on one train company, and a name if you give one. No price, file or barcode. An Apple Wallet pass you upload to fill these in is read in memory and never stored.",
       why: 'To estimate Delay Repay more closely (a single or a return, and which company to claim from).',

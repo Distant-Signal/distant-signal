@@ -89,6 +89,17 @@ describe('PrivacyPage retention copy', () => {
 
 // The 2026-10-14 delegated-access spec: scopes, expiry, revocation and the
 // 7-day log and 30-day deletion-history retention.
+describe('PrivacyPage extra time to change trains', () => {
+  it('lists the setting as stored for an account', () => {
+    vi.stubEnv('LEGAL_PAGES_PREVIEW', 'true');
+    renderWithMantine(<PrivacyPage />);
+    const text = retentionText('Your extra time to change trains');
+    expect(text).toMatch(/What: Your extra time to change trains setting, a number of minutes, if you set one\./);
+    expect(text).toMatch(/How long: Until you change it or delete your account\./);
+    vi.unstubAllEnvs();
+  });
+});
+
 describe('PrivacyPage assistant connection', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
