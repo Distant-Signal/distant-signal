@@ -105,11 +105,12 @@ describe('StationBoard', () => {
   it('words each row: times, platform, status', () => {
     renderBoard(board(rows));
     const [, delayed, booked, cancelled, onTime] = screen.getAllByRole('row');
-    expect(visibleText(delayed!)).toContain('10:06Exp 10:09');
+    expect(within(delayed!).getAllByRole('cell')[0]!).toHaveTextContent(/^10:06$/);
     expect(delayed!).toHaveTextContent('Platform 4');
     expect(delayed!).not.toHaveTextContent('Platform 4, booked');
-    expect(visibleText(delayed!)).toContain('Delayed 3 min');
-    expect(delayed!).toHaveTextContent('Delayed 3 minutes');
+    expect(visibleText(delayed!)).toContain('Exp 10:09');
+    expect(delayed!).toHaveTextContent('Expected 10:09, 3 minutes late');
+    expect(visibleText(delayed!)).not.toContain('Delayed');
 
     expect(booked!).toHaveTextContent('Platform 9, booked');
     expect(visibleText(booked!)).toContain('booked');
@@ -126,6 +127,89 @@ describe('StationBoard', () => {
     expect(onTime!).toHaveTextContent('Platform 2, expected');
     expect(visibleText(onTime!)).toContain('expected');
     expect(visibleText(delayed!)).not.toMatch(/expected|booked/);
+  });
+
+  it('says an expected time once, in the status, and never under the booked time', () => {
+    renderBoard(
+      board([departure({ uid: 'L1', status: 'delayed', delayMinutes: 13, expected: '10:19', expectedDayOffset: 0 })]),
+    );
+    const [, row] = screen.getAllByRole('row');
+    const [time, , , , status] = within(row!).getAllByRole('cell');
+    expect(time!).toHaveTextContent(/^10:06$/);
+    expect(time!).not.toHaveTextContent(/exp/i);
+    expect(visibleText(row!).match(/Exp /g)).toHaveLength(1);
+    expect(visibleText(status!)).toBe('Exp 10:19');
+    expect(status!).toHaveTextContent('Expected 10:19, 13 minutes late');
+  });
+
+  it('adds "N min late" under the expected time of a very late train, and the +1 of a later day', () => {
+    renderBoard(
+      board([
+        departure({ uid: 'V1', status: 'delayed', delayMinutes: 25, expected: '10:31', expectedDayOffset: 0 }),
+        departure({
+          uid: 'V2',
+          scheduled: '23:50',
+          status: 'delayed',
+          delayMinutes: 20,
+          expected: '00:10',
+          expectedDayOffset: 1,
+        }),
+        departure({ uid: 'V3', status: 'delayed', delayMinutes: null }),
+      ]),
+    );
+    const [, veryLate, pastMidnight, unknown] = screen.getAllByRole('row');
+    expect(visibleText(veryLate!)).toContain('Exp 10:31');
+    expect(visibleText(veryLate!)).toContain('25 min late');
+    expect(visibleText(pastMidnight!)).toContain('Exp 00:10+1');
+    expect(pastMidnight!).toHaveTextContent('Expected 00:10 next day, 20 minutes late');
+    expect(visibleText(unknown!)).toContain('Delayed');
+  });
+
+  it('shows a cancellation with its reason when there is one', () => {
+    renderBoard(
+      board([
+        departure({ uid: 'X1', status: 'cancelled', isCancelled: true, cancelReason: 'A fault with the train' }),
+        departure({ uid: 'X2', status: 'cancelled', isCancelled: true }),
+      ]),
+    );
+    const [, withReason, without] = screen.getAllByRole('row');
+    expect(visibleText(withReason!)).toContain('Cancelled');
+    expect(visibleText(withReason!)).toContain('A fault with the train');
+    expect(visibleText(without!)).toContain('Cancelled');
+    expect(without!.querySelector('[class*="statusDetail"]')).toBeNull();
+    expect(withReason!.querySelector('[class*="struck"]')).not.toBeNull();
+    expect(withReason!.querySelector('[data-icon="cross"]')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps the icons out of the accessible name and sets the status text on one line', () => {
+    renderBoard(board(rows));
+    for (const row of screen.getAllByRole('row').slice(1)) {
+      const status = within(row).getAllByRole('cell')[4]!;
+      for (const icon of status.querySelectorAll('svg')) expect(icon).toHaveAttribute('aria-hidden', 'true');
+      expect(status.querySelector('[class*="statusLine"]')).not.toBeNull();
+    }
+  });
+
+  it('sets a colour tone per severity alongside the words and a different icon for each', () => {
+    renderBoard(
+      board([
+        departure({ uid: 'T1', status: 'onTime', delayMinutes: 0 }),
+        departure({ uid: 'T2', status: 'delayed', delayMinutes: 4, expected: '10:10', expectedDayOffset: 0 }),
+        departure({ uid: 'T3', status: 'delayed', delayMinutes: 12, expected: '10:18', expectedDayOffset: 0 }),
+        departure({ uid: 'T4', status: 'delayed', delayMinutes: 40, expected: '10:46', expectedDayOffset: 0 }),
+        departure({ uid: 'T5', status: 'cancelled', isCancelled: true }),
+        departure({ uid: 'T6', status: 'booked' }),
+      ]),
+    );
+    const rows = screen.getAllByRole('row').slice(1);
+    const tones = rows.map((row) => row.querySelector('[data-tone]')!.getAttribute('data-tone'));
+    expect(tones).toEqual(['good', 'mild', 'late', 'severe', 'severe', 'neutral']);
+    expect(visibleText(rows[1]!)).toContain('Exp 10:10');
+    expect(rows[0]!.querySelector('svg')).not.toBeNull();
+    expect(rows[4]!.querySelector('[data-icon="cross"]')).not.toBeNull();
+    expect(rows[5]!.querySelector('[data-icon="clock"]')).not.toBeNull();
+    expect(rows[4]!.className).toMatch(/rowCancelled/);
+    expect(rows[3]!.className).not.toMatch(/rowCancelled/);
   });
 
   it('shows each platform state with its own box and word, and a missing one as a dash', () => {

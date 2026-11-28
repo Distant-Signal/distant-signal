@@ -6,9 +6,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Baseline, not top: the operator and the status are set in other sizes than
+   the time and destination, and each row reads along one line. */
 .table th,
 .table td {
-  vertical-align: top;
+  vertical-align: baseline;
 }
 
 .time {
@@ -17,12 +19,6 @@
 
 .struck {
   text-decoration: line-through;
-}
-
-.expected {
-  display: block;
-  font-size: var(--mantine-font-size-xs);
-  color: var(--mantine-color-dimmed);
 }
 
 .nextDay {
@@ -52,6 +48,11 @@
 @media (min-width: 48em) {
   .operatorColumn {
     display: table-cell;
+  }
+
+  /* In its own column the operator is the row's size, only dimmed. */
+  .operatorColumn .operator {
+    font-size: inherit;
   }
 
   .operatorInline {
@@ -93,19 +94,79 @@
   color: var(--mantine-color-dimmed);
 }
 
-.status {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+/* The status never wraps: a phone drops the icon (the words carry the
+   meaning) rather than the line breaking. */
+.statusCell {
+  min-width: 5.5rem;
+}
+
+@media (min-width: 48em) {
+  .statusCell {
+    min-width: 8rem;
+  }
+}
+
+.statusLine {
+  white-space: nowrap;
 }
 
 .statusIcon {
-  flex: none;
-  margin-top: 3px;
+  display: none;
+  margin-right: 6px;
+  vertical-align: -3px;
 }
 
-.statusNegative {
-  font-weight: 600;
+@media (min-width: 48em) {
+  .statusIcon {
+    display: inline-block;
+  }
+}
+
+/* Colour reinforces the words and the icon, never replaces them. The tones
+   are the severity palette's text tokens (each with its dark pair, in
+   globals.css): on time green, booked neutral (dimmed), up to 9 minutes late
+   yellow, 10 to 29 orange, 30 or more and cancelled red. */
+.status {
+  color: var(--mantine-color-dimmed);
+}
+
+.status[data-tone='good'] {
+  color: var(--ds-severity-good-text);
+}
+
+.status[data-tone='mild'] {
+  font-weight: 700;
+  color: var(--ds-severity-mild-text);
+}
+
+.status[data-tone='late'] {
+  font-weight: 700;
+  color: var(--ds-delay-late-text);
+}
+
+.status[data-tone='severe'] {
+  font-weight: 700;
+  color: var(--ds-severity-severe-text);
+}
+
+/* A cancelled row's one row-level cue: a muted red bar on its left edge. */
+.rowCancelled > td:first-child {
+  box-shadow: inset 3px 0 0 var(--ds-severity-severe-text);
+}
+
+.statusDetail {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 400;
+  color: inherit;
+}
+
+/* A cancellation's reason is read, not scanned: the default text colour. */
+.status[data-tone='severe'] .statusReason {
+  color: var(--mantine-color-text);
 }
 
 /* The Operator filter: a select and its button, both 44px tall. */

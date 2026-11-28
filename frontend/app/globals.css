@@ -258,6 +258,10 @@ html:root[data-mantine-color-scheme='light'] {
   --ds-severity-planned-text: var(--mantine-color-blue-9);
   --ds-severity-mild-text: var(--mantine-color-yellow-light-color);
   --ds-severity-severe-text: var(--mantine-color-red-9);
+  /* The station board's "10 to 29 minutes late" text, between the yellow and
+     red severity texts: the orange light-variant text colour (#a5370b,
+     6.66:1 on white), as `--ds-chart-delay` is orange in dark. */
+  --ds-delay-late-text: var(--mantine-color-orange-light-color);
 
   /* ---- `StatusBadge`, the filled severity pill -------------------------
      The one place a severity group becomes a pill's fill and label colour
@@ -383,6 +387,8 @@ html:root[data-mantine-color-scheme='dark'] {
   --ds-severity-planned-text: var(--mantine-color-blue-4);
   --ds-severity-mild-text: var(--mantine-color-yellow-4);
   --ds-severity-severe-text: var(--mantine-color-red-4);
+  /* Orange 4: 8.16:1 on the #242424 body, 7.14:1 on a #2e2e2e card. */
+  --ds-delay-late-text: var(--mantine-color-orange-4);
   /* The dark half of the `StatusBadge` fills (see the light block). Gray
      and blue keep Mantine's dark filled shade 8 with white text, which
      already read well (11.51:1 Lc -100.2, 5.02:1 Lc -79.6). Green, yellow

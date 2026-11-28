@@ -62,54 +62,125 @@ describe('boardPlatform', () => {
 });
 
 describe('boardStatus', () => {
-  it('words each of the four statuses', () => {
-    expect(boardStatus(departure({ status: 'onTime', delayMinutes: 0 }))).toMatchObject({
+  it('words on time quietly, and never calls a train with no live data on time', () => {
+    expect(boardStatus(departure({ status: 'onTime', delayMinutes: 0 }))).toEqual({
       kind: 'onTime',
+      tone: 'good',
       text: 'On time',
+      marker: null,
+      spoken: 'On time',
+      detail: null,
     });
-    expect(boardStatus(departure({ status: 'delayed', delayMinutes: 3 }))).toMatchObject({
+    expect(boardStatus(departure({ status: 'booked' }))).toEqual({
+      kind: 'booked',
+      tone: 'neutral',
+      text: 'Booked',
+      marker: null,
+      spoken: 'Booked',
+      detail: null,
+    });
+  });
+
+  it('makes the expected time the status of a late train, with the delay for a screen reader', () => {
+    expect(
+      boardStatus(departure({ status: 'delayed', delayMinutes: 3, expected: '10:09', expectedDayOffset: 0 })),
+    ).toEqual({
       kind: 'delayed',
-      text: 'Delayed 3 min',
-      spoken: 'Delayed 3 minutes',
+      tone: 'mild',
+      text: 'Exp 10:09',
+      marker: null,
+      spoken: 'Expected 10:09, 3 minutes late',
+      detail: null,
     });
-    expect(boardStatus(departure({ status: 'delayed', delayMinutes: 1 })).spoken).toBe('Delayed 1 minute');
-    expect(boardStatus(departure({ status: 'booked' }))).toMatchObject({ kind: 'booked', text: 'Booked' });
+    expect(
+      boardStatus(departure({ status: 'delayed', delayMinutes: 1, expected: '10:07', expectedDayOffset: 0 })).spoken,
+    ).toBe('Expected 10:07, 1 minute late');
   });
 
-  it('says only "Delayed" when the delay is not known', () => {
-    expect(boardStatus(departure({ status: 'delayed', delayMinutes: null })).text).toBe('Delayed');
+  it('adds a visible "min late" line from 15 minutes', () => {
+    const at14 = boardStatus(
+      departure({ status: 'delayed', delayMinutes: 14, expected: '10:20', expectedDayOffset: 0 }),
+    );
+    expect(at14.detail).toBeNull();
+    const at15 = boardStatus(
+      departure({ status: 'delayed', delayMinutes: 15, expected: '10:21', expectedDayOffset: 0 }),
+    );
+    expect(at15).toMatchObject({ text: 'Exp 10:21', detail: '15 min late' });
+    expect(at15.spoken).toBe('Expected 10:21, 15 minutes late');
   });
 
-  it('never calls a train with no live data on time', () => {
-    expect(boardStatus(departure({ status: 'booked' })).text).not.toMatch(/on time/i);
+  it('carries the "+1" and "next day" for an expected time past midnight', () => {
+    const status = boardStatus(
+      departure({ scheduled: '23:50', status: 'delayed', delayMinutes: 20, expected: '00:10', expectedDayOffset: 1 }),
+    );
+    expect(status.text).toBe('Exp 00:10');
+    expect(status.marker).toEqual({ short: '+1', spoken: 'next day' });
+    expect(status.spoken).toBe('Expected 00:10 next day, 20 minutes late');
   });
 
-  it('carries the cancellation reason', () => {
+  it('falls back to the minutes, then to "Delayed", when there is no expected time', () => {
+    expect(boardStatus(departure({ status: 'delayed', delayMinutes: 7 }))).toMatchObject({
+      text: '7 min late',
+      spoken: '7 minutes late',
+      detail: null,
+    });
+    expect(
+      boardStatus(departure({ status: 'delayed', delayMinutes: 7, expected: '10:06', expectedDayOffset: 0 })).text,
+    ).toBe('7 min late');
+    expect(boardStatus(departure({ status: 'delayed', delayMinutes: null }))).toMatchObject({
+      text: 'Delayed',
+      spoken: 'Delayed',
+    });
+    expect(boardStatus(departure({ status: 'delayed', delayMinutes: 0 })).text).toBe('Delayed');
+  });
+
+  it('says only the expected time when the delay is not known', () => {
+    expect(
+      boardStatus(departure({ status: 'delayed', delayMinutes: null, expected: '10:09', expectedDayOffset: 0 })),
+    ).toMatchObject({ text: 'Exp 10:09', spoken: 'Expected 10:09', detail: null });
+  });
+
+  it.each([
+    [1, 'mild'],
+    [9, 'mild'],
+    [10, 'late'],
+    [29, 'late'],
+    [30, 'severe'],
+    [95, 'severe'],
+  ] as const)('tones a %i minute delay %s', (delayMinutes, tone) => {
+    expect(boardStatus(departure({ status: 'delayed', delayMinutes })).tone).toBe(tone);
+  });
+
+  it('tones a delay of unknown length mild', () => {
+    expect(boardStatus(departure({ status: 'delayed', delayMinutes: null })).tone).toBe('mild');
+  });
+
+  it('carries the cancellation reason, or none', () => {
     expect(
       boardStatus(departure({ status: 'cancelled', isCancelled: true, cancelReason: 'A fault with the train' })),
-    ).toEqual({ kind: 'cancelled', text: 'Cancelled', spoken: 'Cancelled', reason: 'A fault with the train' });
+    ).toEqual({
+      kind: 'cancelled',
+      tone: 'severe',
+      text: 'Cancelled',
+      marker: null,
+      spoken: 'Cancelled',
+      detail: 'A fault with the train',
+    });
+    expect(boardStatus(departure({ status: 'cancelled', isCancelled: true })).detail).toBeNull();
   });
 });
 
 describe('boardRow', () => {
-  it('shows the expected time only when it differs', () => {
-    expect(boardRow(departure({ expected: '10:09', expectedDayOffset: 0 }), 0).expected).toEqual({
-      text: '10:09',
-      marker: null,
-    });
-    expect(boardRow(departure({ expected: '10:06', expectedDayOffset: 0, status: 'onTime' }), 0).expected).toBeNull();
-    expect(boardRow(departure(), 0).expected).toBeNull();
+  it('has no expected time of its own: the status carries it', () => {
+    const row = boardRow(departure({ status: 'delayed', delayMinutes: 3, expected: '10:09', expectedDayOffset: 0 }), 0);
+    expect(row).not.toHaveProperty('expected');
+    expect(row.scheduled).toEqual({ text: '10:06', marker: null });
+    expect(row.status.text).toBe('Exp 10:09');
   });
 
   it('marks times past midnight with the "+1" convention', () => {
-    const row = boardRow(departure({ scheduled: '00:15', dayOffset: 1, expected: '00:20', expectedDayOffset: 1 }), 0);
+    const row = boardRow(departure({ scheduled: '00:15', dayOffset: 1 }), 0);
     expect(row.scheduled.marker).toEqual({ short: '+1', spoken: 'next day' });
-    expect(row.expected?.marker).toEqual({ short: '+1', spoken: 'next day' });
-  });
-
-  it('shows an expected time that crossed midnight although the booked time did not', () => {
-    const row = boardRow(departure({ scheduled: '23:58', expected: '23:58', expectedDayOffset: 1 }), 0);
-    expect(row.expected?.marker?.short).toBe('+1');
   });
 
   it('strikes through a cancelled train and shows no expected time', () => {
@@ -118,7 +189,7 @@ describe('boardRow', () => {
       0,
     );
     expect(row.struck).toBe(true);
-    expect(row.expected).toBeNull();
+    expect(row.status.text).toBe('Cancelled');
   });
 
   it('names the destination and the operator, falling back to codes', () => {
