@@ -1,0 +1,27 @@
+/* The whole heading is the target: 44 px tall, flush with the text column
+   like the page's other sections. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  text-align: start;
+}
+
+.chevron {
+  flex: none;
+  transition: none;
+}
+
+[data-open] > h2 .chevron {
+  transform: rotate(180deg);
+}
+
+/* The button above is the section's heading, so the section's own heading
+   inside would say it twice. It stays in the HTML, and the section's id
+   with it. */
+.panel h2 {
+  display: none;
+}
