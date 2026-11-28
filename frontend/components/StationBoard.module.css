@@ -71,13 +71,14 @@
 }
 
 /* Three states told apart by the outline as well as the word under it:
- * confirmed is a solid, full-strength box; expected a dashed one in the
+ * confirmed is a solid, full-strength box; expected and likely a dashed one in the
  * quieter (dimmed) colour; booked a solid one in that colour, unbolded. */
 .confirmed {
   border-style: solid;
 }
 
-.expected {
+.expected,
+.likely {
   border-style: dashed;
   border-color: var(--mantine-color-dimmed);
 }

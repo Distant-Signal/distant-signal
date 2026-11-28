@@ -37,15 +37,22 @@ describe('boardPlatform', () => {
   it.each([
     ['confirmed', 'Platform 4', null],
     ['expected', 'Platform 4, expected', 'expected'],
+    ['likely', 'Platform 4, likely', 'likely'],
     ['booked', 'Platform 4, booked', 'booked'],
   ] as const)('words a %s platform', (platformStatus, spoken, note) => {
-    expect(boardPlatform(departure({ platform: '4', platformStatus }))).toEqual({
+    expect(boardPlatform(departure({ platform: '4', platformStatus: platformStatus as never }))).toEqual({
       kind: 'platform',
       label: '4',
       spoken,
       status: platformStatus,
       note,
     });
+  });
+
+  it('never reads an unknown platform status as confirmed', () => {
+    const row = departure({ platform: '4', platformStatus: 'someFutureValue' as never });
+    expect(boardPlatform(row)).toMatchObject({ spoken: 'Platform 4, likely', status: 'likely', note: 'likely' });
+    expect(boardPlatform({ ...row, platform: null })).toMatchObject({ kind: 'none' });
   });
 
   it('says "To be announced" and leaves a row with no platform empty', () => {

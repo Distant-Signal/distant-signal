@@ -13,10 +13,10 @@ export interface BoardTime {
 }
 
 /** What the platform cell says. `booked` is the timetable's platform with
- * no live word and `expected` one that is not yet confirmed (or may still
- * change): each carries its word, for the eye and a screen reader, so
+ * no live word, `expected` one that is not yet confirmed (or may still
+ * change) and `likely` a predicted one: each carries its word, for the eye and a screen reader, so
  * neither is read as a confirmed platform. */
-export type BoardPlatformStatus = 'confirmed' | 'expected' | 'booked';
+export type BoardPlatformStatus = 'confirmed' | 'expected' | 'likely' | 'booked';
 
 export type BoardPlatform =
   | { kind: 'platform'; label: string; spoken: string; status: BoardPlatformStatus; note: string | null }
@@ -65,25 +65,31 @@ function boardTime(time: string, dayOffset: number | null): BoardTime {
   return { text: time, marker: dayOffsetMarker(dayOffset) };
 }
 
+/** `likely` is a predicted platform the api is adding, and any status this
+ * build does not know is read the same way: shown with its word, never as
+ * a confirmed platform. */
 export function boardPlatform(row: StationBoardDeparture): BoardPlatform {
   const platform = row.platform?.trim() ?? '';
-  switch (row.platformStatus) {
-    case 'confirmed':
-    case 'expected':
-    case 'booked':
-      if (platform === '') return { kind: 'none', spoken: 'No platform information' };
-      return {
-        kind: 'platform',
-        label: platform,
-        spoken:
-          row.platformStatus === 'confirmed' ? `Platform ${platform}` : `Platform ${platform}, ${row.platformStatus}`,
-        status: row.platformStatus,
-        note: row.platformStatus === 'confirmed' ? null : row.platformStatus,
-      };
+  const status: string = row.platformStatus;
+  switch (status) {
     case 'toBeAnnounced':
       return { kind: 'toBeAnnounced', text: 'To be announced' };
     case 'none':
       return { kind: 'none', spoken: 'No platform information' };
+    default: {
+      if (platform === '') return { kind: 'none', spoken: 'No platform information' };
+      if (status === 'confirmed') {
+        return { kind: 'platform', label: platform, spoken: `Platform ${platform}`, status, note: null };
+      }
+      const shown: BoardPlatformStatus = status === 'expected' || status === 'booked' ? status : 'likely';
+      return {
+        kind: 'platform',
+        label: platform,
+        spoken: `Platform ${platform}, ${shown}`,
+        status: shown,
+        note: shown,
+      };
+    }
   }
 }
 
