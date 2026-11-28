@@ -235,19 +235,41 @@ export function connectionGapMinutes(leg: JourneyLegDetail, next: JourneyLegDeta
 }
 
 /** The connector's words for the change from `leg` onto `next`: "8 min to
- * change (needs 5)", "3 min to change, not enough (needs 5)", or, without
+ * change (needs 5)", "6 min to change, tight (needs 5)", "3 min to change,
+ * usually needs 5" (the api's `tight`: under the usual time, but the next
+ * train hasn't left, so it may still work), "3 min to change, not enough
+ * (needs 5)" (`missed`: it has gone), or, without
  * the api's `connection` (or when it couldn't measure the gap), the page's
  * own plain gap. `null` when no gap is known. */
 export function connectionText(leg: JourneyLegDetail, next: JourneyLegDetail): string | null {
   const connection = next.connection;
   const gap = connection?.gapMinutes ?? connectionGapMinutes(leg, next);
   if (gap === null) return null;
-  if (gap < 0) return 'The next leg leaves before this one arrives';
+  if (gap < 0) {
+    // A tight change is one whose next train hasn't left, so it can't be
+    // said to have gone.
+    return connection?.state === 'tight'
+      ? 'The next leg is due to leave before this one arrives, but it has not left yet'
+      : 'The next leg leaves before this one arrives';
+  }
   const needs = connection?.minimumChangeMinutes ?? null;
   if (needs === null || needs === 0) return `${gap} min to change`;
-  if (connection?.state === 'missed') return `${gap} min to change, not enough (needs ${needs})`;
-  if (connection?.state === 'atRisk') return `${gap} min to change, tight (needs ${needs})`;
-  return `${gap} min to change (needs ${needs})`;
+  switch (connection?.state) {
+    case 'missed':
+      return `${gap} min to change, not enough (needs ${needs})`;
+    case 'tight':
+      return `${gap} min to change, usually needs ${needs}`;
+    case 'atRisk':
+      return `${gap} min to change, tight (needs ${needs})`;
+    case undefined:
+    case 'ok':
+    case 'unknown':
+      return `${gap} min to change (needs ${needs})`;
+    // A state this build doesn't know (the api adds them additively) reads
+    // as `atRisk`: never as missed, never as fine.
+    default:
+      return `${gap} min to change, tight (needs ${needs})`;
+  }
 }
 
 /** Where and when the journey's FIRST leg starts: what "Add a leg at the

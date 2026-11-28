@@ -22,6 +22,7 @@ describe('TrackedRowStatusBadge', () => {
     ['severe', 'Cancelled', 'critical'],
     ['partCancelled', 'Part cancelled', 'critical'],
     ['connectionAtRisk', 'Tight connection', 'caution'],
+    ['connectionTight', 'Short change time', 'caution'],
     ['connectionMissed', 'Connection missed', 'late'],
     ['noReport', 'No report received', 'neutral'],
     ['noTrainPicked', 'No train picked', 'neutral'],

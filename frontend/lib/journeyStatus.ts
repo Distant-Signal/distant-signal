@@ -270,11 +270,13 @@ export function worstLegStatus(legs: JourneyLegDetail[]): LegStatusGroup | null 
 
 /** A journey's headline status: a leg's group, or one of three that only a
  * whole journey has. `partCancelled`: some train legs are cancelled, not
- * all. `connectionAtRisk`/`connectionMissed`: a late leg leaves little or
- * no time to make the next one (from a journey read in full -- the
+ * all. `connectionAtRisk`/`connectionTight`/`connectionMissed`: a late leg
+ * leaves little or no time to make the next one (`connectionTight`: less
+ * than the usual change time, but the next train hasn't left) (from a journey read in full -- the
  * journey page and the home page's current journeys; the list row has no
  * stop times). */
-export type JourneySummaryGroup = LegStatusGroup | 'partCancelled' | 'connectionAtRisk' | 'connectionMissed';
+export type JourneySummaryGroup =
+  LegStatusGroup | 'partCancelled' | 'connectionAtRisk' | 'connectionTight' | 'connectionMissed';
 
 /** Where the journey is as a whole: no leg started yet, under way, or
  * every leg arrived (a completed train, an untracked leg past its planned
@@ -288,6 +290,8 @@ export type JourneyPhase = 'upcoming' | 'inProgress' | 'completed';
 const SUMMARY_RANK: Record<JourneySummaryGroup, number> = {
   ...LEG_STATUS_RANK,
   connectionAtRisk: 3.5,
+  // Just above a thin margin: the usual change time is short, the train is still there.
+  connectionTight: 4.5,
   connectionMissed: 5.5,
   partCancelled: 6.5,
 };
@@ -333,8 +337,11 @@ export interface JourneySummaryInput {
   startedLegCount: number;
   finalArrivalDelayMinutes: number | null;
   finalArrivalDelayProvisional: boolean;
-  connection: 'atRisk' | 'missed' | null;
+  connection: ConnectionSummary | null;
 }
+
+/** A change's standing in the journey summary, worst last. */
+type ConnectionSummary = 'atRisk' | 'tight' | 'missed';
 
 const OTHER_LEG_FLAGS: ReadonlySet<LegStatusGroup> = new Set(['noTimetable', 'skipped', 'unmatched']);
 
@@ -364,6 +371,7 @@ export function summariseJourney(input: JourneySummaryInput): JourneySummary {
   if (input.finalArrivalDelayMinutes !== null && input.finalArrivalDelayMinutes > 0) candidates.push('delayed');
   if (input.connection === 'missed') candidates.push('connectionMissed');
   if (input.connection === 'atRisk') candidates.push('connectionAtRisk');
+  if (input.connection === 'tight') candidates.push('connectionTight');
   const fullyCancelled = input.fullyCancelledLegCount ?? input.cancelledLegCount;
   if (fullyCancelled > 0 || (input.partCancelledLegCount ?? 0) > 0) {
     candidates.push(fullyCancelled >= input.trainLegCount ? 'severe' : 'partCancelled');
@@ -419,10 +427,23 @@ function legStarted(leg: JourneyLegDetail): boolean {
  * (`next.connection`, live times and the station's minimum change time)
  * when it sent one, else the journey page's own gap
  * (`connectionGapMinutes`, no minimum change time) as before. */
-function connectionState(leg: JourneyLegDetail, next: JourneyLegDetail): 'atRisk' | 'missed' | null {
+function connectionState(leg: JourneyLegDetail, next: JourneyLegDetail): ConnectionSummary | null {
   if (next.connection !== undefined) {
     const state = next.connection?.state;
-    return state === 'missed' || state === 'atRisk' ? state : null;
+    switch (state) {
+      case 'missed':
+      case 'tight':
+      case 'atRisk':
+        return state;
+      case undefined:
+      case 'ok':
+      case 'unknown':
+        return null;
+      // A state this build doesn't know (the api adds them additively)
+      // reads as `atRisk`: never as missed, never as fine.
+      default:
+        return 'atRisk';
+    }
   }
   const gap = connectionGapMinutes(leg, next);
   if (gap === null) return null;
@@ -434,15 +455,16 @@ function connectionState(leg: JourneyLegDetail, next: JourneyLegDetail): 'atRisk
 /** The connection the journey is most at risk on: between a leg that is
  * running (not cancelled) and a next leg that hasn't started, so a
  * connection already made, or one no longer on offer, isn't judged. */
-function worstConnection(legs: readonly JourneyLegDetail[]): 'atRisk' | 'missed' | null {
-  let worst: 'atRisk' | null = null;
+function worstConnection(legs: readonly JourneyLegDetail[]): ConnectionSummary | null {
+  let worst: 'atRisk' | 'tight' | null = null;
   for (const [index, leg] of legs.entries()) {
     const next = legs[index + 1];
     if (next === undefined) break;
     if (trainStatus(leg) === 'cancelled' || trainStatus(next) === 'cancelled' || legStarted(next)) continue;
     const state = connectionState(leg, next);
     if (state === 'missed') return 'missed';
-    if (state === 'atRisk') worst = 'atRisk';
+    if (state === 'tight') worst = 'tight';
+    if (state === 'atRisk' && worst === null) worst = 'atRisk';
   }
   return worst;
 }

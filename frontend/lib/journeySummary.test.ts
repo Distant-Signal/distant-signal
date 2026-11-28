@@ -173,6 +173,26 @@ describe('journeyDetailSummary: the journey is judged at its final destination',
         }),
       ),
     ).toMatchObject({ group: 'connectionAtRisk' });
+    // `tight`: under the usual change time, the next train still there.
+    expect(
+      journeyDetailSummary(
+        withConnection(twoLegs('2026-10-21T10:12:00Z', 12), {
+          gapMinutes: 3,
+          minimumChangeMinutes: 5,
+          state: 'tight',
+        }),
+      ),
+    ).toMatchObject({ group: 'connectionTight' });
+    // A state this build doesn't know reads as at risk, never missed.
+    expect(
+      journeyDetailSummary(
+        withConnection(twoLegs('2026-10-21T10:12:00Z', 12), {
+          gapMinutes: 6,
+          minimumChangeMinutes: 5,
+          state: 'somethingNew' as unknown as 'atRisk',
+        }),
+      ),
+    ).toMatchObject({ group: 'connectionAtRisk' });
     // `unknown` is no signal, and doesn't fall back to the page's gap.
     expect(
       journeyDetailSummary(

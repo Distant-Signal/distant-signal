@@ -702,6 +702,27 @@ describe('JourneyDetailPage: untracked legs', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^York to York \(YRK\), 22 Sep 2026$/);
   });
 
+  it('says a tight change usually needs more time, and never that it is missed', async () => {
+    vi.mocked(api.getJourney).mockResolvedValue(
+      baseJourney({
+        legs: [
+          tubeLeg({
+            id: 1,
+            transitMode: 'tube',
+            plannedDeparture: '2026-09-22T14:20:00Z',
+            plannedArrival: '2026-09-22T14:48:00Z',
+          }),
+          matchedLeg({ id: 2, connection: { gapMinutes: 12, minimumChangeMinutes: 15, state: 'tight' } }),
+        ],
+      }),
+    );
+    await renderPage();
+    expect(
+      screen.getByText(/Change at York Minster, arrive 15:48\. 12 min to change, usually needs 15\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/miss/i)).not.toBeInTheDocument();
+  });
+
   it('re-times a timetabled leg after a late train, and takes the change after it from there', async () => {
     vi.mocked(api.getJourney).mockResolvedValue(
       baseJourney({

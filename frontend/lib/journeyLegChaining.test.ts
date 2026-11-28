@@ -483,6 +483,25 @@ describe('connectionText: the connector between two legs', () => {
       ...(connection === undefined ? {} : { connection }),
     });
 
+  it('words a tight change as short of the usual time, never as missed', () => {
+    const text = connectionText(train, onward({ gapMinutes: 3, minimumChangeMinutes: 5, state: 'tight' }));
+    expect(text).toBe('3 min to change, usually needs 5');
+    expect(text).not.toMatch(/miss|not enough/i);
+    const negative = connectionText(train, onward({ gapMinutes: -2, minimumChangeMinutes: 5, state: 'tight' }));
+    expect(negative).toBe('The next leg is due to leave before this one arrives, but it has not left yet');
+    expect(negative).not.toMatch(/miss/i);
+  });
+
+  it('reads a state it does not know as at risk, never missed', () => {
+    const unknown = { gapMinutes: 6, minimumChangeMinutes: 5, state: 'somethingNew' } as unknown as NonNullable<
+      JourneyLegDetail['connection']
+    >;
+    expect(connectionText(train, onward(unknown))).toBe('6 min to change, tight (needs 5)');
+    expect(connectionText(train, onward({ gapMinutes: 6, minimumChangeMinutes: 5, state: 'unknown' }))).toBe(
+      '6 min to change (needs 5)',
+    );
+  });
+
   it("names the station's minimum change time from the api", () => {
     expect(connectionText(train, onward({ gapMinutes: 8, minimumChangeMinutes: 5, state: 'ok' }))).toBe(
       '8 min to change (needs 5)',
