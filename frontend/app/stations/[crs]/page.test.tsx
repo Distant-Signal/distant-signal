@@ -128,10 +128,13 @@ function timetablePage(results: TrainSearchResult[], nextCursor: string | null =
   };
 }
 
-async function renderPage(crs = 'KGX', operator?: string | string[]) {
+async function renderPage(crs = 'KGX', operator?: string | string[], board?: string) {
   const element = await StationDisruptionPage({
     params: Promise.resolve({ crs }),
-    searchParams: Promise.resolve(operator === undefined ? {} : { operator }),
+    searchParams: Promise.resolve({
+      ...(operator === undefined ? {} : { operator }),
+      ...(board === undefined ? {} : { board }),
+    }),
   });
   return renderWithMantine(element);
 }
@@ -169,6 +172,7 @@ describe('StationDisruptionPage -- outage behaviour', () => {
       name: 'London Kings Cross',
       serviceDate: '2026-11-28',
       generatedAt: '2026-11-28T10:00:07Z',
+      board: 'departures',
       departures: [
         {
           uid: 'G12345',
@@ -184,6 +188,7 @@ describe('StationDisruptionPage -- outage behaviour', () => {
           headcode: '1S23',
           platform: '4',
           platformStatus: 'confirmed',
+          platformBasis: null,
           status: 'delayed',
           delayMinutes: 3,
           isCancelled: false,
@@ -239,6 +244,52 @@ describe('StationDisruptionPage -- outage behaviour', () => {
       }
       expect(api.getStationBoard).toHaveBeenCalledTimes(4);
       for (const call of vi.mocked(api.getStationBoard).mock.calls) expect(call).toEqual(['KGX', 10]);
+    });
+
+    it('asks for the arrivals board with ?board=arrivals and shows it', async () => {
+      const arrivals: StationBoard = {
+        ...board,
+        board: 'arrivals',
+        departures: [],
+        arrivals: [
+          {
+            uid: 'A1',
+            serviceDate: '2026-11-28',
+            scheduled: '10:20',
+            dayOffset: 0,
+            expected: null,
+            expectedDayOffset: null,
+            originCrs: 'EDB',
+            originName: 'Edinburgh',
+            destinationCrs: 'KGX',
+            destinationName: 'London Kings Cross',
+            terminates: true,
+            operator: 'GR',
+            operatorName: 'LNER',
+            headcode: '1S24',
+            platform: null,
+            platformStatus: 'none',
+            platformBasis: null,
+            status: 'booked',
+            delayMinutes: null,
+            isCancelled: false,
+            cancelReason: null,
+          },
+        ],
+      };
+      vi.mocked(api.getStationBoard).mockResolvedValue(arrivals);
+      await renderPage('KGX', undefined, 'arrivals');
+      expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10, undefined, 'arrivals');
+      const section = screen.getByRole('region', { name: 'Arrivals at London Kings Cross' });
+      expect(within(section).getByText('Edinburgh')).toBeInTheDocument();
+    });
+
+    it('takes any other ?board= as the departures board', async () => {
+      vi.mocked(api.getStationBoard).mockResolvedValue(board);
+      vi.mocked(api.getStationBoard).mockClear();
+      await renderPage('KGX', undefined, 'sideways');
+      expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10);
+      expect(screen.getByRole('region', { name: 'Departures from London Kings Cross' })).toBeInTheDocument();
     });
 
     describe('folded sections', () => {

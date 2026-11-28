@@ -7,8 +7,11 @@ import {
   operatorOptions,
   parseOperatorParam,
   showOperatorFilter,
+  arrivalRow,
+  parseBoardParam,
+  boardRowsOf,
 } from './stationBoard';
-import type { StationBoard, StationBoardDeparture } from './types';
+import type { StationBoard, StationBoardArrival, StationBoardDeparture } from './types';
 
 function departure(overrides: Partial<StationBoardDeparture> = {}): StationBoardDeparture {
   return {
@@ -25,6 +28,7 @@ function departure(overrides: Partial<StationBoardDeparture> = {}): StationBoard
     headcode: '1A23',
     platform: null,
     platformStatus: 'none',
+    platformBasis: null,
     status: 'booked',
     delayMinutes: null,
     isCancelled: false,
@@ -220,6 +224,7 @@ describe('boardView', () => {
     name: 'London Paddington',
     serviceDate: '2026-11-28',
     generatedAt: '2026-11-28T10:00:07Z',
+    board: 'departures',
     departures: [departure()],
     attribution: [{ licence: 'x', text: 'powered by NationalRail (Train Information Services Ltd)' }],
   };
@@ -276,11 +281,126 @@ describe('operator filter', () => {
       name: 'London Paddington',
       serviceDate: '2026-11-28',
       generatedAt: '2026-11-28T10:00:07Z',
+      board: 'departures',
       departures: [],
       attribution: [],
     };
     expect(boardView(board, 'PAD', 'Great Western Railway').heading).toBe(
       'Departures from London Paddington, Great Western Railway',
     );
+  });
+});
+
+function arrival(overrides: Partial<StationBoardArrival> = {}): StationBoardArrival {
+  return {
+    uid: 'G54321',
+    serviceDate: '2026-11-28',
+    scheduled: '10:06',
+    dayOffset: 0,
+    expected: null,
+    expectedDayOffset: null,
+    originCrs: 'BRI',
+    originName: 'Bristol Temple Meads',
+    destinationCrs: 'PAD',
+    destinationName: 'London Paddington',
+    terminates: true,
+    operator: 'GW',
+    operatorName: 'Great Western Railway',
+    headcode: '1A23',
+    platform: null,
+    platformStatus: 'none',
+    platformBasis: null,
+    status: 'booked',
+    delayMinutes: null,
+    isCancelled: false,
+    cancelReason: null,
+    ...overrides,
+  };
+}
+
+describe('arrivals', () => {
+  const arrivals: StationBoard = {
+    crs: 'PAD',
+    name: 'London Paddington',
+    serviceDate: '2026-11-28',
+    generatedAt: '2026-11-28T10:00:07Z',
+    board: 'arrivals',
+    departures: [],
+    arrivals: [arrival()],
+    attribution: [],
+  };
+
+  it('reads ?board= as arrivals only for the word arrivals', () => {
+    expect(parseBoardParam('arrivals')).toBe('arrivals');
+    expect(parseBoardParam(['arrivals', 'x'])).toBe('arrivals');
+    for (const other of [undefined, '', 'departures', 'Arrivals', 'x', ['x', 'arrivals']]) {
+      expect(parseBoardParam(other)).toBe('departures');
+    }
+  });
+
+  it('shows the origin, the arrival time and the status of a row', () => {
+    const row = arrivalRow(
+      arrival({ scheduled: '10:06', expected: '10:09', expectedDayOffset: 0, status: 'delayed', delayMinutes: 3 }),
+      0,
+    );
+    expect(row.destination).toBe('Bristol Temple Meads');
+    expect(row.scheduled).toEqual({ text: '10:06', marker: null });
+    expect(row.status).toMatchObject({ kind: 'delayed', text: 'Exp 10:09', spoken: 'Expected 10:09, 3 minutes late' });
+  });
+
+  it('falls back to the origin code, then to a plain word', () => {
+    expect(arrivalRow(arrival({ originName: null }), 0).destination).toBe('BRI');
+    expect(arrivalRow(arrival({ originName: null, originCrs: null }), 0).destination).toBe('Unknown origin');
+  });
+
+  it('says a cancelled arrival is cancelled', () => {
+    const row = arrivalRow(arrival({ isCancelled: true, status: 'cancelled', cancelReason: 'A fault' }), 0);
+    expect(row.struck).toBe(true);
+    expect(row.status).toMatchObject({ kind: 'cancelled', tone: 'severe', detail: 'A fault' });
+  });
+
+  it('words the platform as confirmed, expected, booked and likely, as on departures', () => {
+    const platform = (overrides: Partial<StationBoardArrival>) => arrivalRow(arrival(overrides), 0).platform;
+    expect(platform({ platform: '4', platformStatus: 'confirmed' })).toMatchObject({
+      spoken: 'Platform 4',
+      note: null,
+    });
+    expect(platform({ platform: '4', platformStatus: 'expected' })).toMatchObject({
+      spoken: 'Platform 4, expected',
+      note: 'expected',
+    });
+    expect(platform({ platform: '4', platformStatus: 'booked' })).toMatchObject({
+      spoken: 'Platform 4, booked',
+      note: 'booked',
+    });
+    expect(platform({ platform: '4', platformStatus: 'likely', platformBasis: 'inbound' })).toMatchObject({
+      status: 'likely',
+      spoken: 'Platform 4, likely',
+      note: 'likely',
+    });
+  });
+
+  it('builds the arrivals view with its heading, rows and empty messages', () => {
+    const view = boardView(arrivals, 'PAD');
+    expect(view.kind).toBe('arrivals');
+    expect(view.heading).toBe('Arrivals at London Paddington');
+    expect(view.rows).toHaveLength(1);
+    expect(view.empty).toBe('No more arrivals listed for today.');
+    expect(boardView(arrivals, 'PAD', 'Great Western Railway')).toMatchObject({
+      heading: 'Arrivals at London Paddington, Great Western Railway',
+      empty: 'No more arrivals listed for Great Western Railway today.',
+    });
+  });
+
+  it('keeps the departures empty messages', () => {
+    const { arrivals: _unused, ...rest } = arrivals;
+    const departures: StationBoard = { ...rest, board: 'departures' };
+    expect(boardView(departures, 'PAD').empty).toBe('No more departures listed for today.');
+    expect(boardView(departures, 'PAD', 'GWR').empty).toBe('No more departures listed for GWR today.');
+  });
+
+  it('lists the rows of whichever board the api answered with', () => {
+    expect(boardRowsOf(arrivals)).toEqual([arrival()]);
+    expect(boardRowsOf({ ...arrivals, board: 'departures', departures: [departure()] })).toEqual([departure()]);
   });
 });

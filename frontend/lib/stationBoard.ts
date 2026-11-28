@@ -1,9 +1,28 @@
 import { formatTime } from './dateFormat';
 import { dayOffsetMarker } from './serviceStatus';
-import type { StationBoard, StationBoardDeparture } from './types';
+import type { StationBoard, StationBoardArrival, StationBoardDeparture } from './types';
 
 /** How many departures the station page's board asks for. */
 export const STATION_BOARD_LIMIT = 10;
+
+/** The two boards: the services leaving the station or the ones arriving. */
+export type BoardKind = 'departures' | 'arrivals';
+
+/** A row of either board. The fields the platform and status cells read are
+ * the same on both, so both boards share one cell implementation. */
+export type BoardRowSource = StationBoardDeparture | StationBoardArrival;
+
+/** `?board=`: `arrivals` for the arrivals board, anything else (junk, a
+ * list, nothing) the departures board. */
+export function parseBoardParam(raw: string | string[] | undefined): BoardKind {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === 'arrivals' ? 'arrivals' : 'departures';
+}
+
+/** The rows of the board the api answered with. */
+export function boardRowsOf(board: StationBoard): readonly BoardRowSource[] {
+  return board.board === 'arrivals' ? (board.arrivals ?? []) : board.departures;
+}
 
 /** A time with the "+1" marker the rest of the app puts after a time on a
  * later day than the service date. */
@@ -55,6 +74,8 @@ export interface BoardRowView {
   scheduled: BoardTime;
   /** Cancelled: the booked time is struck through. */
   struck: boolean;
+  /** The other end of the service: the destination on the departures board,
+   * the origin on the arrivals board. */
   destination: string;
   operator: string | null;
   platform: BoardPlatform;
@@ -68,7 +89,7 @@ function boardTime(time: string, dayOffset: number | null): BoardTime {
 /** `likely` is a predicted platform the api is adding, and any status this
  * build does not know is read the same way: shown with its word, never as
  * a confirmed platform. */
-export function boardPlatform(row: StationBoardDeparture): BoardPlatform {
+export function boardPlatform(row: BoardRowSource): BoardPlatform {
   const platform = row.platform?.trim() ?? '';
   const status: string = row.platformStatus;
   switch (status) {
@@ -98,11 +119,11 @@ function minutesWord(minutes: number): string {
 }
 
 /** Whether the live time is a different one from the booked time. */
-function expectedDiffers(row: StationBoardDeparture): boolean {
+function expectedDiffers(row: BoardRowSource): boolean {
   return row.expected !== null && (row.expected !== row.scheduled || (row.expectedDayOffset ?? 0) !== row.dayOffset);
 }
 
-function statusWords(row: StationBoardDeparture): Omit<BoardStatus, 'tone'> {
+function statusWords(row: BoardRowSource): Omit<BoardStatus, 'tone'> {
   if (row.isCancelled || row.status === 'cancelled') {
     return { kind: 'cancelled', text: 'Cancelled', marker: null, spoken: 'Cancelled', detail: row.cancelReason };
   }
@@ -146,7 +167,7 @@ function statusWords(row: StationBoardDeparture): Omit<BoardStatus, 'tone'> {
 export const LATE_MINUTES = 10;
 export const SEVERELY_LATE_MINUTES = 30;
 
-function tone(row: StationBoardDeparture, kind: BoardStatusKind): BoardStatusTone {
+function tone(row: BoardRowSource, kind: BoardStatusKind): BoardStatusTone {
   switch (kind) {
     case 'onTime':
       return 'good';
@@ -162,22 +183,30 @@ function tone(row: StationBoardDeparture, kind: BoardStatusKind): BoardStatusTon
   }
 }
 
-export function boardStatus(row: StationBoardDeparture): BoardStatus {
+export function boardStatus(row: BoardRowSource): BoardStatus {
   const words = statusWords(row);
   return { ...words, tone: tone(row, words.kind) };
 }
 
-export function boardRow(row: StationBoardDeparture, index: number): BoardRowView {
+function commonRow(row: BoardRowSource, index: number, place: string): BoardRowView {
   const status = boardStatus(row);
   return {
     key: `${row.serviceDate}-${row.uid}-${row.scheduled}-${index}`,
     scheduled: boardTime(row.scheduled, row.dayOffset),
     struck: status.kind === 'cancelled',
-    destination: row.destinationName ?? row.destinationCrs ?? 'Unknown destination',
+    destination: place,
     operator: row.operatorName ?? row.operator,
     platform: boardPlatform(row),
     status,
   };
+}
+
+export function boardRow(row: StationBoardDeparture, index: number): BoardRowView {
+  return commonRow(row, index, row.destinationName ?? row.destinationCrs ?? 'Unknown destination');
+}
+
+export function arrivalRow(row: StationBoardArrival, index: number): BoardRowView {
+  return commonRow(row, index, row.originName ?? row.originCrs ?? 'Unknown origin');
 }
 
 /** `?operator=`: one ATOC code, two upper-case letters. Anything else (junk,
@@ -193,9 +222,9 @@ export interface OperatorOption {
 }
 
 /** The operators on a board's rows, once each and sorted by name. */
-export function operatorOptions(departures: readonly StationBoardDeparture[]): OperatorOption[] {
+export function operatorOptions(rows: readonly BoardRowSource[]): OperatorOption[] {
   const byCode = new Map<string, string>();
-  for (const row of departures) {
+  for (const row of rows) {
     if (row.operator !== null && !byCode.has(row.operator)) {
       byCode.set(row.operator, row.operatorName ?? row.operator);
     }
@@ -212,7 +241,10 @@ export function showOperatorFilter(options: readonly OperatorOption[], operator:
 }
 
 export interface BoardView {
+  kind: BoardKind;
   heading: string;
+  /** What the page says when the board has no rows. */
+  empty: string;
   rows: BoardRowView[];
   /** "Updated 10:00", in UK time. */
   updated: string;
@@ -224,9 +256,17 @@ export interface BoardView {
  * for a board that carries none. */
 export function boardView(board: StationBoard, fallbackName: string, operatorLabel: string | null = null): BoardView {
   const name = board.name ?? fallbackName;
+  const arrivals = board.board === 'arrivals';
+  const noun = arrivals ? 'arrivals' : 'departures';
+  const base = arrivals ? `Arrivals at ${name}` : `Departures from ${name}`;
   return {
-    heading: operatorLabel === null ? `Departures from ${name}` : `Departures from ${name}, ${operatorLabel}`,
-    rows: board.departures.map(boardRow),
+    kind: arrivals ? 'arrivals' : 'departures',
+    heading: operatorLabel === null ? base : `${base}, ${operatorLabel}`,
+    empty:
+      operatorLabel === null
+        ? `No more ${noun} listed for today.`
+        : `No more ${noun} listed for ${operatorLabel} today.`,
+    rows: arrivals ? (board.arrivals ?? []).map(arrivalRow) : board.departures.map(boardRow),
     updated: `Updated ${formatTime(board.generatedAt)}`,
     attribution: board.attribution.map((entry) => entry.text),
   };

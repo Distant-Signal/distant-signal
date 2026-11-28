@@ -193,6 +193,7 @@ export type TrainSearchResult = Api.TrainSearchResult;
 export type TrainSearchPage = Api.TrainSearchPage;
 export type StationBoard = Api.StationBoard;
 export type StationBoardDeparture = Api.StationBoardDeparture;
+export type StationBoardArrival = Api.StationBoardArrival;
 export type TrainArrivalResult = Api.TrainArrivalResult;
 export type TrainArrivalsPage = Api.TrainArrivalsPage;
 export type TrainHeadcodePage = Api.TrainHeadcodePage;

@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react';
 import { renderWithMantine } from '@/test/render';
 import { visibleText } from '@/test/routeText';
 import { StationBoard } from './StationBoard';
-import type { StationBoard as Board, StationBoardDeparture } from '@/lib/types';
+import type { StationBoard as Board, StationBoardArrival, StationBoardDeparture } from '@/lib/types';
 
 function departure(overrides: Partial<StationBoardDeparture>): StationBoardDeparture {
   return {
@@ -20,6 +20,7 @@ function departure(overrides: Partial<StationBoardDeparture>): StationBoardDepar
     headcode: '1A23',
     platform: null,
     platformStatus: 'none',
+    platformBasis: null,
     status: 'booked',
     delayMinutes: null,
     isCancelled: false,
@@ -34,6 +35,7 @@ function board(departures: StationBoardDeparture[], extra: Partial<Board> = {}):
     name: 'London Paddington',
     serviceDate: '2026-11-28',
     generatedAt: '2026-11-28T10:00:07Z',
+    board: 'departures',
     departures,
     attribution: [{ licence: 'x', text: 'powered by NationalRail (Train Information Services Ltd)' }],
     ...extra,
@@ -218,7 +220,7 @@ describe('StationBoard', () => {
         departure({ uid: 'P1', platform: '1', platformStatus: 'confirmed' }),
         departure({ uid: 'P2', platform: '2', platformStatus: 'expected' }),
         departure({ uid: 'P3', platform: '3', platformStatus: 'booked' }),
-        departure({ uid: 'P6', platform: '6', platformStatus: 'likely' as never }),
+        departure({ uid: 'P6', platform: '6', platformStatus: 'likely' }),
         departure({ uid: 'P4', platformStatus: 'toBeAnnounced' }),
         departure({ uid: 'P5', platformStatus: 'none' }),
       ]),
@@ -306,5 +308,90 @@ describe('StationBoard', () => {
       expect(screen.getByRole('combobox', { name: 'Operator' })).toHaveValue('GW');
       expect(screen.getByText('No more departures listed for Great Western Railway today.')).toBeInTheDocument();
     });
+  });
+});
+
+describe('StationBoard arrivals and the board switch', () => {
+  const arrival: StationBoardArrival = {
+    uid: 'A1',
+    serviceDate: '2026-11-28',
+    scheduled: '10:20',
+    dayOffset: 0,
+    expected: null,
+    expectedDayOffset: null,
+    originCrs: 'BRI',
+    originName: 'Bristol Temple Meads',
+    destinationCrs: 'PAD',
+    destinationName: 'London Paddington',
+    terminates: true,
+    operator: 'GW',
+    operatorName: 'Great Western Railway',
+    headcode: '1A23',
+    platform: '3',
+    platformStatus: 'likely',
+    platformBasis: 'inbound',
+    status: 'booked',
+    delayMinutes: null,
+    isCancelled: false,
+    cancelReason: null,
+  };
+  const arrivalsBoard = (rows: StationBoardArrival[]): Board => board([], { board: 'arrivals', arrivals: rows });
+
+  it('has two real links in a Board type nav, the departures one current by default', () => {
+    renderBoard(board([departure({})]));
+    const nav = screen.getByRole('navigation', { name: 'Board type' });
+    expect(within(nav).getByRole('link', { name: 'Departures' })).toHaveAttribute('href', '/stations/PAD#board');
+    expect(within(nav).getByRole('link', { name: 'Departures' })).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).getByRole('link', { name: 'Arrivals' })).toHaveAttribute(
+      'href',
+      '/stations/PAD?board=arrivals#board',
+    );
+    expect(within(nav).getByRole('link', { name: 'Arrivals' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks the arrivals link current on the arrivals board and keeps the operator', () => {
+    renderBoard(arrivalsBoard([arrival]), { operator: 'GW', operators: TWO_OPERATORS });
+    const nav = screen.getByRole('navigation', { name: 'Board type' });
+    expect(within(nav).getByRole('link', { name: 'Arrivals' })).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).getByRole('link', { name: 'Departures' })).toHaveAttribute(
+      'href',
+      '/stations/PAD?operator=GW#board',
+    );
+    expect(within(nav).getByRole('link', { name: 'Arrivals' })).toHaveAttribute(
+      'href',
+      '/stations/PAD?operator=GW&board=arrivals#board',
+    );
+  });
+
+  it('shows the arrivals table with From, the origin and the likely platform', () => {
+    renderBoard(arrivalsBoard([arrival]));
+    const section = screen.getByRole('region', { name: 'Arrivals at London Paddington' });
+    const table = within(section).getByRole('table', { name: 'Arrivals at London Paddington' });
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((th) => th.textContent),
+    ).toEqual(['Time', 'From', 'Operator', 'Platform', 'Status']);
+    const text = visibleText(table);
+    expect(text).toContain('Bristol Temple Meads');
+    expect(text).toContain('10:20');
+    expect(within(table).getByText('Platform 3, likely')).toBeInTheDocument();
+    expect(within(section).getByRole('link', { name: 'Later trains' })).toHaveAttribute(
+      'href',
+      '/trains?station=PAD&board=arrivals',
+    );
+  });
+
+  it('keeps the arrivals board when the operator picker is submitted', () => {
+    const { container } = renderBoard(arrivalsBoard([arrival]), { operator: 'GW', operators: TWO_OPERATORS });
+    expect(container.querySelector('input[type="hidden"][name="board"]')).toHaveValue('arrivals');
+  });
+
+  it('says there are no arrivals, with and without an operator', () => {
+    const { unmount } = renderBoard(arrivalsBoard([]));
+    expect(screen.getByText('No more arrivals listed for today.')).toBeInTheDocument();
+    unmount();
+    renderBoard(arrivalsBoard([]), { operator: 'GW', operators: TWO_OPERATORS });
+    expect(screen.getByText('No more arrivals listed for Great Western Railway today.')).toBeInTheDocument();
   });
 });

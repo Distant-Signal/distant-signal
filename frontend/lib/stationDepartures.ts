@@ -5,3 +5,8 @@
 export function stationDeparturesHref(crs: string): string {
   return `/trains?station=${encodeURIComponent(crs.toUpperCase())}`;
 }
+
+/** The same search on its arrivals board. */
+export function stationArrivalsHref(crs: string): string {
+  return `/trains?station=${encodeURIComponent(crs.toUpperCase())}&board=arrivals`;
+}
