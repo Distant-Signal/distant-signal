@@ -107,3 +107,14 @@
 .statusNegative {
   font-weight: 600;
 }
+
+/* The Operator filter: a select and its button, both 44px tall. */
+.filterField {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 24rem;
+}
+
+.filterControl {
+  min-height: 44px;
+}

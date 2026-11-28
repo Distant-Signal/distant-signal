@@ -124,8 +124,11 @@ function timetablePage(results: TrainSearchResult[], nextCursor: string | null =
   };
 }
 
-async function renderPage(crs = 'KGX') {
-  const element = await StationDisruptionPage({ params: Promise.resolve({ crs }) });
+async function renderPage(crs = 'KGX', operator?: string | string[]) {
+  const element = await StationDisruptionPage({
+    params: Promise.resolve({ crs }),
+    searchParams: Promise.resolve(operator === undefined ? {} : { operator }),
+  });
   return renderWithMantine(element);
 }
 
@@ -205,6 +208,33 @@ describe('StationDisruptionPage -- outage behaviour', () => {
       const onThisPage = screen.getByRole('navigation', { name: 'On this page' });
       expect(within(onThisPage).getByRole('link', { name: 'Departures' })).toHaveAttribute('href', '#board');
       expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10);
+    });
+
+    it('passes a valid ?operator= to the board and takes the picker choices from the unfiltered one', async () => {
+      const row = board.departures[0]!;
+      const both = {
+        ...board,
+        departures: [row, { ...row, uid: 'G2', operator: 'XC', operatorName: 'CrossCountry' }],
+      };
+      vi.mocked(api.getStationBoard).mockImplementation(async (_crs, _limit, operator) =>
+        operator === undefined ? both : { ...board, departures: [row] },
+      );
+      await renderPage('KGX', 'GR');
+      expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10, 'GR');
+      expect(screen.getByRole('region', { name: 'Departures from London Kings Cross, LNER' })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Operator' })).toHaveValue('GR');
+      expect(screen.getByRole('option', { name: 'CrossCountry' })).toBeInTheDocument();
+    });
+
+    it('ignores an ?operator= that is not an upper-case ATOC code', async () => {
+      vi.mocked(api.getStationBoard).mockResolvedValue(board);
+      vi.mocked(api.getStationBoard).mockClear();
+      for (const bad of ['gr', 'GRX', 'G1', '']) {
+        await renderPage('KGX', bad);
+        cleanup();
+      }
+      expect(api.getStationBoard).toHaveBeenCalledTimes(4);
+      for (const call of vi.mocked(api.getStationBoard).mock.calls) expect(call).toEqual(['KGX', 10]);
     });
 
     it('renders the page as before, with no board section or error text, when the api has none', async () => {

@@ -48,7 +48,7 @@ import {
   type TimetableSummary,
 } from '@/lib/stationSummary';
 import { StationBoard } from '@/components/StationBoard';
-import { STATION_BOARD_LIMIT } from '@/lib/stationBoard';
+import { STATION_BOARD_LIMIT, operatorOptions, parseOperatorParam, type OperatorOption } from '@/lib/stationBoard';
 import type { StationBoard as StationBoardData } from '@/lib/types';
 import { StationAbout, StationTimetableSection } from '@/components/StationAbout';
 import { stationDeparturesHref } from '@/lib/stationDepartures';
@@ -186,9 +186,11 @@ const fetchStationTimetable = cache(async (crs: string): Promise<TimetableSummar
  * the day (404), the api is slow or down. The board is an extra, so the page
  * then renders exactly as it did without it, with no empty section and no
  * error text. Not stale-served: an old board would be a wrong one. */
-async function fetchStationBoard(crs: string): Promise<StationBoardData | null> {
+async function fetchStationBoard(crs: string, operator?: string): Promise<StationBoardData | null> {
   try {
-    return await getStationBoard(crs, STATION_BOARD_LIMIT);
+    return await (operator === undefined
+      ? getStationBoard(crs, STATION_BOARD_LIMIT)
+      : getStationBoard(crs, STATION_BOARD_LIMIT, operator));
   } catch {
     return null;
   }
@@ -269,8 +271,15 @@ async function previewDisruptionState(crs: string): Promise<StationDisruptionSta
   }
 }
 
-export default async function StationDisruptionPage({ params }: { params: Promise<{ crs: string }> }) {
+export default async function StationDisruptionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ crs: string }>;
+  searchParams?: Promise<{ operator?: string | string[] }>;
+}) {
   const { crs } = await params;
+  const operator = parseOperatorParam((await searchParams)?.operator);
   if (crs === STATION_INDEX_SEGMENT) return <StationBrowseIndex />;
   if (isStationBrowseSegment(crs)) return <StationLetterPage letter={crs} />;
   redirectToUpperCase(crs);
@@ -315,8 +324,17 @@ export default async function StationDisruptionPage({ params }: { params: Promis
     // run alongside the reads above so it adds no round trip.
     fetchStationTimetable(crs),
     // The departures board; `null` when the api has none (see the function).
-    fetchStationBoard(crs),
+    fetchStationBoard(crs, operator ?? undefined),
   ]);
+  // A filtered board only lists its own operator, so the picker's choices
+  // come from the unfiltered one (the same cached read the board makes
+  // without a filter).
+  const boardOperators: OperatorOption[] =
+    board === null
+      ? []
+      : operatorOptions(
+          operator === null ? board.departures : ((await fetchStationBoard(crs))?.departures ?? board.departures),
+        );
   const heading = lookup.outcome === 'found' ? `${lookup.name} (${crs})` : crs;
   // The page shows no departures itself: "Departures" goes to the train
   // search, pre-filled with this station.
@@ -404,7 +422,13 @@ export default async function StationDisruptionPage({ params }: { params: Promis
           answered with a board. */}
       {board !== null && (
         <>
-          <StationBoard board={board} crs={crs} fallbackName={stationName ?? crs} />
+          <StationBoard
+            board={board}
+            crs={crs}
+            fallbackName={stationName ?? crs}
+            operator={operator}
+            operators={boardOperators}
+          />
           <Divider />
         </>
       )}
