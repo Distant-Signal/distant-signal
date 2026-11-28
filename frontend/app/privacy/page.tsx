@@ -291,8 +291,8 @@ export default function PrivacyPage() {
         <Text>
           When you log in with Microsoft, Microsoft tells our login service your Microsoft account ID and your display
           name. Our login service keeps these. Microsoft login is for personal Microsoft accounts. Our login service
-          does not ask for or keep your email address or profile picture, and does not receive or use your Microsoft
-          contacts, files, mail or calendar.
+          does not keep your email address or profile picture, and does not ask for access to your Microsoft contacts,
+          files, mail or calendar.
         </Text>
         <Text>
           Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
