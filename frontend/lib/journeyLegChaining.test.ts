@@ -502,6 +502,27 @@ describe('connectionText: the connector between two legs', () => {
     );
   });
 
+  it("says how much of the minimum is the traveller's own extra time", () => {
+    const connection = (extra?: number, state: 'ok' | 'atRisk' | 'tight' | 'missed' = 'ok') => ({
+      gapMinutes: 6,
+      minimumChangeMinutes: 8,
+      state,
+      ...(extra === undefined ? {} : { extraMinutes: extra }),
+    });
+    expect(connectionText(train, onward(connection(3)))).toBe('6 min to change (needs 8, including 3 extra)');
+    expect(connectionText(train, onward(connection(3, 'atRisk')))).toBe(
+      '6 min to change, tight (needs 8, including 3 extra)',
+    );
+    expect(connectionText(train, onward(connection(3, 'tight')))).toBe(
+      '6 min to change, usually needs 8, including 3 extra',
+    );
+    expect(connectionText(train, onward(connection(3, 'missed')))).toBe(
+      '6 min to change, not enough (needs 8, including 3 extra)',
+    );
+    expect(connectionText(train, onward(connection()))).toBe('6 min to change (needs 8)');
+    expect(connectionText(train, onward(connection(0)))).toBe('6 min to change (needs 8)');
+  });
+
   it("names the station's minimum change time from the api", () => {
     expect(connectionText(train, onward({ gapMinutes: 8, minimumChangeMinutes: 5, state: 'ok' }))).toBe(
       '8 min to change (needs 5)',

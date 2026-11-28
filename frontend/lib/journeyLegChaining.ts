@@ -238,7 +238,8 @@ export function connectionGapMinutes(leg: JourneyLegDetail, next: JourneyLegDeta
  * change (needs 5)", "6 min to change, tight (needs 5)", "3 min to change,
  * usually needs 5" (the api's `tight`: under the usual time, but the next
  * train hasn't left, so it may still work), "3 min to change, not enough
- * (needs 5)" (`missed`: it has gone), or, without
+ * (needs 5)" (`missed`: it has gone; with the traveller's own extra
+ * time, "(needs 5, including 2 extra)"), or, without
  * the api's `connection` (or when it couldn't measure the gap), the page's
  * own plain gap. `null` when no gap is known. */
 export function connectionText(leg: JourneyLegDetail, next: JourneyLegDetail): string | null {
@@ -252,8 +253,12 @@ export function connectionText(leg: JourneyLegDetail, next: JourneyLegDetail): s
       ? 'The next leg is due to leave before this one arrives, but it has not left yet'
       : 'The next leg leaves before this one arrives';
   }
-  const needs = connection?.minimumChangeMinutes ?? null;
-  if (needs === null || needs === 0) return `${gap} min to change`;
+  const minimum = connection?.minimumChangeMinutes ?? null;
+  if (minimum === null || minimum === 0) return `${gap} min to change`;
+  // The api's `extraMinutes` (the traveller's own buffer, already inside
+  // the minimum) is named so the larger number isn't a surprise.
+  const extra = connection?.extraMinutes;
+  const needs = extra !== undefined && extra > 0 ? `${minimum}, including ${extra} extra` : `${minimum}`;
   switch (connection?.state) {
     case 'missed':
       return `${gap} min to change, not enough (needs ${needs})`;
