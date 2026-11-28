@@ -26,23 +26,17 @@ function departure(overrides: Partial<StationBoardDeparture> = {}): StationBoard
 }
 
 describe('boardPlatform', () => {
-  it('says a confirmed platform plainly', () => {
-    expect(boardPlatform(departure({ platform: '4', platformStatus: 'confirmed' }))).toEqual({
+  it.each([
+    ['confirmed', 'Platform 4', null],
+    ['expected', 'Platform 4, expected', 'expected'],
+    ['booked', 'Platform 4, booked', 'booked'],
+  ] as const)('words a %s platform', (platformStatus, spoken, note) => {
+    expect(boardPlatform(departure({ platform: '4', platformStatus }))).toEqual({
       kind: 'platform',
       label: '4',
-      spoken: 'Platform 4',
-      booked: false,
-    });
-  });
-
-  it('marks an expected platform for a screen reader and a booked one for everyone', () => {
-    expect(boardPlatform(departure({ platform: '4', platformStatus: 'expected' }))).toMatchObject({
-      spoken: 'Platform 4, expected',
-      booked: false,
-    });
-    expect(boardPlatform(departure({ platform: '4', platformStatus: 'booked' }))).toMatchObject({
-      spoken: 'Platform 4, booked',
-      booked: true,
+      spoken,
+      status: platformStatus,
+      note,
     });
   });
 

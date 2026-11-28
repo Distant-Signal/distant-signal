@@ -116,6 +116,39 @@ describe('StationBoard', () => {
     expect(onTime!).toHaveTextContent('next day');
     expect(visibleText(onTime!)).toContain('On time');
     expect(onTime!).toHaveTextContent('Platform 2, expected');
+    expect(visibleText(onTime!)).toContain('expected');
+    expect(visibleText(delayed!)).not.toMatch(/expected|booked/);
+  });
+
+  it('shows each platform state with its own box and word, and a missing one as a dash', () => {
+    renderBoard(
+      board([
+        departure({ uid: 'P1', platform: '1', platformStatus: 'confirmed' }),
+        departure({ uid: 'P2', platform: '2', platformStatus: 'expected' }),
+        departure({ uid: 'P3', platform: '3', platformStatus: 'booked' }),
+        departure({ uid: 'P4', platformStatus: 'toBeAnnounced' }),
+        departure({ uid: 'P5', platformStatus: 'none' }),
+      ]),
+    );
+    const [, confirmed, expected, booked, tba, none] = screen.getAllByRole('row');
+    const box = (row: HTMLElement) => row.querySelector('[class*="platformBox"]');
+
+    expect(confirmed!).toHaveTextContent('Platform 1');
+    expect(confirmed!).not.toHaveTextContent('Platform 1,');
+    expect(box(confirmed!)!.className).toMatch(/confirmed/);
+    expect(visibleText(confirmed!)).not.toMatch(/expected|booked/);
+
+    expect(expected!).toHaveTextContent('Platform 2, expected');
+    expect(box(expected!)!.className).toMatch(/expected/);
+    expect(visibleText(expected!)).toContain('expected');
+
+    expect(booked!).toHaveTextContent('Platform 3, booked');
+    expect(box(booked!)!.className).toMatch(/booked/);
+
+    expect(visibleText(tba!)).toContain('To be announced');
+    expect(box(tba!)).toBeNull();
+    expect(none!).toHaveTextContent('No platform information');
+    expect(box(none!)).toBeNull();
   });
 
   it('links to the train search for later trains and credits National Rail verbatim', () => {
