@@ -184,8 +184,9 @@ describe('PrivacyPage login service', () => {
     );
     expect(text).toMatch(/Microsoft login is for personal Microsoft accounts/);
     expect(text).toMatch(
-      /does not ask for or keep your email address or profile picture, and does not receive or use your Microsoft contacts, files, mail or calendar/,
+      /does not keep your email address or profile picture, and does not ask for access to your Microsoft contacts, files, mail or calendar/,
     );
+    expect(text).not.toMatch(/ask for or keep/);
     expect(text).not.toMatch(/asks Microsoft for/);
   });
 
