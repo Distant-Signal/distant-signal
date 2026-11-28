@@ -235,6 +235,32 @@ describe('StationDisruptionPage -- outage behaviour', () => {
       expect(screen.getByRole('option', { name: 'CrossCountry' })).toBeInTheDocument();
     });
 
+    it('retries without the operator when the api rejects it, and shows the unfiltered board', async () => {
+      const row = board.departures[0]!;
+      const both = {
+        ...board,
+        departures: [row, { ...row, uid: 'G2', operator: 'XC', operatorName: 'CrossCountry' }],
+      };
+      vi.mocked(api.getStationBoard).mockImplementation(async (_crs, _limit, operator) => {
+        if (operator !== undefined) throw new api.ApiBadRequestError('unknown operator');
+        return both;
+      });
+      vi.mocked(api.getStationBoard).mockClear();
+      await renderPage('KGX', 'ZZ');
+      expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10, 'ZZ');
+      expect(api.getStationBoard).toHaveBeenCalledWith('KGX', 10);
+      expect(screen.getByRole('region', { name: 'Departures from London Kings Cross' })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Operator' })).toHaveValue('');
+    });
+
+    it('still leaves the board out when a filtered request fails for any other reason', async () => {
+      vi.mocked(api.getStationBoard).mockRejectedValue(new Error('boom'));
+      vi.mocked(api.getStationBoard).mockClear();
+      await renderPage('KGX', 'GR');
+      expect(api.getStationBoard).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('region', { name: /Departures from/ })).toBeNull();
+    });
+
     it('ignores an ?operator= that is not an upper-case ATOC code', async () => {
       vi.mocked(api.getStationBoard).mockResolvedValue(board);
       vi.mocked(api.getStationBoard).mockClear();

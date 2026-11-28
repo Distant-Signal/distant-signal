@@ -46,6 +46,8 @@ import {
   getOperatorDailyStats,
   getNetworkDailyStats,
   ApiNotFoundError,
+  ApiBadRequestError,
+  getStationBoard,
   ApiUnavailableError,
   ApiUnauthorizedError,
   API_FETCH_TIMEOUT_MS,
@@ -233,6 +235,16 @@ describe('api client', () => {
       vi.fn(async () => new Response('not found', { status: 404 })),
     );
     await expect(getStationAccessibility('ZZZ')).rejects.toBeInstanceOf(ApiNotFoundError);
+  });
+
+  it('getStationBoard throws ApiBadRequestError on a 400 and asks for the board it was given', async () => {
+    const fetchMock = vi.fn(async () => new Response('{"error":"bad_request"}', { status: 400 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(getStationBoard('PAD', 10, 'ZZ', 'arrivals')).rejects.toBeInstanceOf(ApiBadRequestError);
+    const url = String((fetchMock.mock.calls[0] as unknown[])[0]);
+    expect(url).toContain('/public/stations/PAD/board?');
+    expect(url).toContain('operator=ZZ');
+    expect(url).toContain('board=arrivals');
   });
 
   it('getStationAccessibility resolves an empty object as an ordinary 200, not an error', async () => {

@@ -21,6 +21,7 @@ import { WarningIcon } from './WarningIcon';
 import {
   boardView,
   showOperatorFilter,
+  statusIcon,
   type BoardKind,
   type BoardPlatform,
   type BoardStatus,
@@ -75,25 +76,52 @@ function CrossIcon() {
   );
 }
 
-function StatusIcon({ kind }: { kind: BoardStatus['kind'] }) {
+/** 30 minutes or more late: an octagon with an exclamation mark, a different
+ * shape from the milder delays' triangle. */
+function SevereIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      data-icon="severe"
+      className={classes.statusIcon}
+    >
+      <polygon points="8.5 2.5 15.5 2.5 21.5 8.5 21.5 15.5 15.5 21.5 8.5 21.5 2.5 15.5 2.5 8.5" />
+      <line x1="12" y1="7" x2="12" y2="13" />
+      <line x1="12" y1="16.5" x2="12.01" y2="16.5" />
+    </svg>
+  );
+}
+
+function StatusIcon({ status }: { status: BoardStatus }) {
   // The wrappers give the shared icons the row's alignment; each is
   // decorative, the words beside it carry the meaning.
-  switch (kind) {
-    case 'onTime':
+  switch (statusIcon(status)) {
+    case 'check':
       return (
         <span className={classes.statusIcon}>
           <CheckIcon />
         </span>
       );
-    case 'delayed':
+    case 'warning':
       return (
         <span className={classes.statusIcon}>
           <WarningIcon />
         </span>
       );
-    case 'cancelled':
+    case 'severe':
+      return <SevereIcon />;
+    case 'cross':
       return <CrossIcon />;
-    case 'booked':
+    case 'clock':
       return <ClockIcon />;
   }
 }
@@ -150,7 +178,7 @@ function StatusCell({ status }: { status: BoardStatus }) {
   return (
     <div className={classes.status} data-tone={status.tone}>
       <span className={classes.statusLine}>
-        <StatusIcon kind={status.kind} />
+        <StatusIcon status={status} />
         {plain ? (
           status.text
         ) : (

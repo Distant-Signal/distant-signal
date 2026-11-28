@@ -9,6 +9,7 @@ import {
   showOperatorFilter,
   arrivalRow,
   parseBoardParam,
+  statusIcon,
   boardRowsOf,
 } from './stationBoard';
 import type { StationBoard, StationBoardArrival, StationBoardDeparture } from './types';
@@ -385,7 +386,7 @@ describe('arrivals', () => {
     expect(view.kind).toBe('arrivals');
     expect(view.heading).toBe('Arrivals at London Paddington');
     expect(view.rows).toHaveLength(1);
-    expect(view.empty).toBe('No more arrivals listed for today.');
+    expect(view.empty).toBe('No arrivals are scheduled at this station right now.');
     expect(boardView(arrivals, 'PAD', 'Great Western Railway')).toMatchObject({
       heading: 'Arrivals at London Paddington, Great Western Railway',
       empty: 'No more arrivals listed for Great Western Railway today.',
@@ -395,12 +396,27 @@ describe('arrivals', () => {
   it('keeps the departures empty messages', () => {
     const { arrivals: _unused, ...rest } = arrivals;
     const departures: StationBoard = { ...rest, board: 'departures' };
-    expect(boardView(departures, 'PAD').empty).toBe('No more departures listed for today.');
+    expect(boardView(departures, 'PAD').empty).toBe('No departures are scheduled from this station right now.');
     expect(boardView(departures, 'PAD', 'GWR').empty).toBe('No more departures listed for GWR today.');
   });
 
   it('lists the rows of whichever board the api answered with', () => {
     expect(boardRowsOf(arrivals)).toEqual([arrival()]);
     expect(boardRowsOf({ ...arrivals, board: 'departures', departures: [departure()] })).toEqual([departure()]);
+  });
+});
+
+describe('statusIcon', () => {
+  const icon = (overrides: Partial<StationBoardDeparture>) => statusIcon(boardStatus(departure(overrides)));
+
+  it('gives each tone its own glyph, the severe delay a shape apart from the milder ones', () => {
+    expect(icon({ status: 'onTime' })).toBe('check');
+    expect(icon({ status: 'booked' })).toBe('clock');
+    expect(icon({ status: 'delayed', delayMinutes: 3 })).toBe('warning');
+    expect(icon({ status: 'delayed', delayMinutes: null })).toBe('warning');
+    expect(icon({ status: 'delayed', delayMinutes: 29 })).toBe('warning');
+    expect(icon({ status: 'delayed', delayMinutes: 30 })).toBe('severe');
+    expect(icon({ status: 'delayed', delayMinutes: 90 })).toBe('severe');
+    expect(icon({ status: 'cancelled', isCancelled: true })).toBe('cross');
   });
 });
