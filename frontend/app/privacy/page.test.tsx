@@ -136,7 +136,7 @@ describe('PrivacyPage login service and Discord account ID', () => {
     const text = retentionText('Logging in');
     expect(text).toMatch(/used only for Distant Signal and is run by us/);
     expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
-    expect(text).toMatch(/a copy of your Discord profile picture/);
+    expect(text).not.toMatch(/copy of your Discord profile picture/);
     expect(text).toMatch(/does not ask the provider for your email address and does not store one/);
     expect(text).toMatch(
       /When you log in with Google, Google tells our login service your Google account ID and your name/,
@@ -148,8 +148,15 @@ describe('PrivacyPage login service and Discord account ID', () => {
     expect(text).toMatch(
       /IP address, browser details, approximate location and internet provider, and deletes it after /,
     );
-    expect(text).toMatch(/keeps the access key the provider gave it when you logged in, and a key to renew it/);
-    expect(text).toMatch(/Nothing uses them\. They are deleted if your login service account is deleted/);
+    expect(text).toMatch(
+      /Each time you log in it also saves the access key the provider gives it \(and a key to renew it/,
+    );
+    expect(text).toMatch(
+      /Nothing uses them\. It removes them every night, so they are held for up to about 24 hours, and also deletes them if your login service account is deleted/,
+    );
+    expect(retentionText('Technical logs and IP addresses')).toMatch(
+      /browser details and a shortened version of your IP address \(the last part removed\) when you log in\. Older log lines written before 28 November 2026 can still hold the full address until they are deleted/,
+    );
     expect(text).toMatch(/keeps your account until you ask us to delete it \(see Your rights\)/);
     expect(text).toMatch(/backed up each night\. The copies are encrypted and kept for 7 days/);
     expect(text).toMatch(
