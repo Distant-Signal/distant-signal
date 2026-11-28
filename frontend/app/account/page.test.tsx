@@ -77,4 +77,25 @@ describe('AccountPage', () => {
     expect(screen.getByText(/18 months after the day of travel/)).toBeInTheDocument();
     expect(screen.getByText(/can stay in them for up to 14\s+days/)).toBeInTheDocument();
   });
+
+  it('explains that a different login method starts a separate account', async () => {
+    vi.mocked(getSessionOrLoggedOut).mockResolvedValue({
+      authenticated: true,
+      id: 'user-1',
+      username: null,
+      name: 'Ada',
+      groups: [],
+      personalTokensEnabled: false,
+      regularJourneyRecurrenceEnabled: false,
+      regularJourneyDayOverridesEnabled: false,
+      calendarFeedEnabled: false,
+      webhooksEnabled: false,
+      recentlyDeletedEnabled: false,
+      analyticsOptIn: false,
+    });
+    renderWithMantine(await AccountPage());
+    const region = screen.getByRole('region', { name: 'Logging in another way' });
+    expect(region).toHaveTextContent(/separate account with no journeys/);
+    expect(region).not.toHaveTextContent(/Google|Microsoft|account settings|link/i);
+  });
 });

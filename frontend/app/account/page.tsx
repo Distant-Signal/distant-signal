@@ -64,6 +64,16 @@ export default async function AccountPage() {
         </Stack>
       </Card>
 
+      <Card withBorder component="section" aria-labelledby="login-methods-heading">
+        <Stack gap="xs">
+          <SectionTitle id="login-methods-heading">Logging in another way</SectionTitle>
+          <Text size="sm">
+            This account belongs to the way you logged in. Logging in a different way starts a separate account with no
+            journeys.
+          </Text>
+        </Stack>
+      </Card>
+
       <Card withBorder component="section" aria-labelledby="retention-heading">
         <Stack gap="xs">
           <SectionTitle id="retention-heading">How long we keep it</SectionTitle>
