@@ -91,7 +91,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
   return [
     {
       title: 'Your account',
-      what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in. If you log in with Discord, also your Discord account ID: the number Discord gives your account, not your Discord username. Only Discord accounts have this.',
+      what: 'The ID our login service gives you, your display name and username, the access groups needed to decide which features you can use, and when you signed up and last logged in. If you log in with Discord, also your Discord account ID: the number Discord gives your account, not your Discord username.',
       why: 'To create and run your account. If you log in with Discord, we use your Discord account ID only to recognise your account if our login service gives you a new ID, so you keep your journeys and settings.',
       basis: CONTRACT,
       retention:
@@ -217,7 +217,7 @@ function dataCategories(retention: RetentionPolicy): readonly DataCategory[] {
     },
     {
       title: 'Backups',
-      what: "Encrypted daily copies of our database and of our login service's database, which include the data above.",
+      what: 'Encrypted daily copies of our database, which include the data above.',
       why: 'To recover from failures.',
       basis: 'The same basis as the data they contain.',
       retention:
@@ -283,16 +283,16 @@ export default function PrivacyPage() {
         <Text>
           You log in through our own login service, which is used only for Distant Signal and is run by us. When you log
           in with Discord, Discord tells our login service your Discord account ID, username and display name. Our login
-          service keeps these, and a copy of your Discord profile picture (a small image, and its web address). If you
-          log in with Google or Microsoft, they tell our login service your account ID and your name. Our login service
-          keeps these, and does not keep a profile picture. We do not store your email address from any of them.
+          service keeps these, and a copy of your Discord profile picture (a small image, and its web address). Our
+          login service does not store your email address.
         </Text>
         <Text>
-          Our login service uses what it keeps to recognise you the next time you log in, and passes your account ID,
-          username and display name to Distant Signal. It also keeps the access token the provider gives it for your
-          login (and a refresh token, if the provider gives one). It keeps event logs of logins, including your IP
-          address, browser details and approximate location, and deletes them after {LEGAL_CONFIG.SSO_LOG_RETENTION}.
-          Its database is backed up each night (see Backups above).
+          Our login service uses what it keeps to recognise you the next time you log in. It gives Distant Signal an ID
+          for your account, your username and display name, your access groups and, if you log in with Discord, your
+          Discord account ID. Distant Signal does not store your profile picture. Our login service keeps a log of
+          logins and other account activity, including your IP address, browser details, approximate location and
+          internet provider, and deletes it after {LEGAL_CONFIG.SSO_LOG_RETENTION}. Its database is also backed up each
+          day.
         </Text>
         <Text>
           When we moved logging in to this service, we copied the Discord account ID of each existing account from the
@@ -522,8 +522,9 @@ export default function PrivacyPage() {
           <ListItem>
             To delete your account and its data, use <strong>{ACCOUNT_DELETE_LABEL}</strong> on the same page. Deleting
             your Distant Signal account does not delete your Discord, Google or Microsoft account, or your account on
-            our login service. You can remove Distant Signal&apos;s access in that provider&apos;s account settings. To
-            have your login service account deleted, email <ContactEmail />.
+            our login service. You can remove Distant Signal&apos;s access in that provider&apos;s account settings.
+            Removing access there does not delete what our login service has already kept; email us for that. To have
+            your login service account deleted, email <ContactEmail />.
           </ListItem>
           <ListItem>
             For anything else, or if you cannot log in, email <ContactEmail />. We reply within one month. For a complex

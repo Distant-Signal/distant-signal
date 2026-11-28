@@ -128,7 +128,6 @@ describe('PrivacyPage login service and Discord account ID', () => {
     const text = retentionText('Your account');
     expect(text).toMatch(/If you log in with Discord, also your Discord account ID/);
     expect(text).toMatch(/not your Discord username/);
-    expect(text).toMatch(/Only Discord accounts have this/);
     expect(text).toMatch(/If you log in with Discord, we use your Discord account ID only to recognise your account/);
   });
 
@@ -138,11 +137,14 @@ describe('PrivacyPage login service and Discord account ID', () => {
     expect(text).toMatch(/used only for Distant Signal and is run by us/);
     expect(text).toMatch(/Discord tells our login service your Discord account ID, username and display name/);
     expect(text).toMatch(/a copy of your Discord profile picture/);
-    expect(text).toMatch(/log in with Google or Microsoft, they tell our login service your account ID and your name/);
-    expect(text).toMatch(/does not keep a profile picture/);
-    expect(text).toMatch(/We do not store your email address from any of them/);
-    expect(text).toMatch(/keeps the access token the provider gives it for your login/);
-    expect(text).toMatch(/IP address, browser details and approximate location, and deletes them after /);
+    expect(text).toMatch(/Our login service does not store your email address/);
+    expect(text).toMatch(
+      /It gives Distant Signal an ID for your account, your username and display name, your access groups and, if you log in with Discord, your Discord account ID\. Distant Signal does not store your profile picture/,
+    );
+    expect(text).toMatch(
+      /IP address, browser details, approximate location and internet provider, and deletes it after /,
+    );
+    expect(text).toMatch(/Its database is also backed up each day/);
     expect(text).toMatch(
       /copied the Discord account ID of each existing account from the login service we used before/,
     );
@@ -155,6 +157,9 @@ describe('PrivacyPage login service and Discord account ID', () => {
       /does not delete your Discord, Google or Microsoft account, or your account on our login service/,
     );
     expect(text).toMatch(/Distant Signal's access in that provider's account settings/);
+    expect(text).toMatch(
+      /Removing access there does not delete what our login service has already kept; email us for that/,
+    );
     expect(text).toMatch(/To have your login service account deleted, email/);
   });
 });
