@@ -197,7 +197,7 @@ export function AccountMenu({
           unauthorizedMessage="You're already logged out."
         >
           This logs you out of Distant Signal on every device and ends the login session on this browser. Apps you
-          connected, such as an assistant, will need to be connected again.
+          connected, such as an assistant, may need to be connected again.
         </ConfirmActionButton>
       )}
       {canRevokeTokens && (

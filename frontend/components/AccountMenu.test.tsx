@@ -326,7 +326,7 @@ describe('AccountMenu, log out everywhere', () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(
       screen.getByText(
-        'This logs you out of Distant Signal on every device and ends the login session on this browser. Apps you connected, such as an assistant, will need to be connected again.',
+        'This logs you out of Distant Signal on every device and ends the login session on this browser. Apps you connected, such as an assistant, may need to be connected again.',
       ),
     ).toBeInTheDocument();
     expect(confirm).toHaveTextContent('Log out everywhere');
