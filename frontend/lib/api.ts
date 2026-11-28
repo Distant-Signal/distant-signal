@@ -873,14 +873,21 @@ export const STATION_BOARD_REVALIDATE_SECONDS = 20;
  * station page, so a slow answer must never hold the page back. */
 const STATION_BOARD_TIMEOUT_MS = 3_000;
 
-/** `GET /public/stations/{crs}/board` -- the station's next departures with
+/** `GET /public/stations/{crs}/board` -- the station's next departures (or, with
+ * `board` `arrivals`, arrivals) with
  * live times and platforms laid over the timetable. Throws
  * `ApiNotFoundError` while the api's switch is off and when the station has
  * no timetable for the day; the station page treats every failure the same
  * way and simply leaves the board out. */
-export async function getStationBoard(crs: string, limit: number, operator?: string): Promise<StationBoard> {
+export async function getStationBoard(
+  crs: string,
+  limit: number,
+  operator?: string,
+  board?: 'departures' | 'arrivals',
+): Promise<StationBoard> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (operator !== undefined) params.set('operator', operator);
+  if (board !== undefined) params.set('board', board);
   return fetchJson<StationBoard>(
     `${baseUrl()}/public/stations/${encodeURIComponent(crs)}/board?${params.toString()}`,
     { next: { revalidate: STATION_BOARD_REVALIDATE_SECONDS } },

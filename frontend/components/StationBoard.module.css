@@ -180,3 +180,32 @@
 .filterControl {
   min-height: 44px;
 }
+
+/* The Departures / Arrivals switch: two links side by side, each a 44px
+   target. The current one is told apart by weight and an underline bar, not
+   by colour alone. */
+.switch {
+  display: flex;
+  gap: var(--mantine-spacing-md);
+}
+
+.switchLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--mantine-spacing-xs);
+  border-bottom: 3px solid transparent;
+  color: var(--mantine-color-dimmed);
+  text-decoration: none;
+}
+
+.switchLink:hover,
+.switchLink:focus-visible {
+  text-decoration: underline;
+}
+
+.switchLink[aria-current='page'] {
+  border-bottom-color: currentcolor;
+  font-weight: 700;
+  color: var(--mantine-color-text);
+}

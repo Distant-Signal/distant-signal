@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Button,
   Group,
@@ -20,12 +21,13 @@ import { WarningIcon } from './WarningIcon';
 import {
   boardView,
   showOperatorFilter,
+  type BoardKind,
   type BoardPlatform,
   type BoardStatus,
   type BoardTime,
   type OperatorOption,
 } from '@/lib/stationBoard';
-import { stationDeparturesHref } from '@/lib/stationDepartures';
+import { stationArrivalsHref, stationDeparturesHref } from '@/lib/stationDepartures';
 import type { StationBoard as StationBoardData } from '@/lib/types';
 import classes from './StationBoard.module.css';
 
@@ -174,7 +176,39 @@ function StatusCell({ status }: { status: BoardStatus }) {
   );
 }
 
-/** A station's next departures, from the api's board. A real table: the
+/** The page address of one board: `?board=arrivals` for arrivals, none for
+ * departures (the default), keeping the operator filter. */
+function boardHref(crs: string, kind: BoardKind, operator: string | null): string {
+  const params = new URLSearchParams();
+  if (operator !== null) params.set('operator', operator);
+  if (kind === 'arrivals') params.set('board', 'arrivals');
+  const query = params.toString();
+  return `/stations/${crs}${query === '' ? '' : `?${query}`}#board`;
+}
+
+/** Departures or arrivals: two real links, so it works without JavaScript. */
+function BoardSwitch({ crs, kind, operator }: { crs: string; kind: BoardKind; operator: string | null }) {
+  const options: { kind: BoardKind; label: string }[] = [
+    { kind: 'departures', label: 'Departures' },
+    { kind: 'arrivals', label: 'Arrivals' },
+  ];
+  return (
+    <nav aria-label="Board type" className={classes.switch}>
+      {options.map((option) => (
+        <Link
+          key={option.kind}
+          href={boardHref(crs, option.kind, operator)}
+          className={classes.switchLink}
+          aria-current={option.kind === kind ? 'page' : undefined}
+        >
+          {option.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/** A station's next departures or arrivals, from the api's board. A real table: the
  * time, the destination (its operator beneath it on a phone, a column of
  * its own from `sm`), the platform in a box, and the status in words with
  * an icon. Server-rendered; `AutoRefresh` re-requests it with the page. */
@@ -200,9 +234,11 @@ export function StationBoard({
   return (
     <Stack gap="xs" id="board" component="section" aria-labelledby={headingId}>
       <SectionTitle id={headingId}>{view.heading}</SectionTitle>
+      <BoardSwitch crs={crs} kind={view.kind} operator={operator} />
       {showOperatorFilter(operators, operator) && (
         // A plain GET form, so it works without JavaScript.
         <form method="get" action={`/stations/${crs}#board`}>
+          {view.kind === 'arrivals' && <input type="hidden" name="board" value="arrivals" />}
           <Group align="flex-end" gap="xs" wrap="nowrap">
             <NativeSelect
               name="operator"
@@ -218,17 +254,13 @@ export function StationBoard({
         </form>
       )}
       {view.rows.length === 0 ? (
-        <Text c="dimmed">
-          {operatorLabel === null
-            ? 'No more departures listed for today.'
-            : `No more departures listed for ${operatorLabel} today.`}
-        </Text>
+        <Text c="dimmed">{view.empty}</Text>
       ) : (
         <Table className={classes.table} aria-label={view.heading}>
           <TableThead>
             <TableTr>
               <TableTh scope="col">Time</TableTh>
-              <TableTh scope="col">Destination</TableTh>
+              <TableTh scope="col">{view.kind === 'arrivals' ? 'From' : 'Destination'}</TableTh>
               <TableTh scope="col" className={classes.operatorColumn}>
                 Operator
               </TableTh>
@@ -264,7 +296,9 @@ export function StationBoard({
           </TableTbody>
         </Table>
       )}
-      <TextLink href={stationDeparturesHref(crs)}>Later trains</TextLink>
+      <TextLink href={view.kind === 'arrivals' ? stationArrivalsHref(crs) : stationDeparturesHref(crs)}>
+        Later trains
+      </TextLink>
       <Text size="xs" c="dimmed">
         {view.updated}
       </Text>
