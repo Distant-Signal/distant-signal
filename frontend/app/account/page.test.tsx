@@ -96,6 +96,6 @@ describe('AccountPage', () => {
     renderWithMantine(await AccountPage());
     const region = screen.getByRole('region', { name: 'Logging in another way' });
     expect(region).toHaveTextContent(/separate account with no journeys/);
-    expect(region).toHaveTextContent(/link it in your login account settings/);
+    expect(region).not.toHaveTextContent(/Google|Microsoft|account settings|link/i);
   });
 });

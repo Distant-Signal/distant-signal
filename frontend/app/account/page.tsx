@@ -68,9 +68,8 @@ export default async function AccountPage() {
         <Stack gap="xs">
           <SectionTitle id="login-methods-heading">Logging in another way</SectionTitle>
           <Text size="sm">
-            This account belongs to the way you logged in. Logging in with a different method, for example Google
-            instead of Discord, starts a separate account with no journeys. To use more than one method with the same
-            account, link it in your login account settings while you are logged in with the method you already use.
+            This account belongs to the way you logged in. Logging in a different way starts a separate account with no
+            journeys.
           </Text>
         </Stack>
       </Card>
